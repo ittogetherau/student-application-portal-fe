@@ -1,7 +1,14 @@
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 const Page = () => {
   return (
-    <div>Homepage</div>
-  )
-}
+    <div>
+      <Link href={"/login"}>
+        <Button>Login</Button>
+      </Link>
+    </div>
+  );
+};
 
-export default Page
+export default Page;
