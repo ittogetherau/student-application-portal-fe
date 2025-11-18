@@ -21,7 +21,7 @@ const normalizePath = (pathname: string) =>
 const isProtectedPath = (pathname: string) =>
   pathname.startsWith("/dashboard");
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/dash" || pathname.startsWith("/dash/")) {

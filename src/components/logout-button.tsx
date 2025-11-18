@@ -4,8 +4,11 @@ import { useCallback, type MouseEventHandler } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import type React from "react";
 import { clearBrowserAuthSession } from "@/lib/auth";
+
+type ButtonProps = React.ComponentProps<typeof Button>;
 
 export const useLogout = (redirectPath = "/dashboard") => {
   const router = useRouter();
