@@ -7,10 +7,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Providers = ({ children }: { children: ReactNode }) => {
   return (
-    <SidebarProvider>
+    <>
       {children}
       <AppToaster />
-    </SidebarProvider>
+    </>
   );
 };
 

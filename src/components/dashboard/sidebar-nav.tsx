@@ -1,20 +1,11 @@
 "use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-import { useEffect, useRef, useState } from "react";
+import { useLogout } from "@/components/logout-button";
 import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  Inbox,
-  LogOut,
-  UserRound,
-} from "lucide-react";
-
-import type { UserRole } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -22,12 +13,23 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarItem,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import LogoutButton from "@/components/logout-button";
+import type { UserRole } from "@/lib/auth";
+import {
+  FileText,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  UserRound,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const ICONS = {
   dashboard: LayoutDashboard,
@@ -55,30 +57,8 @@ type SidebarNavProps = {
 
 const SidebarNav = ({ items, user }: SidebarNavProps) => {
   const pathname = usePathname();
-  const { close, open } = useSidebar();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClick = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setMenuOpen(false);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [menuOpen]);
-
-  const handleNavigate = () => {
-    if (typeof window !== "undefined" && window.innerWidth < 640) {
-      close();
-    }
-    setMenuOpen(false);
-  };
+  const { isMobile, open, setOpenMobile } = useSidebar();
+  const logout = useLogout("/login");
 
   const roleLabel =
     user.role === "staff"
@@ -89,105 +69,98 @@ const SidebarNav = ({ items, user }: SidebarNavProps) => {
   const initials =
     user.name?.[0]?.toUpperCase() ?? user.email[0]?.toUpperCase() ?? "?";
 
+  const handleNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  // if (!isMobile && !open) return null;
+
   return (
-    <>
-      <Sidebar>
-        <SidebarContent>
-          <div className="mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-lg font-semibold text-white">
-                C
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">
-                  Churchill University
-                </p>
-                <p className="text-xs text-gray-500">{roleLabel}</p>
-              </div>
-            </div>
+    <Sidebar collapsible="offcanvas" variant="sidebar">
+      <SidebarHeader className="p-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8  items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            C
           </div>
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {items.map((item) => {
-                  const isExactMatch =
-                    pathname === item.href ||
-                    (item.href !== "/dashboard" &&
-                      pathname.startsWith(`${item.href}/`));
-                  const Icon = ICONS[item.icon] ?? LayoutDashboard;
-                  return (
-                    <SidebarItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isExactMatch}
-                        onClick={handleNavigate}
-                        className="gap-3"
-                      >
-                        <Link href={item.href}>
-                          <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-gray-100"
-              onClick={() => setMenuOpen((prev) => !prev)}
-            >
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-950 text-sm font-semibold text-secondary">
+          <div className="space-y-0.5 group-data-[collapsible=icon]:hidden">
+            <p className="text-sm font-semibold text-foreground">
+              Churchill University
+            </p>
+            <p className="text-xs text-muted-foreground">{roleLabel}</p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => {
+                const isExactMatch =
+                  pathname === item.href ||
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(`${item.href}/`));
+                const Icon = ICONS[item.icon] ?? LayoutDashboard;
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isExactMatch}
+                      tooltip={item.label}
+                      onClick={handleNavigate}
+                    >
+                      <Link href={item.href}>
+                        <Icon className="text-muted-foreground" />
+                        <>{item.label}</>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-1 py-3 hover:bg-secondary rounded-lg">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 {initials}
               </span>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">
+              <span className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-semibold text-foreground">
                   {user.name}
-                </p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {user.email}
+                </span>
+              </span>
             </button>
-
-            {menuOpen && (
-              <div className="absolute bottom-14 left-0 z-50 w-full rounded-2xl bg-white p-2 text-sm shadow-lg">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-gray-700 transition hover:bg-gray-50"
-                >
-                  <UserRound className="h-4 w-4" />
-                  Profile
-                </button>
-                <LogoutButton
-                  redirectPath="/login"
-                  variant="ghost"
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="pl-2">Logout</span>
-                </LogoutButton>
-              </div>
-            )}
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <div
-        className={cn(
-          "fixed inset-0 z-30 bg-black/30 sm:hidden",
-          open ? "block" : "hidden"
-        )}
-        onClick={() => {
-          close();
-          setMenuOpen(false);
-        }}
-      />
-    </>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="start"
+            className="w-60 rounded-2xl border bg-card p-2"
+          >
+            <DropdownMenuItem className="flex items-center gap-2 text-muted-foreground focus:text-foreground">
+              <UserRound className="h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="flex items-center gap-2 text-muted-foreground focus:text-foreground"
+              onSelect={(event) => {
+                event.preventDefault();
+                logout();
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
 

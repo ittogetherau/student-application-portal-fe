@@ -31,34 +31,38 @@ const AppToolbar = () => {
   );
 
   return (
-    <div className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
+    <div className="flex h-14 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
       <div className="flex items-center gap-3">
         <SidebarTrigger />
-        <nav className="text-sm text-gray-500">
+
+        <nav className="text-sm text-muted-foreground">
           <ol className="flex items-center gap-2">
-            {breadcrumbs.map((crumb, index) => (
-              <li key={crumb.href} className="flex items-center gap-2">
-                <Link
-                  href={crumb.href}
-                  className={cn(
-                    "transition",
-                    index === breadcrumbs.length - 1
-                      ? "font-semibold text-gray-900"
-                      : "text-gray-500 hover:text-gray-900"
+            {breadcrumbs.map((crumb, index) => {
+              const isActive = index === breadcrumbs.length - 1;
+              return (
+                <li key={crumb.href} className="flex items-center gap-2">
+                  <Link
+                    href={crumb.href}
+                    className={cn(
+                      "transition-colors",
+                      isActive
+                        ? "font-semibold text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {crumb.label}
+                  </Link>
+                  {index < breadcrumbs.length - 1 && (
+                    <span className="text-border">/</span>
                   )}
-                >
-                  {crumb.label}
-                </Link>
-                {index < breadcrumbs.length - 1 && (
-                  <span className="text-gray-300">/</span>
-                )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         </nav>
       </div>
 
-      <Button variant="ghost" size="icon" className="text-gray-600">
+      <Button variant="ghost" size="icon" className="text-muted-foreground">
         <Bell className="h-4 w-4" />
         <span className="sr-only">Notifications</span>
       </Button>

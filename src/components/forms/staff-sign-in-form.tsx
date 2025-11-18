@@ -9,7 +9,7 @@ const StaffSignInForm = () => {
       placeholderEmail="staff@example.com"
       role="staff"
     >
-      <div className="space-y-3 border-t border-gray-100 pt-4">
+      <div className="space-y-3 border-t border-border pt-4">
         <Button type="button" variant="outline" className="w-full">
           Sign in with Microsoft (MSAL)
         </Button>

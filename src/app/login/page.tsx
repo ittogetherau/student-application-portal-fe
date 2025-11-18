@@ -12,16 +12,16 @@ import { Button } from "@/components/ui/button";
 
 const LoginPage = () => {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
       <div className="w-full max-w-md space-y-6">
         <div className="space-y-2 text-center">
-          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-lg bg-gray-900">
-            <span className="text-3xl font-semibold text-white">C</span>
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-lg bg-primary text-3xl font-semibold text-primary-foreground">
+            C
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-2xl font-semibold text-foreground">
             Churchill University
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Application Management System
           </p>
         </div>
@@ -30,7 +30,7 @@ const LoginPage = () => {
 
         <Card className="text-center">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-gray-900">
+            <CardTitle className="text-base font-semibold text-foreground">
               Track your application as a student?
             </CardTitle>
             <CardDescription>
@@ -38,13 +38,13 @@ const LoginPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="link" className="text-gray-900">
+            <Button asChild variant="link" className="text-primary">
               <Link href="/track">Go to Application Tracking -&gt;</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} Churchill University. All rights
           reserved.
         </p>

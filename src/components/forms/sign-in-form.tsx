@@ -100,13 +100,15 @@ const SignInForm = ({
   };
 
   return (
-    <Card className="w-full max-w-md border border-gray-200">
+    <Card className="w-full max-w-md border border-border">
       <CardHeader className="text-center">
-        <p className="text-sm font-medium uppercase tracking-wide text-gray-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
           Portal Access
         </p>
         <CardTitle className="text-4xl">{title}</CardTitle>
-        <CardDescription className="text-base">{description}</CardDescription>
+        <CardDescription className="text-base">
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -120,7 +122,7 @@ const SignInForm = ({
               onFocus={resetStatus}
             />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email.message}</p>
+              <p className="text-sm text-destructive">{errors.email.message}</p>
             )}
           </div>
 
@@ -134,7 +136,9 @@ const SignInForm = ({
               onFocus={resetStatus}
             />
             {errors.password && (
-              <p className="text-sm text-red-600">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -143,13 +147,13 @@ const SignInForm = ({
           </Button>
 
           {status === "success" && (
-            <p className="text-center text-sm text-emerald-600">
+            <p className="text-center text-sm text-emerald-500">
               {successMessage}
             </p>
           )}
 
           {status === "error" && error && (
-            <p className="text-center text-sm text-red-600">{error}</p>
+            <p className="text-center text-sm text-destructive">{error}</p>
           )}
         </form>
       </CardContent>

@@ -32,9 +32,13 @@ const PortalLoginCard = () => {
           onValueChange={(value) => setActiveTab(value as PortalTab)}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="agent">Agent Portal</TabsTrigger>
-            <TabsTrigger value="staff">Staff Portal</TabsTrigger>
+          <TabsList className="grid grid-cols-2 gap-2">
+            <TabsTrigger className="w-full" value="agent">
+              Agent Portal
+            </TabsTrigger>
+            <TabsTrigger className="w-full" value="staff">
+              Staff Portal
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="agent" className="mt-6">
             <AgentSignInForm />

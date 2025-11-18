@@ -76,7 +76,7 @@ const PortalCredentialsForm = ({
           {...register("email")}
         />
         {errors.email && (
-          <p className="text-sm text-red-600">{errors.email.message}</p>
+          <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
       </div>
 
@@ -90,7 +90,7 @@ const PortalCredentialsForm = ({
           {...register("password")}
         />
         {errors.password && (
-          <p className="text-sm text-red-600">{errors.password.message}</p>
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 

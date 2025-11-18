@@ -5,7 +5,7 @@ import SidebarNav, {
   type SidebarIconName,
 } from "@/components/dashboard/sidebar-nav";
 import AppToolbar from "@/components/dashboard/app-toolbar";
-import { SidebarInset } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AUTH_COOKIE_NAME, parseAuthCookie, type UserRole } from "@/lib/auth";
 
 type NavItem = { label: string; href: string; icon: SidebarIconName };
@@ -43,7 +43,8 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   const navItems = NAV_LINKS[session.role] ?? NAV_LINKS.admin;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <SidebarProvider>
+      {/* Do not add a parent here. will break the ui */}
       <SidebarNav
         items={navItems}
         user={{
@@ -52,11 +53,12 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
           role: session.role,
         }}
       />
-      <SidebarInset>
+
+      <SidebarInset className="bg-background">
         <AppToolbar />
-        <div className="flex-1 p-8">{children}</div>
+        <div className="flex-1 p-3 md:p-6">{children}</div>
       </SidebarInset>
-    </div>
+    </SidebarProvider>
   );
 };
 

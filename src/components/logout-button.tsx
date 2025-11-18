@@ -1,14 +1,25 @@
 "use client";
 
+import { useCallback, type MouseEventHandler } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { clearBrowserAuthSession } from "@/lib/auth";
 
-type LogoutButtonProps = {
+export const useLogout = (redirectPath = "/dashboard") => {
+  const router = useRouter();
+
+  return useCallback(() => {
+    clearBrowserAuthSession();
+    toast.success("Signed out");
+    router.push(redirectPath);
+  }, [redirectPath, router]);
+};
+
+type LogoutButtonProps = ButtonProps & {
   redirectPath?: string;
-} & ButtonProps;
+};
 
 const LogoutButton = ({
   redirectPath = "/dashboard",
@@ -16,21 +27,22 @@ const LogoutButton = ({
   variant = "outline",
   size = "sm",
   children = "Logout",
+  onClick,
   ...buttonProps
 }: LogoutButtonProps) => {
-  const router = useRouter();
+  const logout = useLogout(redirectPath);
 
-  const handleLogout = () => {
-    clearBrowserAuthSession();
-    toast.success("Signed out");
-    router.push(redirectPath);
+  const handleClick: MouseEventHandler<HTMLButtonElement> = (event) => {
+    onClick?.(event);
+    if (event.defaultPrevented) return;
+    logout();
   };
 
   return (
     <Button
       variant={variant}
       size={size}
-      onClick={handleLogout}
+      onClick={handleClick}
       className={className}
       {...buttonProps}
     >
