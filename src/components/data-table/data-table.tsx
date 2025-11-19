@@ -67,6 +67,7 @@ interface DataTableProps<TData, TValue> {
   };
   searchableColumns?: Array<keyof TData | string>;
   searchPlaceholder?: string;
+  toolbarActions?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -77,6 +78,7 @@ export function DataTable<TData, TValue>({
   emptyState,
   searchableColumns,
   searchPlaceholder,
+  toolbarActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -139,6 +141,7 @@ export function DataTable<TData, TValue>({
         searchValue={hasSearch ? searchValue : undefined}
         onSearch={hasSearch ? setSearchValue : undefined}
         placeholder={searchPlaceholder}
+        actions={toolbarActions}
       />
 
       <div className="rounded-md border">

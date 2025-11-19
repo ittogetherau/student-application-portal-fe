@@ -39,9 +39,9 @@ const SignInForm = ({
   successMessage = "Sign-in request sent.",
   redirectTo = "/dashboard",
 }: SignInFormProps) => {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -106,12 +106,14 @@ const SignInForm = ({
           Portal Access
         </p>
         <CardTitle className="text-4xl">{title}</CardTitle>
-        <CardDescription className="text-base">
-          {description}
-        </CardDescription>
+        <CardDescription className="text-base">{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6"
+          noValidate
+        >
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -142,7 +144,11 @@ const SignInForm = ({
             )}
           </div>
 
-          <Button className="w-full" type="submit" disabled={status === "loading"}>
+          <Button
+            className="w-full"
+            type="submit"
+            disabled={status === "loading"}
+          >
             {status === "loading" ? "Signing in..." : "Sign in"}
           </Button>
 
@@ -162,4 +168,3 @@ const SignInForm = ({
 };
 
 export default SignInForm;
-

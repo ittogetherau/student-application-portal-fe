@@ -22,6 +22,7 @@ interface DataTableToolbarProps<TData> {
   placeholder?: string;
   searchValue?: string;
   onSearch?: (value: string) => void;
+  actions?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -31,6 +32,7 @@ export function DataTableToolbar<TData>({
   placeholder,
   searchValue,
   onSearch,
+  actions,
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || !!searchValue?.length;
@@ -119,10 +121,13 @@ export function DataTableToolbar<TData>({
         ) : null}
       </div>
 
-      <DataTableViewOptions
-        table={table}
-        columnVisibility={columnVisibility}
-      />
+      <div className="flex items-center justify-end gap-2">
+        {actions}
+        <DataTableViewOptions
+          table={table}
+          columnVisibility={columnVisibility}
+        />
+      </div>
     </div>
   );
 }

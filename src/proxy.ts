@@ -6,7 +6,9 @@ import { AUTH_COOKIE_NAME, parseAuthCookie } from "@/lib/auth";
 const DASHBOARD_AGENT_PATHS = new Set([
   "/dashboard",
   "/dashboard/application",
+  "/dashboard/application/new",
 ]);
+
 const DASHBOARD_STAFF_PATHS = new Set([
   "/dashboard",
   "/dashboard/agents",
