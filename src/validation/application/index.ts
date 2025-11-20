@@ -95,7 +95,7 @@ export type LanguageCulturalValues = z.infer<typeof languageCulturalSchema>;
 export const disabilitySupportSchema = z.object({
   hasDisability: yesNoEnum,
   disabilityTypes: z
-    .record(z.boolean())
+    .record(z.string(), z.boolean())
     .optional()
     .default({}),
 });

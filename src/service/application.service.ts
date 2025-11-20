@@ -110,7 +110,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail | null>(
+      return handleApiError<ApplicationDetail>(
         error,
         "Failed to create application",
       );
@@ -132,7 +132,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail | null>(
+      return handleApiError<ApplicationDetail>(
         error,
         "Failed to fetch application",
       );
@@ -420,7 +420,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail | null>(
+      return handleApiError<ApplicationDetail >(
         error,
         "Failed to submit application",
       );

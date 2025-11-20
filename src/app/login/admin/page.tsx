@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import SignInForm from "@/components/forms/sign-in-form";
 import {
   Card,
   CardContent,
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SignInForm from "@/components/forms/auth/sign-in-form";
 
 const AdminLoginPage = () => {
   return (

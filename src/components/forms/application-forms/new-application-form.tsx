@@ -200,7 +200,7 @@ const NewApplicationForm = () => {
       const snapshot = JSON.stringify(payload);
       if (lastSavedSnapshots[stepId] === snapshot) return true;
       try {
-        await mutation.mutateAsync(payload);
+        await mutation.mutateAsync(payload as never);
         setLastSavedSnapshots((prev) => ({
           ...prev,
           [stepId]: snapshot,
