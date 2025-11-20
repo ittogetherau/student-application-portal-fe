@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import FormField from '@/components/forms/form-field';
 
 interface DisabilityFormProps {
   data: any;
@@ -18,17 +19,20 @@ export default function DisabilityForm({ data, onUpdate, onComplete }: Disabilit
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const hasDisability = watch("hasDisability");
+  const disabilityTypes = watch("disabilityTypes");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.hasDisability !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.hasDisability !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   const disabilities = [
     { id: 'hearing', label: 'Hearing/deaf' },
@@ -44,10 +48,9 @@ export default function DisabilityForm({ data, onUpdate, onComplete }: Disabilit
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <Label className="required">Do you consider yourself to have a disability, impairment or long-term condition?</Label>
+      <FormField label="Do you consider yourself to have a disability, impairment or long-term condition?" required>
         <RadioGroup
-          value={formValues.hasDisability}
+          value={hasDisability}
           onValueChange={(value) => setValue('hasDisability', value)}
         >
           <div className="flex items-center gap-4">
@@ -61,24 +64,25 @@ export default function DisabilityForm({ data, onUpdate, onComplete }: Disabilit
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
-      {formValues.hasDisability === 'yes' && (
-        <div className="space-y-3">
-          <Label>If Yes, select from the list below:</Label>
-          {disabilities.map((disability) => (
-            <div key={disability.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={disability.id}
-                checked={formValues.disabilityTypes?.[disability.id] || false}
-                onCheckedChange={(checked) => setValue(`disabilityTypes.${disability.id}`, checked)}
-              />
-              <Label htmlFor={disability.id} className="font-normal cursor-pointer">
-                {disability.label}
-              </Label>
-            </div>
-          ))}
-        </div>
+      {hasDisability === 'yes' && (
+        <FormField label="If Yes, select from the list below:">
+          <div className="space-y-3">
+            {disabilities.map((disability) => (
+              <div key={disability.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={disability.id}
+                  checked={disabilityTypes?.[disability.id] || false}
+                  onCheckedChange={(checked) => setValue(`disabilityTypes.${disability.id}`, checked)}
+                />
+                <Label htmlFor={disability.id} className="font-normal cursor-pointer">
+                  {disability.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </FormField>
       )}
 
       <style>{`

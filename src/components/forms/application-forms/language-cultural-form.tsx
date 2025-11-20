@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import FormField from '@/components/forms/form-field';
 
 interface LanguageCulturalFormProps {
   data: any;
@@ -36,38 +37,53 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const aboriginalOrigin = watch("aboriginalOrigin") ?? "";
+  const englishMain = watch("englishMain") ?? "";
+  const mainLanguage = watch("mainLanguage") ?? "";
+  const englishProficiency = watch("englishProficiency") ?? "";
+  const englishInstruction = watch("englishInstruction") ?? "";
+  const completedEnglishTest = watch("completedEnglishTest") ?? "";
+  const emptyTest = {
+    testType: "",
+    testDate: "",
+    scoreType: "",
+    listeningScore: "",
+    readingScore: "",
+    writingScore: "",
+    speakingScore: "",
+    overallScore: "",
+  };
   const [englishTests, setEnglishTests] = useState<any[]>(data.englishTests || []);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTest, setCurrentTest] = useState<any>({});
+  const [currentTest, setCurrentTest] = useState<any>(emptyTest);
 
   useEffect(() => {
-    onUpdate({ ...formValues, englishTests });
-  }, [englishTests, formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate({ ...formValues, englishTests });
 
-  useEffect(() => {
-    if (formValues.aboriginalOrigin && formValues.englishMain !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.aboriginalOrigin && formValues.englishMain !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, englishTests, onUpdate, onComplete]);
 
   const handleAddTest = () => {
     setEnglishTests([...englishTests, currentTest]);
-    setCurrentTest({});
+    setCurrentTest(emptyTest);
     setIsDialogOpen(false);
   };
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <div>
-          <Label className="required">Are you of Australian Aboriginal and Torres Strait Islander origin?</Label>
-          <p className="text-sm text-muted-foreground mb-2">
-            For persons of both Australian Aboriginal and Torres Strait Islander origin, mark both 'Yes' boxes.
-          </p>
-        </div>
+      <FormField
+        label="Are you of Australian Aboriginal and Torres Strait Islander origin?"
+        required
+        description="For persons of both Australian Aboriginal and Torres Strait Islander origin, mark both 'Yes' boxes."
+      >
         <RadioGroup
-          value={formValues.aboriginalOrigin}
+          value={aboriginalOrigin}
           onValueChange={(value) => setValue('aboriginalOrigin', value)}
         >
           <div className="flex items-center space-x-2">
@@ -101,14 +117,13 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
             </Label>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
       <Separator />
 
-      <div className="space-y-4">
-        <Label className="required">Is English your main language?</Label>
+      <FormField label="Is English your main language?" required>
         <RadioGroup
-          value={formValues.englishMain}
+          value={englishMain}
           onValueChange={(value) => setValue('englishMain', value)}
         >
           <div className="flex items-center gap-4">
@@ -122,14 +137,13 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
-      {formValues.englishMain === 'no' && (
+      {englishMain === 'no' && (
         <>
-          <div className="space-y-2">
-            <Label htmlFor="mainLanguage">What is your Main Language?</Label>
+          <FormField label="What is your Main Language?">
             <Select
-              value={formValues.mainLanguage}
+              value={mainLanguage}
               onValueChange={(value) => setValue('mainLanguage', value)}
             >
               <SelectTrigger id="mainLanguage">
@@ -146,12 +160,11 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          <div className="space-y-2">
-            <Label htmlFor="englishProficiency">How well do you speak English?</Label>
+          <FormField label="How well do you speak English?">
             <Select
-              value={formValues.englishProficiency}
+              value={englishProficiency}
               onValueChange={(value) => setValue('englishProficiency', value)}
             >
               <SelectTrigger id="englishProficiency">
@@ -165,7 +178,7 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
                 <SelectItem value="not-stated">Not Stated</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
         </>
       )}
 
@@ -175,10 +188,9 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
         <h3 className="font-medium">English Test</h3>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Was English the language of instruction in previous secondary or tertiary studies?</Label>
+          <FormField label="Was English the language of instruction in previous secondary or tertiary studies?">
             <RadioGroup
-              value={formValues.englishInstruction}
+              value={englishInstruction}
               onValueChange={(value) => setValue('englishInstruction', value)}
             >
               <div className="flex items-center gap-4">
@@ -192,12 +204,11 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
                 </div>
               </div>
             </RadioGroup>
-          </div>
+          </FormField>
 
-          <div className="space-y-2">
-            <Label>Have you completed a test of English Language Proficiency?</Label>
+          <FormField label="Have you completed a test of English Language Proficiency?">
             <RadioGroup
-              value={formValues.completedEnglishTest}
+              value={completedEnglishTest}
               onValueChange={(value) => setValue('completedEnglishTest', value)}
             >
               <div className="flex items-center gap-4">
@@ -211,10 +222,10 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
                 </div>
               </div>
             </RadioGroup>
-          </div>
+          </FormField>
         </div>
 
-        {formValues.completedEnglishTest === 'yes' && (
+        {completedEnglishTest === 'yes' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>English Tests</Label>

@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import FormField from '@/components/forms/form-field';
 
 interface EmploymentFormProps {
   data: any;
@@ -33,20 +34,22 @@ export default function EmploymentForm({ data, onUpdate, onComplete }: Employmen
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const employmentStatus = watch("employmentStatus");
   const [employmentHistory, setEmploymentHistory] = useState<any[]>(data.employmentHistory || []);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentEmployment, setCurrentEmployment] = useState<any>({});
 
   useEffect(() => {
-    onUpdate({ ...formValues, employmentHistory });
-  }, [employmentHistory, formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate({ ...formValues, employmentHistory });
 
-  useEffect(() => {
-    if (formValues.employmentStatus) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.employmentStatus) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, employmentHistory, onUpdate, onComplete]);
 
   const handleAddEmployment = () => {
     setEmploymentHistory([...employmentHistory, currentEmployment]);
@@ -62,10 +65,13 @@ export default function EmploymentForm({ data, onUpdate, onComplete }: Employmen
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="employmentStatus" className="required">Which BEST describes your current employment status?</Label>
+      <FormField
+        label="Which BEST describes your current employment status?"
+        required
+        htmlFor="employmentStatus"
+      >
         <Select
-          value={formValues.employmentStatus}
+          value={employmentStatus}
           onValueChange={(value) => setValue('employmentStatus', value)}
         >
           <SelectTrigger id="employmentStatus">
@@ -83,98 +89,99 @@ export default function EmploymentForm({ data, onUpdate, onComplete }: Employmen
             <SelectItem value="@@">@@ - Not Specified</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>Employment History</Label>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Employment
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Employment</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Employer (optional)</Label>
-                  <Input
-                    value={currentEmployment.employer}
-                    onChange={(e) => setCurrentEmployment({ ...currentEmployment, employer: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Occupation (optional)</Label>
-                  <Input
-                    value={currentEmployment.occupation}
-                    onChange={(e) => setCurrentEmployment({ ...currentEmployment, occupation: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Duration From (optional)</Label>
-                    <Input
-                      type="date"
-                      value={currentEmployment.durationFrom}
-                      onChange={(e) => setCurrentEmployment({ ...currentEmployment, durationFrom: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Duration To (optional)</Label>
-                    <Input
-                      type="date"
-                      value={currentEmployment.durationTo}
-                      onChange={(e) => setCurrentEmployment({ ...currentEmployment, durationTo: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Duties (optional)</Label>
-                  <textarea
-                    value={currentEmployment.duties}
-                    onChange={(e) => setCurrentEmployment({ ...currentEmployment, duties: e.target.value })}
-                    rows={3}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                </div>
-                <Button onClick={handleAddEmployment} className="w-full">
+      <FormField label="Employment History" description="Add any relevant work experience.">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" />
                   Add Employment
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {employmentHistory.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8 border rounded-lg">
-            You have not added employment yet.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {employmentHistory.map((emp, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">{emp.employer || 'N/A'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {emp.occupation} • {emp.durationFrom} - {emp.durationTo}
-                  </p>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Employment</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Employer (optional)</Label>
+                    <Input
+                      value={currentEmployment.employer}
+                      onChange={(e) => setCurrentEmployment({ ...currentEmployment, employer: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Occupation (optional)</Label>
+                    <Input
+                      value={currentEmployment.occupation}
+                      onChange={(e) => setCurrentEmployment({ ...currentEmployment, occupation: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Duration From (optional)</Label>
+                      <Input
+                        type="date"
+                        value={currentEmployment.durationFrom}
+                        onChange={(e) => setCurrentEmployment({ ...currentEmployment, durationFrom: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Duration To (optional)</Label>
+                      <Input
+                        type="date"
+                        value={currentEmployment.durationTo}
+                        onChange={(e) => setCurrentEmployment({ ...currentEmployment, durationTo: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Duties (optional)</Label>
+                    <textarea
+                      value={currentEmployment.duties}
+                      onChange={(e) => setCurrentEmployment({ ...currentEmployment, duties: e.target.value })}
+                      rows={3}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
+                  </div>
+                  <Button onClick={handleAddEmployment} className="w-full">
+                    Add Employment
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEmploymentHistory(employmentHistory.filter((_, i) => i !== index))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              </DialogContent>
+            </Dialog>
           </div>
-        )}
-      </div>
+
+          {employmentHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8 border rounded-lg">
+              You have not added employment yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {employmentHistory.map((emp, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{emp.employer || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {emp.occupation} &bull; {emp.durationFrom} - {emp.durationTo}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEmploymentHistory(employmentHistory.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </FormField>
 
       <style>{`
         .required::after {

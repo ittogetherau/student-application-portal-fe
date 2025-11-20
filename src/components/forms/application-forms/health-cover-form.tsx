@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import FormField from '@/components/forms/form-field';
 
 interface HealthCoverFormProps {
   data: any;
@@ -17,17 +18,19 @@ export default function HealthCoverForm({ data, onUpdate, onComplete }: HealthCo
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const applyOHSC = watch("applyOHSC");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.applyOHSC !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.applyOHSC !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   return (
     <div className="space-y-6">
@@ -40,10 +43,9 @@ export default function HealthCoverForm({ data, onUpdate, onComplete }: HealthCo
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label className="required">Apply for OSHC</Label>
+      <FormField label="Apply for OSHC" required>
         <RadioGroup
-          value={formValues.applyOHSC}
+          value={applyOHSC}
           onValueChange={(value) => setValue('applyOHSC', value)}
         >
           <div className="flex items-center space-x-2">
@@ -59,7 +61,7 @@ export default function HealthCoverForm({ data, onUpdate, onComplete }: HealthCo
             </Label>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
       <style>{`
         .required::after {

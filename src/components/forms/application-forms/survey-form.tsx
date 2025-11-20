@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import FormField from '@/components/forms/form-field';
 
 interface SurveyFormProps {
   data: any;
@@ -23,24 +24,25 @@ export default function SurveyForm({ data, onUpdate, onComplete }: SurveyFormPro
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const surveyContactStatus = watch("surveyContactStatus");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.surveyContactStatus) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.surveyContactStatus) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="surveyContactStatus" className="required">Survey Contact Status</Label>
+      <FormField label="Survey Contact Status" required htmlFor="surveyContactStatus">
         <Select
-          value={formValues.surveyContactStatus}
+          value={surveyContactStatus}
           onValueChange={(value) => setValue('surveyContactStatus', value)}
         >
           <SelectTrigger id="surveyContactStatus">
@@ -56,7 +58,7 @@ export default function SurveyForm({ data, onUpdate, onComplete }: SurveyFormPro
             <SelectItem value="overseas">Overseas (address or enrolment)</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
 
       <style>{`
         .required::after {

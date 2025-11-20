@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import FormField from '@/components/forms/form-field';
 
 interface QualificationsFormProps {
   data: any;
@@ -17,24 +18,25 @@ export default function QualificationsForm({ data, onUpdate, onComplete }: Quali
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const hasQualifications = watch("hasQualifications");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.hasQualifications !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.hasQualifications !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <Label className="required">Have you successfully completed any previous qualifications?</Label>
+      <FormField label="Have you successfully completed any previous qualifications?" required>
         <RadioGroup
-          value={formValues.hasQualifications}
+          value={hasQualifications}
           onValueChange={(value) => setValue('hasQualifications', value)}
         >
           <div className="flex items-center gap-4">
@@ -48,7 +50,7 @@ export default function QualificationsForm({ data, onUpdate, onComplete }: Quali
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
       <style>{`
         .required::after {

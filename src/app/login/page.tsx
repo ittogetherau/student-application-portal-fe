@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import PortalLoginCard from "@/components/forms/portal-login-card";
 import {
   Card,
   CardContent,
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import PortalLoginCard from "@/components/forms/auth/portal-login-card";
 
 const LoginPage = () => {
   return (

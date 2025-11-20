@@ -8,7 +8,6 @@ import {
   useState,
   type ComponentType,
 } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -18,11 +17,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import applicationService from "@/service/application.service";
 import {
-  ApplicationCreateValues,
-  applicationCreateSchema,
-} from "@/validation/application";
+  STEP_SAVE_ORDER,
+  type StepNumber,
+  useApplicationStepMutations,
+  useApplicationSubmitMutation,
+  useApplicationCreateMutation,
+} from "@/hooks/useApplication.hook";
+import {
+  buildApplicationPayload,
+  clampStep,
+  type FormDataState,
+  type StepFormData,
+} from "@/utils/application-form";
 
 import AdditionalServicesForm from "./additional-services-form";
 import DisabilityForm from "./disability-form";
@@ -37,9 +44,6 @@ import ReviewForm from "./review-form";
 import SchoolingForm from "./schooling-form";
 import SurveyForm from "./survey-form";
 import USIForm from "./usi-form";
-
-type StepFormData = Record<string, unknown>;
-type FormDataState = Record<number, StepFormData>;
 
 type StepComponentProps = {
   data: StepFormData;
@@ -73,35 +77,11 @@ export const FORM_STEPS: FormStep[] = [
 const STORAGE_KEY = "application_form_data";
 const APPLICATION_ID_STORAGE_KEY = "application_form_application_id";
 const REVIEW_STEP_ID = 13;
-const STEP_SAVE_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
-type StepNumber = (typeof STEP_SAVE_ORDER)[number];
-
-const clampStep = (step: number) =>
-  Math.max(1, Math.min(step, FORM_STEPS.length));
-
-const STEP_MUTATION_MAP: Partial<
-  Record<
-    StepNumber,
-    (applicationId: string, payload: StepFormData) => Promise<unknown>
-  >
-> = {
-  1: applicationService.updatePersonalDetails.bind(applicationService),
-  2: applicationService.updateEmergencyContact.bind(applicationService),
-  3: applicationService.updateHealthCover.bind(applicationService),
-  4: applicationService.updateLanguageCultural.bind(applicationService),
-  5: applicationService.updateDisabilitySupport.bind(applicationService),
-  6: applicationService.updateSchoolingHistory.bind(applicationService),
-  7: applicationService.updatePreviousQualifications.bind(applicationService),
-  8: applicationService.updateEmploymentHistory.bind(applicationService),
-  9: applicationService.updateUsi.bind(applicationService),
-  10: applicationService.updateAdditionalServices.bind(applicationService),
-  11: applicationService.updateSurvey.bind(applicationService),
-};
 
 const usePersistentFormState = () => {
   const [formData, setFormData] = useState<FormDataState>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    () => new Set(),
+    () => new Set()
   );
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -139,48 +119,14 @@ const usePersistentFormState = () => {
   };
 };
 
-const useStepMutation = (
-  applicationId: string | null,
-  stepId: StepNumber,
-) => {
-  const mutationFn = STEP_MUTATION_MAP[stepId];
-  return useMutation({
-    mutationKey: ["application-step", applicationId, stepId],
-    mutationFn: async (payload: StepFormData) => {
-      if (!mutationFn) return null;
-      if (!applicationId) {
-        throw new Error("Missing application reference. Please reload the draft.");
-      }
-      const response = await mutationFn(applicationId, payload);
-      if (
-        typeof response === "object" &&
-        response !== null &&
-        "success" in response &&
-        response.success === false
-      ) {
-        throw new Error(
-          "message" in response && typeof response.message === "string"
-            ? response.message
-            : `Failed to save step ${stepId}.`,
-        );
-      }
-      return response;
-    },
-  });
-};
-
 const NewApplicationForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
   const [lastSavedSnapshots, setLastSavedSnapshots] = useState<
     Record<number, string>
   >({});
   const [applicationId, setApplicationId] = useState<string | null>(
-    searchParams.get("applicationId"),
+    searchParams.get("applicationId")
   );
 
   const {
@@ -208,10 +154,7 @@ const NewApplicationForm = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (applicationId) {
-      window.localStorage.setItem(
-        APPLICATION_ID_STORAGE_KEY,
-        applicationId,
-      );
+      window.localStorage.setItem(APPLICATION_ID_STORAGE_KEY, applicationId);
     }
   }, [applicationId]);
 
@@ -219,48 +162,12 @@ const NewApplicationForm = () => {
     setLastSavedSnapshots({});
   }, [applicationId]);
 
-  const personalDetailsMutation = useStepMutation(applicationId, 1);
-  const emergencyContactMutation = useStepMutation(applicationId, 2);
-  const healthCoverMutation = useStepMutation(applicationId, 3);
-  const languageMutation = useStepMutation(applicationId, 4);
-  const disabilityMutation = useStepMutation(applicationId, 5);
-  const schoolingMutation = useStepMutation(applicationId, 6);
-  const qualificationsMutation = useStepMutation(applicationId, 7);
-  const employmentMutation = useStepMutation(applicationId, 8);
-  const usiMutation = useStepMutation(applicationId, 9);
-  const additionalServicesMutation = useStepMutation(applicationId, 10);
-  const surveyMutation = useStepMutation(applicationId, 11);
+  const stepMutations = useApplicationStepMutations(applicationId);
+  const stepMutationsRef = useRef(stepMutations);
 
-  const stepMutations = useMemo<
-    Record<number, ReturnType<typeof useStepMutation> | undefined>
-  >(
-    () => ({
-      1: personalDetailsMutation,
-      2: emergencyContactMutation,
-      3: healthCoverMutation,
-      4: languageMutation,
-      5: disabilityMutation,
-      6: schoolingMutation,
-      7: qualificationsMutation,
-      8: employmentMutation,
-      9: usiMutation,
-      10: additionalServicesMutation,
-      11: surveyMutation,
-    }),
-    [
-      personalDetailsMutation,
-      emergencyContactMutation,
-      healthCoverMutation,
-      languageMutation,
-      disabilityMutation,
-      schoolingMutation,
-      qualificationsMutation,
-      employmentMutation,
-      usiMutation,
-      additionalServicesMutation,
-      surveyMutation,
-    ],
-  );
+  useEffect(() => {
+    stepMutationsRef.current = stepMutations;
+  }, [stepMutations]);
 
   const updateFormData = useCallback(
     (stepId: number, data: StepFormData) => {
@@ -269,7 +176,7 @@ const NewApplicationForm = () => {
         [stepId]: data,
       }));
     },
-    [setFormData],
+    [setFormData]
   );
 
   const markStepComplete = useCallback(
@@ -281,12 +188,13 @@ const NewApplicationForm = () => {
         return next;
       });
     },
-    [setCompletedSteps],
+    [setCompletedSteps]
   );
 
   const saveStep = useCallback(
     async (stepId: number) => {
-      const mutation = stepMutations[stepId as StepNumber];
+      const mutation = stepMutationsRef.current[stepId as StepNumber];
+
       const payload = formData[stepId];
       if (!mutation || !payload) return true;
       const snapshot = JSON.stringify(payload);
@@ -302,12 +210,12 @@ const NewApplicationForm = () => {
         toast.error(
           error instanceof Error
             ? error.message
-            : `Failed to save step ${stepId}. Please try again.`,
+            : `Failed to save step ${stepId}. Please try again.`
         );
         return false;
       }
     },
-    [formData, lastSavedSnapshots, stepMutations],
+    [formData, lastSavedSnapshots]
   );
 
   const saveAllSteps = useCallback(async () => {
@@ -324,15 +232,19 @@ const NewApplicationForm = () => {
     const saved = await saveStep(currentStep);
     if (!saved) return;
     setCurrentStep((prev) =>
-      prev < FORM_STEPS.length ? clampStep(prev + 1) : prev,
+      prev < FORM_STEPS.length ? clampStep(prev + 1, FORM_STEPS.length) : prev
     );
   }, [currentStep, saveStep, setCurrentStep]);
 
   const handlePrevious = useCallback(async () => {
     if (currentStep <= 1) return;
     const saved = await saveStep(currentStep);
+
     if (!saved) return;
-    setCurrentStep((prev) => (prev > 1 ? clampStep(prev - 1) : prev));
+
+    setCurrentStep((prev) =>
+      prev > 1 ? clampStep(prev - 1, FORM_STEPS.length) : prev
+    );
   }, [currentStep, saveStep, setCurrentStep]);
 
   const goToStep = useCallback(
@@ -340,97 +252,37 @@ const NewApplicationForm = () => {
       if (currentStep === stepId) return;
       const saved = await saveStep(currentStep);
       if (!saved) return;
-      setCurrentStep(clampStep(stepId));
+      setCurrentStep(clampStep(stepId, FORM_STEPS.length));
     },
-    [currentStep, saveStep, setCurrentStep],
+    [currentStep, saveStep, setCurrentStep]
   );
 
-  const handleMouseDown = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
-    if (!scrollContainerRef.current) return;
-    setIsDragging(true);
-    setStartX(event.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
+  const submitMutation = useApplicationSubmitMutation(applicationId);
+  const createMutation = useApplicationCreateMutation();
 
-  const handleMouseMove = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
-    if (!isDragging || !scrollContainerRef.current) return;
-    event.preventDefault();
-    const x = event.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
+  const handleSubmit = useCallback(async () => {
+    try {
+      const payload = buildApplicationPayload(formData);
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const buildApplicationPayload = useCallback((): ApplicationCreateValues => {
-    return applicationCreateSchema.parse({
-      personalDetails: formData[1],
-      emergencyContact: formData[2],
-      healthCover: formData[3],
-      languageCultural: formData[4],
-      disabilitySupport: formData[5],
-      schoolingHistory: formData[6],
-      previousQualifications: formData[7],
-      employmentHistory: formData[8],
-      usi: formData[9],
-      additionalServices: formData[10],
-      survey: formData[11],
-      documents: formData[12],
-    });
-  }, [formData]);
-
-  const submitMutation = useMutation({
-    mutationKey: ["application-submit", applicationId],
-    mutationFn: async () => {
       if (!applicationId) {
-        throw new Error("Missing application reference.");
+        await createMutation.mutateAsync(payload);
+      } else {
+        const saved = await saveAllSteps();
+        if (!saved) return;
+        await submitMutation.mutateAsync(formData);
       }
-      const payload = buildApplicationPayload();
-      const response = await applicationService.submitApplication(
-        applicationId,
-        payload,
-      );
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-      return response.data;
-    },
-    onSuccess: () => {
+
       toast.success("Application submitted successfully!");
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(STORAGE_KEY);
         window.localStorage.removeItem(APPLICATION_ID_STORAGE_KEY);
       }
       router.push("/dashboard/application");
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to submit application. Please try again.",
-      );
-    },
-  });
-
-  const handleSubmit = useCallback(async () => {
-    if (!applicationId) {
-      toast.error("Missing application reference. Please open an existing draft.");
-      return;
-    }
-    try {
-      const saved = await saveAllSteps();
-      if (!saved) return;
-      await submitMutation.mutateAsync();
     } catch (error) {
       if (error instanceof ZodError) {
+        const firstIssue = error.issues[0];
         toast.error(
-          error.errors[0]?.message ?? "Please complete all required fields.",
+          firstIssue?.message ?? "Please complete all required fields."
         );
       } else if (error instanceof Error) {
         toast.error(error.message);
@@ -438,20 +290,20 @@ const NewApplicationForm = () => {
         toast.error("Failed to submit application. Please try again.");
       }
     }
-  }, [applicationId, saveAllSteps, submitMutation]);
+  }, [applicationId, formData, createMutation, saveAllSteps, submitMutation]);
 
   const CurrentStepComponent = FORM_STEPS[currentStep - 1]?.component ?? null;
   const totalStepsWithoutReview = FORM_STEPS.length - 1;
   const completedStepsWithoutReview = useMemo(
     () =>
       Array.from(completedSteps).filter((id) => id !== REVIEW_STEP_ID).length,
-    [completedSteps],
+    [completedSteps]
   );
   const progress =
     totalStepsWithoutReview > 0
       ? Math.min(
           (completedStepsWithoutReview / totalStepsWithoutReview) * 100,
-          100,
+          100
         )
       : 0;
 
@@ -459,7 +311,7 @@ const NewApplicationForm = () => {
     (data: StepFormData) => {
       updateFormData(currentStep, data);
     },
-    [currentStep, updateFormData],
+    [currentStep, updateFormData]
   );
 
   const handleStepComplete = useCallback(() => {
@@ -486,20 +338,7 @@ const NewApplicationForm = () => {
                 </div>
               </div>
 
-              <div
-                ref={scrollContainerRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                className={cn(
-                  "flex gap-2 overflow-x-auto pb-0 lg:flex-col lg:gap-0 lg:overflow-x-visible lg:pb-0",
-                  "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
-                  isDragging
-                    ? "cursor-grabbing select-none"
-                    : "cursor-grab lg:cursor-default",
-                )}
-              >
+              <div className="flex flex-col gap-1">
                 {FORM_STEPS.map((step) => (
                   <button
                     type="button"
@@ -513,8 +352,8 @@ const NewApplicationForm = () => {
                       currentStep === step.id
                         ? "bg-primary text-primary-foreground"
                         : completedSteps.has(step.id)
-                          ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
-                          : "hover:bg-muted",
+                        ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400"
+                        : "hover:bg-muted"
                     )}
                   >
                     <div
@@ -523,8 +362,8 @@ const NewApplicationForm = () => {
                         currentStep === step.id
                           ? "bg-primary-foreground text-primary"
                           : completedSteps.has(step.id)
-                            ? "bg-emerald-500 text-white"
-                            : "bg-muted",
+                          ? "bg-emerald-500 text-white"
+                          : "bg-muted"
                       )}
                     >
                       {completedSteps.has(step.id) ? (
@@ -593,7 +432,9 @@ const NewApplicationForm = () => {
                     className="gap-2"
                     disabled={submitMutation.isPending}
                   >
-                    {submitMutation.isPending ? "Submitting..." : "Submit Application"}
+                    {submitMutation.isPending
+                      ? "Submitting..."
+                      : "Submit Application"}
                     <Check className="h-4 w-4" />
                   </Button>
                 ) : (

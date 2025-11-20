@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import FormField from '@/components/forms/form-field';
 
 interface SchoolingFormProps {
   data: any;
@@ -24,31 +25,35 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const highestSchoolLevel = watch("highestSchoolLevel") ?? "";
+  const stillAttending = watch("stillAttending") ?? "";
+  const schoolType = watch("schoolType") ?? "";
+  const fundingSource = watch("fundingSource") ?? "";
+  const vetInSchool = watch("vetInSchool") ?? "";
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.highestSchoolLevel && formValues.stillAttending !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.highestSchoolLevel && formValues.stillAttending !== undefined) {
+        onComplete();
+      }
+    });
 
-  const canSelectStillAttending = formValues.highestSchoolLevel && formValues.highestSchoolLevel !== '02';
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
+
+  const canSelectStillAttending = highestSchoolLevel && highestSchoolLevel !== '02';
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label className="required">What is your highest COMPLETED school level?</Label>
-          <p className="text-sm text-muted-foreground mt-1">
-            If you are currently enrolled in secondary education, the Highest school level completed refers to the highest school level you have actually completed and not the level you are currently undertaking.
-          </p>
-        </div>
+      <FormField
+        label="What is your highest COMPLETED school level?"
+        required
+        description="If you are currently enrolled in secondary education, the Highest school level completed refers to the highest school level you have actually completed and not the level you are currently undertaking."
+      >
         <RadioGroup
-          value={formValues.highestSchoolLevel}
+          value={highestSchoolLevel}
           onValueChange={(value) => setValue('highestSchoolLevel', value)}
         >
           <div className="flex items-center space-x-2">
@@ -80,14 +85,14 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
             <Label htmlFor="level-@@" className="font-normal cursor-pointer">@@ - Not Specified</Label>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
-      <div className="space-y-4">
-        <Label className={canSelectStillAttending ? 'required' : ''}>
-          Are you still attending secondary school?
-        </Label>
+      <FormField
+        label="Are you still attending secondary school?"
+        required={Boolean(canSelectStillAttending)}
+      >
         <RadioGroup
-          value={formValues.stillAttending}
+          value={stillAttending}
           onValueChange={(value) => setValue('stillAttending', value)}
           disabled={!canSelectStillAttending}
         >
@@ -102,16 +107,15 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
             </div>
           </div>
         </RadioGroup>
-        {!canSelectStillAttending && formValues.highestSchoolLevel === '02' && (
+        {!canSelectStillAttending && highestSchoolLevel === '02' && (
           <p className="text-sm text-muted-foreground">Not applicable (Did not go to school)</p>
         )}
-      </div>
+      </FormField>
 
-      {formValues.stillAttending === 'yes' && (
-        <div className="space-y-2">
-          <Label>What is your secondary school?</Label>
+      {stillAttending === 'yes' && (
+        <FormField label="What is your secondary school?">
           <RadioGroup
-            value={formValues.schoolType}
+            value={schoolType}
             onValueChange={(value) => setValue('schoolType', value)}
           >
             <div className="flex items-center space-x-2">
@@ -143,13 +147,12 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
               <Label htmlFor="homeschool" className="font-normal cursor-pointer">Home school arrangement</Label>
             </div>
           </RadioGroup>
-        </div>
+        </FormField>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="fundingSource">Funding Source State</Label>
+      <FormField label="Funding Source State" htmlFor="fundingSource">
         <Select
-          value={formValues.fundingSource}
+          value={fundingSource}
           onValueChange={(value) => setValue('fundingSource', value)}
         >
           <SelectTrigger id="fundingSource">
@@ -159,12 +162,11 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
             <SelectItem value="placeholder">Please select...</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
 
-      <div className="space-y-4">
-        <Label className="required">VET in school?</Label>
+      <FormField label="VET in school?" required>
         <RadioGroup
-          value={formValues.vetInSchool}
+          value={vetInSchool}
           onValueChange={(value) => setValue('vetInSchool', value)}
         >
           <div className="flex items-center gap-4">
@@ -178,7 +180,7 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
       <style>{`
         .required::after {

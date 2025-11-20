@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import FormField from "@/components/forms/form-field";
 
 interface AdditionalServicesFormProps {
   data: any;
@@ -21,26 +22,25 @@ export default function AdditionalServicesForm({
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const requestAdditionalServices = watch("requestAdditionalServices");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.requestAdditionalServices !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.requestAdditionalServices !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <Label className="required">
-          Do you want to request additional services?
-        </Label>
+      <FormField label="Do you want to request additional services?" required>
         <RadioGroup
-          value={formValues.requestAdditionalServices}
+          value={requestAdditionalServices}
           onValueChange={(value) =>
             setValue("requestAdditionalServices", value)
           }
@@ -66,7 +66,7 @@ export default function AdditionalServicesForm({
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
       <style>{`
         .required::after {
@@ -77,4 +77,3 @@ export default function AdditionalServicesForm({
     </div>
   );
 }
-

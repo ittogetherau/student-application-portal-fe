@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import FormField from '@/components/forms/form-field';
 
 interface USIFormProps {
   data: any;
@@ -19,17 +20,20 @@ export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
     defaultValues: data,
   });
 
-  const formValues = watch();
+  const hasUSI = watch("hasUSI");
+  const applyUSI = watch("applyUSI");
 
   useEffect(() => {
-    onUpdate(formValues);
-  }, [formValues, onUpdate]);
+    const subscription = watch((formValues) => {
+      onUpdate(formValues);
 
-  useEffect(() => {
-    if (formValues.hasUSI !== undefined) {
-      onComplete();
-    }
-  }, [formValues, onComplete]);
+      if (formValues.hasUSI !== undefined) {
+        onComplete();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, onUpdate, onComplete]);
 
   return (
     <div className="space-y-6">
@@ -39,10 +43,9 @@ export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
         </p>
       </div>
 
-      <div className="space-y-4">
-        <Label className="required">Do you already have a USI?</Label>
+      <FormField label="Do you already have a USI?" required>
         <RadioGroup
-          value={formValues.hasUSI}
+          value={hasUSI}
           onValueChange={(value) => setValue('hasUSI', value)}
         >
           <div className="flex items-center gap-4">
@@ -56,25 +59,26 @@ export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
             </div>
           </div>
         </RadioGroup>
-      </div>
+      </FormField>
 
-      {formValues.hasUSI === 'yes' && (
-        <div className="space-y-2">
-          <Label htmlFor="usiNumber">USI Number</Label>
+      {hasUSI === 'yes' && (
+        <FormField label="USI Number" htmlFor="usiNumber">
           <Input id="usiNumber" {...register('usiNumber')} placeholder="Enter your USI" />
-        </div>
+        </FormField>
       )}
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="applyUSI"
-          checked={formValues.applyUSI}
-          onCheckedChange={(checked) => setValue('applyUSI', checked)}
-        />
-        <Label htmlFor="applyUSI" className="font-normal cursor-pointer">
-          Apply USI through your education provider on my behalf
-        </Label>
-      </div>
+      <FormField label="Apply USI through your education provider on my behalf">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="applyUSI"
+            checked={!!applyUSI}
+            onCheckedChange={(checked) => setValue('applyUSI', checked)}
+          />
+          <Label htmlFor="applyUSI" className="font-normal cursor-pointer">
+            I authorize my provider to apply for a USI on my behalf
+          </Label>
+        </div>
+      </FormField>
 
       <style>{`
         .required::after {
