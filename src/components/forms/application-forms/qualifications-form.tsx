@@ -1,39 +1,36 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import FormField from '@/components/forms/form-field';
+import { Button } from '@/components/ui/button';
 
-interface QualificationsFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const qualificationsSchema = z.object({
+  hasQualifications: z.string().min(1, 'Please select an option'),
+});
 
-export default function QualificationsForm({ data, onUpdate, onComplete }: QualificationsFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
+type QualificationsValues = z.infer<typeof qualificationsSchema>;
+
+export default function QualificationsForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<QualificationsValues>({
+    resolver: zodResolver(qualificationsSchema),
+    defaultValues: {
+      hasQualifications: '',
+    },
   });
 
   const hasQualifications = watch("hasQualifications");
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.hasQualifications !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
+  const onSubmit = (values: QualificationsValues) => {
+    console.log('Qualifications form submitted', values);
+    reset(values);
+  };
 
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <FormField label="Have you successfully completed any previous qualifications?" required>
         <RadioGroup
           value={hasQualifications}
@@ -52,13 +49,17 @@ export default function QualificationsForm({ data, onUpdate, onComplete }: Quali
         </RadioGroup>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Qualifications</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

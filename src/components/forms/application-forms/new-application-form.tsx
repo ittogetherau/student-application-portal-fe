@@ -1,36 +1,22 @@
 "use client";
 
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ComponentType,
 } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { ZodError } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import { siteRoutes } from "@/constants/site-routes";
-import {
-  STEP_SAVE_ORDER,
-  type StepNumber,
-  useApplicationStepMutations,
-  useApplicationSubmitMutation,
-  useApplicationCreateMutation,
-} from "@/hooks/useApplication.hook";
-import {
-  buildApplicationPayload,
-  clampStep,
-  type FormDataState,
-  type StepFormData,
-} from "@/utils/application-form";
+import { cn } from "@/lib/utils";
+import { clampStep } from "@/utils/application-form";
 
 import AdditionalServicesForm from "./additional-services-form";
 import DisabilityForm from "./disability-form";
@@ -46,17 +32,10 @@ import SchoolingForm from "./schooling-form";
 import SurveyForm from "./survey-form";
 import USIForm from "./usi-form";
 
-type StepComponentProps = {
-  data: StepFormData;
-  allData: FormDataState;
-  onUpdate: (data: StepFormData) => void;
-  onComplete: () => void;
-};
-
 type FormStep = {
   id: number;
   title: string;
-  component: ComponentType<StepComponentProps>;
+  component: ComponentType;
 };
 
 export const FORM_STEPS: FormStep[] = [
@@ -80,7 +59,6 @@ const APPLICATION_ID_STORAGE_KEY = "application_form_application_id";
 const REVIEW_STEP_ID = 13;
 
 const usePersistentFormState = () => {
-  const [formData, setFormData] = useState<FormDataState>({});
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
     () => new Set()
   );
@@ -92,7 +70,6 @@ const usePersistentFormState = () => {
     if (!savedData) return;
     try {
       const parsed = JSON.parse(savedData);
-      setFormData(parsed.formData ?? {});
       setCompletedSteps(new Set(parsed.completedSteps ?? []));
       setCurrentStep(parsed.currentStep ?? 1);
     } catch (error) {
@@ -103,16 +80,13 @@ const usePersistentFormState = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const dataToSave = {
-      formData,
       completedSteps: Array.from(completedSteps),
       currentStep,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-  }, [formData, completedSteps, currentStep]);
+  }, [completedSteps, currentStep]);
 
   return {
-    formData,
-    setFormData,
     completedSteps,
     setCompletedSteps,
     currentStep,
@@ -123,21 +97,12 @@ const usePersistentFormState = () => {
 const NewApplicationForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [lastSavedSnapshots, setLastSavedSnapshots] = useState<
-    Record<number, string>
-  >({});
   const [applicationId, setApplicationId] = useState<string | null>(
     searchParams.get("applicationId")
   );
 
-  const {
-    formData,
-    setFormData,
-    completedSteps,
-    setCompletedSteps,
-    currentStep,
-    setCurrentStep,
-  } = usePersistentFormState();
+  const { completedSteps, setCompletedSteps, currentStep, setCurrentStep } =
+    usePersistentFormState();
 
   useEffect(() => {
     const queryId = searchParams.get("applicationId");
@@ -159,27 +124,6 @@ const NewApplicationForm = () => {
     }
   }, [applicationId]);
 
-  useEffect(() => {
-    setLastSavedSnapshots({});
-  }, [applicationId]);
-
-  const stepMutations = useApplicationStepMutations(applicationId);
-  const stepMutationsRef = useRef(stepMutations);
-
-  useEffect(() => {
-    stepMutationsRef.current = stepMutations;
-  }, [stepMutations]);
-
-  const updateFormData = useCallback(
-    (stepId: number, data: StepFormData) => {
-      setFormData((prev) => ({
-        ...prev,
-        [stepId]: data,
-      }));
-    },
-    [setFormData]
-  );
-
   const markStepComplete = useCallback(
     (stepId: number) => {
       setCompletedSteps((prev) => {
@@ -192,108 +136,42 @@ const NewApplicationForm = () => {
     [setCompletedSteps]
   );
 
-  const saveStep = useCallback(
-    async (stepId: number) => {
-      const mutation = stepMutationsRef.current[stepId as StepNumber];
-
-      const payload = formData[stepId];
-      if (!mutation || !payload) return true;
-      const snapshot = JSON.stringify(payload);
-      if (lastSavedSnapshots[stepId] === snapshot) return true;
-      try {
-        await mutation.mutateAsync(payload as never);
-        setLastSavedSnapshots((prev) => ({
-          ...prev,
-          [stepId]: snapshot,
-        }));
-        return true;
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : `Failed to save step ${stepId}. Please try again.`
-        );
-        return false;
-      }
-    },
-    [formData, lastSavedSnapshots]
-  );
-
-  const saveAllSteps = useCallback(async () => {
-    for (const stepId of STEP_SAVE_ORDER) {
-      // eslint-disable-next-line no-await-in-loop
-      const saved = await saveStep(stepId);
-      if (!saved) return false;
-    }
-    return true;
-  }, [saveStep]);
-
-  const handleNext = useCallback(async () => {
+  const handleNext = useCallback(() => {
     if (currentStep >= FORM_STEPS.length) return;
-    const saved = await saveStep(currentStep);
-    if (!saved) return;
+    markStepComplete(currentStep);
     setCurrentStep((prev) =>
       prev < FORM_STEPS.length ? clampStep(prev + 1, FORM_STEPS.length) : prev
     );
-  }, [currentStep, saveStep, setCurrentStep]);
+  }, [currentStep, setCurrentStep, markStepComplete]);
 
-  const handlePrevious = useCallback(async () => {
+  const handlePrevious = useCallback(() => {
     if (currentStep <= 1) return;
-    const saved = await saveStep(currentStep);
-
-    if (!saved) return;
-
     setCurrentStep((prev) =>
       prev > 1 ? clampStep(prev - 1, FORM_STEPS.length) : prev
     );
-  }, [currentStep, saveStep, setCurrentStep]);
+  }, [currentStep, setCurrentStep]);
 
   const goToStep = useCallback(
-    async (stepId: number) => {
+    (stepId: number) => {
       if (currentStep === stepId) return;
-      const saved = await saveStep(currentStep);
-      if (!saved) return;
+      markStepComplete(currentStep);
       setCurrentStep(clampStep(stepId, FORM_STEPS.length));
     },
-    [currentStep, saveStep, setCurrentStep]
+    [currentStep, setCurrentStep, markStepComplete]
   );
 
-  const submitMutation = useApplicationSubmitMutation(applicationId);
-  const createMutation = useApplicationCreateMutation();
+  const handleSubmit = useCallback(() => {
+    console.log("Submitting full application", {
+      applicationId,
+      step: currentStep,
+    });
+    toast.success(
+      "Application submission initialized. Check console for payload."
+    );
+    router.push(siteRoutes.dashboard.application.root);
+  }, [applicationId, router, currentStep]);
 
-  const handleSubmit = useCallback(async () => {
-    try {
-      const payload = buildApplicationPayload(formData);
-
-      if (!applicationId) {
-        await createMutation.mutateAsync(payload);
-      } else {
-        const saved = await saveAllSteps();
-        if (!saved) return;
-        await submitMutation.mutateAsync(formData);
-      }
-
-      toast.success("Application submitted successfully!");
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem(STORAGE_KEY);
-        window.localStorage.removeItem(APPLICATION_ID_STORAGE_KEY);
-      }
-      router.push(siteRoutes.dashboard.application.root);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const firstIssue = error.issues[0];
-        toast.error(
-          firstIssue?.message ?? "Please complete all required fields."
-        );
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to submit application. Please try again.");
-      }
-    }
-  }, [applicationId, formData, createMutation, saveAllSteps, submitMutation]);
-
-  const CurrentStepComponent = FORM_STEPS[currentStep - 1]?.component ?? null;
+  const currentStepDefinition = FORM_STEPS[currentStep - 1] ?? null;
   const totalStepsWithoutReview = FORM_STEPS.length - 1;
   const completedStepsWithoutReview = useMemo(
     () =>
@@ -307,18 +185,6 @@ const NewApplicationForm = () => {
           100
         )
       : 0;
-
-  const handleStepUpdate = useCallback(
-    (data: StepFormData) => {
-      updateFormData(currentStep, data);
-    },
-    [currentStep, updateFormData]
-  );
-
-  const handleStepComplete = useCallback(() => {
-    markStepComplete(currentStep);
-    void saveStep(currentStep);
-  }, [currentStep, markStepComplete, saveStep]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -391,17 +257,12 @@ const NewApplicationForm = () => {
                   </span>
                 </div>
                 <h2 className="text-2xl">
-                  {FORM_STEPS[currentStep - 1]?.title ?? "Application"}
+                  {currentStepDefinition?.title ?? "Application"}
                 </h2>
               </div>
 
-              {CurrentStepComponent ? (
-                <CurrentStepComponent
-                  data={(formData[currentStep] as StepFormData) ?? {}}
-                  allData={formData}
-                  onUpdate={handleStepUpdate}
-                  onComplete={handleStepComplete}
-                />
+              {currentStepDefinition ? (
+                <currentStepDefinition.component />
               ) : null}
             </CardContent>
           </Card>
@@ -431,11 +292,8 @@ const NewApplicationForm = () => {
                       void handleSubmit();
                     }}
                     className="gap-2"
-                    disabled={submitMutation.isPending}
                   >
-                    {submitMutation.isPending
-                      ? "Submitting..."
-                      : "Submit Application"}
+                    Submit Application
                     <Check className="h-4 w-4" />
                   </Button>
                 ) : (

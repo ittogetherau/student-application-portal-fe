@@ -1,42 +1,43 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import FormField from '@/components/forms/form-field';
+import { Button } from '@/components/ui/button';
 
-interface USIFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const usiSchema = z.object({
+  hasUSI: z.string().min(1, 'Please select an option'),
+  usiNumber: z.string().optional(),
+  applyUSI: z.boolean().optional(),
+});
 
-export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
-  const { register, watch, setValue } = useForm({
-    defaultValues: data,
+type USIValues = z.infer<typeof usiSchema>;
+
+export default function USIForm() {
+  const { register, watch, setValue, handleSubmit, reset } = useForm<USIValues>({
+    resolver: zodResolver(usiSchema),
+    defaultValues: {
+      hasUSI: '',
+      usiNumber: '',
+      applyUSI: false,
+    },
   });
 
   const hasUSI = watch("hasUSI");
   const applyUSI = watch("applyUSI");
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.hasUSI !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
+  const onSubmit = (values: USIValues) => {
+    console.log('USI form submitted', values);
+    reset(values);
+  };
 
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <div className="bg-muted/50 p-4 rounded-lg">
         <p className="text-sm">
           You may already have a USI if you have done any nationally recognised training, which could include training at work, completing a first aid course or RSA (Responsible Service of Alcohol) course, getting a white card, or studying at a TAFE or training organisation. It is important that you try to find out whether you already have a USI before attempting to create a new one. You should not have more than one USI. To check if you already have a USI, use the 'Forgotten USI' link on the USI website at <a href="https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/</a>.
@@ -72,7 +73,7 @@ export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
           <Checkbox
             id="applyUSI"
             checked={!!applyUSI}
-            onCheckedChange={(checked) => setValue('applyUSI', checked)}
+            onCheckedChange={(checked) => setValue('applyUSI', Boolean(checked))}
           />
           <Label htmlFor="applyUSI" className="font-normal cursor-pointer">
             I authorize my provider to apply for a USI on my behalf
@@ -80,13 +81,17 @@ export default function USIForm({ data, onUpdate, onComplete }: USIFormProps) {
         </div>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit USI</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

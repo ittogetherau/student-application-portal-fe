@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,40 +24,25 @@ import {
 } from "@/components/ui/dialog";
 import FormField from "@/components/forms/form-field";
 
-interface EmploymentFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const employmentFormSchema = z.object({
+  employmentStatus: z.string().min(1, "Employment status is required"),
+});
 
-export default function EmploymentForm({
-  data,
-  onUpdate,
-  onComplete,
-}: EmploymentFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
-  });
+type EmploymentFormValues = z.infer<typeof employmentFormSchema>;
 
-  const employmentStatus = watch("employmentStatus");
-  const [employmentHistory, setEmploymentHistory] = useState<any[]>(
-    data.employmentHistory || []
-  );
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentEmployment, setCurrentEmployment] = useState<any>({});
-
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate({ ...formValues, employmentHistory });
-
-      if (formValues.employmentStatus) {
-        onComplete();
-      }
+export default function EmploymentForm() {
+  const { watch, setValue, handleSubmit, reset } =
+    useForm<EmploymentFormValues>({
+      resolver: zodResolver(employmentFormSchema),
+      defaultValues: {
+        employmentStatus: "",
+      },
     });
 
-    return () => subscription.unsubscribe();
-  }, [watch, employmentHistory, onUpdate, onComplete]);
+  const employmentStatus = watch("employmentStatus");
+  const [employmentHistory, setEmploymentHistory] = useState<any[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentEmployment, setCurrentEmployment] = useState<any>({});
 
   const handleAddEmployment = () => {
     setEmploymentHistory([...employmentHistory, currentEmployment]);
@@ -63,8 +50,14 @@ export default function EmploymentForm({
     setIsDialogOpen(false);
   };
 
+  const onSubmit = (values: EmploymentFormValues) => {
+    const payload = { ...values, employmentHistory };
+    console.log("Employment form submitted", payload);
+    reset(values);
+  };
+
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <div>
         <p className="text-sm text-muted-foreground mb-4">
           For casual, seasonal, contract and shift work, use the current number
@@ -237,12 +230,16 @@ export default function EmploymentForm({
         </div>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Employment</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }

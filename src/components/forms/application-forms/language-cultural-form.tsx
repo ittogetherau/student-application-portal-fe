@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -25,16 +27,41 @@ import {
 } from '@/components/ui/dialog';
 import FormField from '@/components/forms/form-field';
 
-interface LanguageCulturalFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const englishTestSchema = z.object({
+  testType: z.string().optional(),
+  testDate: z.string().optional(),
+  scoreType: z.string().optional(),
+  listeningScore: z.string().optional(),
+  readingScore: z.string().optional(),
+  writingScore: z.string().optional(),
+  speakingScore: z.string().optional(),
+  overallScore: z.string().optional(),
+});
 
-export default function LanguageCulturalForm({ data, onUpdate, onComplete }: LanguageCulturalFormProps) {
-  const { register, watch, setValue } = useForm({
-    defaultValues: data,
+const languageCulturalSchema = z.object({
+  aboriginalOrigin: z.string().min(1, 'Origin is required'),
+  englishMain: z.string().min(1, 'Please select if English is your main language'),
+  mainLanguage: z.string().optional(),
+  englishProficiency: z.string().optional(),
+  englishInstruction: z.string().optional(),
+  completedEnglishTest: z.string().optional(),
+  englishTests: z.array(englishTestSchema).optional(),
+});
+
+type LanguageCulturalValues = z.infer<typeof languageCulturalSchema>;
+
+export default function LanguageCulturalForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<LanguageCulturalValues>({
+    resolver: zodResolver(languageCulturalSchema),
+    defaultValues: {
+      aboriginalOrigin: '',
+      englishMain: '',
+      mainLanguage: '',
+      englishProficiency: '',
+      englishInstruction: '',
+      completedEnglishTest: '',
+      englishTests: [],
+    },
   });
 
   const aboriginalOrigin = watch("aboriginalOrigin") ?? "";
@@ -53,21 +80,9 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
     speakingScore: "",
     overallScore: "",
   };
-  const [englishTests, setEnglishTests] = useState<any[]>(data.englishTests || []);
+  const [englishTests, setEnglishTests] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTest, setCurrentTest] = useState<any>(emptyTest);
-
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate({ ...formValues, englishTests });
-
-      if (formValues.aboriginalOrigin && formValues.englishMain !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, englishTests, onUpdate, onComplete]);
 
   const handleAddTest = () => {
     setEnglishTests([...englishTests, currentTest]);
@@ -75,8 +90,14 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
     setIsDialogOpen(false);
   };
 
+  const onSubmit = (values: LanguageCulturalValues) => {
+    const payload = { ...values, englishTests };
+    console.log('Language & Cultural form submitted', payload);
+    reset({ ...values, englishTests });
+  };
+
   return (
-    <div className="space-y-8">
+    <form className="space-y-8" onSubmit={handleSubmit(onSubmit)}>
       <FormField
         label="Are you of Australian Aboriginal and Torres Strait Islander origin?"
         required
@@ -367,13 +388,17 @@ export default function LanguageCulturalForm({ data, onUpdate, onComplete }: Lan
         )}
       </div>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Language & Culture</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

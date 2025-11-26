@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,35 +12,31 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import FormField from '@/components/forms/form-field';
+import { Button } from '@/components/ui/button';
 
-interface SurveyFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const surveySchema = z.object({
+  surveyContactStatus: z.string().min(1, 'Please select an option'),
+});
 
-export default function SurveyForm({ data, onUpdate, onComplete }: SurveyFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
+type SurveyValues = z.infer<typeof surveySchema>;
+
+export default function SurveyForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<SurveyValues>({
+    resolver: zodResolver(surveySchema),
+    defaultValues: {
+      surveyContactStatus: '',
+    },
   });
 
   const surveyContactStatus = watch("surveyContactStatus");
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.surveyContactStatus) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
+  const onSubmit = (values: SurveyValues) => {
+    console.log('Survey form submitted', values);
+    reset(values);
+  };
 
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <FormField label="Survey Contact Status" required htmlFor="surveyContactStatus">
         <Select
           value={surveyContactStatus}
@@ -60,13 +57,17 @@ export default function SurveyForm({ data, onUpdate, onComplete }: SurveyFormPro
         </Select>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Survey</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

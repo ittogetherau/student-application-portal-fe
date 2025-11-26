@@ -1,73 +1,85 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, X, FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-interface DocumentsFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
-
-interface DocumentType {
+type DocumentType = {
   id: string;
   title: string;
   required: boolean;
   files: File[];
-}
+};
 
-export default function DocumentsForm({ data, onUpdate, onComplete }: DocumentsFormProps) {
-  const [documents, setDocuments] = useState<DocumentType[]>(data.documents || [
-    { id: 'passport', title: "Applicant's Passport", required: true, files: [] },
-    { id: 'english-test', title: 'Evidence Of English Test', required: true, files: [] },
-    { id: 'academic', title: 'Academic Document', required: true, files: [] },
-    { id: 'work-experience', title: 'Work Experience / Gap Evidence', required: false, files: [] },
-    { id: 'application-form', title: 'Application Form Completed and Signed', required: true, files: [] },
-    { id: 'other-supporting', title: 'Other Supporting Document', required: false, files: [] },
-    { id: 'applicants-academic', title: "Applicants Academic", required: false, files: [] },
-  ]);
+const documentSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  required: z.boolean(),
+  files: z.array(z.instanceof(File)),
+});
 
-  useEffect(() => {
-    onUpdate({ documents });
-  }, [documents, onUpdate]);
+const documentsSchema = z.object({
+  documents: z.array(documentSchema),
+});
 
-  useEffect(() => {
-    const requiredDocs = documents.filter(d => d.required);
-    const allRequiredUploaded = requiredDocs.every(d => d.files.length > 0);
-    if (allRequiredUploaded) {
-      onComplete();
-    }
-  }, [documents, onComplete]);
+type DocumentsFormValues = z.infer<typeof documentsSchema>;
+
+const defaultDocuments: DocumentType[] = [
+  { id: 'passport', title: "Applicant's Passport", required: true, files: [] },
+  { id: 'english-test', title: 'Evidence Of English Test', required: true, files: [] },
+  { id: 'academic', title: 'Academic Document', required: true, files: [] },
+  { id: 'work-experience', title: 'Work Experience / Gap Evidence', required: false, files: [] },
+  { id: 'application-form', title: 'Application Form Completed and Signed', required: true, files: [] },
+  { id: 'other-supporting', title: 'Other Supporting Document', required: false, files: [] },
+  { id: 'applicants-academic', title: "Applicants Academic", required: false, files: [] },
+];
+
+export default function DocumentsForm() {
+  const { handleSubmit, setValue } = useForm<DocumentsFormValues>({
+    resolver: zodResolver(documentsSchema),
+    defaultValues: {
+      documents: defaultDocuments,
+    },
+  });
+
+  const [documents, setDocuments] = useState<DocumentType[]>(defaultDocuments);
+
+  const syncDocuments = (updatedDocs: DocumentType[]) => {
+    setDocuments(updatedDocs);
+    setValue('documents', updatedDocs, { shouldValidate: true });
+  };
 
   const handleFileUpload = (docId: string, files: FileList | null) => {
     if (!files) return;
-    
-    setDocuments(docs =>
-      docs.map(doc =>
-        doc.id === docId
-          ? { ...doc, files: [...doc.files, ...Array.from(files)] }
-          : doc
+
+    syncDocuments(
+      documents.map((doc) =>
+        doc.id === docId ? { ...doc, files: [...doc.files, ...Array.from(files)] } : doc
       )
     );
   };
 
   const handleFileRemove = (docId: string, fileIndex: number) => {
-    setDocuments(docs =>
-      docs.map(doc =>
-        doc.id === docId
-          ? { ...doc, files: doc.files.filter((_, i) => i !== fileIndex) }
-          : doc
+    syncDocuments(
+      documents.map((doc) =>
+        doc.id === docId ? { ...doc, files: doc.files.filter((_, i) => i !== fileIndex) } : doc
       )
     );
   };
 
+  const onSubmit = (values: DocumentsFormValues) => {
+    console.log('Documents form submitted', values);
+  };
+
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       {documents.map((doc) => (
         <Card key={doc.id}>
           <CardContent className="pt-6">
@@ -86,8 +98,12 @@ export default function DocumentsForm({ data, onUpdate, onComplete }: DocumentsF
                 </div>
               </div>
 
-              {/* File Upload Area */}
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <div
+                className={cn(
+                  'border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors',
+                  doc.required && doc.files.length === 0 ? 'border-destructive/40' : ''
+                )}
+              >
                 <input
                   type="file"
                   id={`file-${doc.id}`}
@@ -98,16 +114,11 @@ export default function DocumentsForm({ data, onUpdate, onComplete }: DocumentsF
                 />
                 <label htmlFor={`file-${doc.id}`} className="cursor-pointer">
                   <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Drop files here to upload or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supported formats: PDF, JPG, PNG, DOC, DOCX
-                  </p>
+                  <p className="text-sm text-muted-foreground">Drop files here to upload or click to browse</p>
+                  <p className="text-xs text-muted-foreground mt-1">Supported formats: PDF, JPG, PNG, DOC, DOCX</p>
                 </label>
               </div>
 
-              {/* Uploaded Files List */}
               {doc.files.length > 0 && (
                 <div className="space-y-2">
                   <Label>Uploaded Files:</Label>
@@ -119,15 +130,9 @@ export default function DocumentsForm({ data, onUpdate, onComplete }: DocumentsF
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024).toFixed(2)} KB)
-                        </span>
+                        <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleFileRemove(doc.id, index)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleFileRemove(doc.id, index)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -138,7 +143,11 @@ export default function DocumentsForm({ data, onUpdate, onComplete }: DocumentsF
           </CardContent>
         </Card>
       ))}
-    </div>
+
+      <div className="flex justify-end">
+        <Button type="submit">Submit Documents</Button>
+      </div>
+    </form>
   );
 }
 

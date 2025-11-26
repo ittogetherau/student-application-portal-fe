@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
@@ -12,17 +13,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import FormField from '@/components/forms/form-field';
+import { Button } from '@/components/ui/button';
 
-interface SchoolingFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const schoolingSchema = z.object({
+  highestSchoolLevel: z.string().min(1, 'Highest school level is required'),
+  stillAttending: z.string().optional(),
+  schoolType: z.string().optional(),
+  fundingSource: z.string().optional(),
+  vetInSchool: z.string().optional(),
+});
 
-export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
+type SchoolingValues = z.infer<typeof schoolingSchema>;
+
+export default function SchoolingForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<SchoolingValues>({
+    resolver: zodResolver(schoolingSchema),
+    defaultValues: {
+      highestSchoolLevel: '',
+      stillAttending: '',
+      schoolType: '',
+      fundingSource: '',
+      vetInSchool: '',
+    },
   });
 
   const highestSchoolLevel = watch("highestSchoolLevel") ?? "";
@@ -31,22 +43,15 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
   const fundingSource = watch("fundingSource") ?? "";
   const vetInSchool = watch("vetInSchool") ?? "";
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.highestSchoolLevel && formValues.stillAttending !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
-
   const canSelectStillAttending = highestSchoolLevel && highestSchoolLevel !== '02';
 
+  const onSubmit = (values: SchoolingValues) => {
+    console.log('Schooling form submitted', values);
+    reset(values);
+  };
+
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <FormField
         label="What is your highest COMPLETED school level?"
         required
@@ -182,13 +187,17 @@ export default function SchoolingForm({ data, onUpdate, onComplete }: SchoolingF
         </RadioGroup>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Schooling</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

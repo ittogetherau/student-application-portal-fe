@@ -1,39 +1,36 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import FormField from '@/components/forms/form-field';
+import { Button } from '@/components/ui/button';
 
-interface HealthCoverFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const healthCoverSchema = z.object({
+  applyOHSC: z.string().min(1, 'Please choose an option'),
+});
 
-export default function HealthCoverForm({ data, onUpdate, onComplete }: HealthCoverFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
+type HealthCoverValues = z.infer<typeof healthCoverSchema>;
+
+export default function HealthCoverForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<HealthCoverValues>({
+    resolver: zodResolver(healthCoverSchema),
+    defaultValues: {
+      applyOHSC: '',
+    },
   });
 
   const applyOHSC = watch("applyOHSC");
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.applyOHSC !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
+  const onSubmit = (values: HealthCoverValues) => {
+    console.log('Health cover submitted', values);
+    reset(values);
+  };
 
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <div>
         <p className="text-sm mb-4">
           Do you wish to apply for Overseas Student Health Cover (OSHC) through your education provider?
@@ -63,13 +60,17 @@ export default function HealthCoverForm({ data, onUpdate, onComplete }: HealthCo
         </RadioGroup>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Health Cover</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
 

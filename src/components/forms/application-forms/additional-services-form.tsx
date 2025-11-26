@@ -1,43 +1,36 @@
 "use client";
 
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import FormField from "@/components/forms/form-field";
+import { Button } from "@/components/ui/button";
 
-interface AdditionalServicesFormProps {
-  data: any;
-  allData: any;
-  onUpdate: (data: any) => void;
-  onComplete: () => void;
-}
+const additionalServicesSchema = z.object({
+  requestAdditionalServices: z.string().min(1, "Please select an option"),
+});
 
-export default function AdditionalServicesForm({
-  data,
-  onUpdate,
-  onComplete,
-}: AdditionalServicesFormProps) {
-  const { watch, setValue } = useForm({
-    defaultValues: data,
+type AdditionalServicesValues = z.infer<typeof additionalServicesSchema>;
+
+export default function AdditionalServicesForm() {
+  const { watch, setValue, handleSubmit, reset } = useForm<AdditionalServicesValues>({
+    resolver: zodResolver(additionalServicesSchema),
+    defaultValues: {
+      requestAdditionalServices: "",
+    },
   });
 
   const requestAdditionalServices = watch("requestAdditionalServices");
 
-  useEffect(() => {
-    const subscription = watch((formValues) => {
-      onUpdate(formValues);
-
-      if (formValues.requestAdditionalServices !== undefined) {
-        onComplete();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [watch, onUpdate, onComplete]);
+  const onSubmit = (values: AdditionalServicesValues) => {
+    console.log("Additional services submitted", values);
+    reset(values);
+  };
 
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       <FormField label="Do you want to request additional services?" required>
         <RadioGroup
           value={requestAdditionalServices}
@@ -68,12 +61,16 @@ export default function AdditionalServicesForm({
         </RadioGroup>
       </FormField>
 
+      <div className="flex justify-end">
+        <Button type="submit">Submit Additional Services</Button>
+      </div>
+
       <style>{`
         .required::after {
           content: " *";
           color: hsl(var(--destructive));
         }
       `}</style>
-    </div>
+    </form>
   );
 }
