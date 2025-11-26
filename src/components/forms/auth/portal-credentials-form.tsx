@@ -1,17 +1,17 @@
 "use client";
 
-import { ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { publicSignIn } from "@/service/sign-in";
 import type { UserRole } from "@/lib/auth";
+import { siteRoutes } from "@/constants/site-routes";
+import { publicSignIn } from "@/service/sign-in";
 import { signInSchema, type SignInValues } from "@/validation/sign-in";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
 
 type PortalCredentialsFormProps = {
   idPrefix: string;
@@ -47,13 +47,13 @@ const PortalCredentialsForm = ({
 
   const handleFormSubmit = async (values: SignInValues) => {
     try {
-      await publicSignIn(values, role);
+      const result = await publicSignIn(values, role);
       toast.success(`Signed in as ${roleLabel}`);
       reset();
       const destination =
-        role === "agent"
-          ? "/dashboard/application"
-          : "/dashboard/application-queue";
+        result?.role === "staff"
+          ? siteRoutes.dashboard.applicationQueue.root
+          : siteRoutes.dashboard.application.root;
       router.push(destination);
     } catch {
       toast.error("Unable to sign in. Try again.");

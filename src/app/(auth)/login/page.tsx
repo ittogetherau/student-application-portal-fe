@@ -8,9 +8,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import SignInForm from "@/components/forms/auth/sign-in-form";
+import PortalLoginCard from "@/components/forms/auth/portal-login-card";
+import { siteRoutes } from "@/constants/site-routes";
 
-const AdminLoginPage = () => {
+const LoginPage = () => {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
       <div className="w-full max-w-md space-y-6">
@@ -21,28 +22,27 @@ const AdminLoginPage = () => {
           <h1 className="text-2xl font-semibold text-foreground">
             Churchill University
           </h1>
-          <p className="text-sm text-muted-foreground">Administrator Access</p>
+          <p className="text-sm text-muted-foreground">
+            Application Management System
+          </p>
         </div>
 
-        <SignInForm
-          variant="admin"
-          title="Admin Login"
-          description="Manage the Churchill portal with your admin credentials."
-          placeholderEmail="admin@churchill.com"
-        />
+        <PortalLoginCard />
 
         <Card className="text-center">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-foreground">
-              Looking for the portal login?
+              Track your application as a student?
             </CardTitle>
             <CardDescription>
-              Switch to the agent or staff experience instead.
+              Follow your application status inside the tracking portal.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="link" className="text-primary">
-              <Link href="/login">Go to Agent &amp; Staff Sign-In -&gt;</Link>
+              <Link href={siteRoutes.track}>
+                Go to Application Tracking -&gt;
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -56,4 +56,4 @@ const AdminLoginPage = () => {
   );
 };
 
-export default AdminLoginPage;
+export default LoginPage;

@@ -1,23 +1,20 @@
 "use client";
 
 import { useCallback, type MouseEventHandler } from "react";
-import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { toast } from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
+import { siteRoutes } from "@/constants/site-routes";
 import type React from "react";
-import { clearBrowserAuthSession } from "@/lib/auth";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
 
-export const useLogout = (redirectPath = "/dashboard") => {
-  const router = useRouter();
-
+export const useLogout = (redirectPath = siteRoutes.auth.login) => {
   return useCallback(() => {
-    clearBrowserAuthSession();
     toast.success("Signed out");
-    router.push(redirectPath);
-  }, [redirectPath, router]);
+    void signOut({ callbackUrl: redirectPath });
+  }, [redirectPath]);
 };
 
 type LogoutButtonProps = ButtonProps & {
@@ -25,7 +22,7 @@ type LogoutButtonProps = ButtonProps & {
 };
 
 const LogoutButton = ({
-  redirectPath = "/dashboard",
+  redirectPath = siteRoutes.auth.login,
   className,
   variant = "outline",
   size = "sm",

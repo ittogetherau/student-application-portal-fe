@@ -20,6 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { UserRole } from "@/lib/auth";
+import { siteRoutes } from "@/constants/site-routes";
 import {
   FileText,
   Inbox,
@@ -58,14 +59,17 @@ type SidebarNavProps = {
 const SidebarNav = ({ items, user }: SidebarNavProps) => {
   const pathname = usePathname();
   const { isMobile, open, setOpenMobile } = useSidebar();
-  const logout = useLogout("/login");
+  const logout = useLogout(siteRoutes.auth.login);
 
   const roleLabel =
     user.role === "staff"
       ? "Staff Portal"
       : user.role === "agent"
-      ? "Agent Portal"
-      : "Admin Portal";
+        ? "Agent Portal"
+        : user.role === "student"
+          ? "Student Portal"
+          : "Admin Portal";
+  const roleText = user.role.charAt(0).toUpperCase() + user.role.slice(1);
   const initials =
     user.name?.[0]?.toUpperCase() ?? user.email[0]?.toUpperCase() ?? "?";
 
@@ -86,7 +90,9 @@ const SidebarNav = ({ items, user }: SidebarNavProps) => {
             <p className="text-sm font-semibold text-foreground">
               Churchill University
             </p>
-            <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            <p className="text-xs text-muted-foreground">
+              {roleLabel} · {roleText}
+            </p>
           </div>
         </div>
       </SidebarHeader>
@@ -98,7 +104,7 @@ const SidebarNav = ({ items, user }: SidebarNavProps) => {
               {items.map((item) => {
                 const isExactMatch =
                   pathname === item.href ||
-                  (item.href !== "/dashboard" &&
+                  (item.href !== siteRoutes.dashboard.root &&
                     pathname.startsWith(`${item.href}/`));
                 const Icon = ICONS[item.icon] ?? LayoutDashboard;
                 return (

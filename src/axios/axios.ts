@@ -1,132 +1,99 @@
-import axios from 'axios';
-// import { getSession, signOut } from 'next-auth/react';
+import axios, {
+  AxiosHeaders,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
+} from "axios";
+import { getSession, signOut } from "next-auth/react";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const baseURL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || undefined;
 
-const createAxiosInstance = (config = {}) =>
+const createAxiosInstance = () =>
   axios.create({
     baseURL,
     timeout: 20000,
-    ...config,
   });
-const dataBaseURL = process.env.NEXT_PUBLIC_API_DATA_BASE_URL;
 
-export const axiosDataPrivate = axios.create({
-  baseURL: dataBaseURL,
-  timeout: 20000,
-});
-
-export const axiosDataPublic = axios.create({
-  baseURL: dataBaseURL,
-  timeout: 20000,
-});
 export const axiosPublic = createAxiosInstance();
 export const axiosPrivate = createAxiosInstance();
 
-// axiosDataPrivate.interceptors.request.use(
-//   async (config) => {
-//     const session = await getSession();
+// Backwards compatibility aliases
+export const axiosDataPublic = axiosPublic;
+export const axiosDataPrivate = axiosPrivate;
 
-//     if (session?.access_token) {
-//       config.headers.Authorization = `Bearer ${session.access_token}`;
-//     }
-//     return config;
-//   },
-//   (error) => Promise.reject(error),
-// );
-// axiosPrivate.interceptors.request.use(
-//   async (config) => {
-//     const session = await getSession();
+type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
-//     if (session?.access_token) {
-//       config.headers.Authorization = `Bearer ${session.access_token}`;
-//     }
-//     return config;
-//   },
-//   (error) => Promise.reject(error),
-// );
+const applyAuthHeader = (
+  headers: InternalAxiosRequestConfig["headers"],
+  value: string,
+) => {
+  const merged =
+    headers instanceof AxiosHeaders ? headers : new AxiosHeaders(headers);
+  merged.set("Authorization", value);
+  return merged;
+};
 
-// axiosDataPrivate.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
+// Attach auth token for protected requests
+axiosPrivate.interceptors.request.use(
+  async (config) => {
+    const session = await getSession();
+    const accessToken =
+      (session as any)?.accessToken ?? (session as any)?.access_token;
+    const tokenType = (session as any)?.tokenType || "Bearer";
 
-//     // Check if it's a 401 error and we haven't already retried
-//     if (error.response?.status === 401 && !originalRequest._retry) {
-//       originalRequest._retry = true;
+    if (accessToken) {
+      config.headers = applyAuthHeader(
+        config.headers,
+        `${tokenType} ${accessToken}`,
+      );
+    }
 
-//       console.log('Token expired, triggering NextAuth session refresh...');
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
-//       try {
-//         await fetch('/api/auth/session', {
-//           method: 'POST',
-//           headers: {
-//             'Content-Type': 'application/json',
-//           },
-//           body: JSON.stringify({
-//             update: true,
-//           }),
-//         });
+// Refresh token on 401 once, then retry
+axiosPrivate.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryableRequest;
 
-//         const updatedSession = await getSession();
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      originalRequest._retry = true;
 
-//         if (updatedSession?.access_token) {
-//           originalRequest.headers.Authorization = `Bearer ${updatedSession.access_token}`;
+      try {
+        await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ update: true }),
+        });
 
-//           return axiosDataPrivate(originalRequest);
-//         }
-//       } catch (refreshError) {
-//         console.error('❌ Session refresh failed:', refreshError);
-//       }
+        const updatedSession = await getSession();
+        const refreshedToken =
+          (updatedSession as any)?.accessToken ??
+          (updatedSession as any)?.access_token;
+        const tokenType = (updatedSession as any)?.tokenType || "Bearer";
 
-//       await signOut({ redirect: false });
-//       if (typeof window !== 'undefined') {
-//         window.location.href = '/auth/sign-in?reason=session_expired';
-//       }
-//       return Promise.reject(error);
-//     }
-//     return Promise.reject(error);
-//   },
-// );
-// axiosPrivate.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
+        if (!refreshedToken) {
+          throw new Error("Unable to refresh access token");
+        }
 
-//     // Check if it's a 401 error and we haven't already retried
-//     if (error.response?.status === 401 && !originalRequest._retry) {
-//       originalRequest._retry = true;
+        originalRequest.headers = applyAuthHeader(
+          originalRequest.headers,
+          `${tokenType} ${refreshedToken}`,
+        );
 
-//       console.log('Token expired, triggering NextAuth session refresh...');
+        return axiosPrivate(originalRequest);
+      } catch (refreshError) {
+        await signOut({ redirect: false, callbackUrl: "/login" });
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
+      }
+    }
 
-//       try {
-//         await fetch('/api/auth/session', {
-//           method: 'POST',
-//           headers: {
-//             'Content-Type': 'application/json',
-//           },
-//           body: JSON.stringify({
-//             update: true,
-//           }),
-//         });
-
-//         const updatedSession = await getSession();
-
-//         if (updatedSession?.access_token) {
-//           originalRequest.headers.Authorization = `Bearer ${updatedSession.access_token}`;
-
-//           return axiosDataPrivate(originalRequest);
-//         }
-//       } catch (refreshError) {
-//         console.error('Session refresh failed:', refreshError);
-//       }
-
-//       await signOut({ redirect: false });
-//       if (typeof window !== 'undefined') {
-//         window.location.href = '/auth/sign-in?reason=session_expired';
-//       }
-//       return Promise.reject(error);
-//     }
-//     return Promise.reject(error);
-//   },
-// );
+    return Promise.reject(error);
+  },
+);

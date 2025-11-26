@@ -12,6 +12,7 @@ import {
   applicationColumns,
   applicationStatusFilterOptions,
 } from "./application-table-columns";
+import { siteRoutes } from "@/constants/site-routes";
 
 interface ApplicationTableProps {
   data?: Application[];
@@ -50,7 +51,9 @@ export const ApplicationTable = ({
       toolbarActions={
         <>
           <Button asChild size="sm">
-            <Link href="/dashboard/application/new">New Application</Link>
+            <Link href={siteRoutes.dashboard.application.new}>
+              New Application
+            </Link>
           </Button>
         </>
       }

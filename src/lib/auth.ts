@@ -1,4 +1,4 @@
-export type UserRole = "agent" | "staff" | "admin";
+export type UserRole = "student" | "agent" | "staff" | "admin";
 
 export type AuthSession = {
   email: string;

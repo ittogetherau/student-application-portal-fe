@@ -1,7 +1,7 @@
 import {
   ApplicationCreateValues,
   applicationCreateSchema,
-} from "@/validation/application";
+} from "@/validation/application.validation";
 
 export type StepFormData = Record<string, unknown>;
 export type FormDataState = Record<number, StepFormData>;

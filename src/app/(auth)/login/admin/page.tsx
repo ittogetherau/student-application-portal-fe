@@ -8,9 +8,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import PortalLoginCard from "@/components/forms/auth/portal-login-card";
+import SignInForm from "@/components/forms/auth/sign-in-form";
+import { siteRoutes } from "@/constants/site-routes";
 
-const LoginPage = () => {
+const AdminLoginPage = () => {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
       <div className="w-full max-w-md space-y-6">
@@ -21,25 +22,28 @@ const LoginPage = () => {
           <h1 className="text-2xl font-semibold text-foreground">
             Churchill University
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Application Management System
-          </p>
+          <p className="text-sm text-muted-foreground">Administrator Access</p>
         </div>
 
-        <PortalLoginCard />
+        <SignInForm
+          variant="admin"
+          title="Admin Login"
+          description="Manage the Churchill portal with your admin credentials."
+          placeholderEmail="admin@churchill.com"
+        />
 
         <Card className="text-center">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-foreground">
-              Track your application as a student?
+              Looking for the portal login?
             </CardTitle>
             <CardDescription>
-              Follow your application status inside the tracking portal.
+              Switch to the agent or staff experience instead.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="link" className="text-primary">
-              <Link href="/track">Go to Application Tracking -&gt;</Link>
+              <Link href={siteRoutes.auth.login}>Go to Agent &amp; Staff Sign-In -&gt;</Link>
             </Button>
           </CardContent>
         </Card>
@@ -53,4 +57,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default AdminLoginPage;

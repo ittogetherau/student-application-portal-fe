@@ -27,7 +27,7 @@ import {
   additionalServicesSchema,
   SurveyValues,
   surveySchema,
-} from "@/validation/application";
+} from "@/validation/application.validation";
 
 export interface StepUpdateResponse {
   applicationId?: string;
@@ -135,6 +135,30 @@ class ApplicationService extends ApiService {
       return handleApiError<ApplicationDetail>(
         error,
         "Failed to fetch application",
+      );
+    }
+  }
+
+  async updateApplication(
+    applicationId: string,
+    payload: Record<string, unknown>,
+  ): Promise<ServiceResponse<ApplicationDetail>> {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.patch<ApplicationDetail>(
+        `${this.basePath}/${applicationId}`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Application updated successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError<ApplicationDetail>(
+        error,
+        "Failed to update application",
       );
     }
   }
@@ -420,9 +444,57 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail >(
+      return handleApiError<ApplicationDetail>(
         error,
         "Failed to submit application",
+      );
+    }
+  }
+
+  async assignApplication(
+    applicationId: string,
+    payload: Record<string, unknown>,
+  ): Promise<ServiceResponse<unknown>> {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<unknown>(
+        `${this.basePath}/${applicationId}/assign`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Application assigned successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to assign application",
+      );
+    }
+  }
+
+  async changeStage(
+    applicationId: string,
+    payload: Record<string, unknown>,
+  ): Promise<ServiceResponse<unknown>> {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<unknown>(
+        `${this.basePath}/${applicationId}/change-stage`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Application stage updated.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to update application stage",
       );
     }
   }

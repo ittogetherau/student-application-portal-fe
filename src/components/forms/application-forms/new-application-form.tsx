@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { siteRoutes } from "@/constants/site-routes";
 import {
   STEP_SAVE_ORDER,
   type StepNumber,
@@ -277,7 +278,7 @@ const NewApplicationForm = () => {
         window.localStorage.removeItem(STORAGE_KEY);
         window.localStorage.removeItem(APPLICATION_ID_STORAGE_KEY);
       }
-      router.push("/dashboard/application");
+      router.push(siteRoutes.dashboard.application.root);
     } catch (error) {
       if (error instanceof ZodError) {
         const firstIssue = error.issues[0];

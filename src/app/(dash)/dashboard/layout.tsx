@@ -1,31 +1,35 @@
 import type { ReactNode } from "react";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+
 import SidebarNav, {
   type SidebarIconName,
 } from "@/components/dashboard/sidebar-nav";
 import AppToolbar from "@/components/dashboard/app-toolbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { AUTH_COOKIE_NAME, parseAuthCookie, type UserRole } from "@/lib/auth";
+import type { UserRole } from "@/lib/auth";
+import { authOptions } from "@/lib/auth-options";
+import { siteRoutes } from "@/constants/site-routes";
 
 type NavItem = { label: string; href: string; icon: SidebarIconName };
 
 const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
-  admin: [{ label: "Dashboard", href: "/dashboard", icon: "dashboard" }],
+  admin: [{ label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" }],
+  student: [{ label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" }],
   agent: [
-    { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
+    { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
     {
       label: "Applications",
-      href: "/dashboard/application",
+      href: siteRoutes.dashboard.application.root,
       icon: "applications",
     },
   ],
   staff: [
-    { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    { label: "Agents", href: "/dashboard/agents", icon: "agents" },
+    { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
+    { label: "Agents", href: siteRoutes.dashboard.agents.root, icon: "agents" },
     {
       label: "Application Queue",
-      href: "/dashboard/application-queue",
+      href: siteRoutes.dashboard.applicationQueue.root,
       icon: "queue",
     },
   ],
@@ -34,13 +38,13 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
 const getDisplayName = (email: string) => email.split("@")[0] ?? email;
 
 const DashboardLayout = async ({ children }: { children: ReactNode }) => {
-  const cookieStore = await cookies();
-  const authCookie = cookieStore.get(AUTH_COOKIE_NAME)?.value;
-  const session = parseAuthCookie(authCookie);
+  const session = await getServerSession(authOptions);
+  const role = (session?.user?.role as UserRole | undefined) ?? "admin";
 
-  if (!session) redirect("/login");
+  if (!session?.user?.email || !role) redirect(siteRoutes.auth.login);
+  if (role === "student") redirect(siteRoutes.auth.login);
 
-  const navItems = NAV_LINKS[session.role] ?? NAV_LINKS.admin;
+  const navItems = NAV_LINKS[role] ?? NAV_LINKS.admin;
 
   return (
     <SidebarProvider>
@@ -48,9 +52,9 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
       <SidebarNav
         items={navItems}
         user={{
-          email: session.email,
-          name: getDisplayName(session.email),
-          role: session.role,
+          email: session.user.email ?? "",
+          name: getDisplayName(session.user.email ?? ""),
+          role,
         }}
       />
 

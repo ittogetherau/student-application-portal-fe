@@ -16,8 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { siteRoutes } from "@/constants/site-routes";
 import { adminSignIn, publicSignIn } from "@/service/sign-in";
-import type { UserRole } from "@/lib/auth";
 import { signInSchema, type SignInValues } from "@/validation/sign-in";
 
 type SignInFormVariant = "default" | "admin";
@@ -37,7 +37,7 @@ const SignInForm = ({
   description,
   placeholderEmail = "you@churchill.com",
   successMessage = "Sign-in request sent.",
-  redirectTo = "/dashboard",
+  redirectTo,
 }: SignInFormProps) => {
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -75,15 +75,22 @@ const SignInForm = ({
     setError(null);
 
     try {
-      if (variant === "admin") {
-        await adminSignIn(values);
-      } else {
-        const fallbackRole: Exclude<UserRole, "admin"> = "agent";
-        await publicSignIn(values, fallbackRole);
-      }
+      const result =
+        variant === "admin"
+          ? await adminSignIn(values)
+          : await publicSignIn(values);
+
       setStatus("success");
       toast.success(successMessage);
-      router.push(redirectTo);
+
+      const roleRedirect =
+        result?.role === "admin"
+          ? siteRoutes.dashboard.root
+          : result?.role === "staff"
+            ? siteRoutes.dashboard.applicationQueue.root
+            : siteRoutes.dashboard.application.root;
+
+      router.push(redirectTo ?? roleRedirect);
     } catch (err) {
       console.error(err);
       setStatus("error");
