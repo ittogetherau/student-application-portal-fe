@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, X, FileText } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Upload, X, FileText } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type DocumentType = {
   id: string;
@@ -32,13 +32,38 @@ const documentsSchema = z.object({
 type DocumentsFormValues = z.infer<typeof documentsSchema>;
 
 const defaultDocuments: DocumentType[] = [
-  { id: 'passport', title: "Applicant's Passport", required: true, files: [] },
-  { id: 'english-test', title: 'Evidence Of English Test', required: true, files: [] },
-  { id: 'academic', title: 'Academic Document', required: true, files: [] },
-  { id: 'work-experience', title: 'Work Experience / Gap Evidence', required: false, files: [] },
-  { id: 'application-form', title: 'Application Form Completed and Signed', required: true, files: [] },
-  { id: 'other-supporting', title: 'Other Supporting Document', required: false, files: [] },
-  { id: 'applicants-academic', title: "Applicants Academic", required: false, files: [] },
+  { id: "passport", title: "Applicant's Passport", required: true, files: [] },
+  {
+    id: "english-test",
+    title: "Evidence Of English Test",
+    required: true,
+    files: [],
+  },
+  { id: "academic", title: "Academic Document", required: true, files: [] },
+  {
+    id: "work-experience",
+    title: "Work Experience / Gap Evidence",
+    required: false,
+    files: [],
+  },
+  {
+    id: "application-form",
+    title: "Application Form Completed and Signed",
+    required: true,
+    files: [],
+  },
+  {
+    id: "other-supporting",
+    title: "Other Supporting Document",
+    required: false,
+    files: [],
+  },
+  {
+    id: "applicants-academic",
+    title: "Applicants Academic",
+    required: false,
+    files: [],
+  },
 ];
 
 export default function DocumentsForm() {
@@ -53,7 +78,7 @@ export default function DocumentsForm() {
 
   const syncDocuments = (updatedDocs: DocumentType[]) => {
     setDocuments(updatedDocs);
-    setValue('documents', updatedDocs, { shouldValidate: true });
+    setValue("documents", updatedDocs, { shouldValidate: true });
   };
 
   const handleFileUpload = (docId: string, files: FileList | null) => {
@@ -61,7 +86,9 @@ export default function DocumentsForm() {
 
     syncDocuments(
       documents.map((doc) =>
-        doc.id === docId ? { ...doc, files: [...doc.files, ...Array.from(files)] } : doc
+        doc.id === docId
+          ? { ...doc, files: [...doc.files, ...Array.from(files)] }
+          : doc
       )
     );
   };
@@ -69,13 +96,15 @@ export default function DocumentsForm() {
   const handleFileRemove = (docId: string, fileIndex: number) => {
     syncDocuments(
       documents.map((doc) =>
-        doc.id === docId ? { ...doc, files: doc.files.filter((_, i) => i !== fileIndex) } : doc
+        doc.id === docId
+          ? { ...doc, files: doc.files.filter((_, i) => i !== fileIndex) }
+          : doc
       )
     );
   };
 
   const onSubmit = (values: DocumentsFormValues) => {
-    console.log('Documents form submitted', values);
+    console.log("Documents form submitted", values);
   };
 
   return (
@@ -88,11 +117,19 @@ export default function DocumentsForm() {
                 <div>
                   <h4 className="font-medium">{doc.title}</h4>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={doc.required ? 'destructive' : 'secondary'} className="text-xs">
-                      {doc.required ? 'Compulsory' : 'Optional'}
+                    <Badge
+                      variant={doc.required ? "destructive" : "secondary"}
+                      className="text-xs"
+                    >
+                      {doc.required ? "Compulsory" : "Optional"}
                     </Badge>
-                    <Badge variant={doc.files.length > 0 ? 'default' : 'outline'} className="text-xs">
-                      {doc.files.length > 0 ? `${doc.files.length} Uploaded` : 'Not Uploaded'}
+                    <Badge
+                      variant={doc.files.length > 0 ? "default" : "outline"}
+                      className="text-xs"
+                    >
+                      {doc.files.length > 0
+                        ? `${doc.files.length} Uploaded`
+                        : "Not Uploaded"}
                     </Badge>
                   </div>
                 </div>
@@ -100,8 +137,10 @@ export default function DocumentsForm() {
 
               <div
                 className={cn(
-                  'border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors',
-                  doc.required && doc.files.length === 0 ? 'border-destructive/40' : ''
+                  "border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors",
+                  doc.required && doc.files.length === 0
+                    ? "border-destructive/40"
+                    : ""
                 )}
               >
                 <input
@@ -114,8 +153,12 @@ export default function DocumentsForm() {
                 />
                 <label htmlFor={`file-${doc.id}`} className="cursor-pointer">
                   <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Drop files here to upload or click to browse</p>
-                  <p className="text-xs text-muted-foreground mt-1">Supported formats: PDF, JPG, PNG, DOC, DOCX</p>
+                  <p className="text-sm text-muted-foreground">
+                    Drop files here to upload or click to browse
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Supported formats: PDF, JPG, PNG, DOC, DOCX
+                  </p>
                 </label>
               </div>
 
@@ -130,9 +173,15 @@ export default function DocumentsForm() {
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({(file.size / 1024).toFixed(2)} KB)
+                        </span>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => handleFileRemove(doc.id, index)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFileRemove(doc.id, index)}
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -150,4 +199,3 @@ export default function DocumentsForm() {
     </form>
   );
 }
-

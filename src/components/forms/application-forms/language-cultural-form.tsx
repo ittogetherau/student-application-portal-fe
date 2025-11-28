@@ -1,404 +1,152 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import FormField from '@/components/forms/form-field';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useFieldArray, useForm, FormProvider } from "react-hook-form";
+import { z } from "zod";
 
-const englishTestSchema = z.object({
-  testType: z.string().optional(),
-  testDate: z.string().optional(),
-  scoreType: z.string().optional(),
-  listeningScore: z.string().optional(),
-  readingScore: z.string().optional(),
-  writingScore: z.string().optional(),
-  speakingScore: z.string().optional(),
-  overallScore: z.string().optional(),
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { FormInput } from "../../ui/forms/form-input";
+import { FormArrayInput } from "../../ui/forms/form-array-input";
+
+const schema = z.object({
+  first_language: z.string().min(1, "First language is required"),
+  english_proficiency: z.string().min(1, "English proficiency is required"),
+  other_languages: z
+    .array(z.string().min(1, "Language cannot be empty"))
+    .min(1, "Add at least one other language"),
+  indigenous_status: z.string().min(1, "Indigenous status is required"),
+  country_of_birth: z.string().min(1, "Country of birth is required"),
+  citizenship_status: z.string().min(1, "Citizenship status is required"),
+  visa_type: z.string().min(1, "Visa type is required"),
+  visa_expiry: z.string().min(1, "Visa expiry is required"),
+  english_test_type: z.string().min(1, "English test type is required"),
+  english_test_score: z.string().min(1, "English test score is required"),
+  english_test_date: z.string().min(1, "English test date is required"),
 });
 
-const languageCulturalSchema = z.object({
-  aboriginalOrigin: z.string().min(1, 'Origin is required'),
-  englishMain: z.string().min(1, 'Please select if English is your main language'),
-  mainLanguage: z.string().optional(),
-  englishProficiency: z.string().optional(),
-  englishInstruction: z.string().optional(),
-  completedEnglishTest: z.string().optional(),
-  englishTests: z.array(englishTestSchema).optional(),
-});
+type FormValues = z.infer<typeof schema>;
 
-type LanguageCulturalValues = z.infer<typeof languageCulturalSchema>;
-
-export default function LanguageCulturalForm() {
-  const { watch, setValue, handleSubmit, reset } = useForm<LanguageCulturalValues>({
-    resolver: zodResolver(languageCulturalSchema),
+export default function LanguageDefaultForm() {
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
-      aboriginalOrigin: '',
-      englishMain: '',
-      mainLanguage: '',
-      englishProficiency: '',
-      englishInstruction: '',
-      completedEnglishTest: '',
-      englishTests: [],
+      first_language: "",
+      english_proficiency: "",
+      other_languages: [""],
+      indigenous_status: "",
+      country_of_birth: "",
+      citizenship_status: "",
+      visa_type: "",
+      visa_expiry: "",
+      english_test_type: "",
+      english_test_score: "",
+      english_test_date: "",
     },
   });
 
-  const aboriginalOrigin = watch("aboriginalOrigin") ?? "";
-  const englishMain = watch("englishMain") ?? "";
-  const mainLanguage = watch("mainLanguage") ?? "";
-  const englishProficiency = watch("englishProficiency") ?? "";
-  const englishInstruction = watch("englishInstruction") ?? "";
-  const completedEnglishTest = watch("completedEnglishTest") ?? "";
-  const emptyTest = {
-    testType: "",
-    testDate: "",
-    scoreType: "",
-    listeningScore: "",
-    readingScore: "",
-    writingScore: "",
-    speakingScore: "",
-    overallScore: "",
-  };
-  const [englishTests, setEnglishTests] = useState<any[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTest, setCurrentTest] = useState<any>(emptyTest);
+  const { handleSubmit, control } = methods;
 
-  const handleAddTest = () => {
-    setEnglishTests([...englishTests, currentTest]);
-    setCurrentTest(emptyTest);
-    setIsDialogOpen(false);
-  };
+  const { fields, append, remove } = useFieldArray<
+    FormValues,
+    "other_languages"
+  >({
+    control,
+    name: "other_languages",
+  });
 
-  const onSubmit = (values: LanguageCulturalValues) => {
-    const payload = { ...values, englishTests };
-    console.log('Language & Cultural form submitted', payload);
-    reset({ ...values, englishTests });
+  const onSubmit = (values: FormValues) => {
+    // payload exactly matches your example shape
+    console.log(JSON.stringify(values, null, 2));
   };
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit(onSubmit)}>
-      <FormField
-        label="Are you of Australian Aboriginal and Torres Strait Islander origin?"
-        required
-        description="For persons of both Australian Aboriginal and Torres Strait Islander origin, mark both 'Yes' boxes."
-      >
-        <RadioGroup
-          value={aboriginalOrigin}
-          onValueChange={(value) => setValue('aboriginalOrigin', value)}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="both" id="both" />
-            <Label htmlFor="both" className="font-normal cursor-pointer">
-              Yes, Both Aboriginal and Torres Strait Islander
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="aboriginal" id="aboriginal" />
-            <Label htmlFor="aboriginal" className="font-normal cursor-pointer">
-              Yes, Only Aboriginal
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="islander" id="islander" />
-            <Label htmlFor="islander" className="font-normal cursor-pointer">
-              Yes, Only Torres Strait Islander
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="neither" id="neither" />
-            <Label htmlFor="neither" className="font-normal cursor-pointer">
-              No, Neither Aboriginal and Torres Strait Islander
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="not-stated" id="not-stated" />
-            <Label htmlFor="not-stated" className="font-normal cursor-pointer">
-              Not Stated / Prefer not to say
-            </Label>
-          </div>
-        </RadioGroup>
-      </FormField>
+    <FormProvider {...methods}>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormInput
+            name="first_language"
+            label="First language"
+            placeholder="e.g. Nepali"
+          />
 
-      <Separator />
+          <FormInput
+            name="english_proficiency"
+            label="English proficiency"
+            placeholder="e.g. Advanced"
+          />
 
-      <FormField label="Is English your main language?" required>
-        <RadioGroup
-          value={englishMain}
-          onValueChange={(value) => setValue('englishMain', value)}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="english-yes" />
-              <Label htmlFor="english-yes" className="font-normal cursor-pointer">Yes</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="english-no" />
-              <Label htmlFor="english-no" className="font-normal cursor-pointer">No</Label>
-            </div>
-          </div>
-        </RadioGroup>
-      </FormField>
+          <FormInput name="indigenous_status" label="Indigenous status" />
 
-      {englishMain === 'no' && (
-        <>
-          <FormField label="What is your Main Language?">
-            <Select
-              value={mainLanguage}
-              onValueChange={(value) => setValue('mainLanguage', value)}
-            >
-              <SelectTrigger id="mainLanguage">
-                <SelectValue placeholder="Select Language..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mandarin">Mandarin</SelectItem>
-                <SelectItem value="hindi">Hindi</SelectItem>
-                <SelectItem value="spanish">Spanish</SelectItem>
-                <SelectItem value="nepali">Nepali</SelectItem>
-                <SelectItem value="urdu">Urdu</SelectItem>
-                <SelectItem value="bengali">Bengali</SelectItem>
-                <SelectItem value="tamil">Tamil</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
+          <FormInput
+            name="country_of_birth"
+            label="Country of birth"
+            placeholder="e.g. Nepal"
+          />
 
-          <FormField label="How well do you speak English?">
-            <Select
-              value={englishProficiency}
-              onValueChange={(value) => setValue('englishProficiency', value)}
-            >
-              <SelectTrigger id="englishProficiency">
-                <SelectValue placeholder="Select one..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="very-well">Very Well</SelectItem>
-                <SelectItem value="well">Well</SelectItem>
-                <SelectItem value="not-well">Not Well</SelectItem>
-                <SelectItem value="not-at-all">Not at all</SelectItem>
-                <SelectItem value="not-stated">Not Stated</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-        </>
-      )}
+          <FormInput
+            name="citizenship_status"
+            label="Citizenship status"
+            placeholder="e.g. Citizen / PR"
+          />
 
-      <Separator />
+          <FormInput
+            name="visa_type"
+            label="Visa type"
+            placeholder="Student visa"
+          />
 
-      <div className="space-y-4">
-        <h3 className="font-medium">English Test</h3>
+          <FormInput name="visa_expiry" label="Visa expiry" type="date" />
 
-        <div className="space-y-4">
-          <FormField label="Was English the language of instruction in previous secondary or tertiary studies?">
-            <RadioGroup
-              value={englishInstruction}
-              onValueChange={(value) => setValue('englishInstruction', value)}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="instruction-yes" />
-                  <Label htmlFor="instruction-yes" className="font-normal cursor-pointer">Yes</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="instruction-no" />
-                  <Label htmlFor="instruction-no" className="font-normal cursor-pointer">No</Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </FormField>
+          <FormInput
+            name="english_test_type"
+            label="English test type"
+            placeholder="IELTS / PTE"
+          />
 
-          <FormField label="Have you completed a test of English Language Proficiency?">
-            <RadioGroup
-              value={completedEnglishTest}
-              onValueChange={(value) => setValue('completedEnglishTest', value)}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="test-yes" />
-                  <Label htmlFor="test-yes" className="font-normal cursor-pointer">Yes</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="test-no" />
-                  <Label htmlFor="test-no" className="font-normal cursor-pointer">No</Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </FormField>
+          <FormInput
+            name="english_test_score"
+            label="English test score"
+            placeholder="e.g. 7.0"
+          />
+
+          <FormInput
+            name="english_test_date"
+            type="date"
+            label="English test date"
+          />
         </div>
 
-        {completedEnglishTest === 'yes' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>English Tests</Label>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Test
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Test</DialogTitle>
-                    <DialogDescription>
-                      Add your English Language Proficiency test details.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>What test did you sit?</Label>
-                      <Select
-                        value={currentTest.testType}
-                        onValueChange={(value) => setCurrentTest({ ...currentTest, testType: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select test type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ielts">International English Language Testing System (IELTS)</SelectItem>
-                          <SelectItem value="toefl">Test of English as a Foreign Language (TOEFL)</SelectItem>
-                          <SelectItem value="toeic">Test of English for International Communication (TOEIC)</SelectItem>
-                          <SelectItem value="pte">Pearson Test of English (PTE)</SelectItem>
-                          <SelectItem value="cae">Certificate in Advanced English (CAE)</SelectItem>
-                          <SelectItem value="oet">Occupational English Test (OET)</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+        {/* other_languages dynamic list */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Other languages</Label>
 
-                    <div className="space-y-2">
-                      <Label>Date of test</Label>
-                      <Input
-                        type="date"
-                        value={currentTest.testDate}
-                        onChange={(e) => setCurrentTest({ ...currentTest, testDate: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Score Type</Label>
-                      <RadioGroup
-                        value={currentTest.scoreType}
-                        onValueChange={(value) => setCurrentTest({ ...currentTest, scoreType: value })}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="4skills" id="4skills" />
-                            <Label htmlFor="4skills" className="font-normal cursor-pointer">4 skills</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="overall" id="overall" />
-                            <Label htmlFor="overall" className="font-normal cursor-pointer">Overall only</Label>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    {currentTest.scoreType === '4skills' && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Listening Score</Label>
-                          <Input
-                            value={currentTest.listeningScore}
-                            onChange={(e) => setCurrentTest({ ...currentTest, listeningScore: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Reading Score</Label>
-                          <Input
-                            value={currentTest.readingScore}
-                            onChange={(e) => setCurrentTest({ ...currentTest, readingScore: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Writing Score</Label>
-                          <Input
-                            value={currentTest.writingScore}
-                            onChange={(e) => setCurrentTest({ ...currentTest, writingScore: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Speaking Score</Label>
-                          <Input
-                            value={currentTest.speakingScore}
-                            onChange={(e) => setCurrentTest({ ...currentTest, speakingScore: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label>Overall Score</Label>
-                      <Input
-                        value={currentTest.overallScore}
-                        onChange={(e) => setCurrentTest({ ...currentTest, overallScore: e.target.value })}
-                      />
-                    </div>
-
-                    <Button onClick={handleAddTest} className="w-full">
-                      Add Test
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {englishTests.length > 0 && (
-              <div className="space-y-2">
-                {englishTests.map((test, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{test.testType}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {test.testDate} • Overall: {test.overallScore}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEnglishTests(englishTests.filter((_, i) => i !== index))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append("")}
+            >
+              Add language
+            </Button>
           </div>
-        )}
-      </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">Submit Language & Culture</Button>
-      </div>
+          <div className="space-y-3">
+            {fields.map((field, index) => (
+              <FormArrayInput
+                key={field.id}
+                name="other_languages"
+                index={index}
+                placeholder="e.g. Hindi"
+                onRemove={() => remove(index)}
+              />
+            ))}
+          </div>
+        </div>
 
-      <style>{`
-        .required::after {
-          content: " *";
-          color: hsl(var(--destructive));
-        }
-      `}</style>
-    </form>
+        <Button type="submit">Save language details</Button>
+      </form>
+    </FormProvider>
   );
 }
-

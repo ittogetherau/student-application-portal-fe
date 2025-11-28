@@ -1,203 +1,158 @@
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import FormField from '@/components/forms/form-field';
-import { Button } from '@/components/ui/button';
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { FormInput } from "../../ui/forms/form-input";
+import { FormCheckbox } from "../../ui/forms/form-checkbox";
+
+const schoolingEntrySchema = z.object({
+  institution: z.string().min(1, "Institution is required"),
+  country: z.string().min(1, "Country is required"),
+  qualification_level: z.string().min(1, "Qualification level is required"),
+  start_year: z.number().int().nonnegative("Start year must be 0 or positive"),
+  end_year: z.number().int().nonnegative("End year must be 0 or positive"),
+  currently_attending: z.boolean(),
+  result: z.string().min(1, "Result is required"),
+  field_of_study: z.string().min(1, "Field of study is required"),
+});
 
 const schoolingSchema = z.object({
-  highestSchoolLevel: z.string().min(1, 'Highest school level is required'),
-  stillAttending: z.string().optional(),
-  schoolType: z.string().optional(),
-  fundingSource: z.string().optional(),
-  vetInSchool: z.string().optional(),
+  entries: z
+    .array(schoolingEntrySchema)
+    .min(1, "Add at least one schooling entry"),
 });
 
 type SchoolingValues = z.infer<typeof schoolingSchema>;
 
+const emptyEntry: SchoolingValues["entries"][number] = {
+  institution: "",
+  country: "",
+  qualification_level: "",
+  start_year: 0,
+  end_year: 0,
+  currently_attending: false,
+  result: "",
+  field_of_study: "",
+};
+
 export default function SchoolingForm() {
-  const { watch, setValue, handleSubmit, reset } = useForm<SchoolingValues>({
+  const methods = useForm<SchoolingValues>({
     resolver: zodResolver(schoolingSchema),
     defaultValues: {
-      highestSchoolLevel: '',
-      stillAttending: '',
-      schoolType: '',
-      fundingSource: '',
-      vetInSchool: '',
+      entries: [emptyEntry],
     },
   });
 
-  const highestSchoolLevel = watch("highestSchoolLevel") ?? "";
-  const stillAttending = watch("stillAttending") ?? "";
-  const schoolType = watch("schoolType") ?? "";
-  const fundingSource = watch("fundingSource") ?? "";
-  const vetInSchool = watch("vetInSchool") ?? "";
+  const { control, handleSubmit } = methods;
 
-  const canSelectStillAttending = highestSchoolLevel && highestSchoolLevel !== '02';
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "entries",
+  });
+
+  const canAddMore = fields.length < 10;
 
   const onSubmit = (values: SchoolingValues) => {
-    console.log('Schooling form submitted', values);
-    reset(values);
+    console.log(JSON.stringify(values, null, 2));
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-      <FormField
-        label="What is your highest COMPLETED school level?"
-        required
-        description="If you are currently enrolled in secondary education, the Highest school level completed refers to the highest school level you have actually completed and not the level you are currently undertaking."
-      >
-        <RadioGroup
-          value={highestSchoolLevel}
-          onValueChange={(value) => setValue('highestSchoolLevel', value)}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="02" id="level-02" />
-            <Label htmlFor="level-02" className="font-normal cursor-pointer">02 - Did not go to School</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="08" id="level-08" />
-            <Label htmlFor="level-08" className="font-normal cursor-pointer">08 - Year 8 or below</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="09" id="level-09" />
-            <Label htmlFor="level-09" className="font-normal cursor-pointer">09 - Year 9 or below</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="10" id="level-10" />
-            <Label htmlFor="level-10" className="font-normal cursor-pointer">10 - Completed year 10</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="11" id="level-11" />
-            <Label htmlFor="level-11" className="font-normal cursor-pointer">11 - Completed year 11</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="12" id="level-12" />
-            <Label htmlFor="level-12" className="font-normal cursor-pointer">12 - Completed year 12</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="@@" id="level-@@" />
-            <Label htmlFor="level-@@" className="font-normal cursor-pointer">@@ - Not Specified</Label>
-          </div>
-        </RadioGroup>
-      </FormField>
+    <FormProvider {...methods}>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Schooling History</h3>
 
-      <FormField
-        label="Are you still attending secondary school?"
-        required={Boolean(canSelectStillAttending)}
-      >
-        <RadioGroup
-          value={stillAttending}
-          onValueChange={(value) => setValue('stillAttending', value)}
-          disabled={!canSelectStillAttending}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="attending-yes" disabled={!canSelectStillAttending} />
-              <Label htmlFor="attending-yes" className="font-normal cursor-pointer">Yes</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="attending-no" disabled={!canSelectStillAttending} />
-              <Label htmlFor="attending-no" className="font-normal cursor-pointer">No</Label>
-            </div>
-          </div>
-        </RadioGroup>
-        {!canSelectStillAttending && highestSchoolLevel === '02' && (
-          <p className="text-sm text-muted-foreground">Not applicable (Did not go to school)</p>
-        )}
-      </FormField>
-
-      {stillAttending === 'yes' && (
-        <FormField label="What is your secondary school?">
-          <RadioGroup
-            value={schoolType}
-            onValueChange={(value) => setValue('schoolType', value)}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canAddMore}
+            onClick={() => append(emptyEntry)}
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="government" id="government" />
-              <Label htmlFor="government" className="font-normal cursor-pointer">School (Government)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="catholic" id="catholic" />
-              <Label htmlFor="catholic" className="font-normal cursor-pointer">School (Catholic)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="independent" id="independent" />
-              <Label htmlFor="independent" className="font-normal cursor-pointer">School (Independent)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="tafe" id="tafe" />
-              <Label htmlFor="tafe" className="font-normal cursor-pointer">Technical and Further Education institute</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="community" id="community" />
-              <Label htmlFor="community" className="font-normal cursor-pointer">Community based adult education provider</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="private-rto" id="private-rto" />
-              <Label htmlFor="private-rto" className="font-normal cursor-pointer">Privately Operated registered training organisation</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="homeschool" id="homeschool" />
-              <Label htmlFor="homeschool" className="font-normal cursor-pointer">Home school arrangement</Label>
-            </div>
-          </RadioGroup>
-        </FormField>
-      )}
+            Add Entry
+          </Button>
+        </div>
 
-      <FormField label="Funding Source State" htmlFor="fundingSource">
-        <Select
-          value={fundingSource}
-          onValueChange={(value) => setValue('fundingSource', value)}
-        >
-          <SelectTrigger id="fundingSource">
-            <SelectValue placeholder="Select Funding..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="placeholder">Please select...</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
+        <div className="space-y-4">
+          {fields.map((field, index) => (
+            <div key={field.id} className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-sm">Entry {index + 1}</p>
 
-      <FormField label="VET in school?" required>
-        <RadioGroup
-          value={vetInSchool}
-          onValueChange={(value) => setValue('vetInSchool', value)}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="vet-yes" />
-              <Label htmlFor="vet-yes" className="font-normal cursor-pointer">Yes</Label>
+                {fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput
+                  name={`entries.${index}.institution`}
+                  label="Institution"
+                  placeholder="e.g. ABC High School"
+                />
+
+                <FormInput
+                  name={`entries.${index}.country`}
+                  label="Country"
+                  placeholder="e.g. Nepal"
+                />
+
+                <FormInput
+                  name={`entries.${index}.qualification_level`}
+                  label="Qualification Level"
+                  placeholder="e.g. Year 12, Diploma"
+                />
+
+                <FormInput
+                  name={`entries.${index}.field_of_study`}
+                  label="Field of Study"
+                  placeholder="e.g. Science, Business"
+                />
+
+                <FormInput
+                  name={`entries.${index}.start_year`}
+                  label="Start Year"
+                  type="number"
+                  placeholder="2020"
+                />
+
+                <FormInput
+                  name={`entries.${index}.end_year`}
+                  label="End Year"
+                  type="number"
+                  placeholder="2024"
+                />
+              </div>
+
+              <FormCheckbox
+                name={`entries.${index}.currently_attending`}
+                label="I am currently attending this institution"
+              />
+
+              <FormInput
+                name={`entries.${index}.result`}
+                label="Result"
+                placeholder="e.g. GPA, Percentage, Pass"
+              />
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="vet-no" />
-              <Label htmlFor="vet-no" className="font-normal cursor-pointer">No</Label>
-            </div>
-          </div>
-        </RadioGroup>
-      </FormField>
+          ))}
+        </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">Submit Schooling</Button>
-      </div>
-
-      <style>{`
-        .required::after {
-          content: " *";
-          color: hsl(var(--destructive));
-        }
-      `}</style>
-    </form>
+        <div className="flex justify-end">
+          <Button type="submit">Save Schooling</Button>
+        </div>
+      </form>
+    </FormProvider>
   );
 }
-

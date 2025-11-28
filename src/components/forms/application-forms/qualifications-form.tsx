@@ -1,65 +1,141 @@
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import FormField from '@/components/forms/form-field';
-import { Button } from '@/components/ui/button';
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-const qualificationsSchema = z.object({
-  hasQualifications: z.string().min(1, 'Please select an option'),
+import { Button } from "@/components/ui/button";
+import { FormInput } from "../../ui/forms/form-input";
+
+const qualificationSchema = z.object({
+  qualification_name: z.string().min(1, "Qualification name is required"),
+  institution: z.string().min(1, "Institution is required"),
+  completion_date: z.string().min(1, "Completion date is required"),
+  certificate_number: z.string().min(1, "Certificate number is required"),
+  field_of_study: z.string().min(1, "Field of study is required"),
+  grade: z.string().min(1, "Grade is required"),
 });
 
-type QualificationsValues = z.infer<typeof qualificationsSchema>;
+const qualificationsSchema = z.object({
+  qualifications: z
+    .array(qualificationSchema)
+    .min(1, "Add at least one qualification"),
+});
+
+type QualificationsFormValues = z.infer<typeof qualificationsSchema>;
+
+const emptyQualification: QualificationsFormValues["qualifications"][number] = {
+  qualification_name: "",
+  institution: "",
+  completion_date: "",
+  certificate_number: "",
+  field_of_study: "",
+  grade: "",
+};
 
 export default function QualificationsForm() {
-  const { watch, setValue, handleSubmit, reset } = useForm<QualificationsValues>({
+  const methods = useForm<QualificationsFormValues>({
     resolver: zodResolver(qualificationsSchema),
     defaultValues: {
-      hasQualifications: '',
+      qualifications: [emptyQualification],
     },
   });
 
-  const hasQualifications = watch("hasQualifications");
+  const { control, handleSubmit } = methods;
 
-  const onSubmit = (values: QualificationsValues) => {
-    console.log('Qualifications form submitted', values);
-    reset(values);
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "qualifications",
+  });
+
+  const canAddMore = fields.length < 10; // tweak if you want
+
+  const onSubmit = (values: QualificationsFormValues) => {
+    // 👇 matches the JSON shape you gave
+    console.log(JSON.stringify(values, null, 2));
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-      <FormField label="Have you successfully completed any previous qualifications?" required>
-        <RadioGroup
-          value={hasQualifications}
-          onValueChange={(value) => setValue('hasQualifications', value)}
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="qual-yes" />
-              <Label htmlFor="qual-yes" className="font-normal cursor-pointer">Yes</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="qual-no" />
-              <Label htmlFor="qual-no" className="font-normal cursor-pointer">No</Label>
-            </div>
-          </div>
-        </RadioGroup>
-      </FormField>
+    <FormProvider {...methods}>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Previous Qualifications</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canAddMore}
+            onClick={() => append(emptyQualification)}
+          >
+            Add Qualification
+          </Button>
+        </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">Submit Qualifications</Button>
-      </div>
+        <div className="space-y-4">
+          {fields.map((field, index) => (
+            <div key={field.id} className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">
+                  Qualification {index + 1}
+                </p>
 
-      <style>{`
-        .required::after {
-          content: " *";
-          color: hsl(var(--destructive));
-        }
-      `}</style>
-    </form>
+                {fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormInput
+                  name={`qualifications.${index}.qualification_name`}
+                  label="Qualification Name"
+                  placeholder="e.g. Bachelor of IT"
+                />
+
+                <FormInput
+                  name={`qualifications.${index}.institution`}
+                  label="Institution"
+                  placeholder="e.g. XYZ University"
+                />
+
+                <FormInput
+                  name={`qualifications.${index}.field_of_study`}
+                  label="Field of Study"
+                  placeholder="e.g. Software Engineering"
+                />
+
+                <FormInput
+                  name={`qualifications.${index}.grade`}
+                  label="Grade"
+                  placeholder="e.g. Distinction"
+                />
+
+                <FormInput
+                  name={`qualifications.${index}.completion_date`}
+                  label="Completion Date"
+                  type="date"
+                />
+
+                <FormInput
+                  name={`qualifications.${index}.certificate_number`}
+                  label="Certificate Number"
+                  placeholder="e.g. CERT-123456"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end">
+          <Button type="submit">Save Qualifications</Button>
+        </div>
+      </form>
+    </FormProvider>
   );
 }
-

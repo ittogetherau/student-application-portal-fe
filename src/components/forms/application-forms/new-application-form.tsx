@@ -20,7 +20,6 @@ import { clampStep } from "@/utils/application-form";
 
 import AdditionalServicesForm from "./additional-services-form";
 import DisabilityForm from "./disability-form";
-import DocumentsForm from "./documents-form";
 import EmergencyContactForm from "./emergency-contact-form";
 import EmploymentForm from "./employment-form";
 import HealthCoverForm from "./health-cover-form";
@@ -50,13 +49,12 @@ export const FORM_STEPS: FormStep[] = [
   { id: 9, title: "USI", component: USIForm },
   { id: 10, title: "Additional Services", component: AdditionalServicesForm },
   { id: 11, title: "Survey", component: SurveyForm },
-  { id: 12, title: "Documents", component: DocumentsForm },
-  { id: 13, title: "Review", component: ReviewForm },
-] satisfies FormStep[];
+  { id: 12, title: "Review", component: ReviewForm },
+];
 
 const STORAGE_KEY = "application_form_data";
 const APPLICATION_ID_STORAGE_KEY = "application_form_application_id";
-const REVIEW_STEP_ID = 13;
+const REVIEW_STEP_ID = 12;
 
 const usePersistentFormState = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
@@ -136,9 +134,38 @@ const NewApplicationForm = () => {
     [setCompletedSteps]
   );
 
+  const requiredStepIds = useMemo(
+    () => FORM_STEPS.map((s) => s.id).filter((id) => id !== REVIEW_STEP_ID),
+    []
+  );
+
+  const completedStepsWithoutReview = useMemo(
+    () =>
+      Array.from(completedSteps).filter((id) => id !== REVIEW_STEP_ID).length,
+    [completedSteps]
+  );
+
+  const isAllRequiredStepsComplete = useMemo(
+    () => requiredStepIds.every((id) => completedSteps.has(id)),
+    [requiredStepIds, completedSteps]
+  );
+
+  const totalStepsWithoutReview = FORM_STEPS.length - 1;
+
+  const progress =
+    totalStepsWithoutReview > 0
+      ? Math.min(
+          (completedStepsWithoutReview / totalStepsWithoutReview) * 100,
+          100
+        )
+      : 0;
+
   const handleNext = useCallback(() => {
     if (currentStep >= FORM_STEPS.length) return;
+
+    // mark current step as complete when moving forward
     markStepComplete(currentStep);
+
     setCurrentStep((prev) =>
       prev < FORM_STEPS.length ? clampStep(prev + 1, FORM_STEPS.length) : prev
     );
@@ -154,37 +181,42 @@ const NewApplicationForm = () => {
   const goToStep = useCallback(
     (stepId: number) => {
       if (currentStep === stepId) return;
+
+      // prevent jumping to Review before all required steps complete
+      if (stepId === REVIEW_STEP_ID && !isAllRequiredStepsComplete) {
+        toast.error("Please complete all sections before reviewing.");
+        return;
+      }
+
+      // optionally prevent skipping too far ahead (e.g., more than one step)
+      // you can tighten this if you want stricter control
+
       markStepComplete(currentStep);
       setCurrentStep(clampStep(stepId, FORM_STEPS.length));
     },
-    [currentStep, setCurrentStep, markStepComplete]
+    [currentStep, setCurrentStep, markStepComplete, isAllRequiredStepsComplete]
   );
 
   const handleSubmit = useCallback(() => {
+    if (!isAllRequiredStepsComplete) {
+      toast.error("Please complete all required steps before submitting.");
+      return;
+    }
+
     console.log("Submitting full application", {
       applicationId,
       step: currentStep,
+      // TODO: here is where you'd collect/merge all step form values
+      // into a single payload to send to your API
     });
+
     toast.success(
       "Application submission initialized. Check console for payload."
     );
     router.push(siteRoutes.dashboard.application.root);
-  }, [applicationId, router, currentStep]);
+  }, [applicationId, router, currentStep, isAllRequiredStepsComplete]);
 
   const currentStepDefinition = FORM_STEPS[currentStep - 1] ?? null;
-  const totalStepsWithoutReview = FORM_STEPS.length - 1;
-  const completedStepsWithoutReview = useMemo(
-    () =>
-      Array.from(completedSteps).filter((id) => id !== REVIEW_STEP_ID).length,
-    [completedSteps]
-  );
-  const progress =
-    totalStepsWithoutReview > 0
-      ? Math.min(
-          (completedStepsWithoutReview / totalStepsWithoutReview) * 100,
-          100
-        )
-      : 0;
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
