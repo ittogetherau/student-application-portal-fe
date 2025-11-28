@@ -1,45 +1,22 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
-
-const contactSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  relationship: z.string().min(1, "Relationship is required"),
-  phone: z.string().min(1, "Phone is required"),
-  email: z.string().email("Valid email required"),
-  address: z.string().min(1, "Address is required"),
-  is_primary: z.boolean(), // simple, non-optional boolean
-});
-
-const emergencyContactsSchema = z.object({
-  contacts: z
-    .array(contactSchema)
-    .min(1, "Add at least one emergency contact")
-    .max(3, "You can add up to 3 contacts"),
-});
-
-type EmergencyContactsValues = z.infer<typeof emergencyContactsSchema>;
-
-const emptyContact: EmergencyContactsValues["contacts"][number] = {
-  name: "",
-  relationship: "",
-  phone: "",
-  email: "",
-  address: "",
-  is_primary: false,
-};
+import {
+  createEmptyContact,
+  emergencyContactsSchema,
+  type EmergencyContactsValues,
+} from "@/validation/application/emergency-contacts";
 
 export default function EmergencyContactForm() {
   const methods = useForm<EmergencyContactsValues>({
     resolver: zodResolver(emergencyContactsSchema),
     defaultValues: {
-      contacts: [emptyContact],
+      contacts: [createEmptyContact()],
     },
   });
 
@@ -80,7 +57,7 @@ export default function EmergencyContactForm() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append(emptyContact)}
+            onClick={() => append(createEmptyContact())}
             disabled={!canAddMore}
           >
             Add Contact

@@ -1,49 +1,23 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
-
-const schoolingEntrySchema = z.object({
-  institution: z.string().min(1, "Institution is required"),
-  country: z.string().min(1, "Country is required"),
-  qualification_level: z.string().min(1, "Qualification level is required"),
-  start_year: z.number().int().nonnegative("Start year must be 0 or positive"),
-  end_year: z.number().int().nonnegative("End year must be 0 or positive"),
-  currently_attending: z.boolean(),
-  result: z.string().min(1, "Result is required"),
-  field_of_study: z.string().min(1, "Field of study is required"),
-});
-
-const schoolingSchema = z.object({
-  entries: z
-    .array(schoolingEntrySchema)
-    .min(1, "Add at least one schooling entry"),
-});
-
-type SchoolingValues = z.infer<typeof schoolingSchema>;
-
-const emptyEntry: SchoolingValues["entries"][number] = {
-  institution: "",
-  country: "",
-  qualification_level: "",
-  start_year: 0,
-  end_year: 0,
-  currently_attending: false,
-  result: "",
-  field_of_study: "",
-};
+import {
+  createEmptySchoolingEntry,
+  schoolingSchema,
+  type SchoolingValues,
+} from "@/validation/application/schooling";
 
 export default function SchoolingForm() {
   const methods = useForm<SchoolingValues>({
     resolver: zodResolver(schoolingSchema),
     defaultValues: {
-      entries: [emptyEntry],
+      entries: [createEmptySchoolingEntry()],
     },
   });
 
@@ -71,7 +45,7 @@ export default function SchoolingForm() {
             variant="outline"
             size="sm"
             disabled={!canAddMore}
-            onClick={() => append(emptyEntry)}
+            onClick={() => append(createEmptySchoolingEntry())}
           >
             Add Entry
           </Button>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload, X, FileText } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -10,61 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-type DocumentType = {
-  id: string;
-  title: string;
-  required: boolean;
-  files: File[];
-};
-
-const documentSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  required: z.boolean(),
-  files: z.array(z.instanceof(File)),
-});
-
-const documentsSchema = z.object({
-  documents: z.array(documentSchema),
-});
-
-type DocumentsFormValues = z.infer<typeof documentsSchema>;
-
-const defaultDocuments: DocumentType[] = [
-  { id: "passport", title: "Applicant's Passport", required: true, files: [] },
-  {
-    id: "english-test",
-    title: "Evidence Of English Test",
-    required: true,
-    files: [],
-  },
-  { id: "academic", title: "Academic Document", required: true, files: [] },
-  {
-    id: "work-experience",
-    title: "Work Experience / Gap Evidence",
-    required: false,
-    files: [],
-  },
-  {
-    id: "application-form",
-    title: "Application Form Completed and Signed",
-    required: true,
-    files: [],
-  },
-  {
-    id: "other-supporting",
-    title: "Other Supporting Document",
-    required: false,
-    files: [],
-  },
-  {
-    id: "applicants-academic",
-    title: "Applicants Academic",
-    required: false,
-    files: [],
-  },
-];
+import {
+  defaultDocuments,
+  documentsSchema,
+  type DocumentsFormValues,
+  type DocumentType,
+} from "@/validation/application/documents";
 
 export default function DocumentsForm() {
   const { handleSubmit, setValue } = useForm<DocumentsFormValues>({

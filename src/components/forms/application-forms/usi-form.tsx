@@ -1,29 +1,21 @@
 "use client";
 
 import { useForm, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
-
-const usiSchema = z.object({
-  usi: z.string().optional(),
-  consent_to_verify: z.boolean().refine((v) => v === true, {
-    message: "You must give permission.",
-  }),
-});
-
-type USIValues = z.infer<typeof usiSchema>;
+import {
+  defaultUSIValues,
+  usiSchema,
+  type USIValues,
+} from "@/validation/application/usi";
 
 export default function USIForm() {
   const methods = useForm<USIValues>({
     resolver: zodResolver(usiSchema),
-    defaultValues: {
-      usi: "",
-      consent_to_verify: false,
-    },
+    defaultValues: defaultUSIValues,
   });
 
   const { handleSubmit } = methods;

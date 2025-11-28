@@ -1,44 +1,22 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
-
-const employmentEntrySchema = z.object({
-  employer: z.string().min(1, "Employer is required"),
-  role: z.string().min(1, "Role is required"),
-  start_date: z.string().min(1, "Start date is required"),
-  end_date: z.string().min(1, "End date is required"),
-  is_current: z.boolean(),
-  responsibilities: z.string().min(1, "Responsibilities are required"),
-  industry: z.string().min(1, "Industry is required"),
-});
-
-const employmentSchema = z.object({
-  entries: z.array(employmentEntrySchema).min(1, "Add at least one entry"),
-});
-
-type EmploymentFormValues = z.infer<typeof employmentSchema>;
-
-const emptyEntry: EmploymentFormValues["entries"][number] = {
-  employer: "",
-  role: "",
-  start_date: "",
-  end_date: "",
-  is_current: false,
-  responsibilities: "",
-  industry: "",
-};
+import {
+  createEmptyEmploymentEntry,
+  employmentSchema,
+  type EmploymentFormValues,
+} from "@/validation/application/employment";
 
 export default function EmploymentForm() {
   const methods = useForm<EmploymentFormValues>({
     resolver: zodResolver(employmentSchema),
     defaultValues: {
-      entries: [emptyEntry],
+      entries: [createEmptyEmploymentEntry()],
     },
   });
 
@@ -66,7 +44,7 @@ export default function EmploymentForm() {
             variant="outline"
             size="sm"
             disabled={!canAddMore}
-            onClick={() => append(emptyEntry)}
+            onClick={() => append(createEmptyEmploymentEntry())}
           >
             Add Entry
           </Button>

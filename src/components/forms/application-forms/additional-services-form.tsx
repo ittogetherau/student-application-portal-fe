@@ -1,40 +1,22 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
-
-const serviceSchema = z.object({
-  service_id: z.string().min(1, "Service ID is required"),
-  name: z.string().min(1, "Name is required"),
-  description: z.string().min(1, "Description is required"),
-  fee: z.number().nonnegative("Fee must be zero or positive"),
-  selected: z.boolean(),
-});
-
-const additionalServicesSchema = z.object({
-  services: z.array(serviceSchema).min(1, "Add at least one service"),
-});
-
-type AdditionalServicesValues = z.infer<typeof additionalServicesSchema>;
-
-const emptyService: AdditionalServicesValues["services"][number] = {
-  service_id: "",
-  name: "",
-  description: "",
-  fee: 0,
-  selected: false,
-};
+import {
+  additionalServicesSchema,
+  createEmptyAdditionalService,
+  type AdditionalServicesValues,
+} from "@/validation/application/additional-services";
 
 export default function AdditionalServicesForm() {
   const methods = useForm<AdditionalServicesValues>({
     resolver: zodResolver(additionalServicesSchema),
     defaultValues: {
-      services: [emptyService],
+      services: [createEmptyAdditionalService()],
     },
   });
 
@@ -71,7 +53,7 @@ export default function AdditionalServicesForm() {
             variant="outline"
             size="sm"
             disabled={!canAddMore}
-            onClick={() => append(emptyService)}
+            onClick={() => append(createEmptyAdditionalService())}
           >
             Add Service
           </Button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
@@ -9,31 +8,16 @@ import { Label } from "@/components/ui/label";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
 import { FormArrayInput } from "../../ui/forms/form-array-input";
-
-const disabilitySchema = z.object({
-  has_disability: z.boolean(),
-  disability_type: z.string().min(1, "Disability type is required"),
-  disability_details: z.string().min(1, "Details are required"),
-  support_required: z.string().min(1, "Support required is required"),
-  has_documentation: z.boolean(),
-  documentation_status: z.string().min(1, "Documentation status is required"),
-  adjustments_needed: z.array(z.string().min(1, "Adjustment cannot be empty")),
-});
-
-type DisabilityValues = z.infer<typeof disabilitySchema>;
+import {
+  defaultDisabilityValues,
+  disabilitySchema,
+  type DisabilityValues,
+} from "@/validation/application/disability";
 
 export default function DisabilityForm() {
   const methods = useForm<DisabilityValues>({
     resolver: zodResolver(disabilitySchema),
-    defaultValues: {
-      has_disability: false,
-      disability_type: "",
-      disability_details: "",
-      support_required: "",
-      has_documentation: false,
-      documentation_status: "",
-      adjustments_needed: [],
-    },
+    defaultValues: defaultDisabilityValues,
   });
 
   const { handleSubmit, control } = methods;

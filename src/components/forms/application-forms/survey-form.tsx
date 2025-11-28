@@ -1,39 +1,21 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
-
-const responseSchema = z.object({
-  question_id: z.string().min(1, "Question ID is required"),
-  question_text: z.string().min(1, "Question text is required"),
-  answer: z.string().min(1, "Answer is required"),
-  answer_type: z.string().min(1, "Answer type is required"),
-});
-
-const surveySchema = z.object({
-  responses: z.array(responseSchema).min(1, "Add at least one response"),
-  how_did_you_hear: z.string().min(1, "This field is required"),
-  referral_source: z.string().min(1, "Referral source is required"),
-});
-
-type SurveyValues = z.infer<typeof surveySchema>;
-
-const emptyResponse: SurveyValues["responses"][number] = {
-  question_id: "",
-  question_text: "",
-  answer: "",
-  answer_type: "",
-};
+import {
+  createEmptySurveyResponse,
+  surveySchema,
+  type SurveyValues,
+} from "@/validation/application/survey";
 
 export default function SurveyForm() {
   const methods = useForm<SurveyValues>({
     resolver: zodResolver(surveySchema),
     defaultValues: {
-      responses: [emptyResponse],
+      responses: [createEmptySurveyResponse()],
       how_did_you_hear: "",
       referral_source: "",
     },
@@ -105,13 +87,13 @@ export default function SurveyForm() {
           <div className="flex justify-between">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              disabled={!canAddMore}
-              onClick={() => append(emptyResponse)}
-            >
-              Add Question
-            </Button>
+            variant="outline"
+            size="sm"
+            disabled={!canAddMore}
+            onClick={() => append(createEmptySurveyResponse())}
+          >
+            Add Question
+          </Button>
           </div>
         </div>
 

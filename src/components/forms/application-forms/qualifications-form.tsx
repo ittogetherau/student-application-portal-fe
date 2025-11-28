@@ -1,43 +1,21 @@
 "use client";
 
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
-
-const qualificationSchema = z.object({
-  qualification_name: z.string().min(1, "Qualification name is required"),
-  institution: z.string().min(1, "Institution is required"),
-  completion_date: z.string().min(1, "Completion date is required"),
-  certificate_number: z.string().min(1, "Certificate number is required"),
-  field_of_study: z.string().min(1, "Field of study is required"),
-  grade: z.string().min(1, "Grade is required"),
-});
-
-const qualificationsSchema = z.object({
-  qualifications: z
-    .array(qualificationSchema)
-    .min(1, "Add at least one qualification"),
-});
-
-type QualificationsFormValues = z.infer<typeof qualificationsSchema>;
-
-const emptyQualification: QualificationsFormValues["qualifications"][number] = {
-  qualification_name: "",
-  institution: "",
-  completion_date: "",
-  certificate_number: "",
-  field_of_study: "",
-  grade: "",
-};
+import {
+  createEmptyQualification,
+  qualificationsSchema,
+  type QualificationsFormValues,
+} from "@/validation/application/qualifications";
 
 export default function QualificationsForm() {
   const methods = useForm<QualificationsFormValues>({
     resolver: zodResolver(qualificationsSchema),
     defaultValues: {
-      qualifications: [emptyQualification],
+      qualifications: [createEmptyQualification()],
     },
   });
 
@@ -65,7 +43,7 @@ export default function QualificationsForm() {
             variant="outline"
             size="sm"
             disabled={!canAddMore}
-            onClick={() => append(emptyQualification)}
+            onClick={() => append(createEmptyQualification())}
           >
             Add Qualification
           </Button>
