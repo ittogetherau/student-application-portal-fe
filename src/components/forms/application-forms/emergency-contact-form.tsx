@@ -38,16 +38,7 @@ export default function EmergencyContactForm() {
       <form
         className="space-y-6"
         onSubmit={handleSubmit((values) => {
-          // ✅ payload exactly as requested
-          console.log(
-            JSON.stringify(
-              {
-                contacts: values.contacts,
-              },
-              null,
-              2
-            )
-          );
+          console.log(JSON.stringify({ contacts: values.contacts }, null, 2));
         })}
       >
         <div className="flex items-center justify-between">
@@ -66,8 +57,7 @@ export default function EmergencyContactForm() {
 
         <div className="space-y-4">
           {fields.map((field, index) => {
-            const contactError =
-              (errors.contacts?.[index] as any) || ({} as any);
+            const contactError = errors.contacts?.[index];
 
             return (
               <div key={field.id} className="space-y-4 rounded-lg border p-4">
@@ -121,7 +111,6 @@ export default function EmergencyContactForm() {
                   label="Primary contact"
                 />
 
-                {/* optional: per-contact general error */}
                 {contactError?.root?.message && (
                   <p className="text-sm text-red-500">
                     {contactError.root.message}

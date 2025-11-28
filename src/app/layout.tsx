@@ -1,9 +1,7 @@
 import Providers from "@/app/providers";
-import LogoutButton from "@/components/logout-button";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { useSession } from "next-auth/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

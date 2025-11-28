@@ -83,7 +83,7 @@ export interface Document {
   fileName: string;
   fileUrl: string;
   fileSize: number;
-  ocrData?: any;
+  ocrData?: Record<string, unknown>;
   uploadedAt: string;
   uploadedBy: string;
 }
@@ -219,7 +219,7 @@ export interface Activity {
   performedByName: string;
   performedByRole: Role;
   performedAt: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 // Dashboard Metrics

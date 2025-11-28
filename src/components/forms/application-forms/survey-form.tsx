@@ -87,13 +87,13 @@ export default function SurveyForm() {
           <div className="flex justify-between">
             <Button
               type="button"
-            variant="outline"
-            size="sm"
-            disabled={!canAddMore}
-            onClick={() => append(createEmptySurveyResponse())}
-          >
-            Add Question
-          </Button>
+              variant="outline"
+              size="sm"
+              disabled={!canAddMore}
+              onClick={() => append(createEmptySurveyResponse())}
+            >
+              Add Question
+            </Button>
           </div>
         </div>
 

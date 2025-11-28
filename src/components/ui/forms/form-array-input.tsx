@@ -1,10 +1,11 @@
 import { useFormContext } from "react-hook-form";
-import { Input } from "@/components/ui/input";
+
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface FormArrayInputProps {
-  name: string; // "other_languages"
-  index: number; // 0, 1, 2...
+  name: string;
+  index: number;
   placeholder?: string;
   onRemove: () => void;
 }
@@ -18,10 +19,11 @@ export function FormArrayInput({
   const {
     register,
     formState: { errors },
-  } = useFormContext();
+  } = useFormContext<Record<string, unknown[]>>();
 
   const fieldName = `${name}.${index}` as const;
-  const error = (errors[name] as any)?.[index]?.message as string | undefined;
+  const fieldError =
+    (errors[name]?.[index] as { message?: string } | undefined)?.message;
 
   return (
     <div className="flex flex-col gap-1">
@@ -33,11 +35,11 @@ export function FormArrayInput({
         />
 
         <Button type="button" variant="ghost" size="icon" onClick={onRemove}>
-          ✕
+          Remove
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {fieldError && <p className="text-sm text-red-500">{fieldError}</p>}
     </div>
   );
 }

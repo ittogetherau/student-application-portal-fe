@@ -30,7 +30,6 @@ export default function LanguageDefaultForm() {
   });
 
   const onSubmit = (values: LanguageAndCultureValues) => {
-    // payload exactly matches your example shape
     console.log(JSON.stringify(values, null, 2));
   };
 

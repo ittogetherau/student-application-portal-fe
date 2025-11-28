@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { useForm, useFieldArray, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
@@ -20,14 +20,17 @@ export default function AdditionalServicesForm() {
     },
   });
 
-  const { control, handleSubmit, watch } = methods;
+  const { control, handleSubmit } = methods;
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "services",
   });
 
-  const services = watch("services") ?? [];
+  const services = useWatch({
+    control,
+    name: "services",
+  }) ?? [];
   const totalAdditionalFees = services
     .filter((s) => s.selected)
     .reduce((sum, s) => sum + (s.fee || 0), 0);

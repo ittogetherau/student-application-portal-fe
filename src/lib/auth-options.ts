@@ -8,7 +8,6 @@ export const AUTH_SECRET = process.env.NEXTAUTH_SECRET ?? "dev-secret";
 const apiLogin = async (
   email: string,
   password: string,
-  role?: string,
 ): Promise<LoginResponse> => {
   const response = await authService.login({ email, password });
   if (!response.success || !response.data) {
@@ -30,11 +29,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) return null;
 
-        const login = await apiLogin(
-          credentials.email,
-          credentials.password,
-          credentials.role,
-        );
+        const login = await apiLogin(credentials.email, credentials.password);
 
         return {
           id: login.user_id,
@@ -53,12 +48,20 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      type AuthorizedUser = {
+        role?: string;
+        accessToken?: string;
+        refreshToken?: string;
+        tokenType?: string;
+        mfaRequired?: boolean;
+      };
       if (user) {
-        token.role = user.role;
-        token.accessToken = (user as any).accessToken;
-        token.refreshToken = (user as any).refreshToken;
-        token.tokenType = (user as any).tokenType;
-        token.mfaRequired = (user as any).mfaRequired;
+        const authUser = user as AuthorizedUser;
+        token.role = authUser.role;
+        token.accessToken = authUser.accessToken;
+        token.refreshToken = authUser.refreshToken;
+        token.tokenType = authUser.tokenType;
+        token.mfaRequired = authUser.mfaRequired;
       }
       return token;
     },

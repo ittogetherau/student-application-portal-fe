@@ -23,9 +23,7 @@ const AUTH_PAGES = [
 ] satisfies readonly string[];
 
 const normalizePath = (pathname: string) =>
-  pathname.endsWith("/") && pathname !== "/"
-    ? pathname.slice(0, -1)
-    : pathname;
+  pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
 
 const isProtectedPath = (pathname: string) =>
   pathname.startsWith(siteRoutes.dashboard.root);
@@ -36,12 +34,12 @@ const isAllowedPath = (pathname: string, role: string) => {
   if (role === "admin") return true;
   if (role === "agent") {
     return DASHBOARD_AGENT_PATHS.some(
-      (p) => normalized === p || normalized.startsWith(`${p}/`),
+      (p) => normalized === p || normalized.startsWith(`${p}/`)
     );
   }
   if (role === "staff") {
     return DASHBOARD_STAFF_PATHS.some(
-      (p) => normalized === p || normalized.startsWith(`${p}/`),
+      (p) => normalized === p || normalized.startsWith(`${p}/`)
     );
   }
   return false;
@@ -62,11 +60,13 @@ export async function proxy(request: NextRequest) {
     secret: AUTH_SECRET,
   });
 
+  console.log(token);
+
   // Redirect authenticated users away from auth pages
   if (token && AUTH_PAGES.includes(normalizePath(pathname))) {
     const redirectUrl = new URL(
       defaultRedirectForRole((token.role as string) ?? "admin"),
-      request.url,
+      request.url
     );
     return NextResponse.redirect(redirectUrl);
   }
@@ -96,8 +96,8 @@ export async function proxy(request: NextRequest) {
       role === "agent"
         ? DASHBOARD_AGENT_PATHS[0]
         : role === "staff"
-          ? DASHBOARD_STAFF_PATHS[0]
-          : siteRoutes.dashboard.root;
+        ? DASHBOARD_STAFF_PATHS[0]
+        : siteRoutes.dashboard.root;
     const redirectUrl = new URL(fallback, request.url);
     return NextResponse.redirect(redirectUrl);
   }

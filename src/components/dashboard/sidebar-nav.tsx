@@ -58,7 +58,7 @@ type SidebarNavProps = {
 
 const SidebarNav = ({ items, user }: SidebarNavProps) => {
   const pathname = usePathname();
-  const { isMobile, open, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const logout = useLogout(siteRoutes.auth.login);
 
   const roleLabel =

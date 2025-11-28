@@ -21,7 +21,7 @@ export default function USIForm() {
   const { handleSubmit } = methods;
 
   const onSubmit = (values: USIValues) => {
-    console.log(JSON.stringify(values, null, 2)); // EXACT desired output
+    console.log(JSON.stringify(values, null, 2));
   };
 
   return (

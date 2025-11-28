@@ -1,6 +1,5 @@
-'use client';
+"use client";
 
 export default function ReviewForm() {
-  return <div />;
+  return <></>;
 }
-

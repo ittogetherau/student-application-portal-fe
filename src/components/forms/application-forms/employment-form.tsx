@@ -27,10 +27,9 @@ export default function EmploymentForm() {
     name: "entries",
   });
 
-  const canAddMore = fields.length < 10; // arbitrary cap; tweak if you want
+  const canAddMore = fields.length < 10;
 
   const onSubmit = (values: EmploymentFormValues) => {
-    // 👇 matches exactly the shape you described
     console.log(JSON.stringify(values, null, 2));
   };
 

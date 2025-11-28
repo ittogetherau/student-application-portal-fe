@@ -1,14 +1,8 @@
 "use client";
 
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentType,
-} from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, type ComponentType } from "react";
 import { toast } from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { siteRoutes } from "@/constants/site-routes";
 import { cn } from "@/lib/utils";
 import { clampStep } from "@/utils/application-form";
+import { useApplicationFormFlow } from "@/hooks/useApplicationFormFlow";
 
 import AdditionalServicesForm from "./additional-services-form";
 import DisabilityForm from "./disability-form";
@@ -52,87 +47,13 @@ export const FORM_STEPS: FormStep[] = [
   { id: 12, title: "Review", component: ReviewForm },
 ];
 
-const STORAGE_KEY = "application_form_data";
-const APPLICATION_ID_STORAGE_KEY = "application_form_application_id";
 const REVIEW_STEP_ID = 12;
-
-const usePersistentFormState = () => {
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    () => new Set()
-  );
-  const [currentStep, setCurrentStep] = useState(1);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const savedData = window.localStorage.getItem(STORAGE_KEY);
-    if (!savedData) return;
-    try {
-      const parsed = JSON.parse(savedData);
-      setCompletedSteps(new Set(parsed.completedSteps ?? []));
-      setCurrentStep(parsed.currentStep ?? 1);
-    } catch (error) {
-      console.error("Error loading saved form data:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const dataToSave = {
-      completedSteps: Array.from(completedSteps),
-      currentStep,
-    };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-  }, [completedSteps, currentStep]);
-
-  return {
-    completedSteps,
-    setCompletedSteps,
-    currentStep,
-    setCurrentStep,
-  };
-};
 
 const NewApplicationForm = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [applicationId, setApplicationId] = useState<string | null>(
-    searchParams.get("applicationId")
-  );
 
-  const { completedSteps, setCompletedSteps, currentStep, setCurrentStep } =
-    usePersistentFormState();
-
-  useEffect(() => {
-    const queryId = searchParams.get("applicationId");
-    if (queryId) {
-      setApplicationId(queryId);
-      return;
-    }
-    if (typeof window === "undefined") return;
-    const storedId = window.localStorage.getItem(APPLICATION_ID_STORAGE_KEY);
-    if (storedId) {
-      setApplicationId(storedId);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (applicationId) {
-      window.localStorage.setItem(APPLICATION_ID_STORAGE_KEY, applicationId);
-    }
-  }, [applicationId]);
-
-  const markStepComplete = useCallback(
-    (stepId: number) => {
-      setCompletedSteps((prev) => {
-        if (prev.has(stepId)) return prev;
-        const next = new Set(prev);
-        next.add(stepId);
-        return next;
-      });
-    },
-    [setCompletedSteps]
-  );
+  const { applicationId, currentStep, goToStep, goToNext, completedSteps } =
+    useApplicationFormFlow(1, FORM_STEPS.length);
 
   const requiredStepIds = useMemo(
     () => FORM_STEPS.map((s) => s.id).filter((id) => id !== REVIEW_STEP_ID),
@@ -161,40 +82,47 @@ const NewApplicationForm = () => {
       : 0;
 
   const handleNext = useCallback(() => {
-    if (currentStep >= FORM_STEPS.length) return;
-
-    // mark current step as complete when moving forward
-    markStepComplete(currentStep);
-
-    setCurrentStep((prev) =>
-      prev < FORM_STEPS.length ? clampStep(prev + 1, FORM_STEPS.length) : prev
-    );
-  }, [currentStep, setCurrentStep, markStepComplete]);
+    try {
+      if (currentStep >= FORM_STEPS.length) return;
+      goToNext();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Please complete this step before continuing.";
+      toast.error(message);
+    }
+  }, [currentStep, goToNext]);
 
   const handlePrevious = useCallback(() => {
     if (currentStep <= 1) return;
-    setCurrentStep((prev) =>
-      prev > 1 ? clampStep(prev - 1, FORM_STEPS.length) : prev
-    );
-  }, [currentStep, setCurrentStep]);
+    try {
+      goToStep(clampStep(currentStep - 1, FORM_STEPS.length));
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unable to go back.";
+      toast.error(message);
+    }
+  }, [currentStep, goToStep]);
 
-  const goToStep = useCallback(
+  const handleStepNavigation = useCallback(
     (stepId: number) => {
       if (currentStep === stepId) return;
-
-      // prevent jumping to Review before all required steps complete
       if (stepId === REVIEW_STEP_ID && !isAllRequiredStepsComplete) {
         toast.error("Please complete all sections before reviewing.");
         return;
       }
-
-      // optionally prevent skipping too far ahead (e.g., more than one step)
-      // you can tighten this if you want stricter control
-
-      markStepComplete(currentStep);
-      setCurrentStep(clampStep(stepId, FORM_STEPS.length));
+      try {
+        goToStep(stepId);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Please complete previous steps before continuing.";
+        toast.error(message);
+      }
     },
-    [currentStep, setCurrentStep, markStepComplete, isAllRequiredStepsComplete]
+    [currentStep, goToStep, isAllRequiredStepsComplete]
   );
 
   const handleSubmit = useCallback(() => {
@@ -206,13 +134,9 @@ const NewApplicationForm = () => {
     console.log("Submitting full application", {
       applicationId,
       step: currentStep,
-      // TODO: here is where you'd collect/merge all step form values
-      // into a single payload to send to your API
     });
 
-    toast.success(
-      "Application submission initialized. Check console for payload."
-    );
+    toast.success("Application submission initialized.");
     router.push(siteRoutes.dashboard.application.root);
   }, [applicationId, router, currentStep, isAllRequiredStepsComplete]);
 
@@ -243,7 +167,7 @@ const NewApplicationForm = () => {
                     type="button"
                     key={step.id}
                     onClick={() => {
-                      void goToStep(step.id);
+                      handleStepNavigation(step.id);
                     }}
                     className={cn(
                       "flex items-center gap-3 whitespace-nowrap rounded-lg px-2 py-2.5 text-left transition-colors lg:w-full lg:whitespace-normal",

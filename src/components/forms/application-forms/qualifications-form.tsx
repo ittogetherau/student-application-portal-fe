@@ -26,10 +26,9 @@ export default function QualificationsForm() {
     name: "qualifications",
   });
 
-  const canAddMore = fields.length < 10; // tweak if you want
+  const canAddMore = fields.length < 10;
 
   const onSubmit = (values: QualificationsFormValues) => {
-    // 👇 matches the JSON shape you gave
     console.log(JSON.stringify(values, null, 2));
   };
 

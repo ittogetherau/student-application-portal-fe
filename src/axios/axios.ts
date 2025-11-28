@@ -3,7 +3,7 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from "axios";
-import { getSession, signOut } from "next-auth/react";
+import { getSession, signOut, type Session } from "next-auth/react";
 
 const baseURL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || undefined;
@@ -33,13 +33,23 @@ const applyAuthHeader = (
   return merged;
 };
 
+type SessionWithTokens = Session & {
+  accessToken?: string;
+  access_token?: string;
+  tokenType?: string;
+};
+
+const extractTokens = (session: Session | null): SessionWithTokens => {
+  if (!session) return {};
+  return session as SessionWithTokens;
+};
+
 // Attach auth token for protected requests
 axiosPrivate.interceptors.request.use(
   async (config) => {
-    const session = await getSession();
-    const accessToken =
-      (session as any)?.accessToken ?? (session as any)?.access_token;
-    const tokenType = (session as any)?.tokenType || "Bearer";
+    const session = extractTokens(await getSession());
+    const accessToken = session.accessToken ?? session.access_token;
+    const tokenType = session.tokenType || "Bearer";
 
     if (accessToken) {
       config.headers = applyAuthHeader(
@@ -69,11 +79,10 @@ axiosPrivate.interceptors.response.use(
           body: JSON.stringify({ update: true }),
         });
 
-        const updatedSession = await getSession();
+        const updatedSession = extractTokens(await getSession());
         const refreshedToken =
-          (updatedSession as any)?.accessToken ??
-          (updatedSession as any)?.access_token;
-        const tokenType = (updatedSession as any)?.tokenType || "Bearer";
+          updatedSession.accessToken ?? updatedSession.access_token;
+        const tokenType = updatedSession.tokenType || "Bearer";
 
         if (!refreshedToken) {
           throw new Error("Unable to refresh access token");

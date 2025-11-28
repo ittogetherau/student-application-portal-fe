@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import applicationService from "@/service/application.service";
+import applicationStepsService from "@/service/application-steps.service";
 import {
   AdditionalServicesValues,
   DisabilitySupportValues,
@@ -61,67 +62,67 @@ const createStepMutationHook = <TInput,>(
 };
 
 export const usePersonalDetailsStepMutation =
-  createStepMutationHook<PersonalDetailsValues>(
-    1,
-    applicationService.updatePersonalDetails.bind(applicationService)
+  createStepMutationHook<PersonalDetailsValues>(1, (applicationId, payload) =>
+    applicationStepsService.updatePersonalDetails(applicationId, payload)
   );
 
 export const useEmergencyContactStepMutation =
-  createStepMutationHook<EmergencyContactValues>(
-    2,
-    applicationService.updateEmergencyContact.bind(applicationService)
+  createStepMutationHook<EmergencyContactValues>(2, (applicationId, payload) =>
+    applicationStepsService.updateEmergencyContact(applicationId, payload)
   );
 
 export const useHealthCoverStepMutation =
-  createStepMutationHook<HealthCoverValues>(
-    3,
-    applicationService.updateHealthCover.bind(applicationService)
+  createStepMutationHook<HealthCoverValues>(3, (applicationId, payload) =>
+    applicationStepsService.updateHealthCover(applicationId, payload)
   );
 
 export const useLanguageStepMutation =
-  createStepMutationHook<LanguageCulturalValues>(
-    4,
-    applicationService.updateLanguageCultural.bind(applicationService)
+  createStepMutationHook<LanguageCulturalValues>(4, (applicationId, payload) =>
+    applicationStepsService.updateLanguageCultural(applicationId, payload)
   );
 
 export const useDisabilityStepMutation =
-  createStepMutationHook<DisabilitySupportValues>(
-    5,
-    applicationService.updateDisabilitySupport.bind(applicationService)
+  createStepMutationHook<DisabilitySupportValues>(5, (applicationId, payload) =>
+    applicationStepsService.updateDisabilitySupport(applicationId, payload)
   );
 
 export const useSchoolingStepMutation =
-  createStepMutationHook<SchoolingHistoryValues>(
-    6,
-    applicationService.updateSchoolingHistory.bind(applicationService)
+  createStepMutationHook<SchoolingHistoryValues>(6, (applicationId, payload) =>
+    applicationStepsService.updateSchoolingHistory(applicationId, payload)
   );
 
 export const useQualificationsStepMutation =
   createStepMutationHook<PreviousQualificationsValues>(
     7,
-    applicationService.updatePreviousQualifications.bind(applicationService)
+    (applicationId, payload) =>
+      applicationStepsService.updatePreviousQualifications(
+        applicationId,
+        payload
+      )
   );
 
 export const useEmploymentStepMutation =
-  createStepMutationHook<EmploymentHistoryValues>(
-    8,
-    applicationService.updateEmploymentHistory.bind(applicationService)
+  createStepMutationHook<EmploymentHistoryValues>(8, (applicationId, payload) =>
+    applicationStepsService.updateEmploymentHistory(applicationId, payload)
   );
 
 export const useUsiStepMutation = createStepMutationHook<UsiValues>(
   9,
-  applicationService.updateUsi.bind(applicationService)
+  (applicationId, payload) =>
+    applicationStepsService.updateUsi(applicationId, payload)
 );
 
 export const useAdditionalServicesStepMutation =
   createStepMutationHook<AdditionalServicesValues>(
     10,
-    applicationService.updateAdditionalServices.bind(applicationService)
+    (applicationId, payload) =>
+      applicationStepsService.updateAdditionalServices(applicationId, payload)
   );
 
 export const useSurveyStepMutation = createStepMutationHook<SurveyValues>(
   11,
-  applicationService.updateSurvey.bind(applicationService)
+  (applicationId, payload) =>
+    applicationStepsService.updateSurvey(applicationId, payload)
 );
 
 export const useApplicationStepMutations = (applicationId: string | null) => {

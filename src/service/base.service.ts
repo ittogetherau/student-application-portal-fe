@@ -22,7 +22,7 @@ export class ApiService {
 
   protected async post<T>(
     endpoint: string,
-    data: any,
+    data: unknown,
     usePrivate = false,
     config?: AxiosRequestConfig,
   ): Promise<T> {
@@ -37,7 +37,7 @@ export class ApiService {
 
   protected async put<T>(
     endpoint: string,
-    data: any,
+    data: unknown,
     usePrivate = false,
     config?: AxiosRequestConfig,
   ): Promise<T> {
@@ -52,7 +52,7 @@ export class ApiService {
 
   protected async patch<T>(
     endpoint: string,
-    data: any,
+    data: unknown,
     usePrivate = false,
     config?: AxiosRequestConfig,
   ): Promise<T> {
@@ -79,10 +79,11 @@ export class ApiService {
     }
   }
 
-  private extractError(error: any) {
+  private extractError(error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }; message?: string };
     return new Error(
-      error?.response?.data?.message ||
-        error?.message ||
+      err?.response?.data?.message ||
+        err?.message ||
         'An unexpected error occurred.',
     );
   }
