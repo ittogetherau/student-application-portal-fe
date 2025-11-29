@@ -33,7 +33,7 @@ export type LoginResponse = {
 };
 
 class AuthService extends ApiService {
-  private readonly basePath = "/api/v1/auth";
+  private readonly basePath = "auth";
 
   register(payload: RegisterPayload): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(

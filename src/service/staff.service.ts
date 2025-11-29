@@ -5,7 +5,7 @@ import type { ServiceResponse } from "@/types/service";
 type Payload = Record<string, unknown>;
 
 class StaffService extends ApiService {
-  private readonly basePath = "/api/v1/staff";
+  private readonly basePath = "staff";
 
   getMetrics(): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(

@@ -35,7 +35,7 @@ export interface StepUpdateResponse {
 }
 
 class ApplicationStepsService extends ApiService {
-  private readonly basePath = "/api/v1/applications";
+  private readonly basePath = "applications";
 
   private stepPath(applicationId: string, step: number, slug: string) {
     if (!applicationId) throw new Error("Application id is required");

@@ -3,7 +3,7 @@ import { resolveServiceCall } from "@/service/service-helpers";
 import type { ServiceResponse } from "@/types/service";
 
 class AdminPanelService extends ApiService {
-  private readonly basePath = "/api/v1/admin-panel";
+  private readonly basePath = "admin-panel";
 
   getLoginPage(): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(

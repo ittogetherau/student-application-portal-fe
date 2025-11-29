@@ -58,6 +58,7 @@ export async function proxy(request: NextRequest) {
     req: request,
     secret: AUTH_SECRET,
   });
+
   console.log(token);
 
   if (

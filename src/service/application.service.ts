@@ -23,7 +23,7 @@ export interface ApplicationListParams {
 }
 
 class ApplicationService extends ApiService {
-  private readonly basePath = "/api/v1/applications";
+  private readonly basePath = "applications";
 
   private buildQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
@@ -44,7 +44,7 @@ class ApplicationService extends ApiService {
   }
 
   listApplications = async (
-    params: ApplicationListParams = {},
+    params: ApplicationListParams = {}
   ): Promise<ServiceResponse<Application[]>> => {
     try {
       const path = `${this.basePath}${this.buildQuery(params)}`;
@@ -60,36 +60,39 @@ class ApplicationService extends ApiService {
   };
 
   createApplication = async (
-    input: ApplicationCreateValues,
+    input: ApplicationCreateValues
   ): Promise<ServiceResponse<ApplicationDetail>> => {
     try {
       const body = applicationCreateSchema.parse(input);
+      console.log("[API] createApplication request", body);
       const data = await this.post<ApplicationDetail>(
         this.basePath,
         body,
-        true,
+        true
       );
+      console.log("[API] createApplication success", data);
       return {
         success: true,
         message: "Application created successfully.",
         data,
       };
     } catch (error) {
+      console.error("[API] createApplication error", error);
       return handleApiError<ApplicationDetail>(
         error,
-        "Failed to create application",
+        "Failed to create application"
       );
     }
   };
 
   getApplication = async (
-    applicationId: string,
+    applicationId: string
   ): Promise<ServiceResponse<ApplicationDetail>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.get<ApplicationDetail>(
         `${this.basePath}/${applicationId}`,
-        true,
+        true
       );
       return {
         success: true,
@@ -99,21 +102,21 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetail>(
         error,
-        "Failed to fetch application",
+        "Failed to fetch application"
       );
     }
   };
 
   updateApplication = async (
     applicationId: string,
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown>
   ): Promise<ServiceResponse<ApplicationDetail>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.patch<ApplicationDetail>(
         `${this.basePath}/${applicationId}`,
         payload,
-        true,
+        true
       );
       return {
         success: true,
@@ -123,21 +126,21 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetail>(
         error,
-        "Failed to update application",
+        "Failed to update application"
       );
     }
   };
 
   submitApplication = async (
     applicationId: string,
-    payload: Record<string, unknown> = {},
+    payload: Record<string, unknown> = {}
   ): Promise<ServiceResponse<ApplicationDetail>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<ApplicationDetail>(
         `${this.basePath}/${applicationId}/submit`,
         payload,
-        true,
+        true
       );
       return {
         success: true,
@@ -147,21 +150,21 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetail>(
         error,
-        "Failed to submit application",
+        "Failed to submit application"
       );
     }
   };
 
   assignApplication = async (
     applicationId: string,
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown>
   ): Promise<ServiceResponse<unknown>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<unknown>(
         `${this.basePath}/${applicationId}/assign`,
         payload,
-        true,
+        true
       );
       return {
         success: true,
@@ -169,23 +172,20 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError(
-        error,
-        "Failed to assign application",
-      );
+      return handleApiError(error, "Failed to assign application");
     }
   };
 
   changeStage = async (
     applicationId: string,
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown>
   ): Promise<ServiceResponse<unknown>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<unknown>(
         `${this.basePath}/${applicationId}/change-stage`,
         payload,
-        true,
+        true
       );
       return {
         success: true,
@@ -193,10 +193,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError(
-        error,
-        "Failed to update application stage",
-      );
+      return handleApiError(error, "Failed to update application stage");
     }
   };
 }

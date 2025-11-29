@@ -9,7 +9,7 @@ import type { ServiceResponse } from "@/types/service";
 type Payload = Record<string, unknown>;
 
 class AdminService extends ApiService {
-  private readonly basePath = "/api/v1/admin";
+  private readonly basePath = "admin";
 
   private path(resource: string, id?: string): string {
     return id

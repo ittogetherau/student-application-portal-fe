@@ -7,7 +7,7 @@ import {
 import type { ServiceResponse } from "@/types/service";
 
 class DocumentService extends ApiService {
-  private readonly basePath = "/api/v1/documents";
+  private readonly basePath = "documents";
 
   uploadDocument(formData: FormData): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(

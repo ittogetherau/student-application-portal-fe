@@ -9,7 +9,7 @@ import type { ServiceResponse } from "@/types/service";
 type Payload = Record<string, unknown>;
 
 class StudentService extends ApiService {
-  private readonly basePath = "/api/v1/students";
+  private readonly basePath = "students";
 
   createStudentProfile(payload: Payload): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(

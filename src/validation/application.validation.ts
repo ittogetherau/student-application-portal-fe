@@ -37,15 +37,15 @@ import {
   qualificationsSchema,
   type QualificationsFormValues,
 } from "./application/qualifications";
-import {
-  schoolingSchema,
-  type SchoolingValues,
-} from "./application/schooling";
+import { schoolingSchema, type SchoolingValues } from "./application/schooling";
 import { surveySchema, type SurveyValues } from "./application/survey";
 import { usiSchema, type USIValues } from "./application/usi";
 
 // Draft creation schema (extend when API contract is finalized)
-export const applicationCreateSchema = z.object({});
+export const applicationCreateSchema = z.object({
+  agent_profile_id: z.string().uuid(),
+  course_offering_id: z.string().uuid(),
+});
 export type ApplicationCreateValues = z.infer<typeof applicationCreateSchema>;
 
 export {
