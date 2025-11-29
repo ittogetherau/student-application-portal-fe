@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   createEmptyQualification,
   qualificationsSchema,
@@ -12,6 +14,11 @@ import {
 } from "@/validation/application/qualifications";
 
 export default function QualificationsForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const qualificationsMutation =
+    useApplicationStepMutations(applicationId)[7];
+
   const methods = useForm<QualificationsFormValues>({
     resolver: zodResolver(qualificationsSchema),
     defaultValues: {
@@ -29,7 +36,7 @@ export default function QualificationsForm() {
   const canAddMore = fields.length < 10;
 
   const onSubmit = (values: QualificationsFormValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    qualificationsMutation.mutate(values);
   };
 
   return (
@@ -110,7 +117,14 @@ export default function QualificationsForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Save Qualifications</Button>
+          <Button
+            type="submit"
+            disabled={qualificationsMutation.isPending}
+          >
+            {qualificationsMutation.isPending
+              ? "Saving..."
+              : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

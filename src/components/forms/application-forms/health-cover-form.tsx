@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormSelect } from "../../ui/forms/form-select";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   defaultHealthCoverValues,
   healthCoverSchema,
@@ -13,6 +15,10 @@ import {
 } from "@/validation/application/health-cover";
 
 export default function HealthCoverForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const healthCoverMutation = useApplicationStepMutations(applicationId)[3];
+
   const methods = useForm<HealthCoverValues>({
     resolver: zodResolver(healthCoverSchema),
     defaultValues: defaultHealthCoverValues,
@@ -25,7 +31,7 @@ export default function HealthCoverForm() {
       <form
         className="space-y-6"
         onSubmit={handleSubmit((values) => {
-          console.log(JSON.stringify(values, null, 2));
+          healthCoverMutation.mutate(values);
         })}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -58,7 +64,9 @@ export default function HealthCoverForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Health Cover</Button>
+          <Button type="submit" disabled={healthCoverMutation.isPending}>
+            {healthCoverMutation.isPending ? "Saving..." : "Save "}
+          </Button>
         </div>
       </form>
     </FormProvider>

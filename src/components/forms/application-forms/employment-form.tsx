@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   createEmptyEmploymentEntry,
   employmentSchema,
@@ -13,6 +15,10 @@ import {
 } from "@/validation/application/employment";
 
 export default function EmploymentForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const employmentMutation = useApplicationStepMutations(applicationId)[8];
+
   const methods = useForm<EmploymentFormValues>({
     resolver: zodResolver(employmentSchema),
     defaultValues: {
@@ -30,7 +36,7 @@ export default function EmploymentForm() {
   const canAddMore = fields.length < 10;
 
   const onSubmit = (values: EmploymentFormValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    employmentMutation.mutate(values);
   };
 
   return (
@@ -114,7 +120,9 @@ export default function EmploymentForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Employment</Button>
+          <Button type="submit" disabled={employmentMutation.isPending}>
+            {employmentMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

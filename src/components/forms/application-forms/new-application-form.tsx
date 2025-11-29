@@ -1,8 +1,8 @@
 "use client";
 
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +14,37 @@ import {
 } from "./form-step-registry";
 import { cn } from "@/lib/utils";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
+import { useApplicationCreateMutation } from "@/hooks/useApplication.hook";
 
 const NewApplicationForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const currentStep = useApplicationStepStore((state) => state.currentStep);
   const goToStep = useApplicationStepStore((state) => state.goToStep);
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
+  const createApplication = useApplicationCreateMutation();
+  const hasCreatedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasCreatedRef.current) return;
+
+    const existingId = searchParams.get("applicationId");
+    if (existingId) {
+      hasCreatedRef.current = true;
+      return;
+    }
+
+    hasCreatedRef.current = true;
+
+    const defaultPayload = {
+      agent_profile_id: "ea7cab76-0e47-4de8-b923-834f0d53abf1",
+      course_offering_id: "4ba78380-8158-4941-9420-a1495d88e9d6",
+    };
+
+    createApplication.mutate(defaultPayload);
+  }, [createApplication, searchParams]);
 
   const handleNext = useCallback(() => {
     if (currentStep >= TOTAL_APPLICATION_STEPS) return;

@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormRadio } from "../../ui/forms/form-radio";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   defaultPersonalDetailsValues,
   personalDetailsSchema,
@@ -14,13 +16,18 @@ import {
 } from "@/validation/application/personal-details";
 
 export default function PersonalDetailsForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const personalDetailsMutation =
+    useApplicationStepMutations(applicationId)[1];
+
   const methods = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: defaultPersonalDetailsValues,
   });
 
   const onSubmit = (values: PersonalDetailsValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    personalDetailsMutation.mutate(values);
   };
 
   return (
@@ -126,7 +133,14 @@ export default function PersonalDetailsForm() {
         </section>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Personal Details</Button>
+          <Button
+            type="submit"
+            disabled={personalDetailsMutation.isPending}
+          >
+            {personalDetailsMutation.isPending
+              ? "Saving..."
+              : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

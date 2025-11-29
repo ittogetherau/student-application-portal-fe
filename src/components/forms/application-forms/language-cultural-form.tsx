@@ -8,25 +8,21 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { FormInput } from "../../ui/forms/form-input";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 
 export default function LanguageDefaultForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const languageMutation = useApplicationStepMutations(applicationId)[4];
+
   const methods = useForm({
     resolver: zodResolver(languageAndCultureSchema),
     defaultValues: defaultLanguageAndCultureValues,
   });
 
   const onSubmit = (values: LanguageAndCultureValues) => {
-    const formattedValues = {
-      ...values,
-      other_languages: values.other_languages
-        ? values.other_languages
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item !== "")
-        : [],
-    };
-
-    console.log(JSON.stringify(formattedValues, null, 2));
+    languageMutation.mutate(values);
   };
 
   return (
@@ -85,7 +81,9 @@ export default function LanguageDefaultForm() {
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Save language details</Button>
+          <Button type="submit" disabled={languageMutation.isPending}>
+            {languageMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

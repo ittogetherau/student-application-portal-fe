@@ -14,8 +14,14 @@ import {
   type DisabilityValues,
   defaultDisabilityValues,
 } from "@/validation/application/disability";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 
 export default function DisabilityForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const disabilityMutation = useApplicationStepMutations(applicationId)[5];
+
   const form = useForm({
     resolver: zodResolver(disabilitySchema),
     defaultValues: defaultDisabilityValues,
@@ -49,17 +55,7 @@ export default function DisabilityForm() {
   }, [hasDocumentation, form]);
 
   const onSubmit = (values: DisabilityValues) => {
-    const formattedValues = {
-      ...values,
-      adjustments_needed: values.adjustments_needed
-        ? values.adjustments_needed
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item !== "")
-        : [],
-    };
-
-    console.log(JSON.stringify(formattedValues, null, 2));
+    disabilityMutation.mutate(values);
   };
 
   return (
@@ -121,7 +117,9 @@ export default function DisabilityForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Disability</Button>
+          <Button type="submit" disabled={disabilityMutation.isPending}>
+            {disabilityMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   createEmptySurveyResponse,
   surveySchema,
@@ -12,6 +14,10 @@ import {
 } from "@/validation/application/survey";
 
 export default function SurveyForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const surveyMutation = useApplicationStepMutations(applicationId)[11];
+
   const methods = useForm<SurveyValues>({
     resolver: zodResolver(surveySchema),
     defaultValues: {
@@ -31,7 +37,7 @@ export default function SurveyForm() {
   const canAddMore = fields.length < 10;
 
   const onSubmit = (values: SurveyValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    surveyMutation.mutate(values);
   };
 
   return (
@@ -112,7 +118,9 @@ export default function SurveyForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Survey</Button>
+          <Button type="submit" disabled={surveyMutation.isPending}>
+            {surveyMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

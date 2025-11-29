@@ -1,8 +1,11 @@
 "use client";
-
 import { useMutation } from "@tanstack/react-query";
-
+import {
+  APPLICATION_STEP_IDS,
+  type ApplicationStepId,
+} from "@/components/forms/application-forms/form-step-registry";
 import applicationStepsService from "@/service/application-steps.service";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import {
   AdditionalServicesValues,
   DisabilitySupportValues,
@@ -16,44 +19,60 @@ import {
   SurveyValues,
   UsiValues,
 } from "@/validation/application.validation";
-import {
-  APPLICATION_STEP_IDS,
-  type ApplicationStepId,
-} from "@/components/forms/application-forms/form-step-registry";
+import type { ServiceResponse } from "@/types/service";
+import type { StepUpdateResponse } from "@/service/application-steps.service";
+import { toast } from "react-hot-toast";
 
 type StepMutationFn<TInput> = (
   applicationId: string,
   payload: TInput
-) => Promise<unknown>;
+) => Promise<ServiceResponse<StepUpdateResponse>>;
 
 export const STEP_SAVE_ORDER = APPLICATION_STEP_IDS;
-export type StepNumber = ApplicationStepId;
 
-const useStepMutation = <TInput,>(
-  stepId: StepNumber,
+const useStepMutation = <TInput>(
+  stepId: ApplicationStepId,
   mutationFn: StepMutationFn<TInput>,
   applicationId: string | null
-) =>
-  useMutation<unknown, Error, TInput>({
+) => {
+  const goToNext = useApplicationStepStore((state) => state.goToNext);
+
+  return useMutation<ServiceResponse<StepUpdateResponse>, Error, TInput>({
     mutationKey: ["application-step", stepId, applicationId],
     mutationFn: async (payload: TInput) => {
-      if (!applicationId) return null;
+      if (!applicationId) {
+        throw new Error("Missing application reference.");
+      }
       const response = await mutationFn(applicationId, payload);
-      if (
-        typeof response === "object" &&
-        response !== null &&
-        "success" in response &&
-        response.success === false
-      ) {
-        throw new Error(
-          "message" in response && typeof response.message === "string"
-            ? response.message
-            : `Failed to save step ${stepId}.`
-        );
+      if (!response?.success) {
+        throw new Error(response?.message || `Failed to save step ${stepId}.`);
       }
       return response;
     },
+    onSuccess: (response, payload) => {
+      const message =
+        response?.message || `Step ${stepId} saved successfully.`;
+      toast.success(message);
+      console.log("[Application] step saved", {
+        stepId,
+        applicationId,
+        message,
+        payload,
+      });
+      goToNext();
+    },
+    onError: (error) => {
+      const message =
+        error?.message || `Failed to save step ${stepId}. Please try again.`;
+      toast.error(message);
+      console.error("[Application] step save failed", {
+        stepId,
+        applicationId,
+        error,
+      });
+    },
   });
+};
 
 export const useApplicationStepMutations = (applicationId: string | null) => ({
   1: useStepMutation<PersonalDetailsValues>(
@@ -63,7 +82,8 @@ export const useApplicationStepMutations = (applicationId: string | null) => ({
   ),
   2: useStepMutation<EmergencyContactValues>(
     2,
-    (id, payload) => applicationStepsService.updateEmergencyContact(id, payload),
+    (id, payload) =>
+      applicationStepsService.updateEmergencyContact(id, payload),
     applicationId
   ),
   3: useStepMutation<HealthCoverValues>(
@@ -79,12 +99,14 @@ export const useApplicationStepMutations = (applicationId: string | null) => ({
   ),
   5: useStepMutation<DisabilitySupportValues>(
     5,
-    (id, payload) => applicationStepsService.updateDisabilitySupport(id, payload),
+    (id, payload) =>
+      applicationStepsService.updateDisabilitySupport(id, payload),
     applicationId
   ),
   6: useStepMutation<SchoolingHistoryValues>(
     6,
-    (id, payload) => applicationStepsService.updateSchoolingHistory(id, payload),
+    (id, payload) =>
+      applicationStepsService.updateSchoolingHistory(id, payload),
     applicationId
   ),
   7: useStepMutation<PreviousQualificationsValues>(
@@ -95,7 +117,8 @@ export const useApplicationStepMutations = (applicationId: string | null) => ({
   ),
   8: useStepMutation<EmploymentHistoryValues>(
     8,
-    (id, payload) => applicationStepsService.updateEmploymentHistory(id, payload),
+    (id, payload) =>
+      applicationStepsService.updateEmploymentHistory(id, payload),
     applicationId
   ),
   9: useStepMutation<UsiValues>(

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
 import { FormSelect } from "../../ui/forms/form-select";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   createEmptyContact,
   emergencyContactsSchema,
@@ -14,6 +16,11 @@ import {
 } from "@/validation/application/emergency-contacts";
 
 export default function EmergencyContactForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const emergencyContactMutation =
+    useApplicationStepMutations(applicationId)[2];
+
   const methods = useForm<EmergencyContactsValues>({
     resolver: zodResolver(emergencyContactsSchema),
     defaultValues: {
@@ -39,7 +46,7 @@ export default function EmergencyContactForm() {
       <form
         className="space-y-6"
         onSubmit={handleSubmit((values) => {
-          console.log(JSON.stringify({ contacts: values.contacts }, null, 2));
+          emergencyContactMutation.mutate(values);
         })}
       >
         <div className="flex items-center justify-between">
@@ -131,7 +138,14 @@ export default function EmergencyContactForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Emergency Contacts</Button>
+          <Button
+            type="submit"
+            disabled={emergencyContactMutation.isPending}
+          >
+            {emergencyContactMutation.isPending
+              ? "Saving..."
+              : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

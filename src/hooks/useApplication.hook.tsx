@@ -26,16 +26,58 @@ export const useApplicationSubmitMutation = (applicationId: string | null) =>
       }
       return response.data;
     },
+    onSuccess: (data) => {
+      console.log("[Application] submitApplication success", {
+        applicationId,
+        response: data,
+      });
+    },
+    onError: (error) => {
+      console.error("[Application] submitApplication failed", error);
+    },
   });
+
+const DEFAULT_CREATE_PAYLOAD_temp = {
+  agent_profile_id: "ea7cab76-0e47-4de8-b923-834f0d53abf1",
+  course_offering_id: "4ba78380-8158-4941-9420-a1495d88e9d6",
+};
 
 export const useApplicationCreateMutation = () =>
   useMutation({
     mutationKey: ["application-create"],
-    mutationFn: async (payload: ApplicationCreateValues) => {
+    mutationFn: async (
+      payload: ApplicationCreateValues = DEFAULT_CREATE_PAYLOAD_temp
+    ) => {
       const response = await applicationService.createApplication(payload);
       if (!response.success) {
         throw new Error(response.message);
       }
       return response.data;
+    },
+    onSuccess: (data) => {
+      const applicationId = data?.application?.id;
+
+      console.log("[Application] createApplication success", {
+        applicationId,
+        response: data,
+      });
+
+      if (applicationId && typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        params.set("applicationId", applicationId);
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}?${params.toString()}`
+        );
+      } else if (!applicationId) {
+        console.warn(
+          "[Application] createApplication response missing id",
+          data
+        );
+      }
+    },
+    onError: (error) => {
+      console.error("[Application] createApplication failed", error);
     },
   });

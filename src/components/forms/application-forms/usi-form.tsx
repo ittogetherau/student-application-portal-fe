@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   defaultUSIValues,
   usiSchema,
@@ -13,6 +15,10 @@ import {
 } from "@/validation/application/usi";
 
 export default function USIForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const usiMutation = useApplicationStepMutations(applicationId)[9];
+
   const methods = useForm<USIValues>({
     resolver: zodResolver(usiSchema),
     defaultValues: defaultUSIValues,
@@ -21,7 +27,7 @@ export default function USIForm() {
   const { handleSubmit } = methods;
 
   const onSubmit = (values: USIValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    usiMutation.mutate(values);
   };
 
   return (
@@ -51,7 +57,9 @@ export default function USIForm() {
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Submit USI</Button>
+          <Button type="submit" disabled={usiMutation.isPending}>
+            {usiMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

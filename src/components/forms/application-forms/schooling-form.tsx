@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   createEmptySchoolingEntry,
   schoolingSchema,
@@ -13,6 +15,10 @@ import {
 } from "@/validation/application/schooling";
 
 export default function SchoolingForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const schoolingMutation = useApplicationStepMutations(applicationId)[6];
+
   const methods = useForm<SchoolingValues>({
     resolver: zodResolver(schoolingSchema),
     defaultValues: {
@@ -30,7 +36,7 @@ export default function SchoolingForm() {
   const canAddMore = fields.length < 10;
 
   const onSubmit = (values: SchoolingValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    schoolingMutation.mutate(values);
   };
 
   return (
@@ -123,7 +129,9 @@ export default function SchoolingForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Save Schooling</Button>
+          <Button type="submit" disabled={schoolingMutation.isPending}>
+            {schoolingMutation.isPending ? "Saving..." : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

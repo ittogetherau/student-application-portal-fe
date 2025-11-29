@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
+import { useSearchParams } from "next/navigation";
+import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import {
   additionalServicesSchema,
   createEmptyAdditionalService,
@@ -13,6 +15,11 @@ import {
 } from "@/validation/application/additional-services";
 
 export default function AdditionalServicesForm() {
+  const searchParams = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+  const additionalServicesMutation =
+    useApplicationStepMutations(applicationId)[10];
+
   const methods = useForm<AdditionalServicesValues>({
     resolver: zodResolver(additionalServicesSchema),
     defaultValues: {
@@ -38,12 +45,7 @@ export default function AdditionalServicesForm() {
   const canAddMore = fields.length < 10; // tweak if you want
 
   const onSubmit = (values: AdditionalServicesValues) => {
-    const payload = {
-      services: values.services,
-      total_additional_fees: totalAdditionalFees,
-    };
-
-    console.log(JSON.stringify(payload, null, 2));
+    additionalServicesMutation.mutate(values);
   };
 
   return (
@@ -124,7 +126,14 @@ export default function AdditionalServicesForm() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Additional Services</Button>
+          <Button
+            type="submit"
+            disabled={additionalServicesMutation.isPending}
+          >
+            {additionalServicesMutation.isPending
+              ? "Saving..."
+              : "Save & Continue"}
+          </Button>
         </div>
       </form>
     </FormProvider>

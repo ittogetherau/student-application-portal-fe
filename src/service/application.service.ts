@@ -22,6 +22,13 @@ export interface ApplicationListParams {
   offset?: number;
 }
 
+export interface ApplicationResponse {
+  application: {
+    id: string;
+    [key: string]: unknown;
+  };
+}
+
 class ApplicationService extends ApiService {
   private readonly basePath = "applications";
 
@@ -61,11 +68,11 @@ class ApplicationService extends ApiService {
 
   createApplication = async (
     input: ApplicationCreateValues
-  ): Promise<ServiceResponse<ApplicationDetail>> => {
+  ): Promise<ServiceResponse<ApplicationResponse>> => {
     try {
       const body = applicationCreateSchema.parse(input);
       console.log("[API] createApplication request", body);
-      const data = await this.post<ApplicationDetail>(
+      const data = await this.post<ApplicationResponse>(
         this.basePath,
         body,
         true
@@ -78,7 +85,7 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       console.error("[API] createApplication error", error);
-      return handleApiError<ApplicationDetail>(
+      return handleApiError<ApplicationResponse>(
         error,
         "Failed to create application"
       );
