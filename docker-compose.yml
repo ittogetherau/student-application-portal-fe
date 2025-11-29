@@ -11,3 +11,10 @@ services:
     ports:
       - "3005:3005"
     restart: unless-stopped
+    networks:
+      - churchill_network
+      
+networks:
+  churchill_network:
+    external: true
+    name: churchill_network
