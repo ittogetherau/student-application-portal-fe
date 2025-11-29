@@ -1,16 +1,57 @@
 import { z } from "zod";
 
-export const disabilitySchema = z.object({
-  has_disability: z.boolean(),
-  disability_type: z.string().min(1, "Disability type is required"),
-  disability_details: z.string().min(1, "Disability details are required"),
-  support_required: z.string().min(1, "Support required is required"),
-  has_documentation: z.boolean(),
-  documentation_status: z.string().min(1, "Documentation status is required"),
-  adjustments_needed: z
-    .string()
-    .min(1, "Please provide any adjustments needed"),
-});
+export const disabilitySchema = z
+  .object({
+    has_disability: z.boolean(),
+    disability_type: z.string().optional(),
+    disability_details: z.string().optional(),
+    support_required: z.string().optional(),
+    has_documentation: z.boolean(),
+    documentation_status: z.string().optional(),
+    adjustments_needed: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.has_disability) {
+      if (!val.disability_type?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["disability_type"],
+          message: "Disability type is required",
+        });
+      }
+      if (!val.disability_details?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["disability_details"],
+          message: "Disability details are required",
+        });
+      }
+      if (!val.support_required?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["support_required"],
+          message: "Support required is required",
+        });
+      }
+    }
+
+    if (val.has_documentation) {
+      if (!val.documentation_status?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["documentation_status"],
+          message: "Documentation status is required",
+        });
+      }
+      if (!val.adjustments_needed?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["adjustments_needed"],
+          message: "Please provide any adjustments needed",
+        });
+      }
+    }
+  });
 
 export type DisabilityValues = z.infer<typeof disabilitySchema>;
 

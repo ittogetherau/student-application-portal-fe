@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
+import { FormSelect } from "../../ui/forms/form-select";
 import {
   defaultHealthCoverValues,
   healthCoverSchema,
@@ -40,10 +41,17 @@ export default function HealthCoverForm() {
 
           <FormInput name="end_date" label="End Date" type="date" />
 
-          <FormInput
+          <FormSelect
             name="coverage_type"
             label="Coverage Type"
-            placeholder="Single / Couple / Family"
+            placeholder="Select coverage type"
+            options={[
+              { value: "single", label: "Single" },
+              { value: "couple", label: "Couple" },
+              { value: "family", label: "Family" },
+              { value: "overseas", label: "Overseas Visitor" },
+              { value: "other", label: "Other" },
+            ]}
           />
 
           <FormInput name="cost" label="Cost" type="number" placeholder="0" />

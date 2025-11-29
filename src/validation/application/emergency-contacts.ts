@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const contactSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  relationship: z.string().min(1, "Relationship is required"),
-  phone: z.string().min(1, "Phone is required"),
-  email: z.string().email("Valid email required"),
+  name: z.string().min(1, "Please enter a contact name"),
+  relationship: z.string().min(1, "Please describe the relationship"),
+  phone: z.string().min(1, "Phone number is required"),
+  email: z.string().email("Enter a valid email address"),
   address: z.string().min(1, "Address is required"),
   is_primary: z.boolean(),
 });

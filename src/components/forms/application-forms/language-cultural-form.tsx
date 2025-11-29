@@ -84,7 +84,9 @@ export default function LanguageDefaultForm() {
           placeholder="Enter languages separated by commas (e.g., Hindi, English, Newari)"
         />
 
-        <Button type="submit">Save language details</Button>
+        <div className="flex justify-end">
+          <Button type="submit">Save language details</Button>
+        </div>
       </form>
     </FormProvider>
   );

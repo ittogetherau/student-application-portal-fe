@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
+import { FormSelect } from "../../ui/forms/form-select";
 import {
   createEmptyContact,
   emergencyContactsSchema,
@@ -82,10 +83,18 @@ export default function EmergencyContactForm() {
                     label="Name"
                     placeholder="Jane Doe"
                   />
-                  <FormInput
+                  <FormSelect
                     name={`contacts.${index}.relationship`}
                     label="Relationship"
-                    placeholder="Sister"
+                    placeholder="Select relationship"
+                    options={[
+                      { value: "parent", label: "Parent" },
+                      { value: "sibling", label: "Sibling" },
+                      { value: "spouse", label: "Spouse/Partner" },
+                      { value: "relative", label: "Relative" },
+                      { value: "friend", label: "Friend" },
+                      { value: "other", label: "Other" },
+                    ]}
                   />
                   <FormInput
                     name={`contacts.${index}.phone`}

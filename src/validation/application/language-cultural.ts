@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 export const languageAndCultureSchema = z.object({
-  first_language: z.string().min(1, "First language is required"),
-  english_proficiency: z.string().min(1, "English proficiency is required"),
+  first_language: z.string().min(1, "Please enter your first language"),
+  english_proficiency: z
+    .string()
+    .min(1, "Please tell us your English proficiency"),
   other_languages: z.string(),
   indigenous_status: z.string().min(1, "Indigenous status is required"),
   country_of_birth: z.string().min(1, "Country of birth is required"),

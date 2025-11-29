@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const employmentEntrySchema = z.object({
-  employer: z.string().min(1, "Employer is required"),
-  role: z.string().min(1, "Role is required"),
+  employer: z.string().min(1, "Employer name is required"),
+  role: z.string().min(1, "Job title/role is required"),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   is_current: z.boolean(),
