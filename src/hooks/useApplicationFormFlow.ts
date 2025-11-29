@@ -192,7 +192,9 @@ export const useApplicationFormFlow = (initialStep = 1, totalSteps = 12) => {
       if (!mutation) {
         throw new Error(`No mutation configured for step ${stepId}.`);
       }
-      const result = await mutation.mutateAsync(payload);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await mutation.mutateAsync(payload as any);
       markStepComplete(stepId);
       if (!options.skipNavigation) {
         setCurrentStep(clampStep(stepId + 1, totalSteps));

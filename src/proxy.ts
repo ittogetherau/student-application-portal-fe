@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-
 import { AUTH_SECRET } from "@/lib/auth-options";
 import { siteRoutes } from "@/constants/site-routes";
 
@@ -10,17 +9,19 @@ const DASHBOARD_AGENT_PATHS = [
   siteRoutes.dashboard.application.root,
   siteRoutes.dashboard.application.new,
 ];
+
 const DASHBOARD_STAFF_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.agents.root,
   siteRoutes.dashboard.applicationQueue.root,
 ];
+
 const AUTH_PAGES = [
   siteRoutes.auth.login,
   siteRoutes.auth.register,
   siteRoutes.auth.signUp,
   siteRoutes.auth.signUpAlt,
-] satisfies readonly string[];
+] as const;
 
 const normalizePath = (pathname: string) =>
   pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
@@ -30,7 +31,6 @@ const isProtectedPath = (pathname: string) =>
 
 const isAllowedPath = (pathname: string, role: string) => {
   const normalized = normalizePath(pathname);
-
   if (role === "admin") return true;
   if (role === "agent") {
     return DASHBOARD_AGENT_PATHS.some(
@@ -54,16 +54,16 @@ const defaultRedirectForRole = (role: string) => {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
   const token = await getToken({
     req: request,
     secret: AUTH_SECRET,
   });
-
   console.log(token);
 
-  // Redirect authenticated users away from auth pages
-  if (token && AUTH_PAGES.includes(normalizePath(pathname))) {
+  if (
+    token &&
+    (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
+  ) {
     const redirectUrl = new URL(
       defaultRedirectForRole((token.role as string) ?? "admin"),
       request.url

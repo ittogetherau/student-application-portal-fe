@@ -3,7 +3,8 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from "axios";
-import { getSession, signOut, type Session } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
+import type { Session } from "next-auth";
 
 const baseURL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || undefined;
@@ -17,7 +18,6 @@ const createAxiosInstance = () =>
 export const axiosPublic = createAxiosInstance();
 export const axiosPrivate = createAxiosInstance();
 
-// Backwards compatibility aliases
 export const axiosDataPublic = axiosPublic;
 export const axiosDataPrivate = axiosPrivate;
 
@@ -25,7 +25,7 @@ type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const applyAuthHeader = (
   headers: InternalAxiosRequestConfig["headers"],
-  value: string,
+  value: string
 ) => {
   const merged =
     headers instanceof AxiosHeaders ? headers : new AxiosHeaders(headers);
@@ -39,31 +39,29 @@ type SessionWithTokens = Session & {
   tokenType?: string;
 };
 
-const extractTokens = (session: Session | null): SessionWithTokens => {
-  if (!session) return {};
+const extractTokens = (session: Session | null): SessionWithTokens | null => {
+  if (!session) return null;
   return session as SessionWithTokens;
 };
 
-// Attach auth token for protected requests
 axiosPrivate.interceptors.request.use(
   async (config) => {
     const session = extractTokens(await getSession());
-    const accessToken = session.accessToken ?? session.access_token;
-    const tokenType = session.tokenType || "Bearer";
+    const accessToken = session?.accessToken ?? session?.access_token;
+    const tokenType = session?.tokenType || "Bearer";
 
     if (accessToken) {
       config.headers = applyAuthHeader(
         config.headers,
-        `${tokenType} ${accessToken}`,
+        `${tokenType} ${accessToken}`
       );
     }
 
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
-// Refresh token on 401 once, then retry
 axiosPrivate.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -81,16 +79,14 @@ axiosPrivate.interceptors.response.use(
 
         const updatedSession = extractTokens(await getSession());
         const refreshedToken =
-          updatedSession.accessToken ?? updatedSession.access_token;
-        const tokenType = updatedSession.tokenType || "Bearer";
+          updatedSession?.accessToken ?? updatedSession?.access_token;
+        const tokenType = updatedSession?.tokenType || "Bearer";
 
-        if (!refreshedToken) {
-          throw new Error("Unable to refresh access token");
-        }
+        if (!refreshedToken) throw new Error("Unable to refresh access token");
 
         originalRequest.headers = applyAuthHeader(
           originalRequest.headers,
-          `${tokenType} ${refreshedToken}`,
+          `${tokenType} ${refreshedToken}`
         );
 
         return axiosPrivate(originalRequest);
@@ -104,5 +100,5 @@ axiosPrivate.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );

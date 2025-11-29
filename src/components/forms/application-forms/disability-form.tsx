@@ -1,111 +1,82 @@
 "use client";
 
-import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
-import { FormArrayInput } from "../../ui/forms/form-array-input";
+
 import {
-  defaultDisabilityValues,
   disabilitySchema,
   type DisabilityValues,
+  defaultDisabilityValues,
 } from "@/validation/application/disability";
 
 export default function DisabilityForm() {
-  const methods = useForm<DisabilityValues>({
+  const { handleSubmit } = useForm({
     resolver: zodResolver(disabilitySchema),
     defaultValues: defaultDisabilityValues,
   });
 
-  const { handleSubmit, control } = methods;
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "adjustments_needed",
-  });
-
-  const canAdd = fields.length < 5;
-
   const onSubmit = (values: DisabilityValues) => {
-    console.log(JSON.stringify(values, null, 2));
+    const formattedValues = {
+      ...values,
+      adjustments_needed: values.adjustments_needed
+        ? values.adjustments_needed
+            .split(",")
+            .map((item) => item.trim())
+            .filter((item) => item !== "")
+        : [],
+    };
+
+    console.log(JSON.stringify(formattedValues, null, 2));
   };
 
   return (
-    <FormProvider {...methods}>
-      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-4 rounded-lg border p-4">
-          <FormCheckbox
-            name="has_disability"
-            label="I have a disability, impairment, or long-term condition"
-          />
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+      <div className="space-y-4 rounded-lg border p-4">
+        <FormCheckbox
+          name="has_disability"
+          label="I have a disability, impairment, or long-term condition"
+        />
 
-          <FormInput
-            name="disability_type"
-            label="Disability Type"
-            placeholder="e.g., Vision, Physical, Learning"
-          />
+        <FormInput
+          name="disability_type"
+          label="Disability Type"
+          placeholder="e.g., Vision, Physical, Learning"
+        />
 
-          <FormInput
-            name="disability_details"
-            label="Disability Details"
-            placeholder="Provide details about your condition"
-          />
+        <FormInput
+          name="disability_details"
+          label="Disability Details"
+          placeholder="Provide details about your condition"
+        />
 
-          <FormInput
-            name="support_required"
-            label="Support Required"
-            placeholder="What support do you require?"
-          />
+        <FormInput
+          name="support_required"
+          label="Support Required"
+          placeholder="What support do you require?"
+        />
 
-          <FormCheckbox name="has_documentation" label="I have documentation" />
+        <FormCheckbox name="has_documentation" label="I have documentation" />
 
-          <FormInput
-            name="documentation_status"
-            label="Documentation Status"
-            placeholder="e.g., Pending, Submitted, Not available"
-          />
-        </div>
+        <FormInput
+          name="documentation_status"
+          label="Documentation Status"
+          placeholder="e.g., Pending, Submitted, Not available"
+        />
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Adjustments Needed</Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => append("")}
-              disabled={!canAdd}
-            >
-              Add Adjustment
-            </Button>
-          </div>
+        <FormInput
+          name="adjustments_needed"
+          label="Adjustments Needed"
+          placeholder="Enter adjustments separated by commas (e.g., Extra time, Quiet room, Assistive technology)"
+        />
+      </div>
 
-          <div className="space-y-2">
-            {fields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No adjustments added.
-              </p>
-            ) : null}
-
-            {fields.map((field, index) => (
-              <FormArrayInput
-                key={field.id}
-                name="adjustments_needed"
-                index={index}
-                placeholder="Adjustment description"
-                onRemove={() => remove(index)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button type="submit">Submit Disability</Button>
-        </div>
-      </form>
-    </FormProvider>
+      <div className="flex justify-end">
+        <Button type="submit">Submit Disability</Button>
+      </div>
+    </form>
   );
 }
