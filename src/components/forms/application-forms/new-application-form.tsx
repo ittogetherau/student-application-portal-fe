@@ -13,14 +13,15 @@ import {
   TOTAL_APPLICATION_STEPS,
 } from "./form-step-registry";
 import { cn } from "@/lib/utils";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 
 const NewApplicationForm = () => {
   const router = useRouter();
 
-  // Minimal placeholder state with no flow logic
-  const currentStep = 1;
-  const goToStep = () => undefined;
-  const goToNext = () => undefined;
+  const currentStep = useApplicationStepStore((state) => state.currentStep);
+  const goToStep = useApplicationStepStore((state) => state.goToStep);
+  const goToNext = useApplicationStepStore((state) => state.goToNext);
+  const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
 
   const handleNext = useCallback(() => {
     if (currentStep >= TOTAL_APPLICATION_STEPS) return;
@@ -28,8 +29,8 @@ const NewApplicationForm = () => {
   }, [currentStep, goToNext]);
 
   const handlePrevious = useCallback(() => {
-    goToStep(currentStep - 1);
-  }, [currentStep, goToStep]);
+    goToPrevious();
+  }, [goToPrevious]);
 
   const handleStepNavigation = useCallback(
     (stepId: number) => {

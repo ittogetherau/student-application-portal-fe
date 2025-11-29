@@ -1,7 +1,8 @@
-import { Controller, useFormContext } from "react-hook-form";
+import { Controller, useFormContext, useFormState } from "react-hook-form";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { getFieldError } from "./form-errors";
 
 interface FormCheckboxProps {
   name: string;
@@ -9,12 +10,10 @@ interface FormCheckboxProps {
 }
 
 export function FormCheckbox({ name, label }: FormCheckboxProps) {
-  const {
-    control,
-    formState: { errors },
-  } = useFormContext<Record<string, unknown>>();
+  const { control } = useFormContext<Record<string, unknown>>();
 
-  const error = (errors[name] as { message?: string } | undefined)?.message;
+  const { errors } = useFormState({ control, name });
+  const error = getFieldError(errors, name)?.message;
 
   return (
     <div className="flex items-center gap-2">
@@ -23,6 +22,7 @@ export function FormCheckbox({ name, label }: FormCheckboxProps) {
         control={control}
         render={({ field: { value, onChange, ref } }) => (
           <Checkbox
+            id={name}
             ref={ref}
             checked={Boolean(value)}
             onCheckedChange={(checked) => onChange(checked === true)}
@@ -30,7 +30,7 @@ export function FormCheckbox({ name, label }: FormCheckboxProps) {
         )}
       />
 
-      <Label className="cursor-pointer" htmlFor={name}>
+      <Label className="cursor-pointer select-none" htmlFor={name}>
         {label}
       </Label>
 

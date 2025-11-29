@@ -1,7 +1,8 @@
 // components/form/form-input.tsx
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useFormState } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { getFieldError } from "./form-errors";
 
 interface FormInputProps {
   name: string;
@@ -18,12 +19,11 @@ export function FormInput({
   type = "text",
   description,
 }: FormInputProps) {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext();
+  const { register, control } = useFormContext();
 
-  const error = errors[name]?.message as string | undefined;
+  const { errors } = useFormState({ control, name });
+
+  const error = getFieldError(errors, name)?.message as string | undefined;
 
   return (
     <div className="space-y-1">

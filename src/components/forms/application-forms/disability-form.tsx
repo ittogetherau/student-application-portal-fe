@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
 } from "@/validation/application/disability";
 
 export default function DisabilityForm() {
-  const { handleSubmit } = useForm({
+  const form = useForm({
     resolver: zodResolver(disabilitySchema),
     defaultValues: defaultDisabilityValues,
   });
@@ -34,49 +34,51 @@ export default function DisabilityForm() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-      <div className="space-y-4 rounded-lg border p-4">
-        <FormCheckbox
-          name="has_disability"
-          label="I have a disability, impairment, or long-term condition"
-        />
+    <FormProvider {...form}>
+      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="space-y-4 rounded-lg border p-4">
+          <FormCheckbox
+            name="has_disability"
+            label="I have a disability, impairment, or long-term condition"
+          />
 
-        <FormInput
-          name="disability_type"
-          label="Disability Type"
-          placeholder="e.g., Vision, Physical, Learning"
-        />
+          <FormInput
+            name="disability_type"
+            label="Disability Type"
+            placeholder="e.g., Vision, Physical, Learning"
+          />
 
-        <FormInput
-          name="disability_details"
-          label="Disability Details"
-          placeholder="Provide details about your condition"
-        />
+          <FormInput
+            name="disability_details"
+            label="Disability Details"
+            placeholder="Provide details about your condition"
+          />
 
-        <FormInput
-          name="support_required"
-          label="Support Required"
-          placeholder="What support do you require?"
-        />
+          <FormInput
+            name="support_required"
+            label="Support Required"
+            placeholder="What support do you require?"
+          />
 
-        <FormCheckbox name="has_documentation" label="I have documentation" />
+          <FormCheckbox name="has_documentation" label="I have documentation" />
 
-        <FormInput
-          name="documentation_status"
-          label="Documentation Status"
-          placeholder="e.g., Pending, Submitted, Not available"
-        />
+          <FormInput
+            name="documentation_status"
+            label="Documentation Status"
+            placeholder="e.g., Pending, Submitted, Not available"
+          />
 
-        <FormInput
-          name="adjustments_needed"
-          label="Adjustments Needed"
-          placeholder="Enter adjustments separated by commas (e.g., Extra time, Quiet room, Assistive technology)"
-        />
-      </div>
+          <FormInput
+            name="adjustments_needed"
+            label="Adjustments Needed"
+            placeholder="Enter adjustments separated by commas (e.g., Extra time, Quiet room, Assistive technology)"
+          />
+        </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">Submit Disability</Button>
-      </div>
-    </form>
+        <div className="flex justify-end">
+          <Button type="submit">Submit Disability</Button>
+        </div>
+      </form>
+    </FormProvider>
   );
 }
