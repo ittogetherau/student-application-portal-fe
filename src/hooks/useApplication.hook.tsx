@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import applicationService from "@/service/application.service";
 import type { ApplicationCreateValues } from "@/validation/application.validation";
-import type { ApplicationDetail } from "@/service/application.service";
+import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { ServiceResponse } from "@/types/service";
 import { siteRoutes } from "@/constants/site-routes";
 
@@ -39,7 +39,7 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
 };
 
 export const useApplicationGetMutation = (applicationId: string | null) =>
-  useMutation<ServiceResponse<ApplicationDetail>, Error, void>({
+  useMutation<ServiceResponse<ApplicationDetailResponse>, Error, void>({
     mutationKey: ["application-get", applicationId],
     mutationFn: async () => {
       if (!applicationId) {

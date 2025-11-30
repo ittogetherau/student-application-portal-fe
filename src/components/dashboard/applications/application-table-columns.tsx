@@ -82,12 +82,16 @@ const stageLabelMap: Record<ApplicationStage, string> = {
   [ApplicationStage.COMPLETED]: "Completed",
 };
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("en-GB", {
+const formatDate = (value?: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
+};
 
 export const applicationStatusFilterOptions: DataTableFacetedFilterOption[] =
   Object.entries(STATUS_CONFIG).map(([status, config]) => ({

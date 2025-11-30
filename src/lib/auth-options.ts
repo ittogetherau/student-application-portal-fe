@@ -7,7 +7,7 @@ export const AUTH_SECRET = process.env.NEXTAUTH_SECRET ?? "dev-secret";
 
 const apiLogin = async (
   email: string,
-  password: string,
+  password: string
 ): Promise<LoginResponse> => {
   const response = await authService.login({ email, password });
   if (!response.success || !response.data) {

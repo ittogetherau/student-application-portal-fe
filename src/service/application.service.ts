@@ -6,9 +6,57 @@ import {
   ApplicationCreateValues,
   applicationCreateSchema,
 } from "@/validation/application.validation";
+import type {
+  AdditionalServicesValues,
+  DisabilitySupportValues,
+  EmergencyContactValues,
+  EmploymentHistoryValues,
+  HealthCoverValues,
+  LanguageCulturalValues,
+  PersonalDetailsValues,
+  PreviousQualificationsValues,
+  SchoolingHistoryValues,
+  SurveyValues,
+} from "@/validation/application.validation";
 
-export interface ApplicationDetail extends Application {
-  formData?: Partial<ApplicationCreateValues>;
+export interface ApplicationDetailResponse {
+  id: string;
+  student_profile_id: string | null;
+  agent_profile_id: string | null;
+  course_offering_id: string | null;
+  assigned_staff_id: string | null;
+  current_stage: string;
+  submitted_at: string | null;
+  decision_at?: string | null;
+  usi: string | null;
+  usi_verified: boolean;
+  usi_verified_at: string | null;
+  personal_details?: PersonalDetailsValues | null;
+  emergency_contacts?: EmergencyContactValues[] | null;
+  health_cover_policy?: HealthCoverValues | null;
+  language_cultural_data?: LanguageCulturalValues | null;
+  disability_support?: DisabilitySupportValues | null;
+  schooling_history?: SchoolingHistoryValues[] | null;
+  qualifications?: PreviousQualificationsValues[] | null;
+  employment_history?: EmploymentHistoryValues[] | null;
+  additional_services?: AdditionalServicesValues | null;
+  survey_responses?: SurveyValues[] | null;
+  enrollment_data?: unknown | null;
+  gs_assessment?: unknown | null;
+  signature_data?: unknown | null;
+  form_metadata?: {
+    version?: string;
+    ip_address?: string | null;
+    user_agent?: string | null;
+    submission_duration_seconds?: number | null;
+    last_edited_section?: string | null;
+    completed_sections?: string[];
+    last_saved_at?: string | null;
+    auto_save_count?: number;
+  } | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
 }
 
 export interface ApplicationListParams {
@@ -18,6 +66,7 @@ export interface ApplicationListParams {
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }
@@ -40,6 +89,7 @@ class ApplicationService extends ApiService {
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }
+    if (params.search) searchParams.set("search", params.search);
     if (params.fromDate) searchParams.set("from_date", params.fromDate);
     if (params.toDate) searchParams.set("to_date", params.toDate);
     if (params.limit) searchParams.set("limit", params.limit.toString());
@@ -94,10 +144,10 @@ class ApplicationService extends ApiService {
 
   getApplication = async (
     applicationId: string
-  ): Promise<ServiceResponse<ApplicationDetail>> => {
+  ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
-      const data = await this.get<ApplicationDetail>(
+      const data = await this.get<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}`,
         true
       );
@@ -107,7 +157,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail>(
+      return handleApiError<ApplicationDetailResponse>(
         error,
         "Failed to fetch application"
       );
@@ -117,10 +167,10 @@ class ApplicationService extends ApiService {
   updateApplication = async (
     applicationId: string,
     payload: Record<string, unknown>
-  ): Promise<ServiceResponse<ApplicationDetail>> => {
+  ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
-      const data = await this.patch<ApplicationDetail>(
+      const data = await this.patch<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}`,
         payload,
         true
@@ -131,7 +181,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail>(
+      return handleApiError<ApplicationDetailResponse>(
         error,
         "Failed to update application"
       );
@@ -140,14 +190,14 @@ class ApplicationService extends ApiService {
 
   submitApplication = async (
     applicationId: string
-  ): Promise<ServiceResponse<ApplicationDetail>> => {
+  ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const payload = {
         application_id: applicationId,
         confirm_accuracy: true,
       };
-      const data = await this.post<ApplicationDetail>(
+      const data = await this.post<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}/submit`,
         payload,
         true
@@ -158,7 +208,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError<ApplicationDetail>(
+      return handleApiError<ApplicationDetailResponse>(
         error,
         "Failed to submit application"
       );
