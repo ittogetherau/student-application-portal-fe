@@ -8,6 +8,7 @@ import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   additionalServicesSchema,
   createEmptyAdditionalService,
@@ -125,7 +126,7 @@ export default function AdditionalServicesForm() {
           </span>
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button
             type="submit"
             disabled={additionalServicesMutation.isPending}
@@ -134,7 +135,7 @@ export default function AdditionalServicesForm() {
               ? "Saving..."
               : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

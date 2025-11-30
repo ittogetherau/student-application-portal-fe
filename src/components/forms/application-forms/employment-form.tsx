@@ -8,6 +8,7 @@ import { FormInput } from "../../ui/forms/form-input";
 import { FormCheckbox } from "../../ui/forms/form-checkbox";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   createEmptyEmploymentEntry,
   employmentSchema,
@@ -119,11 +120,11 @@ export default function EmploymentForm() {
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={employmentMutation.isPending}>
             {employmentMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

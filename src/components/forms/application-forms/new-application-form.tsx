@@ -1,28 +1,23 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Check } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
+import { toast } from "react-hot-toast";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { siteRoutes } from "@/constants/site-routes";
 import { APPLICATION_FORM_STEPS } from "./form-step-registry";
 import { TOTAL_APPLICATION_STEPS } from "@/constants/application-steps";
 import { cn } from "@/lib/utils";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { useApplicationCreateMutation } from "@/hooks/useApplication.hook";
-import { toast } from "react-hot-toast";
 
 const NewApplicationForm = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentStep = useApplicationStepStore((state) => state.currentStep);
   const goToStep = useApplicationStepStore((state) => state.goToStep);
-  const goToNext = useApplicationStepStore((state) => state.goToNext);
-  const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
   const setTotalSteps = useApplicationStepStore((state) => state.setTotalSteps);
   const isStepCompleted = useApplicationStepStore(
     (state) => state.isStepCompleted
@@ -56,25 +51,8 @@ const NewApplicationForm = () => {
     createApplication.mutate(defaultPayload);
   }, [createApplication, searchParams]);
 
-  const handleNext = useCallback(() => {
-    if (currentStep >= TOTAL_APPLICATION_STEPS) return;
-    if (!isStepCompleted(currentStep)) {
-      toast.error("Please submit this step before continuing.");
-      return;
-    }
-    goToNext();
-    toast.success(`Moved to step ${currentStep + 1}`);
-  }, [currentStep, goToNext, isStepCompleted]);
-
-  const handlePrevious = useCallback(() => {
-    goToPrevious();
-  }, [goToPrevious]);
-
   const handleStepNavigation = useCallback(
     (stepId: number) => {
-      goToStep(stepId);
-      return;
-      //
       const movingForward = stepId > currentStep;
       if (movingForward && !isStepCompleted(currentStep)) {
         toast.error("Please submit this step before continuing.");
@@ -84,10 +62,6 @@ const NewApplicationForm = () => {
     },
     [currentStep, goToStep, isStepCompleted]
   );
-
-  const handleSubmit = useCallback(() => {
-    router.push(siteRoutes.dashboard.application.root);
-  }, [router]);
 
   const currentStepDefinition = APPLICATION_FORM_STEPS[currentStep - 1] ?? null;
   const progress = ((currentStep - 1) / (TOTAL_APPLICATION_STEPS - 1)) * 100;
@@ -102,7 +76,7 @@ const NewApplicationForm = () => {
                 <Progress value={progress} className="h-1" />
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 lg:flex lg:flex-col">
                 {APPLICATION_FORM_STEPS.map((step) => (
                   <button
                     type="button"
@@ -111,11 +85,11 @@ const NewApplicationForm = () => {
                       handleStepNavigation(step.id);
                     }}
                     className={cn(
-                      "flex items-center gap-3 whitespace-nowrap rounded-lg px-2 py-2.5 text-left transition-colors lg:w-full lg:whitespace-normal",
+                      "flex items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
                       "flex-shrink-0",
                       currentStep === step.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
+                        ? "bg-primary text-primary-foreground col-span-3 lg:col-span-1"
+                        : "hover:bg-muted justify-center lg:justify-start lg:w-full"
                     )}
                   >
                     <div
@@ -134,7 +108,14 @@ const NewApplicationForm = () => {
                         step.id
                       )}
                     </div>
-                    <span className="text-sm">{step.title}</span>
+                    <span
+                      className={cn(
+                        "text-sm whitespace-nowrap",
+                        currentStep === step.id ? "block" : "hidden lg:block"
+                      )}
+                    >
+                      {step.title}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -146,11 +127,6 @@ const NewApplicationForm = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="mb-6">
-                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>
-                    Step {currentStep} of {TOTAL_APPLICATION_STEPS}
-                  </span>
-                </div>
                 <h2 className="text-2xl">
                   {currentStepDefinition?.title ?? "Application"}
                 </h2>
@@ -159,50 +135,6 @@ const NewApplicationForm = () => {
               {currentStepDefinition ? (
                 <currentStepDefinition.component />
               ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    void handlePrevious();
-                  }}
-                  disabled={currentStep === 1}
-                  className="gap-2"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-
-                <span className="text-sm text-muted-foreground">
-                  Step {currentStep} of {TOTAL_APPLICATION_STEPS}
-                </span>
-
-                {currentStep === TOTAL_APPLICATION_STEPS ? (
-                  <Button
-                    onClick={() => {
-                      void handleSubmit();
-                    }}
-                    className="gap-2"
-                  >
-                    Submit Application
-                    <Check className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      void handleNext();
-                    }}
-                    className="gap-2"
-                  >
-                    {isStepCompleted(currentStep) ? "Next" : "Submit this step"}
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
             </CardContent>
           </Card>
         </div>

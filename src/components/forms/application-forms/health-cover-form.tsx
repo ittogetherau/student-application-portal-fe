@@ -8,6 +8,7 @@ import { FormInput } from "../../ui/forms/form-input";
 import { FormSelect } from "../../ui/forms/form-select";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   defaultHealthCoverValues,
   healthCoverSchema,
@@ -62,11 +63,11 @@ export default function HealthCoverForm() {
           <FormInput name="cost" label="Cost" type="number" placeholder="0" />
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={healthCoverMutation.isPending}>
             {healthCoverMutation.isPending ? "Saving..." : "Save "}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

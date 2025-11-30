@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   createEmptySurveyResponse,
   surveySchema,
@@ -117,11 +118,11 @@ export default function SurveyForm() {
           />
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={surveyMutation.isPending}>
             {surveyMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

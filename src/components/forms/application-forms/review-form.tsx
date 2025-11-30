@@ -7,13 +7,18 @@ import {
   useApplicationGetMutation,
   useApplicationSubmitMutation,
 } from "@/hooks/useApplication.hook";
+import ApplicationStepHeader from "./application-step-header";
 
 export default function ReviewForm() {
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
 
-  const { mutate: fetchApplication, data, isPending, isError } =
-    useApplicationGetMutation(applicationId);
+  const {
+    mutate: fetchApplication,
+    data,
+    isPending,
+    isError,
+  } = useApplicationGetMutation(applicationId);
   const submitApplication = useApplicationSubmitMutation(applicationId);
   const hasFetchedRef = useRef(false);
 
@@ -36,16 +41,6 @@ export default function ReviewForm() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Review your application</h3>
-        <Button
-          onClick={() => {
-            if (applicationId) {
-              submitApplication.mutate({});
-            }
-          }}
-          disabled={submitApplication.isPending || !applicationId}
-        >
-          {submitApplication.isPending ? "Submitting..." : "Submit Application"}
-        </Button>
       </div>
 
       <div className="rounded-md border bg-muted/30 p-4 text-sm">
@@ -58,9 +53,24 @@ export default function ReviewForm() {
             {JSON.stringify(applicationData, null, 2)}
           </pre>
         ) : (
-          <p className="text-muted-foreground">No application data available.</p>
+          <p className="text-muted-foreground">
+            No application data available.
+          </p>
         )}
       </div>
+
+      <ApplicationStepHeader className="mt-4">
+        <Button
+          onClick={() => {
+            if (applicationId) {
+              submitApplication.mutate();
+            }
+          }}
+          disabled={submitApplication.isPending || !applicationId}
+        >
+          {submitApplication.isPending ? "Submitting..." : "Submit Application"}
+        </Button>
+      </ApplicationStepHeader>
     </div>
   );
 }

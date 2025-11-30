@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import ApplicationStepHeader from "./application-step-header";
 import {
   defaultDocuments,
   documentsSchema,
@@ -143,9 +144,9 @@ export default function DocumentsForm() {
         </Card>
       ))}
 
-      <div className="flex justify-end">
+      <ApplicationStepHeader className="mt-4">
         <Button type="submit">Submit Documents</Button>
-      </div>
+      </ApplicationStepHeader>
     </form>
   );
 }

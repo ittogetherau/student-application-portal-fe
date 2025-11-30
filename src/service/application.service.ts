@@ -139,11 +139,14 @@ class ApplicationService extends ApiService {
   };
 
   submitApplication = async (
-    applicationId: string,
-    payload: Record<string, unknown> = {}
+    applicationId: string
   ): Promise<ServiceResponse<ApplicationDetail>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
+      const payload = {
+        application_id: applicationId,
+        confirm_accuracy: true,
+      };
       const data = await this.post<ApplicationDetail>(
         `${this.basePath}/${applicationId}/submit`,
         payload,

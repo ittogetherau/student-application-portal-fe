@@ -17,6 +17,7 @@ import {
 } from "@/validation/application/disability";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 
 export default function DisabilityForm() {
   const searchParams = useSearchParams();
@@ -118,11 +119,11 @@ export default function DisabilityForm() {
           )}
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={disabilityMutation.isPending}>
             {disabilityMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

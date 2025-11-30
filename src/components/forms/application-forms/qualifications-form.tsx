@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FormInput } from "../../ui/forms/form-input";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   createEmptyQualification,
   qualificationsSchema,
@@ -116,7 +117,7 @@ export default function QualificationsForm() {
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button
             type="submit"
             disabled={qualificationsMutation.isPending}
@@ -125,7 +126,7 @@ export default function QualificationsForm() {
               ? "Saving..."
               : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

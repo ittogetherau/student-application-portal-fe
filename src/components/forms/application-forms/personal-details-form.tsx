@@ -14,12 +14,12 @@ import {
   personalDetailsSchema,
   type PersonalDetailsValues,
 } from "@/validation/application/personal-details";
+import ApplicationStepHeader from "./application-step-header";
 
 export default function PersonalDetailsForm() {
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-  const personalDetailsMutation =
-    useApplicationStepMutations(applicationId)[1];
+  const personalDetailsMutation = useApplicationStepMutations(applicationId)[1];
 
   const methods = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
@@ -132,16 +132,13 @@ export default function PersonalDetailsForm() {
           </div>
         </section>
 
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            disabled={personalDetailsMutation.isPending}
-          >
+        <ApplicationStepHeader className="mt-4">
+          <Button type="submit" disabled={personalDetailsMutation.isPending}>
             {personalDetailsMutation.isPending
               ? "Saving..."
               : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

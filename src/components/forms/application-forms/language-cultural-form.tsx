@@ -11,6 +11,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { FormInput } from "../../ui/forms/form-input";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 
 export default function LanguageDefaultForm() {
   const searchParams = useSearchParams();
@@ -83,11 +84,11 @@ export default function LanguageDefaultForm() {
           placeholder="Enter languages separated by commas (e.g., Hindi, English, Newari)"
         />
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={languageMutation.isPending}>
             {languageMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

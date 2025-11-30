@@ -9,6 +9,7 @@ import { FormCheckbox } from "../../ui/forms/form-checkbox";
 import { FormSelect } from "../../ui/forms/form-select";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   createEmptyContact,
   emergencyContactsSchema,
@@ -137,7 +138,7 @@ export default function EmergencyContactForm() {
           })}
         </div>
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button
             type="submit"
             disabled={emergencyContactMutation.isPending}
@@ -146,7 +147,7 @@ export default function EmergencyContactForm() {
               ? "Saving..."
               : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );

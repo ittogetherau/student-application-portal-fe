@@ -8,6 +8,7 @@ import { FormInput } from "@/components/ui/forms/form-input";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
+import ApplicationStepHeader from "./application-step-header";
 import {
   defaultUSIValues,
   usiSchema,
@@ -56,11 +57,11 @@ export default function USIForm() {
           label="I authorize my provider to verify or create a USI on my behalf"
         />
 
-        <div className="flex justify-end">
+        <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={usiMutation.isPending}>
             {usiMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>
-        </div>
+        </ApplicationStepHeader>
       </form>
     </FormProvider>
   );
