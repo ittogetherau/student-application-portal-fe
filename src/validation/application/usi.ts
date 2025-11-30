@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 export const usiSchema = z.object({
-  usi: z.string().optional(),
+  usi: z
+    .string()
+    .min(10, "USI must be exactly 10 characters")
+    .max(10, "USI must be exactly 10 characters"),
   consent_to_verify: z.boolean().refine((v) => v === true, {
     message: "You must give permission.",
   }),

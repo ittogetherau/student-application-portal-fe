@@ -4,6 +4,7 @@ import {
   defaultLanguageAndCultureValues,
   languageAndCultureSchema,
   type LanguageAndCultureValues,
+  type LanguageAndCultureFormValues,
 } from "@/validation/application/language-cultural";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
@@ -16,13 +17,15 @@ export default function LanguageDefaultForm() {
   const applicationId = searchParams.get("applicationId");
   const languageMutation = useApplicationStepMutations(applicationId)[4];
 
-  const methods = useForm({
+  const methods = useForm<LanguageAndCultureFormValues>({
     resolver: zodResolver(languageAndCultureSchema),
     defaultValues: defaultLanguageAndCultureValues,
   });
 
-  const onSubmit = (values: LanguageAndCultureValues) => {
-    languageMutation.mutate(values);
+  const onSubmit = (values: LanguageAndCultureFormValues) => {
+    const payload: LanguageAndCultureValues =
+      languageAndCultureSchema.parse(values);
+    languageMutation.mutate(payload);
   };
 
   return (

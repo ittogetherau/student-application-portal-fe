@@ -8,7 +8,24 @@ export const disabilitySchema = z
     support_required: z.string().optional(),
     has_documentation: z.boolean(),
     documentation_status: z.string().optional(),
-    adjustments_needed: z.string().optional(),
+    adjustments_needed: z.preprocess(
+      (val) => {
+        if (typeof val === "string") {
+          return val
+            .split(",")
+            .map((item) => item.trim())
+            .filter((item) => item !== "");
+        }
+        if (Array.isArray(val)) {
+          return (val as unknown[])
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter((item) => item !== "");
+        }
+        return [];
+      },
+      z.array(z.string().min(1, "Adjustment cannot be empty")).default([]),
+    ),
   })
   .superRefine((val, ctx) => {
     if (val.has_disability) {
@@ -43,7 +60,7 @@ export const disabilitySchema = z
           message: "Documentation status is required",
         });
       }
-      if (!val.adjustments_needed?.trim()) {
+      if (!val.adjustments_needed || val.adjustments_needed.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["adjustments_needed"],
@@ -53,9 +70,10 @@ export const disabilitySchema = z
     }
   });
 
-export type DisabilityValues = z.infer<typeof disabilitySchema>;
+export type DisabilityValues = z.output<typeof disabilitySchema>;
+export type DisabilityFormValues = z.input<typeof disabilitySchema>;
 
-export const defaultDisabilityValues: DisabilityValues = {
+export const defaultDisabilityValues: DisabilityFormValues = {
   has_disability: false,
   disability_type: "",
   disability_details: "",

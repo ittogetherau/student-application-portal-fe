@@ -5,7 +5,21 @@ export const languageAndCultureSchema = z.object({
   english_proficiency: z
     .string()
     .min(1, "Please tell us your English proficiency"),
-  other_languages: z.string(),
+  other_languages: z.preprocess((val) => {
+    if (typeof val === "string") {
+      return val
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item !== "");
+    }
+    if (Array.isArray(val)) {
+      return (val as unknown[])
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item !== "");
+    }
+    return [];
+  }, z.array(z.string().min(1, "Other languages cannot be empty")).default([])),
   indigenous_status: z.string().min(1, "Indigenous status is required"),
   country_of_birth: z.string().min(1, "Country of birth is required"),
   citizenship_status: z.string().min(1, "Citizenship status is required"),
@@ -16,9 +30,14 @@ export const languageAndCultureSchema = z.object({
   english_test_date: z.string().min(1, "English test date is required"),
 });
 
-export type LanguageAndCultureValues = z.infer<typeof languageAndCultureSchema>;
+export type LanguageAndCultureValues = z.output<
+  typeof languageAndCultureSchema
+>;
+export type LanguageAndCultureFormValues = z.input<
+  typeof languageAndCultureSchema
+>;
 
-export const defaultLanguageAndCultureValues: LanguageAndCultureValues = {
+export const defaultLanguageAndCultureValues: LanguageAndCultureFormValues = {
   first_language: "",
   english_proficiency: "",
   other_languages: "",

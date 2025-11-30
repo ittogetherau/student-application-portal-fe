@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   APPLICATION_STEP_IDS,
   type ApplicationStepId,
-} from "@/components/forms/application-forms/form-step-registry";
+} from "@/constants/application-steps";
 import applicationStepsService from "@/service/application-steps.service";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import {
@@ -35,6 +35,9 @@ const useStepMutation = <TInput>(
   mutationFn: StepMutationFn<TInput>,
   applicationId: string | null
 ) => {
+  const markStepCompleted = useApplicationStepStore(
+    (state) => state.markStepCompleted
+  );
   const goToNext = useApplicationStepStore((state) => state.goToNext);
 
   return useMutation<ServiceResponse<StepUpdateResponse>, Error, TInput>({
@@ -59,6 +62,7 @@ const useStepMutation = <TInput>(
         message,
         payload,
       });
+      markStepCompleted(stepId);
       goToNext();
     },
     onError: (error) => {

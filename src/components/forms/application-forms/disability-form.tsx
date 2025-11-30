@@ -12,6 +12,7 @@ import { FormSelect } from "../../ui/forms/form-select";
 import {
   disabilitySchema,
   type DisabilityValues,
+  type DisabilityFormValues,
   defaultDisabilityValues,
 } from "@/validation/application/disability";
 import { useSearchParams } from "next/navigation";
@@ -22,7 +23,7 @@ export default function DisabilityForm() {
   const applicationId = searchParams.get("applicationId");
   const disabilityMutation = useApplicationStepMutations(applicationId)[5];
 
-  const form = useForm({
+  const form = useForm<DisabilityFormValues>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: defaultDisabilityValues,
   });
@@ -54,8 +55,9 @@ export default function DisabilityForm() {
     }
   }, [hasDocumentation, form]);
 
-  const onSubmit = (values: DisabilityValues) => {
-    disabilityMutation.mutate(values);
+  const onSubmit = (values: DisabilityFormValues) => {
+    const payload: DisabilityValues = disabilitySchema.parse(values);
+    disabilityMutation.mutate(payload);
   };
 
   return (

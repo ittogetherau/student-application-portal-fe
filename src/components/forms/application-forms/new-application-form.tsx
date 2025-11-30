@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { siteRoutes } from "@/constants/site-routes";
-import {
-  APPLICATION_FORM_STEPS,
-  TOTAL_APPLICATION_STEPS,
-} from "./form-step-registry";
+import { APPLICATION_FORM_STEPS } from "./form-step-registry";
+import { TOTAL_APPLICATION_STEPS } from "@/constants/application-steps";
 import { cn } from "@/lib/utils";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { useApplicationCreateMutation } from "@/hooks/useApplication.hook";
+import { toast } from "react-hot-toast";
 
 const NewApplicationForm = () => {
   const router = useRouter();
@@ -24,14 +23,24 @@ const NewApplicationForm = () => {
   const goToStep = useApplicationStepStore((state) => state.goToStep);
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
+  const setTotalSteps = useApplicationStepStore((state) => state.setTotalSteps);
+  const isStepCompleted = useApplicationStepStore(
+    (state) => state.isStepCompleted
+  );
   const createApplication = useApplicationCreateMutation();
   const hasCreatedRef = useRef(false);
 
   useEffect(() => {
+    setTotalSteps(TOTAL_APPLICATION_STEPS);
+  }, [setTotalSteps]);
+
+  useEffect(() => {
     if (hasCreatedRef.current) return;
 
+    // Prefer existing id from URL
     const existingId = searchParams.get("applicationId");
     if (existingId) {
+      // already in URL, nothing else to do
       hasCreatedRef.current = true;
       return;
     }
@@ -43,13 +52,19 @@ const NewApplicationForm = () => {
       course_offering_id: "4ba78380-8158-4941-9420-a1495d88e9d6",
     };
 
+    // Simply call mutate - success/error handling is inside the hook
     createApplication.mutate(defaultPayload);
   }, [createApplication, searchParams]);
 
   const handleNext = useCallback(() => {
     if (currentStep >= TOTAL_APPLICATION_STEPS) return;
+    if (!isStepCompleted(currentStep)) {
+      toast.error("Please submit this step before continuing.");
+      return;
+    }
     goToNext();
-  }, [currentStep, goToNext]);
+    toast.success(`Moved to step ${currentStep + 1}`);
+  }, [currentStep, goToNext, isStepCompleted]);
 
   const handlePrevious = useCallback(() => {
     goToPrevious();
@@ -58,8 +73,16 @@ const NewApplicationForm = () => {
   const handleStepNavigation = useCallback(
     (stepId: number) => {
       goToStep(stepId);
+      return;
+      //
+      const movingForward = stepId > currentStep;
+      if (movingForward && !isStepCompleted(currentStep)) {
+        toast.error("Please submit this step before continuing.");
+        return;
+      }
+      goToStep(stepId);
     },
-    [goToStep]
+    [currentStep, goToStep, isStepCompleted]
   );
 
   const handleSubmit = useCallback(() => {
@@ -100,10 +123,12 @@ const NewApplicationForm = () => {
                         "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs",
                         currentStep === step.id
                           ? "bg-primary-foreground text-primary"
+                          : isStepCompleted(step.id)
+                          ? "bg-emerald-100 text-emerald-700"
                           : "bg-muted"
                       )}
                     >
-                      {currentStep === step.id ? (
+                      {currentStep === step.id || isStepCompleted(step.id) ? (
                         <Check className="h-3 w-3" />
                       ) : (
                         step.id
@@ -173,7 +198,7 @@ const NewApplicationForm = () => {
                     }}
                     className="gap-2"
                   >
-                    Save & Next
+                    {isStepCompleted(currentStep) ? "Next" : "Submit this step"}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 )}

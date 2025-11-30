@@ -23,7 +23,6 @@ export default function HealthCoverForm() {
     resolver: zodResolver(healthCoverSchema),
     defaultValues: defaultHealthCoverValues,
   });
-
   const { handleSubmit } = methods;
 
   return (

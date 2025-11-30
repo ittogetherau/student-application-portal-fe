@@ -8,6 +8,8 @@ import {
   type FormDataState,
 } from "@/utils/application-form";
 import type { ApplicationCreateValues } from "@/validation/application.validation";
+import type { ApplicationDetail } from "@/service/application.service";
+import type { ServiceResponse } from "@/types/service";
 
 export const useApplicationSubmitMutation = (applicationId: string | null) =>
   useMutation<unknown, Error, FormDataState>({
@@ -34,6 +36,30 @@ export const useApplicationSubmitMutation = (applicationId: string | null) =>
     },
     onError: (error) => {
       console.error("[Application] submitApplication failed", error);
+    },
+  });
+
+export const useApplicationGetMutation = (applicationId: string | null) =>
+  useMutation<ServiceResponse<ApplicationDetail>, Error, void>({
+    mutationKey: ["application-get", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) {
+        throw new Error("Missing application reference.");
+      }
+      const response = await applicationService.getApplication(applicationId);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    onSuccess: (response) => {
+      console.log("[Application] getApplication success", {
+        applicationId,
+        response,
+      });
+    },
+    onError: (error) => {
+      console.error("[Application] getApplication failed", error);
     },
   });
 

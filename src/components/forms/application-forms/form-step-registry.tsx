@@ -1,7 +1,10 @@
 "use client";
-
 import type { ComponentType } from "react";
-
+import {
+  APPLICATION_STEP_IDS,
+  REVIEW_STEP_ID,
+  TOTAL_APPLICATION_STEPS,
+} from "@/constants/application-steps";
 import AdditionalServicesForm from "./additional-services-form";
 import DisabilityForm from "./disability-form";
 import EmergencyContactForm from "./emergency-contact-form";
@@ -36,12 +39,4 @@ export const APPLICATION_FORM_STEPS: ApplicationFormStep[] = [
   { id: 12, title: "Review", component: ReviewForm },
 ];
 
-const lastStep = APPLICATION_FORM_STEPS[APPLICATION_FORM_STEPS.length - 1];
-export const REVIEW_STEP_ID = lastStep?.id ?? 0;
-
-export const APPLICATION_STEP_IDS = APPLICATION_FORM_STEPS.filter(
-  (step) => step.id !== REVIEW_STEP_ID
-).map((step) => step.id) as readonly number[];
-
-export type ApplicationStepId = (typeof APPLICATION_STEP_IDS)[number];
-export const TOTAL_APPLICATION_STEPS = APPLICATION_FORM_STEPS.length;
+export { APPLICATION_STEP_IDS, REVIEW_STEP_ID, TOTAL_APPLICATION_STEPS };
