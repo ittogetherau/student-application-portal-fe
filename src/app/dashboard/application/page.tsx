@@ -24,7 +24,7 @@ const AgentApplicationPage = () => {
       : `Applications (${total ?? 0})`;
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 wrapper w-full max-w-full">
       <h1 className="text-3xl font-semibold text-foreground">{heading}</h1>
 
       {error ? (
@@ -37,6 +37,7 @@ const AgentApplicationPage = () => {
         data={applications}
         isLoading={isLoading}
         isFetching={isFetching}
+        isKanban={true}
       />
 
       <div className="flex flex-col gap-3 rounded-md border px-3 py-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
