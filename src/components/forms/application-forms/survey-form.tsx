@@ -27,7 +27,7 @@ import ApplicationStepHeader from "./application-step-header";
 export default function SurveyForm() {
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-  const stepId = 12; // Survey is step 12
+  const stepId = 11; // Survey is step 11
   const surveyMutation = useApplicationStepMutations(applicationId)[stepId];
   const { data: availabilityCodesData, isLoading: isLoadingCodes } =
     useSurveyAvailabilityCodes();
@@ -37,6 +37,8 @@ export default function SurveyForm() {
     defaultValues: {
       availability_status: "",
     },
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   // Enable automatic form persistence

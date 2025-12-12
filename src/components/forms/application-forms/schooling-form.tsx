@@ -1,32 +1,33 @@
 "use client";
 
-import { useForm, useFieldArray, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
-import { FormInput } from "../../ui/forms/form-input";
-import { FormCheckbox } from "../../ui/forms/form-checkbox";
+import { Separator } from "@/components/ui/separator";
+import { FormRadio } from "../../ui/forms/form-radio";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import ApplicationStepHeader from "./application-step-header";
 import {
-  createEmptySchoolingEntry,
   schoolingSchema,
   type SchoolingValues,
+  defaultSchoolingValues,
 } from "@/validation/application/schooling";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 
 export default function SchoolingForm() {
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-  const stepId = 7; // Schooling is step 7
+  const stepId = 6; // Schooling is step 6
   const schoolingMutation = useApplicationStepMutations(applicationId)[stepId];
 
   const methods = useForm<SchoolingValues>({
     resolver: zodResolver(schoolingSchema),
-    defaultValues: {
-      entries: [createEmptySchoolingEntry()],
-    },
+    defaultValues: defaultSchoolingValues,
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   // Enable automatic form persistence
@@ -37,17 +38,19 @@ export default function SchoolingForm() {
     enabled: !!applicationId,
   });
 
-  const { control, handleSubmit } = methods;
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "entries",
+  const stillAttending = useWatch({
+    control: methods.control,
+    name: "still_attending",
   });
 
-  const canAddMore = fields.length < 10;
+  // Reset secondary school type if not attending
+  useEffect(() => {
+    if (stillAttending === "No") {
+      methods.setValue("secondary_school_type", "");
+    }
+  }, [stillAttending, methods]);
 
   const onSubmit = (values: SchoolingValues) => {
-    // Save to Zustand store before submitting to API
     if (applicationId) {
       saveOnSubmit(values);
     }
@@ -56,94 +59,65 @@ export default function SchoolingForm() {
 
   return (
     <FormProvider {...methods}>
-      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Schooling History</h3>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!canAddMore}
-            onClick={() => append(createEmptySchoolingEntry())}
-          >
-            Add Entry
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          {fields.map((field, index) => (
-            <div key={field.id} className="space-y-4 rounded-lg border p-4">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-sm">Entry {index + 1}</p>
-
-                {fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(index)}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput
-                  name={`entries.${index}.institution`}
-                  label="Institution"
-                  placeholder="e.g. ABC High School"
-                />
-
-                <FormInput
-                  name={`entries.${index}.country`}
-                  label="Country"
-                  placeholder="e.g. Nepal"
-                />
-
-                <FormInput
-                  name={`entries.${index}.qualification_level`}
-                  label="Qualification Level"
-                  placeholder="e.g. Year 12, Diploma"
-                />
-
-                <FormInput
-                  name={`entries.${index}.field_of_study`}
-                  label="Field of Study"
-                  placeholder="e.g. Science, Business"
-                />
-
-                <FormInput
-                  name={`entries.${index}.start_year`}
-                  label="Start Year"
-                  type="number"
-                  placeholder="2020"
-                />
-
-                <FormInput
-                  name={`entries.${index}.end_year`}
-                  label="End Year"
-                  type="number"
-                  placeholder="2024"
-                />
-              </div>
-
-              <FormCheckbox
-                name={`entries.${index}.currently_attending`}
-                label="I am currently attending this institution"
-              />
-
-              <FormInput
-                name={`entries.${index}.result`}
-                label="Result"
-                placeholder="e.g. GPA, Percentage, Pass"
+      <form className="space-y-8" onSubmit={methods.handleSubmit(onSubmit)}>
+        <section className="space-y-6">
+          <div className="space-y-8">
+            {/* Highest Completed School Level */}
+            <div>
+              <p className="text-sm mb-1">What is your highest COMPLETED school level?</p>
+              <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+                If you are currently enrolled in secondary education, the Highest school level completed refers to the highest school level you have actually completed and not the level you are currently undertaking. For example, if you are currently in Year 10 the Highest school level completed is Year 9
+              </p>
+              <FormRadio
+                name="highest_school_level"
+                label=""
+                options={[
+                  "02 - Did not go to School",
+                  "08 - Year 8 or below",
+                  "09 - Year 9 or below",
+                  "10 - Completed year 10",
+                  "11 - Completed year 11",
+                  "12 - Completed year 12",
+                  "@@ - Not Specified",
+                ]}
               />
             </div>
-          ))}
-        </div>
 
-        <ApplicationStepHeader className="mt-4">
+            {/* Currently Attending */}
+            <div>
+              <p className="text-sm mb-3">Are you still attending secondary school?</p>
+              <FormRadio
+                name="still_attending"
+                label=""
+                options={["Yes", "No"]}
+              />
+            </div>
+
+            {/* Secondary School Type - Conditional */}
+            {stillAttending === "Yes" && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-sm mb-3">If Yes, What is your secondary school?</p>
+                <div className="pl-1">
+                  <FormRadio
+                    name="secondary_school_type"
+                    label=""
+                    options={[
+                      "School (Government)",
+                      "School (Catholic)",
+                      "School (Independent)",
+                      "Technical and Further Education institute",
+                      "Community based adult education provider",
+                      "Privately Operated registered training organisation",
+                      "Home school arrangement"
+                    ]}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <ApplicationStepHeader className="mt-8 pt-6 border-t">
           <Button type="submit" disabled={schoolingMutation.isPending}>
             {schoolingMutation.isPending ? "Saving..." : "Save & Continue"}
           </Button>

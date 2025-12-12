@@ -1,23 +1,24 @@
 import { z } from "zod";
 
 export const employmentEntrySchema = z.object({
-  employer: z.string().min(1, "Employer name is required"),
-  role: z.string().min(1, "Job title/role is required"),
-  start_date: z.string().min(1, "Start date is required"),
-  end_date: z.string().min(1, "End date is required"),
-  is_current: z.boolean(),
-  responsibilities: z.string().min(1, "Responsibilities are required"),
-  industry: z.string().min(1, "Industry is required"),
+  employer: z.string().optional(),
+  role: z.string().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  is_current: z.boolean().optional(),
+  responsibilities: z.string().optional(),
+  industry: z.string().optional(),
 });
 
 export const employmentSchema = z.object({
-  entries: z.array(employmentEntrySchema).min(1, "Add at least one entry"),
+  employment_status: z.string().optional(),
+  entries: z.array(employmentEntrySchema).optional(),
 });
 
 export type EmploymentFormValues = z.infer<typeof employmentSchema>;
 
 export const createEmptyEmploymentEntry =
-  (): EmploymentFormValues["entries"][number] => ({
+  (): z.infer<typeof employmentEntrySchema> => ({
     employer: "",
     role: "",
     start_date: "",
@@ -26,3 +27,8 @@ export const createEmptyEmploymentEntry =
     responsibilities: "",
     industry: "",
   });
+
+export const defaultEmploymentValues: EmploymentFormValues = {
+  employment_status: "",
+  entries: [createEmptyEmploymentEntry()],
+};

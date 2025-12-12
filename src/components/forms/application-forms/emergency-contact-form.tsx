@@ -20,7 +20,7 @@ import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 export default function EmergencyContactForm() {
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-  const stepId = 3; // Emergency Contact is step 3
+  const stepId = 2; // Emergency Contact is step 2
   const emergencyContactMutation =
     useApplicationStepMutations(applicationId)[stepId];
 
@@ -29,6 +29,8 @@ export default function EmergencyContactForm() {
     defaultValues: {
       contacts: [createEmptyContact()],
     },
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   // Enable automatic form persistence
@@ -64,8 +66,7 @@ export default function EmergencyContactForm() {
           emergencyContactMutation.mutate(values);
         })}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Emergency Contacts</h3>
+        <div className="flex items-center justify-end">
 
           <Button
             type="button"
