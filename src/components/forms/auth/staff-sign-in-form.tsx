@@ -50,7 +50,7 @@ const StaffSignInForm = () => {
 
       if (result.success && result.data) {
         const loginData = result.data as LoginResponse;
-        
+
         // Create NextAuth session with Microsoft tokens
         const signInResult = await signIn("credentials", {
           email: loginData.user.email,
@@ -70,7 +70,7 @@ const StaffSignInForm = () => {
         url.searchParams.delete("code");
         url.searchParams.delete("state");
         window.history.replaceState({}, "", url.pathname);
-        const destination = siteRoutes.dashboard.applicationQueue.root;
+        const destination = siteRoutes.dashboard.root;
         router.push(destination);
       } else {
         throw new Error(result.message || "Failed to process Microsoft callback");
@@ -88,11 +88,11 @@ const StaffSignInForm = () => {
     setIsLoading(true);
     try {
       // Get current page URL for redirect_uri
-      const redirectUri = typeof window !== "undefined" 
+      const redirectUri = typeof window !== "undefined"
         ? `${window.location.origin}${window.location.pathname}`
         : "";
 
-      const result = await authService.microsoftLogin({ 
+      const result = await authService.microsoftLogin({
         role: "staff",
         ...(redirectUri && { redirect_uri: redirectUri }),
       });

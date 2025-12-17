@@ -50,10 +50,7 @@ const PortalCredentialsForm = ({
       const result = await publicSignIn(values, role);
       toast.success(`Signed in as ${roleLabel}`);
       reset();
-      const destination =
-        result?.role === "staff"
-          ? siteRoutes.dashboard.applicationQueue.root
-          : siteRoutes.dashboard.application.root;
+      const destination = siteRoutes.dashboard.root;
       router.push(destination);
     } catch {
       toast.error("Unable to sign in. Try again.");

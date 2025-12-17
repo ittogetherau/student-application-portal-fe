@@ -87,8 +87,8 @@ const SignInForm = ({
         result?.role === "admin"
           ? siteRoutes.dashboard.root
           : result?.role === "staff"
-            ? siteRoutes.dashboard.applicationQueue.root
-            : siteRoutes.dashboard.application.root;
+            ? siteRoutes.dashboard.root
+            : siteRoutes.dashboard.root;
 
       router.push(redirectTo ?? roleRedirect);
     } catch (err) {
