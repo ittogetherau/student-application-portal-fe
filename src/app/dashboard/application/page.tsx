@@ -24,12 +24,17 @@ const AgentApplicationPage = () => {
       : `Applications (${total ?? 0})`;
 
   return (
-    <section className="space-y-6 wrapper w-full max-w-[100vw] overflow-x-hidden">
-      <h1 className="text-3xl font-semibold text-foreground">{heading}</h1>
+    <section className="space-y-6 w-full max-w-full overflow-hidden">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          {heading}
+        </h1>
+      </div>
 
       {error ? (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error.message}
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <p className="font-medium">Error loading applications</p>
+          <p className="mt-1 text-xs opacity-90">{error.message}</p>
         </div>
       ) : null}
 
@@ -40,9 +45,10 @@ const AgentApplicationPage = () => {
         isKanban={true}
       />
 
-      <div className="flex flex-col gap-3 rounded-md border px-3 py-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-        <p>
-          Page {page} of {maxPage || 1} - {total} total application
+
+      <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+        <p className="font-medium">
+          Page {page} of {maxPage || 1} · {total} total application
           {total === 1 ? "" : "s"}
         </p>
         <div className="flex items-center gap-2">
@@ -58,7 +64,7 @@ const AgentApplicationPage = () => {
             variant="outline"
             size="sm"
             onClick={nextPage}
-            disabled={isLoading || isFetching || disableNext}
+            disabled={disableNext}
           >
             Next
           </Button>

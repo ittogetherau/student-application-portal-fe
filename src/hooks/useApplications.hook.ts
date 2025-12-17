@@ -56,6 +56,9 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       submittedAt: (item.submitted_at as string) ?? "",
       updatedAt:
         (item.updated_at as string) ?? (item.created_at as string) ?? "",
+      studentProfileId: (item.student_profile_id as string) ?? null,
+      courseOfferingId: (item.course_offering_id as string) ?? null,
+      completionPercentage: (item.completion_percentage as number) ?? 0,
     };
 
     applications.push(mapped);
@@ -68,16 +71,16 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
     });
   } else if (raw && typeof raw === "object") {
     const obj = raw as Record<string, unknown>;
-    
+
     // Check if the response has a 'total' or 'count' field
     if (typeof obj.total === "number") {
       total = obj.total;
     } else if (typeof obj.count === "number") {
       total = obj.count;
     }
-    
-    // Check if there's a 'data' or 'applications' array
-    const dataArray = obj.data ?? obj.applications;
+
+    // Check if there's a 'data' or 'applications' or 'items' array
+    const dataArray = obj.data ?? obj.applications ?? obj.items;
     if (Array.isArray(dataArray)) {
       dataArray.forEach((item, idx) => {
         if (item && typeof item === "object")
@@ -135,6 +138,8 @@ export const useApplications = ({
         limit: perPage,
         offset: (page - 1) * perPage,
       });
+
+      console.log(response, "hellow world");
 
       if (!response.success || !response.data) {
         throw new Error(response.message || "Failed to fetch applications");

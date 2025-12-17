@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTableViewOptions } from "./data-table-view-options";
 import type { DataTableFacetedFilter } from "./data-table";
 
 interface DataTableToolbarProps<TData> {
@@ -119,14 +118,43 @@ export function DataTableToolbar<TData>({
             <X className="h-3 w-3" />
           </Button>
         ) : null}
+
+        {table.getFilteredSelectedRowModel().rows.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 text-xs text-destructive hover:text-destructive"
+              onClick={() => {
+                // In a real app, this would delete the selected rows
+                console.log(
+                  "Delete",
+                  table.getFilteredSelectedRowModel().rows.map(
+                    (row) => row.original
+                  )
+                );
+                table.resetRowSelection();
+              }}
+            >
+              Delete ({table.getFilteredSelectedRowModel().rows.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 text-xs"
+              onClick={() => {
+                console.log("Mark as unread");
+                table.resetRowSelection();
+              }}
+            >
+              Mark Unread
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center justify-end gap-2">
         {actions}
-        <DataTableViewOptions
-          table={table}
-          columnVisibility={columnVisibility}
-        />
       </div>
     </div>
   );

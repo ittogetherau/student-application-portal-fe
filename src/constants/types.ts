@@ -64,6 +64,9 @@ export interface Application {
   destination: string;
   course: string;
   intake: string;
+  studentProfileId?: string | null;
+  courseOfferingId?: string | null;
+  completionPercentage?: number;
 }
 
 // Document Types

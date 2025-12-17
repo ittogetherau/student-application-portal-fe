@@ -114,13 +114,41 @@ const StatusPill = ({ status }: { status: ApplicationStatus }) => {
   );
 };
 
+import { Progress } from "@/components/ui/progress";
+
+import { Checkbox } from "@/components/ui/checkbox";
+
 export const applicationColumns: ColumnDef<Application>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+    size: 40,
+  },
   {
     accessorKey: "referenceNumber",
     meta: { columnTitle: "Reference" },
-    size: 180,
-    minSize: 150,
-    maxSize: 200,
+    size: 120,
+    minSize: 100,
+    maxSize: 150,
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -130,7 +158,7 @@ export const applicationColumns: ColumnDef<Application>[] = [
     ),
     cell: ({ row }) => (
       <div
-        className="font-semibold text-foreground  truncate"
+        className="font-semibold text-foreground truncate"
         title={row.getValue("referenceNumber") || "—"}
       >
         {row.getValue("referenceNumber") || "—"}
@@ -229,6 +257,7 @@ export const applicationColumns: ColumnDef<Application>[] = [
       </div>
     ),
   },
+
   {
     accessorKey: "status",
     meta: { columnTitle: "Status" },
@@ -283,7 +312,7 @@ export const applicationColumns: ColumnDef<Application>[] = [
     ),
     cell: ({ row }) => (
       <div
-        className="text-sm text-muted-foreground text-start truncate whitespace-normal      "
+        className="text-sm text-muted-foreground text-start truncate whitespace-normal"
         title={row.getValue("intake") || "—"}
       >
         {row.getValue("intake") || "—"}

@@ -157,7 +157,7 @@ export function DataTable<TData, TValue>({
   const router = useRouter();
 
   return (
-    <div className="space-y-4 overflow-x-hidden w-full max-w-full">
+    <div className="space-y-4 w-full">
       <DataTableToolbar
         table={table}
         columnVisibility={columnVisibility}
@@ -169,7 +169,7 @@ export function DataTable<TData, TValue>({
       />
 
       {view === "table" ? (
-        <div className="rounded-md border w-full small-sidebar-width ">
+        <div className="rounded-md border w-full overflow-x-auto">
           <Table className="table-fixed small-sidebar-width">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
