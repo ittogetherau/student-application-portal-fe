@@ -53,9 +53,13 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = personalDetailsSchema.parse(input);
+      const newBody = {
+        ...body,
+        street_address: "",
+      };
       const data = await this.patch<StepUpdateResponse>(
         this.stepPath(applicationId, 1, "personal-details"),
-        body,
+        newBody,
         true
       );
       return {
@@ -125,9 +129,15 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = languageCulturalSchema.parse(input);
+      const newBody = {
+        ...body,
+        visa_expiry: body.visa_expiry
+          ? new Date(body.visa_expiry).toISOString()
+          : null,
+      };
       const data = await this.patch<StepUpdateResponse>(
         this.stepPath(applicationId, 4, "language-cultural"),
-        body,
+        newBody,
         true
       );
       return {
@@ -173,9 +183,20 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = schoolingHistorySchema.parse(input);
+      const newBody = {
+        ...body,
+        entries: [
+          {
+            start_year:"2020",
+            country:"Australia",
+            institution:"afasdf",
+            qualification_level:"Degree",
+          },
+        ],
+      };
       const data = await this.patch<StepUpdateResponse>(
         this.stepPath(applicationId, 6, "schooling-history"),
-        body,
+        newBody,
         true
       );
       return {

@@ -79,7 +79,7 @@ export default function EmploymentForm() {
                 "06 - Unemployed - seeking fulltime work",
                 "07 - Unemployed - seeking parttime work",
                 "08 - Not employed - not seeking employment",
-                "@@ - Not Specified"
+                "09 - Not Specified"
               ]}
             />
           </div>
