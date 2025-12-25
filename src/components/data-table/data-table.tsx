@@ -166,6 +166,7 @@ export function DataTable<TData, TValue>({
         onSearch={hasSearch ? setSearchValue : undefined}
         placeholder={searchPlaceholder}
         actions={toolbarActions}
+        view={view}
       />
 
       {view === "table" ? (
@@ -243,7 +244,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={table.getVisibleFlatColumns().length}
                     className="h-24 text-center text-sm text-muted-foreground"
                   >
                     <div className="space-y-1">
@@ -260,13 +261,12 @@ export function DataTable<TData, TValue>({
         </div>
       ) : (
         <div className="rounded-md border  max-w-[1190px]">
-          <ApplicationKanban data={data as Application[]} isallowMovingInKanban={isallowMovingInKanban} />
+          <ApplicationKanban data={searchFilteredData as Application[]} isallowMovingInKanban={isallowMovingInKanban} />
         </div>
       )}
 
-      <div className="flex flex-col gap-2 px-1 py-1 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-
-        {enableLocalPagination ? (
+      {view === "table" && enableLocalPagination ? (
+        <div className="flex flex-col gap-2 px-1 py-1 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <div className="flex items-center justify-end gap-2">
             <Button
               variant="outline"
@@ -285,8 +285,8 @@ export function DataTable<TData, TValue>({
               Next
             </Button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

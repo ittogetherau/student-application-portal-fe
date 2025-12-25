@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { DataTableFacetedFilter } from "./data-table";
+import { DataTableViewOptions } from "./data-table-view-options";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -22,6 +23,7 @@ interface DataTableToolbarProps<TData> {
   searchValue?: string;
   onSearch?: (value: string) => void;
   actions?: React.ReactNode;
+  view?: "table" | "kanban";
 }
 
 export function DataTableToolbar<TData>({
@@ -32,6 +34,7 @@ export function DataTableToolbar<TData>({
   searchValue,
   onSearch,
   actions,
+  view,
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || !!searchValue?.length;
@@ -155,6 +158,12 @@ export function DataTableToolbar<TData>({
 
       <div className="flex items-center justify-end gap-2">
         {actions}
+        {view === "table" && (
+          <DataTableViewOptions
+            table={table}
+            columnVisibility={columnVisibility}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
+"use client";
+
 import * as React from "react";
-import { Table } from "@tanstack/react-table";
+import { Table, Column, VisibilityState } from "@tanstack/react-table";
 import { Settings2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import {
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
+  columnVisibility: VisibilityState;
 }
 
 type ColumnMeta = {
@@ -28,25 +31,69 @@ const formatColumnLabel = (id: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/**
+ * A sub-component for each column toggle to ensure independent and reactive rendering.
+ */
+function ColumnToggleItem<TData>({
+  column,
+  columnVisibility, // Watch this prop specifically
+}: {
+  column: Column<TData>;
+  columnVisibility: VisibilityState;
+}) {
+  const [isChecked, setIsChecked] = React.useState(column.getIsVisible());
+
+  // Explicit synchronization as requested by the user
+  React.useEffect(() => {
+    setIsChecked(column.getIsVisible());
+  }, [columnVisibility, column]);
+
+  const metaTitle = (column.columnDef.meta as ColumnMeta | undefined)?.columnTitle;
+  const label = metaTitle ?? formatColumnLabel(column.id);
+
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => {
+        e.preventDefault();
+        column.toggleVisibility();
+      }}
+      className="flex items-center gap-2 cursor-pointer select-none"
+    >
+      <Checkbox
+        checked={isChecked}
+        onCheckedChange={() => {
+          column.toggleVisibility();
+        }}
+        className="pointer-events-none"
+      />
+      <span className="capitalize">{label}</span>
+    </DropdownMenuItem>
+  );
+}
+
 export function DataTableViewOptions<TData>({
   table,
+  columnVisibility, // Received from parent DataTable via Toolbar
 }: DataTableViewOptionsProps<TData>) {
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  // Use a local state to force a re-render of this component if navigation/clicks happen
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          ref={triggerRef}
           variant="outline"
           size="sm"
-          className="ml-auto hidden h-8 lg:flex"
+          className="flex gap-2"
         >
-          <Settings2 className="mr-2 h-4 w-4" />
+          <Settings2 className="h-4 w-4" />
           View
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+      <DropdownMenuContent align="end" className="w-[200px]" onPointerDownOutside={(e) => {
+        // Sometimes clicking outside doesn't sync properly if state is mid-update
+        forceUpdate();
+      }}>
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
@@ -56,28 +103,17 @@ export function DataTableViewOptions<TData>({
               typeof column.accessorFn !== "undefined" && column.getCanHide()
           )
           .map((column) => {
-            const metaTitle = (column.columnDef.meta as ColumnMeta | undefined)
-              ?.columnTitle;
-            const label = metaTitle ?? formatColumnLabel(column.id);
-            const isVisible = column.getIsVisible();
             return (
-              <DropdownMenuItem
-                key={`${column.id}-${isVisible}`}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  column.toggleVisibility(!isVisible);
-                }}
-                className="flex items-center gap-2 cursor-pointer select-none"
-              >
-                <Checkbox
-                  checked={isVisible}
-                  className="pointer-events-none"
-                />
-                <span>{label}</span>
-              </DropdownMenuItem>
+              <ColumnToggleItem
+                key={column.id}
+                column={column}
+                columnVisibility={columnVisibility}
+              />
             );
           })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
+
