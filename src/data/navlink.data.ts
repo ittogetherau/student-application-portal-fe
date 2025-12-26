@@ -17,7 +17,7 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
-    { label: "Agents", href: siteRoutes.dashboard.agents.root, icon: "agents" },
+    // { label: "Agents", href: siteRoutes.dashboard.agents.root, icon: "agents" },
     {
       label: "Application Queue",
       href: siteRoutes.dashboard.applicationQueue.root,

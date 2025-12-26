@@ -59,6 +59,8 @@ export interface ApplicationDocumentListItem {
   uploader_email: string;
   file_size_bytes: number;
   latest_version_id: string;
+  view_url?: string;
+  download_url?: string;
 }
 
 export interface OcrSectionData {

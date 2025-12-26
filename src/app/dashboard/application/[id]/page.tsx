@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Download,
+  Eye,
   FileText,
   Clock,
   Loader2,
@@ -53,7 +54,7 @@ export default function AgentApplicationDetail() {
         <div className="rounded-full bg-destructive/10 p-3 mb-4">
           <CloudCog className="h-6 w-6 text-destructive" />
         </div>
-        <h3 className="text-lg font-semibold">Error Loading Application</h3>
+        <h3 className="text-lg font-medium">Error Loading Application</h3>
         <p className="text-muted-foreground mt-2 max-w-md">
           {(error as Error)?.message ||
             "Something went wrong while fetching the application details."}
@@ -76,7 +77,7 @@ export default function AgentApplicationDetail() {
         <div className="rounded-full bg-muted p-3 mb-4">
           <FileText className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold">Application Not Found</h3>
+        <h3 className="text-lg font-medium">Application Not Found</h3>
         <p className="text-muted-foreground mt-2 max-w-md">
           The application you are looking for does not exist or you do not have
           permission to view it.
@@ -120,30 +121,31 @@ export default function AgentApplicationDetail() {
       : "N/A";
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() =>
               router.push(siteRoutes.dashboard.applicationQueue.root)
             }
+            className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{studentName}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-medium">{studentName}</h1>
+            <p className="text-xs text-muted-foreground">
               Reference: {application.id.slice(0, 8).toUpperCase()}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ApplicationStatusBadge status={application.current_stage} />
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="gap-2 h-8">
+            <Download className="h-3.5 w-3.5" />
             Export
           </Button>
         </div>
@@ -151,52 +153,52 @@ export default function AgentApplicationDetail() {
 
       {/* Application overview */}
       <Card>
-        <CardHeader>
-          <CardTitle>Application Overview</CardTitle>
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-base">Application Overview</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+        <CardContent className="px-4 pb-4">
+          <div className="grid gap-x-6 gap-y-2 md:grid-cols-3 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-muted-foreground">Student Email</p>
-              <p>{application.personal_details?.email || "N/A"}</p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Student Email</p>
+              <p className="text-sm font-medium">{application.personal_details?.email || "N/A"}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p>{application.personal_details?.phone || "N/A"}</p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Phone</p>
+              <p className="text-sm font-medium">{application.personal_details?.phone || "N/A"}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Course</p>
-              <p className="truncate" title={application.course_offering_id || ""}>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Course</p>
+              <p className="text-sm font-medium truncate" title={application.course_offering_id || ""}>
                 {application.course_offering_id || "N/A"}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Destination</p>
-              <p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Destination</p>
+              <p className="text-sm font-medium">
                 {application.personal_details?.country || "Australia"}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Intake</p>
-              <p>N/A</p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Intake</p>
+              <p className="text-sm font-medium">N/A</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Assigned Staff</p>
-              <p className="truncate" title={application.assigned_staff_id || ""}>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Assigned Staff</p>
+              <p className="text-sm font-medium truncate" title={application.assigned_staff_id || ""}>
                 {application.assigned_staff_id || "Not assigned"}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Submitted</p>
-              <p>{formatDate(application.submitted_at)}</p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Submitted</p>
+              <p className="text-sm font-medium">{formatDate(application.submitted_at)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Last Updated</p>
-              <p>{formatDate(application.updated_at)}</p>
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Last Updated</p>
+              <p className="text-sm font-medium">{formatDate(application.updated_at)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Current Stage</p>
-              <p className="capitalize">
+              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Current Stage</p>
+              <p className="text-sm font-medium capitalize">
                 {application.current_stage.replace(/_/g, " ")}
               </p>
             </div>
@@ -205,65 +207,84 @@ export default function AgentApplicationDetail() {
       </Card>
 
       {/* Tabs for different sections */}
-      <Tabs defaultValue="documents" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="gs-documents">GS Documents</TabsTrigger>
-          <TabsTrigger value="communication">Communication</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="documents" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <TabsList className="h-9">
+            <TabsTrigger value="documents" className="text-xs px-3">Documents</TabsTrigger>
+            <TabsTrigger value="timeline" className="text-xs px-3">Timeline</TabsTrigger>
+            <TabsTrigger value="gs-documents" className="text-xs px-3">GS Documents</TabsTrigger>
+            <TabsTrigger value="communication" className="text-xs px-3">Communication</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="documents" className="space-y-4">
+          <Button size="sm" className="h-9 text-xs">
+            Request Cover letter
+          </Button>
+        </div>
+
+        <TabsContent value="documents" className="space-y-3">
           <Card>
-            <CardHeader>
-              <CardTitle>Application Documents</CardTitle>
-              <CardDescription>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">Application Documents</CardTitle>
+              <CardDescription className="text-xs">
                 All documents submitted with this application
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-4">
               {isDocumentsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : documents.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-6 text-xs text-muted-foreground">
                   No documents found for this application
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center justify-between p-3 rounded-lg border"
+                      className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
+                          <FileText className="h-5 w-5" />
+                        </div>
                         <div>
-                          <p className="font-medium">{doc.document_type_name}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">{doc.document_type_name}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                             <span>{formatBytes(doc.file_size_bytes)}</span>
                             <span>•</span>
-                            <span>{formatDate(doc.uploaded_at)}</span>
                             <Badge
                               variant={
                                 doc.status === "approved"
-                                  ? "default" // "success" variant might not exist in default shadcn Badge
+                                  ? "default"
                                   : doc.status === "rejected"
                                     ? "destructive"
                                     : "secondary"
                               }
-                              className="ml-2 h-5 text-[10px]"
+                              className="h-4 text-[9px] px-1 font-medium uppercase"
                             >
                               {doc.status}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {doc.view_url && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="View">
+                            <a href={doc.view_url} target="_blank" rel="noopener noreferrer">
+                              <Eye className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )}
+                        {doc.download_url && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" asChild title="Download">
+                            <a href={doc.download_url} download>
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -272,52 +293,45 @@ export default function AgentApplicationDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="timeline" className="space-y-4">
+        <TabsContent value="timeline" className="space-y-3">
           <Card>
-            <CardHeader>
-              <CardTitle>Application Timeline</CardTitle>
-              <CardDescription>
-                Activity history for this application
-              </CardDescription>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">Application Timeline</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Placeholder for timeline as data is not available in current API response */}
-                <div className="flex gap-3">
+            <CardContent className="px-4 pb-4">
+              <div className="space-y-3">
+                <div className="flex gap-2">
                   <div className="flex flex-col items-center">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-primary" />
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Clock className="h-3 w-3 text-primary" />
                     </div>
+                    <div className="w-px flex-1 bg-border mt-1" />
                   </div>
-                  <div className="flex-1 pb-4">
-                    <p className="font-medium">Application Created</p>
-                    <p className="text-sm text-muted-foreground mt-1">
+                  <div className="flex-1 pb-3">
+                    <p className="text-sm font-medium">Application Created</p>
+                    <p className="text-xs text-muted-foreground">
                       Application was created in the system.
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(application.created_at)}
-                      </span>
-                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {formatDate(application.created_at)}
+                    </p>
                   </div>
                 </div>
                 {application.submitted_at && (
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <div className="flex flex-col items-center">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Clock className="h-4 w-4 text-primary" />
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Clock className="h-3 w-3 text-primary" />
                       </div>
                     </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-medium">Application Submitted</p>
-                      <p className="text-sm text-muted-foreground mt-1">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Application Submitted</p>
+                      <p className="text-xs text-muted-foreground">
                         Application was submitted for review.
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(application.submitted_at)}
-                        </span>
-                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {formatDate(application.submitted_at)}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -326,30 +340,26 @@ export default function AgentApplicationDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="gs-documents" className="space-y-4">
+        <TabsContent value="gs-documents" className="space-y-3">
           <Card>
-            <CardHeader>
-              <CardTitle>GS Documents</CardTitle>
-              <CardDescription>
-                Genuine Student assessment documents
-              </CardDescription>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">GS Documents</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
+            <CardContent className="px-4 pb-4">
+              <div className="text-center py-6 text-xs text-muted-foreground">
                 No GS documents uploaded yet
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="communication" className="space-y-4">
+        <TabsContent value="communication" className="space-y-3">
           <Card>
-            <CardHeader>
-              <CardTitle>Communication History</CardTitle>
-              <CardDescription>Messages and correspondence</CardDescription>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">Communication History</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
+            <CardContent className="px-4 pb-4">
+              <div className="text-center py-6 text-xs text-muted-foreground">
                 No messages yet
               </div>
             </CardContent>
