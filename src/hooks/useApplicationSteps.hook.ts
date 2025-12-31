@@ -90,6 +90,11 @@ const useStepMutation = <TInput>(
 };
 
 export const useApplicationStepMutations = (applicationId: string | null) => ({
+  0: useStepMutation<any>(
+    0,
+    (id, payload) => applicationStepsService.updateEnrollment(id, payload),
+    applicationId
+  ),
   1: useStepMutation<PersonalDetailsValues>(
     1,
     (id, payload) => applicationStepsService.updatePersonalDetails(id, payload),

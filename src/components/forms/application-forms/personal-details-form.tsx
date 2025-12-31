@@ -335,7 +335,7 @@ export default function PersonalDetailsForm() {
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       {isUploading ? (
                         <>
-                          <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
+                          <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs truncate">
                               {uploadedFile.name}
@@ -347,7 +347,7 @@ export default function PersonalDetailsForm() {
                         </>
                       ) : uploadSuccess ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs truncate">
                               {uploadedFile.name}
@@ -359,7 +359,7 @@ export default function PersonalDetailsForm() {
                         </>
                       ) : (
                         <>
-                          <FileCheck2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <FileCheck2 className="h-4 w-4 text-muted-foreground shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs truncate">
                               {uploadedFile.name}
@@ -377,7 +377,7 @@ export default function PersonalDetailsForm() {
                         variant="ghost"
                         size="sm"
                         onClick={handleRemoveFile}
-                        className="h-6 w-6 p-0 flex-shrink-0"
+                        className="h-6 w-6 p-0 shrink-0"
                       >
                         <X className="h-3 w-3" />
                       </Button>

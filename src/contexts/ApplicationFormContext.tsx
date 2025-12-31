@@ -74,7 +74,7 @@ export const ApplicationFormProvider: React.FC<{
   useEffect(() => {
     if (!applicationId) {
       // For new applications, always start at step 1 and clear any existing data
-      goToStep(1);
+      goToStep(0);
       createApplication.mutate({
         agent_profile_id: "ea7cab76-0e47-4de8-b923-834f0d53abf1",
         course_offering_id: "4ba78380-8158-4941-9420-a1495d88e9d6",
@@ -87,14 +87,14 @@ export const ApplicationFormProvider: React.FC<{
       // If this is a different application, clear the data and start fresh
       if (currentStoreAppId && currentStoreAppId !== applicationId) {
         store.clearAllData();
-        goToStep(1);
+        goToStep(0);
       }
 
       store.setApplicationId(applicationId);
 
       // In testing mode, always start at step 1 for free navigation
       if (TESTING_MODE) {
-        goToStep(1);
+        goToStep(0);
       } else {
         // Check if there's any step data - if not, it's a new application
         const stepData = store.stepData;
@@ -102,7 +102,7 @@ export const ApplicationFormProvider: React.FC<{
 
         if (!hasAnyData) {
           // New application with no data - start at step 1
-          goToStep(1);
+          goToStep(0);
         } else {
           // Existing application with data - initialize based on progress
           initializeStep(applicationId);

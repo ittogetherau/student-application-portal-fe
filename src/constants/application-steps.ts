@@ -1,4 +1,5 @@
 export const APPLICATION_STEP_IDS = [
+  0, // Enrollment
   1, // Personal Details
   2, // Emergency Contact
   3, // Health Cover
@@ -14,6 +15,6 @@ export const APPLICATION_STEP_IDS = [
 ] as const;
 
 export const REVIEW_STEP_ID = 13;
-export const TOTAL_APPLICATION_STEPS = 13;
+export const TOTAL_APPLICATION_STEPS = 14;
 
 export type ApplicationStepId = (typeof APPLICATION_STEP_IDS)[number];

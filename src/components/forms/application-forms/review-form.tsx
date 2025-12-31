@@ -87,6 +87,23 @@ export default function ReviewForm() {
       </div>
 
       <div className="space-y-3">
+        {/* Enrollment Details */}
+        {!!application.enrollment_data && (
+          <ReviewSection title="Enrollment Details">
+            <DataField label="Campus" value={(application.enrollment_data as any).campus} />
+            <DataField label="Course Type" value={(application.enrollment_data as any).courseType} />
+            <DataField label="Intake Year" value={(application.enrollment_data as any).intakeYear} />
+            {((application.enrollment_data as any).enrollments || []).map((enr: any, idx: number) => (
+              <div key={enr.id} className="mt-2 pt-2 border-t first:mt-0 first:pt-0 first:border-0">
+                <p className="text-xs font-semibold text-primary mb-1">Course {idx + 1}</p>
+                <DataField label="Course" value={enr.course} />
+                <DataField label="Intake Date" value={enr.intakeDate} />
+                <DataField label="Campus" value={enr.campus} />
+              </div>
+            ))}
+          </ReviewSection>
+        )}
+
         {/* Personal Details */}
         {application.personal_details && (
           <ReviewSection title="Personal Details">

@@ -47,6 +47,45 @@ class ApplicationStepsService extends ApiService {
     return `${this.basePath}/${applicationId}/steps/${step}/${slug}`;
   }
 
+  updateEnrollment = async (
+    applicationId: string,
+    input: any
+  ): Promise<ServiceResponse<StepUpdateResponse>> => {
+    try {
+
+      const data = {
+        applicationId,
+        step: 0,
+        completed: true,
+        updatedAt: new Date().toISOString(),
+        message: "Enrollment details saved.",
+
+
+
+      }
+      return {
+        success: true,
+        message: "Enrollment details saved.",
+        data,
+      };
+      // const data = await this.patch<StepUpdateResponse>(
+      //   this.stepPath(applicationId, 0, "enrollment"),
+      //   input,
+      //   true
+      // );
+      // return {
+      //   success: true,
+      //   message: "Enrollment details saved.",
+      //   data,
+      // };
+    } catch (error) {
+      return handleApiError<StepUpdateResponse>(
+        error,
+        "Failed to save enrollment details"
+      );
+    }
+  };
+
   updatePersonalDetails = async (
     applicationId: string,
     input: PersonalDetailsValues
@@ -187,10 +226,10 @@ class ApplicationStepsService extends ApiService {
         ...body,
         entries: [
           {
-            start_year:"2020",
-            country:"Australia",
-            institution:"afasdf",
-            qualification_level:"Degree",
+            start_year: "2020",
+            country: "Australia",
+            institution: "afasdf",
+            qualification_level: "Degree",
           },
         ],
       };

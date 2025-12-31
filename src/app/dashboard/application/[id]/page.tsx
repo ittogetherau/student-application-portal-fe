@@ -151,221 +151,215 @@ export default function AgentApplicationDetail() {
         </div>
       </div>
 
-      {/* Application overview */}
-      <Card>
-        <CardHeader className="py-3 px-4">
-          <CardTitle className="text-base">Application Overview</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <div className="grid gap-x-6 gap-y-2 md:grid-cols-3 lg:grid-cols-4">
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Student Email</p>
-              <p className="text-sm font-medium">{application.personal_details?.email || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Phone</p>
-              <p className="text-sm font-medium">{application.personal_details?.phone || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Course</p>
-              <p className="text-sm font-medium truncate" title={application.course_offering_id || ""}>
-                {application.course_offering_id || "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Destination</p>
-              <p className="text-sm font-medium">
-                {application.personal_details?.country || "Australia"}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Intake</p>
-              <p className="text-sm font-medium">N/A</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Assigned Staff</p>
-              <p className="text-sm font-medium truncate" title={application.assigned_staff_id || ""}>
-                {application.assigned_staff_id || "Not assigned"}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Submitted</p>
-              <p className="text-sm font-medium">{formatDate(application.submitted_at)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Last Updated</p>
-              <p className="text-sm font-medium">{formatDate(application.updated_at)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">Current Stage</p>
-              <p className="text-sm font-medium capitalize">
-                {application.current_stage.replace(/_/g, " ")}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabs for different sections */}
-      <Tabs defaultValue="documents" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <TabsList className="h-9">
-            <TabsTrigger value="documents" className="text-xs px-3">Documents</TabsTrigger>
-            <TabsTrigger value="timeline" className="text-xs px-3">Timeline</TabsTrigger>
-            <TabsTrigger value="gs-documents" className="text-xs px-3">GS Documents</TabsTrigger>
-            <TabsTrigger value="communication" className="text-xs px-3">Communication</TabsTrigger>
-          </TabsList>
-
-          <Button size="sm" className="h-9 text-xs">
-            Request Cover letter
-          </Button>
-        </div>
-
-        <TabsContent value="documents" className="space-y-3">
-          <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sticky Sidebar */}
+        <aside className="lg:col-span-1 sticky top-4 space-y-4 h-fit">
+          {/* Application overview */}
+          <Card className="shadow-sm border-muted/60">
             <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base">Application Documents</CardTitle>
-              <CardDescription className="text-xs">
-                All documents submitted with this application
-              </CardDescription>
+              <CardTitle className="text-base font-semibold">Application Overview</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              {isDocumentsLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div className="grid gap-y-4">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Student Email</p>
+                  <p className="text-sm font-medium">{application.personal_details?.email || "N/A"}</p>
                 </div>
-              ) : documents.length === 0 ? (
-                <div className="text-center py-6 text-xs text-muted-foreground">
-                  No documents found for this application
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Phone</p>
+                  <p className="text-sm font-medium">{application.personal_details?.phone || "N/A"}</p>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">{doc.document_type_name}</p>
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            <span>{formatBytes(doc.file_size_bytes)}</span>
-                            <span>•</span>
-                            <Badge
-                              variant={
-                                doc.status === "approved"
-                                  ? "default"
-                                  : doc.status === "rejected"
-                                    ? "destructive"
-                                    : "secondary"
-                              }
-                              className="h-4 text-[9px] px-1 font-medium uppercase"
-                            >
-                              {doc.status}
-                            </Badge>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Course</p>
+                  <p className="text-sm font-medium wrap-break-word leading-tight" title={application.course_offering_id || ""}>
+                    {application.course_offering_id || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Destination</p>
+                  <p className="text-sm font-medium">
+                    {application.personal_details?.country || "Australia"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Assigned Staff</p>
+                  <p className="text-sm font-medium truncate" title={application.assigned_staff_id || ""}>
+                    {application.assigned_staff_id || "Not assigned"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Submitted</p>
+                  <p className="text-sm font-medium">{formatDate(application.submitted_at)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Main Content */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Tabs for different sections */}
+          <Tabs defaultValue="documents" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <TabsList className="h-9">
+                <TabsTrigger value="documents" className="text-xs px-3">Documents</TabsTrigger>
+                <TabsTrigger value="timeline" className="text-xs px-3">Timeline</TabsTrigger>
+                <TabsTrigger value="gs-documents" className="text-xs px-3">GS Documents</TabsTrigger>
+                <TabsTrigger value="communication" className="text-xs px-3">Communication</TabsTrigger>
+              </TabsList>
+
+              <Button size="sm" className="h-9 text-xs">
+                Request Cover letter
+              </Button>
+            </div>
+
+            <TabsContent value="documents" className="space-y-3">
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-base">Application Documents</CardTitle>
+                  <CardDescription className="text-xs">
+                    All documents submitted with this application
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  {isDocumentsLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="text-center py-6 text-xs text-muted-foreground">
+                      No documents found for this application
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {documents.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">{doc.document_type_name}</p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                <span>{formatBytes(doc.file_size_bytes)}</span>
+                                <span>•</span>
+                                <Badge
+                                  variant={
+                                    doc.status === "approved"
+                                      ? "default"
+                                      : doc.status === "rejected"
+                                        ? "destructive"
+                                        : "secondary"
+                                  }
+                                  className="h-4 text-[9px] px-1 font-medium uppercase"
+                                >
+                                  {doc.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {doc.view_url && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="View">
+                                <a href={doc.view_url} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
+                            {doc.download_url && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" asChild title="Download">
+                                <a href={doc.download_url} download>
+                                  <Download className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {doc.view_url && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="View">
-                            <a href={doc.view_url} target="_blank" rel="noopener noreferrer">
-                              <Eye className="h-3.5 w-3.5" />
-                            </a>
-                          </Button>
-                        )}
-                        {doc.download_url && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" asChild title="Download">
-                            <a href={doc.download_url} download>
-                              <Download className="h-3.5 w-3.5" />
-                            </a>
-                          </Button>
-                        )}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="timeline" className="space-y-3">
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base">Application Timeline</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <div className="flex flex-col items-center">
-                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Clock className="h-3 w-3 text-primary" />
-                    </div>
-                    <div className="w-px flex-1 bg-border mt-1" />
-                  </div>
-                  <div className="flex-1 pb-3">
-                    <p className="text-sm font-medium">Application Created</p>
-                    <p className="text-xs text-muted-foreground">
-                      Application was created in the system.
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {formatDate(application.created_at)}
-                    </p>
-                  </div>
-                </div>
-                {application.submitted_at && (
-                  <div className="flex gap-2">
-                    <div className="flex flex-col items-center">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Clock className="h-3 w-3 text-primary" />
+            <TabsContent value="timeline" className="space-y-3">
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-base">Application Timeline</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <div className="flex flex-col items-center">
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Clock className="h-3 w-3 text-primary" />
+                        </div>
+                        <div className="w-px flex-1 bg-border mt-1" />
+                      </div>
+                      <div className="flex-1 pb-3">
+                        <p className="text-sm font-medium">Application Created</p>
+                        <p className="text-xs text-muted-foreground">
+                          Application was created in the system.
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {formatDate(application.created_at)}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Application Submitted</p>
-                      <p className="text-xs text-muted-foreground">
-                        Application was submitted for review.
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {formatDate(application.submitted_at)}
-                      </p>
-                    </div>
+                    {application.submitted_at && (
+                      <div className="flex gap-2">
+                        <div className="flex flex-col items-center">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Clock className="h-3 w-3 text-primary" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Application Submitted</p>
+                          <p className="text-xs text-muted-foreground">
+                            Application was submitted for review.
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {formatDate(application.submitted_at)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="gs-documents" className="space-y-3">
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base">GS Documents</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-center py-6 text-xs text-muted-foreground">
-                No GS documents uploaded yet
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <TabsContent value="gs-documents" className="space-y-3">
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-base">GS Documents</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    No GS documents uploaded yet
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="communication" className="space-y-3">
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base">Communication History</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-center py-6 text-xs text-muted-foreground">
-                No messages yet
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="communication" className="space-y-3">
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-base">Communication History</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    No messages yet
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

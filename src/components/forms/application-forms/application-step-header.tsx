@@ -24,7 +24,7 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
         onClick={() => {
           goToPrevious();
         }}
-        disabled={currentStep === 1}
+        disabled={currentStep === 0}
         className="gap-2"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -32,7 +32,7 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
       </Button>
 
       <span className="flex-1 text-center text-sm text-muted-foreground">
-        Step {currentStep} of {totalSteps}
+        Step {currentStep + 1} of {totalSteps}
       </span>
 
       {children ? (

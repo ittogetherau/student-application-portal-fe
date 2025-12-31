@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { TOTAL_APPLICATION_STEPS } from "@/constants/application-steps";
+import { TOTAL_APPLICATION_STEPS, REVIEW_STEP_ID } from "@/constants/application-steps";
 import { useApplicationFormDataStore } from "./useApplicationFormData.store";
 
 // ⚠️ TESTING MODE: Set to 'true' to allow free navigation during testing
@@ -20,7 +20,7 @@ type ApplicationStepState = {
 };
 
 const clampStep = (step: number, totalSteps: number) =>
-  Math.min(Math.max(step, 1), totalSteps);
+  Math.min(Math.max(step, 0), totalSteps);
 
 const getInitialStep = (
   applicationId: string | null,
@@ -28,54 +28,54 @@ const getInitialStep = (
 ): number => {
   // In testing mode, always allow starting at step 1
   if (TESTING_MODE) {
-    return 1;
+    return 0;
   }
 
-  if (!applicationId) return 1;
+  if (!applicationId) return 0;
 
   try {
-    // Check if step 1 (Documents) is completed
-    const step1Data = stepData[1] as
-      | { documents?: Record<string, unknown> }
+    // Check if step 0 (Enrollment) is completed
+    const step0Data = stepData[0] as
+      | { enrollments?: any[] }
       | undefined;
-    const hasStep1Data = !!(
-      step1Data?.documents && Object.keys(step1Data.documents).length > 0
+    const hasStep0Data = !!(
+      step0Data?.enrollments && step0Data.enrollments.length > 0
     );
 
-    if (!hasStep1Data) {
-      return 1; // Step 1 not completed, must start at step 1
+    if (!hasStep0Data) {
+      return 0; // Step 0 not completed, must start at step 0
     }
 
-    // Step 1 is completed, find first incomplete step starting from step 2
+    // Step 0 is completed, find first incomplete step starting from step 1
     const stepsWithData = Object.keys(stepData)
       .filter((key) => {
         const stepId = parseInt(key, 10);
         return (
           !isNaN(stepId) &&
-          stepId >= 1 &&
-          stepId <= TOTAL_APPLICATION_STEPS &&
+          stepId >= 0 &&
+          stepId < TOTAL_APPLICATION_STEPS &&
           stepData[stepId]
         );
       })
       .map((key) => parseInt(key, 10));
 
-    // Find first gap starting from step 2
-    for (let i = 2; i <= TOTAL_APPLICATION_STEPS; i++) {
+    // Find first gap starting from step 0
+    for (let i = 0; i < TOTAL_APPLICATION_STEPS; i++) {
       if (!stepsWithData.includes(i)) {
         return i;
       }
     }
 
-    return TOTAL_APPLICATION_STEPS; // All steps complete
+    return REVIEW_STEP_ID; // All steps complete
   } catch (error) {
     console.error("[Store] Failed to get initial step:", error);
-    return 1; // Default to step 1 on error
+    return 0; // Default to step 0 on error
   }
 };
 
 export const useApplicationStepStore = create<ApplicationStepState>(
   (set, get) => ({
-    currentStep: 1,
+    currentStep: 0,
     totalSteps: TOTAL_APPLICATION_STEPS,
     completedSteps: [],
 

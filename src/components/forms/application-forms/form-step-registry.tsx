@@ -18,6 +18,7 @@ import ReviewForm from "./review-form";
 import SchoolingForm from "./schooling-form";
 import SurveyForm from "./survey-form";
 import USIForm from "./usi-form";
+import EnrollmentManagementView from "./enrollment-management-view";
 
 export type ApplicationFormStep = {
   id: number;
@@ -26,6 +27,7 @@ export type ApplicationFormStep = {
 };
 
 export const APPLICATION_FORM_STEPS: ApplicationFormStep[] = [
+  { id: 0, title: "Enrollment", component: EnrollmentManagementView },
   { id: 1, title: "Personal Details", component: PersonalDetailsForm },
   { id: 2, title: "Emergency Contact", component: EmergencyContactForm },
   { id: 3, title: "Health Cover", component: HealthCoverForm },
