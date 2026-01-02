@@ -216,26 +216,31 @@ class ApplicationService extends ApiService {
   };
 
 
-  //staff and admin
-
+  // Staff and Admin - Assign application to staff member
   assignApplication = async (
     applicationId: string,
-    payload: Record<string, unknown>
-  ): Promise<ServiceResponse<unknown>> => {
+    staffId: string | null
+  ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
-      const data = await this.post<unknown>(
-        `${this.basePath}/${applicationId}/assign`,
+      const payload = staffId ? { staff_id: staffId } : { staff_id: null };
+      const data = await this.patch<ApplicationDetailResponse>(
+        `staff/applications/${applicationId}/assign`,
         payload,
         true
       );
       return {
         success: true,
-        message: "Application assigned successfully.",
+        message: staffId
+          ? "Application assigned successfully."
+          : "Application unassigned successfully.",
         data,
       };
     } catch (error) {
-      return handleApiError(error, "Failed to assign application");
+      return handleApiError<ApplicationDetailResponse>(
+        error,
+        "Failed to assign application"
+      );
     }
   };
   //staff and admin
@@ -257,6 +262,133 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to update application stage");
+    }
+  };
+
+  // Staff - Approve application and generate offer
+  approveApplication = async (
+    applicationId: string,
+    payload: {
+      offer_details: Record<string, unknown>;
+      notes?: string;
+    }
+  ): Promise<ServiceResponse<{
+    application_id: string;
+    current_stage: string;
+    message: string;
+    updated_at: string;
+  }>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<{
+        application_id: string;
+        current_stage: string;
+        message: string;
+        updated_at: string;
+      }>(
+        `staff/applications/${applicationId}/approve`,
+        payload,
+        true
+      );
+      return {
+        success: true,
+        message: "Application approved successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to approve application"
+      );
+    }
+  };
+
+  // Staff - Reject application
+  rejectApplication = async (
+    applicationId: string,
+    payload: {
+      rejection_reason: string;
+      is_appealable: boolean;
+    }
+  ): Promise<ServiceResponse<{
+    application_id: string;
+    current_stage: string;
+    message: string;
+    updated_at: string;
+  }>> => {
+    if (!applicationId) throw new Error("Application id is required");
+
+    // Validate rejection reason length
+    if (payload.rejection_reason.length < 10 || payload.rejection_reason.length > 1000) {
+      return {
+        success: false,
+        message: "Rejection reason must be between 10 and 1000 characters",
+        data: null,
+      };
+    }
+
+    try {
+      const data = await this.post<{
+        application_id: string;
+        current_stage: string;
+        message: string;
+        updated_at: string;
+      }>(
+        `staff/applications/${applicationId}/reject`,
+        payload,
+        true
+      );
+      return {
+        success: true,
+        message: "Application rejected successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to reject application"
+      );
+    }
+  };
+
+  // Staff - Generate offer letter PDF
+  generateOfferLetter = async (
+    applicationId: string,
+    payload: {
+      course_start_date: string;
+      tuition_fee: number;
+      material_fee: number;
+      conditions: string[];
+      template?: string;
+    }
+  ): Promise<ServiceResponse<{
+    pdf_url: string;
+    application_id: string;
+    generated_at: string;
+    message: string;
+  }>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<{
+        pdf_url: string;
+        application_id: string;
+        generated_at: string;
+        message: string;
+      }>(
+        `staff/applications/${applicationId}/generate-offer-letter`,
+        payload,
+        true
+      );
+      return {
+        success: true,
+        message: "Offer letter generated successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to generate offer letter"
+      );
     }
   };
 }

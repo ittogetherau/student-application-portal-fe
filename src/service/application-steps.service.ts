@@ -52,17 +52,13 @@ class ApplicationStepsService extends ApiService {
     input: any
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
-
       const data = {
         applicationId,
         step: 0,
         completed: true,
         updatedAt: new Date().toISOString(),
         message: "Enrollment details saved.",
-
-
-
-      }
+      };
       return {
         success: true,
         message: "Enrollment details saved.",

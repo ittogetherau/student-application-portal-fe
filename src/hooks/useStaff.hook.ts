@@ -21,6 +21,7 @@ import type {
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { Application, Document } from "@/constants/types";
+import applicationService from "@/service/application.service";
 
 // --- Queries ---
 
@@ -62,7 +63,7 @@ export const useApplicationReviewQuery = (applicationId: string | null) => {
     queryKey: ["staff", "application", applicationId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application ID");
-      const response = await staffService.getApplicationForReview(applicationId);
+      const response = await applicationService.getApplication(applicationId);
       if (!response.success) throw new Error(response.message);
       return response;
     },

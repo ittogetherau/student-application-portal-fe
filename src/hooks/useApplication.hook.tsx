@@ -231,23 +231,26 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
 export const useApplicationAssignMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, Error, Record<string, unknown>>({
+  return useMutation<ApplicationDetailResponse, Error, string | null>({
     mutationKey: ["application-assign", applicationId],
-    mutationFn: async (payload) => {
+    mutationFn: async (staffId: string | null) => {
       if (!applicationId) throw new Error("Missing application reference.");
 
       const response = await applicationService.assignApplication(
         applicationId,
-        payload
+        staffId
       );
 
       if (!response.success) throw new Error(response.message);
+      if (!response.data)
+        throw new Error("Application data is missing from response.");
 
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, staffId) => {
       console.log("[Application] assignApplication success", {
         applicationId,
+        staffId,
         response: data,
       });
       queryClient.invalidateQueries({
@@ -292,6 +295,159 @@ export const useApplicationChangeStageMutation = (
     },
     onError: (error) => {
       console.error("[Application] changeStage failed", error);
+    },
+  });
+};
+
+// Staff - Approve application hook
+export const useApplicationApproveMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    {
+      application_id: string;
+      current_stage: string;
+      message: string;
+      updated_at: string;
+    },
+    Error,
+    {
+      offer_details: Record<string, unknown>;
+      notes?: string;
+    }
+  >({
+    mutationKey: ["application-approve", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.approveApplication(
+        applicationId,
+        payload
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data)
+        throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] approveApplication success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] approveApplication failed", error);
+    },
+  });
+};
+
+// Staff - Reject application hook
+export const useApplicationRejectMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    {
+      application_id: string;
+      current_stage: string;
+      message: string;
+      updated_at: string;
+    },
+    Error,
+    {
+      rejection_reason: string;
+      is_appealable: boolean;
+    }
+  >({
+    mutationKey: ["application-reject", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.rejectApplication(
+        applicationId,
+        payload
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data)
+        throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] rejectApplication success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] rejectApplication failed", error);
+    },
+  });
+};
+
+// Staff - Generate offer letter hook
+export const useApplicationGenerateOfferLetterMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    {
+      pdf_url: string;
+      application_id: string;
+      generated_at: string;
+      message: string;
+    },
+    Error,
+    {
+      course_start_date: string;
+      tuition_fee: number;
+      material_fee: number;
+      conditions: string[];
+      template?: string;
+    }
+  >({
+    mutationKey: ["application-generate-offer", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.generateOfferLetter(
+        applicationId,
+        payload
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data)
+        throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] generateOfferLetter success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] generateOfferLetter failed", error);
     },
   });
 };

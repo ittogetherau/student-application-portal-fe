@@ -11,6 +11,8 @@ const apiLogin = async (
   password: string
 ): Promise<LoginResponse> => {
   const response = await authService.login({ email, password });
+
+  console.log("Login response:", response);
   if (!response.success || !response.data) {
     throw new Error(response.message || "Login failed");
   }
