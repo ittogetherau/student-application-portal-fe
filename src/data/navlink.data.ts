@@ -26,6 +26,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       href: siteRoutes.dashboard.application.root,
       icon: "queue",
     },
+    {
+      label: "Tasks",
+      href: siteRoutes.dashboard.tasks,
+      icon: "tasks",
+    },
   ],
 };
 

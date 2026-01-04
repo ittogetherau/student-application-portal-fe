@@ -51,7 +51,13 @@ function ReviewSection({
   );
 }
 
-const ReviewForm = ({ applicationId }: { applicationId: string }) => {
+const ReviewForm = ({
+  applicationId,
+  showDetails = true,
+}: {
+  applicationId: string;
+  showDetails: boolean;
+}) => {
   const {
     data: response,
     isLoading,
@@ -89,21 +95,23 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-semibold">Review your application</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Please review all information before submitting
-          </p>
+      {showDetails && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-semibold">Review your application</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Please review all information before submitting
+            </p>
+          </div>
+          <Badge
+            variant={
+              application.current_stage === "draft" ? "secondary" : "default"
+            }
+          >
+            {application.current_stage}
+          </Badge>
         </div>
-        <Badge
-          variant={
-            application.current_stage === "draft" ? "secondary" : "default"
-          }
-        >
-          {application.current_stage}
-        </Badge>
-      </div>
+      )}
 
       <div className="space-y-3">
         {/* Enrollment Details */}
@@ -374,7 +382,7 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
                         />
                       </div>
                     </div>
-                  ),
+                  )
                 );
               }
 
@@ -676,26 +684,30 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
         )}
       </div>
 
-      <ApplicationStepHeader className="mt-6">
-        <Button
-          onClick={() => {
-            if (applicationId) {
-              submitApplication.mutate();
+      {showDetails && (
+        <ApplicationStepHeader className="mt-6">
+          <Button
+            onClick={() => {
+              if (applicationId) {
+                submitApplication.mutate();
+              }
+            }}
+            disabled={
+              submitApplication.isPending || !applicationId || isLoading
             }
-          }}
-          disabled={submitApplication.isPending || !applicationId || isLoading}
-          size="lg"
-        >
-          {submitApplication.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            "Submit Application"
-          )}
-        </Button>
-      </ApplicationStepHeader>
+            size="lg"
+          >
+            {submitApplication.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Application"
+            )}
+          </Button>
+        </ApplicationStepHeader>
+      )}
     </div>
   );
 };

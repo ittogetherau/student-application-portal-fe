@@ -19,6 +19,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import ReviewForm from "../create/_forms/review-form";
 import ApplicationSidebar from "./_components/ApplicationSidebar";
 import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
@@ -75,7 +76,7 @@ export default function AgentApplicationDetail() {
     <>
       <ThreadMessagesPanel />
 
-      <div className="space-y-4">
+      <div className="space-y-4 ">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
@@ -120,11 +121,8 @@ export default function AgentApplicationDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 lg:gap-6">
           {/* Sidebar */}
           <aside className="w-full lg:sticky lg:top-4 lg:self-start space-y-4">
-            {
-              ROLE != "agent" && (
-                <ApplicationStage id={id} />
-              )
-            }
+            {ROLE != "agent" && <ApplicationStage id={id} />}
+
             <ApplicationSidebar
               current_role={ROLE}
               is_admin_staff={IS_ADMIN_STAFF}
@@ -137,6 +135,9 @@ export default function AgentApplicationDetail() {
             <Tabs defaultValue="documents" className="space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <TabsList className="w-full sm:w-auto flex flex-wrap justify-start">
+                  <TabsTrigger value="details" className="text-xs px-3">
+                    Details
+                  </TabsTrigger>
                   <TabsTrigger value="documents" className="text-xs px-3">
                     Documents
                   </TabsTrigger>
@@ -163,6 +164,13 @@ export default function AgentApplicationDetail() {
                   </Button>
                 )}
               </div>
+
+              <TabsContent value="details" className="space-y-3">
+                <ReviewForm
+                  applicationId={application.id}
+                  showDetails={false}
+                />
+              </TabsContent>
 
               <TabsContent value="documents" className="space-y-3">
                 <DocumentsTab

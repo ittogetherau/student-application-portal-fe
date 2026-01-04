@@ -26,6 +26,7 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   UserRound,
   Users,
@@ -38,6 +39,7 @@ const ICONS = {
   applications: FileText,
   agents: Users,
   queue: Inbox,
+  tasks: ListTodo,
 };
 
 export type SidebarIconName = keyof typeof ICONS;

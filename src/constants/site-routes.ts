@@ -15,6 +15,7 @@ export const siteRoutes = {
     agents: {
       root: "/dashboard/agents",
     },
+    tasks: "/dashboard/tasks",
   },
   track: "/track",
 } as const;

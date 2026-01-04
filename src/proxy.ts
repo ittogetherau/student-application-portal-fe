@@ -9,7 +9,10 @@ const SHARED_PATHS = [
   siteRoutes.dashboard.application.root,
 ];
 
-const STAFF_ONLY_PATHS = [siteRoutes.dashboard.agents.root];
+const STAFF_ONLY_PATHS = [
+  siteRoutes.dashboard.agents.root,
+  siteRoutes.dashboard.tasks,
+];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,

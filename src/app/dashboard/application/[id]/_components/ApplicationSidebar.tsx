@@ -42,20 +42,6 @@ const ApplicationSidebar = ({
 }: ApplicationSidebarProps) => {
   const overviewItems: InfoItemProps[] = [
     {
-      icon: User2,
-      label: "Assign",
-      children: (
-        <>
-          {current_role === USER_ROLE.STAFF && is_admin_staff && (
-            <StaffAssignmentSelect
-              applicationId={application.id}
-              assignedStaffId={application.assigned_staff_id}
-            />
-          )}
-        </>
-      ),
-    },
-    {
       icon: Mail,
       label: "Student Email",
       value: application.personal_details?.email || "N/A",
@@ -109,6 +95,15 @@ const ApplicationSidebar = ({
         </CardHeader>
         <CardContent className="px-4 pt-2 pb-4">
           <div className="grid gap-y-4">
+            {current_role === USER_ROLE.STAFF && is_admin_staff && (
+              <InfoItem label="Assign" icon={User2}>
+                <StaffAssignmentSelect
+                  applicationId={application.id}
+                  assignedStaffId={application.assigned_staff_id}
+                />
+              </InfoItem>
+            )}
+
             {overviewItems.map((item, idx) => (
               <InfoItem key={idx} {...item} />
             ))}
