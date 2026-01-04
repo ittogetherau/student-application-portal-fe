@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import ApplicationStepHeader from "../../../app/dashboard/application/create/_components/application-step-header";
+import ApplicationStepHeader from "../_components/application-step-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Types
@@ -131,7 +130,7 @@ const convertToFormData = (
 // Main Component
 export default function DocumentsUploadForm() {
   const searchParams = useSearchParams();
-  const applicationId = searchParams.get("applicationId");
+  const applicationId = searchParams.get("id");
   const { uploadDocument } = useDocuments(applicationId);
   const {
     data: documentTypesResponse,
@@ -223,6 +222,8 @@ export default function DocumentsUploadForm() {
     }
   }, [sortedDocumentTypes, selectedDocumentId]);
 
+  console.log(sortedDocumentTypes);
+
   // Initialize document states
   useEffect(() => {
     if (sortedDocumentTypes.length > 0 && applicationId) {
@@ -279,6 +280,7 @@ export default function DocumentsUploadForm() {
       file: File,
       fileKey: string
     ): Promise<void> => {
+      console.log("check", applicationId);
       if (!applicationId) return;
 
       setUploadingFiles((prev) => new Set(prev).add(fileKey));
@@ -494,6 +496,8 @@ export default function DocumentsUploadForm() {
     ? documentStates[selectedDocumentId]
     : null;
 
+  console.log(selectedState, "selected state");
+
   return (
     <FormProvider {...methods}>
       <form className="space-y-6">
@@ -583,7 +587,14 @@ export default function DocumentsUploadForm() {
                         </div>
 
                         {/* Upload Area */}
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-16 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all duration-200 cursor-pointer bg-gray-50/50">
+                        <div
+                          className={cn(
+                            "border-2 border-dashed rounded-lg p-16 text-center transition-all duration-200 cursor-pointer",
+                            isAnyFileUploading
+                              ? "border-blue-400 bg-blue-50/50"
+                              : "border-gray-300 bg-gray-50/50 hover:border-blue-400 hover:bg-blue-50/30"
+                          )}
+                        >
                           <input
                             type="file"
                             id={`file-${selectedDocument.id}`}
@@ -595,95 +606,106 @@ export default function DocumentsUploadForm() {
                                 e.target.files
                               )
                             }
-                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            accept="*/*"
                             disabled={isAnyFileUploading || !applicationId}
                           />
                           <label
                             htmlFor={`file-${selectedDocument.id}`}
                             className="cursor-pointer block"
                           >
-                            <Upload
-                              className="h-16 w-16 mx-auto mb-4 text-gray-400"
-                              strokeWidth={1.5}
-                            />
+                            {isAnyFileUploading ? (
+                              <Loader2 className="h-16 w-16 mx-auto mb-4 text-blue-500 animate-spin" />
+                            ) : (
+                              <Upload
+                                className="h-16 w-16 mx-auto mb-4 text-gray-400"
+                                strokeWidth={1.5}
+                              />
+                            )}
                             <p className="text-base text-gray-600 font-medium">
-                              Drop files here to upload
+                              {isAnyFileUploading
+                                ? "Uploading files..."
+                                : "Drop files here to upload or click to browse"}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-2">
+                              Supports all file types (PDF, JPG, PNG, DOC, etc.)
                             </p>
                           </label>
                         </div>
 
                         {/* Files Table */}
-                        {selectedState?.uploadedFiles &&
-                          selectedState.uploadedFiles.length > 0 && (
-                            <div className="mt-6">
-                              <table className="w-full">
-                                <thead className="border-b">
-                                  <tr className="text-left text-sm text-muted-foreground">
-                                    <th className="pb-3 font-medium">NAME</th>
-                                    <th className="pb-3 font-medium">SIZE</th>
-                                    <th className="pb-3 font-medium">
-                                      DATE ADDED
-                                    </th>
-                                    <th className="pb-3 font-medium">ACTION</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {selectedState.uploadedFiles.map(
-                                    (file, index) => (
-                                      <tr
-                                        key={index}
-                                        className="border-b last:border-0"
-                                      >
-                                        <td className="py-3 text-sm">
-                                          {file.fileName}
-                                        </td>
-                                        <td className="py-3 text-sm">
-                                          {(file.fileSize / 1024).toFixed(2)} KB
-                                        </td>
-                                        <td className="py-3 text-sm">
-                                          {new Date(
-                                            file.uploadedAt
-                                          ).toLocaleDateString()}
-                                        </td>
-                                        <td className="py-3">
-                                          <div className="flex items-center gap-2">
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                            >
-                                              <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                            >
-                                              <Download className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() =>
-                                                handleRemovePersistedFile(
-                                                  selectedDocument.id,
-                                                  file.fileName,
-                                                  file.fileSize
-                                                )
-                                              }
-                                            >
-                                              <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
+                        {((selectedState?.uploadedFiles?.length ?? 0) > 0 ||
+                          (selectedState?.files?.length ?? 0) > 0) && (
+                          <div className="mt-6">
+                            <table className="w-full">
+                              <thead className="border-b">
+                                <tr className="text-left text-sm text-muted-foreground">
+                                  <th className="pb-3 font-medium">NAME</th>
+                                  <th className="pb-3 font-medium">SIZE</th>
+                                  <th className="pb-3 font-medium">STATUS</th>
+                                  <th className="pb-3 font-medium">ACTION</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* Show uploaded files */}
+                                {selectedState?.uploadedFiles?.map(
+                                  (file, index) => (
+                                    <tr
+                                      key={`uploaded-${index}`}
+                                      className="border-b last:border-0"
+                                    >
+                                      <td className="py-3 text-sm">
+                                        {file.fileName}
+                                      </td>
+                                      <td className="py-3 text-sm">
+                                        {(file.fileSize / 1024).toFixed(2)} KB
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                          <span className="text-sm text-green-600">
+                                            Uploaded
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleRemovePersistedFile(
+                                                selectedDocument.id,
+                                                file.fileName,
+                                                file.fileSize
+                                              )
+                                            }
+                                          >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import DisabilityForm from "../_forms/disability-form";
-import DocumentsUploadForm from "@/components/forms/application-forms/documents-upload-form";
-import EmploymentForm from "../_forms/employment-form";
 import HealthCoverForm from "../_forms/health-cover-form";
 import LanguageCulturalForm from "../_forms/language-cultural-form";
 import QualificationsForm from "../_forms/qualifications-form";
@@ -13,6 +11,8 @@ import UsiForm from "../_forms/usi-form";
 import SurveyForm from "../_forms/survey-form";
 import ReviewForm from "@/app/dashboard/application/create/_forms/review-form";
 import AdditionalServicesForm from "../_forms/additional-services-form";
+import DocumentsUploadForm from "../_forms/documents-upload-form";
+import EmploymentForm from "../_forms/employment-form";
 
 interface IFormComponent {
   id: number;

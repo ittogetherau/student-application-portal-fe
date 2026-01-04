@@ -1,5 +1,6 @@
 import { FORM_STEPS } from "@/app/dashboard/application/create/_utils/form-steps-data";
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 const REVIEW_STEP_ID = FORM_STEPS[12].id;
 
@@ -16,6 +17,8 @@ type ApplicationStepState = {
   setTotalSteps: (total: number) => void;
   markStepCompleted: (step: number) => void;
   isStepCompleted: (step: number) => boolean;
+  restoreCompletedSteps: (stepData: StepData) => void;
+  resetNavigation: () => void;
 };
 
 const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max);
@@ -44,44 +47,95 @@ const getInitialStep = (
   return REVIEW_STEP_ID;
 };
 
-export const useApplicationStepStore = create<ApplicationStepState>(
-  (set, get) => ({
-    currentStep: 0,
-    totalSteps: FORM_STEPS.length,
-    completedSteps: [],
+const getCompletedStepsFromData = (
+  stepData: StepData,
+  totalSteps: number
+): number[] => {
+  const completedSteps: number[] = [];
 
-    initializeStep: (applicationId, stepData) => {
-      const totalSteps = get().totalSteps;
-      const step = getInitialStep(applicationId, stepData, totalSteps);
-      set({ currentStep: clamp(step, totalSteps) });
-    },
+  for (let i = 0; i < totalSteps; i++) {
+    const data = stepData[i];
+    if (data != null) {
+      // Check if the step has meaningful data
+      if (typeof data === "object" && !Array.isArray(data)) {
+        const keys = Object.keys(data);
+        if (keys.length > 0) {
+          completedSteps.push(i);
+        }
+      } else if (Array.isArray(data) && data.length > 0) {
+        completedSteps.push(i);
+      } else if (data !== null && data !== undefined && data !== "") {
+        completedSteps.push(i);
+      }
+    }
+  }
 
-    goToStep: (step) =>
-      set((s) => ({ currentStep: clamp(step, s.totalSteps) })),
+  return completedSteps;
+};
 
-    goToNext: () =>
-      set((s) => ({
-        currentStep: clamp(s.currentStep + 1, s.totalSteps),
-      })),
+export const useApplicationStepStore = create<ApplicationStepState>()(
+  persist(
+    (set, get) => ({
+      currentStep: 0,
+      totalSteps: FORM_STEPS.length,
+      completedSteps: [],
 
-    goToPrevious: () =>
-      set((s) => ({
-        currentStep: clamp(s.currentStep - 1, s.totalSteps),
-      })),
+      initializeStep: (applicationId, stepData) => {
+        const totalSteps = get().totalSteps;
+        const step = getInitialStep(applicationId, stepData, totalSteps);
+        const completedSteps = getCompletedStepsFromData(stepData, totalSteps);
 
-    setTotalSteps: (total) =>
-      set((s) => ({
-        totalSteps: total,
-        currentStep: clamp(s.currentStep, total),
-      })),
+        set({
+          currentStep: clamp(step, totalSteps),
+          completedSteps: completedSteps,
+        });
+      },
 
-    markStepCompleted: (step) =>
-      set((s) =>
-        s.completedSteps.includes(step)
-          ? s
-          : { completedSteps: [...s.completedSteps, step] }
-      ),
+      goToStep: (step) =>
+        set((s) => ({ currentStep: clamp(step, s.totalSteps) })),
 
-    isStepCompleted: (step) => get().completedSteps.includes(step),
-  })
+      goToNext: () =>
+        set((s) => ({
+          currentStep: clamp(s.currentStep + 1, s.totalSteps),
+        })),
+
+      goToPrevious: () =>
+        set((s) => ({
+          currentStep: clamp(s.currentStep - 1, s.totalSteps),
+        })),
+
+      setTotalSteps: (total) =>
+        set((s) => ({
+          totalSteps: total,
+          currentStep: clamp(s.currentStep, total),
+        })),
+
+      markStepCompleted: (step) =>
+        set((s) =>
+          s.completedSteps.includes(step)
+            ? s
+            : { completedSteps: [...s.completedSteps, step] }
+        ),
+
+      isStepCompleted: (step) => get().completedSteps.includes(step),
+
+      restoreCompletedSteps: (stepData) => {
+        const totalSteps = get().totalSteps;
+        const completedSteps = getCompletedStepsFromData(stepData, totalSteps);
+        set({ completedSteps });
+      },
+
+      resetNavigation: () => {
+        set({ currentStep: 0, completedSteps: [] });
+      },
+    }),
+    {
+      name: "application-step-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        currentStep: state.currentStep,
+        completedSteps: state.completedSteps,
+      }),
+    }
+  )
 );

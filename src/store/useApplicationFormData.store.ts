@@ -169,10 +169,7 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Map API response fields to step IDs
           // Step 1: Personal Details
 
-          console.log(
-            "apiResponse",
-            apiResponse
-          );
+          console.log("apiResponse", apiResponse);
           if (apiResponse.personal_details) {
             newStepData[1] = apiResponse.personal_details;
           }
@@ -180,7 +177,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Step 2: Emergency Contact
           if (apiResponse.emergency_contacts) {
             newStepData[2] = apiResponse.emergency_contacts;
-
           }
 
           // Step 3: Health Cover
@@ -206,7 +202,8 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Step 7: Qualifications
           if (apiResponse.qualifications) {
             newStepData[7] = {
-              has_qualifications: apiResponse.qualifications.length > 0 ? "Yes" : "No",
+              has_qualifications:
+                apiResponse.qualifications.length > 0 ? "Yes" : "No",
               qualifications: apiResponse.qualifications,
             };
           }
@@ -226,15 +223,27 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Step 10: Additional Services
           if (apiResponse.additional_services) {
             newStepData[10] = {
-              request_additional_services: apiResponse.additional_services.services?.length ? "Yes" : "No",
+              request_additional_services: apiResponse.additional_services
+                .services?.length
+                ? "Yes"
+                : "No",
               services: apiResponse.additional_services.services || [],
             };
           }
 
           // Step 11: Survey
-          if (apiResponse.survey_responses && apiResponse.survey_responses.length > 0) {
+          if (
+            apiResponse.survey_responses &&
+            apiResponse.survey_responses.length > 0
+          ) {
             newStepData[11] = apiResponse.survey_responses[0];
           }
+
+          // Also restore completed steps in the navigation store
+          // Import the step store to update navigation state
+          const { restoreCompletedSteps } =
+            require("@/store/useApplicationStep.store").useApplicationStepStore.getState();
+          restoreCompletedSteps(newStepData);
 
           return { stepData: newStepData };
         });

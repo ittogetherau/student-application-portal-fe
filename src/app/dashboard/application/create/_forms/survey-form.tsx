@@ -22,6 +22,8 @@ const SurveyForm = ({ applicationId }: { applicationId: string }) => {
   const { data: availabilityCodesData, isLoading: isLoadingCodes } =
     useSurveyAvailabilityCodes();
 
+  console.log(availabilityCodesData?.data, "available");
+
   const methods = useForm<SurveyValues>({
     resolver: zodResolver(surveySchema),
     defaultValues: {

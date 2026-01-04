@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import ApplicationSidebar from "./_components/ApplicationSidebar";
+import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
 import {
@@ -118,7 +119,12 @@ export default function AgentApplicationDetail() {
         {/* Body */}
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 lg:gap-6">
           {/* Sidebar */}
-          <aside className="w-full lg:sticky lg:top-4 lg:self-start">
+          <aside className="w-full lg:sticky lg:top-4 lg:self-start space-y-4">
+            {
+              ROLE != "agent" && (
+                <ApplicationStage id={id} />
+              )
+            }
             <ApplicationSidebar
               current_role={ROLE}
               is_admin_staff={IS_ADMIN_STAFF}

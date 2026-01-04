@@ -61,6 +61,8 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
 
   const application = response?.data;
 
+  console.log(application?.employment_history);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -330,11 +332,55 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
         )}
 
         {/* Schooling History */}
-        {application.schooling_history &&
-          application.schooling_history.length > 0 && (
-            <ReviewSection title="Schooling History">
-              {application.schooling_history.map(
-                (school: any, index: number) => (
+        {application.schooling_history && (
+          <ReviewSection title="Schooling History">
+            {(() => {
+              // Handle different possible structures of schooling_history
+              const schoolingData: any = application.schooling_history;
+
+              // If it has an entries array property
+              if (
+                schoolingData.entries &&
+                Array.isArray(schoolingData.entries) &&
+                schoolingData.entries.length > 0
+              ) {
+                return schoolingData.entries.map(
+                  (school: any, index: number) => (
+                    <div key={index} className="mb-3 last:mb-0">
+                      {index > 0 && <Separator className="my-3" />}
+                      <div className="space-y-0">
+                        <DataField
+                          label="Institution"
+                          value={school.institution}
+                        />
+                        <DataField label="Country" value={school.country} />
+                        <DataField
+                          label="Field of Study"
+                          value={school.field_of_study}
+                        />
+                        <DataField
+                          label="Qualification Level"
+                          value={school.qualification_level}
+                        />
+                        <DataField
+                          label="Start Year"
+                          value={school.start_year}
+                        />
+                        <DataField label="End Year" value={school.end_year} />
+                        <DataField label="Result" value={school.result} />
+                        <DataField
+                          label="Currently Attending"
+                          value={school.currently_attending ? "Yes" : "No"}
+                        />
+                      </div>
+                    </div>
+                  ),
+                );
+              }
+
+              // If schooling_history is an array itself
+              if (Array.isArray(schoolingData)) {
+                return schoolingData.map((school: any, index: number) => (
                   <div key={index} className="mb-3 last:mb-0">
                     {index > 0 && <Separator className="my-3" />}
                     <div className="space-y-0">
@@ -360,73 +406,147 @@ const ReviewForm = ({ applicationId }: { applicationId: string }) => {
                       />
                     </div>
                   </div>
-                )
-              )}
-            </ReviewSection>
-          )}
+                ));
+              }
+
+              // If it's an object with key-value pairs, display them
+              if (typeof schoolingData === "object" && schoolingData !== null) {
+                return Object.entries(schoolingData).map(([key, value]) => (
+                  <DataField
+                    key={key}
+                    label={key
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    value={String(value)}
+                  />
+                ));
+              }
+
+              return (
+                <p className="text-sm text-muted-foreground">
+                  No schooling history available
+                </p>
+              );
+            })()}
+          </ReviewSection>
+        )}
 
         {/* Qualifications */}
         {application.qualifications &&
-          application.qualifications.length > 0 && (
+          ((Array.isArray(application.qualifications) &&
+            application.qualifications.length > 0) ||
+            (typeof application.qualifications === "object" &&
+              "qualifications" in application.qualifications &&
+              Array.isArray(application.qualifications.qualifications) &&
+              application.qualifications.qualifications.length > 0)) && (
             <ReviewSection title="Previous Qualifications">
-              {application.qualifications.map((qual: any, index: number) => (
-                <div key={index} className="mb-3 last:mb-0">
-                  {index > 0 && <Separator className="my-3" />}
-                  <div className="space-y-0">
-                    <DataField
-                      label="Qualification Name"
-                      value={qual.qualification_name}
-                    />
-                    <DataField label="Institution" value={qual.institution} />
-                    <DataField
-                      label="Field of Study"
-                      value={qual.field_of_study}
-                    />
-                    <DataField
-                      label="Completion Date"
-                      value={qual.completion_date}
-                    />
-                    <DataField label="Grade" value={qual.grade} />
-                    <DataField
-                      label="Certificate Number"
-                      value={qual.certificate_number}
-                    />
+              {(() => {
+                // Handle both API response format (direct array) and form format (object with qualifications array)
+                const qualificationsArray = Array.isArray(
+                  application.qualifications
+                )
+                  ? application.qualifications
+                  : (application.qualifications as any)?.qualifications || [];
+
+                return qualificationsArray.map((qual: any, index: number) => (
+                  <div key={index} className="mb-3 last:mb-0">
+                    {index > 0 && <Separator className="my-3" />}
+                    <div className="space-y-0">
+                      <DataField
+                        label="Qualification Name"
+                        value={qual.qualification_name}
+                      />
+                      <DataField label="Institution" value={qual.institution} />
+                      <DataField
+                        label="Field of Study"
+                        value={qual.field_of_study}
+                      />
+                      <DataField
+                        label="Completion Date"
+                        value={qual.completion_date}
+                      />
+                      <DataField label="Grade" value={qual.grade} />
+                      <DataField
+                        label="Certificate Number"
+                        value={qual.certificate_number}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </ReviewSection>
           )}
 
         {/* Employment History */}
         {application.employment_history &&
-          application.employment_history.length > 0 && (
+          ((Array.isArray(application.employment_history) &&
+            application.employment_history.length > 0) ||
+            (typeof application.employment_history === "object" &&
+              "entries" in application.employment_history &&
+              Array.isArray(application.employment_history.entries) &&
+              application.employment_history.entries.length > 0)) && (
             <ReviewSection title="Employment History">
-              {application.employment_history.map(
-                (employment: any, index: number) => (
-                  <div key={index} className="mb-3 last:mb-0">
-                    {index > 0 && <Separator className="my-3" />}
-                    <div className="space-y-0">
-                      {employment.is_current && (
-                        <Badge variant="outline" className="mb-2 text-xs">
-                          Current Employment
-                        </Badge>
-                      )}
-                      <DataField label="Employer" value={employment.employer} />
-                      <DataField label="Role" value={employment.role} />
-                      <DataField label="Industry" value={employment.industry} />
-                      <DataField
-                        label="Start Date"
-                        value={employment.start_date}
-                      />
-                      <DataField label="End Date" value={employment.end_date} />
-                      <DataField
-                        label="Responsibilities"
-                        value={employment.responsibilities}
-                      />
-                    </div>
-                  </div>
+              {(() => {
+                // Handle both API response format (object with entries) and form format (direct array)
+                const employmentArray = Array.isArray(
+                  application.employment_history
                 )
-              )}
+                  ? application.employment_history
+                  : (application.employment_history as any)?.entries || [];
+
+                return (
+                  <>
+                    {/* Show employment status if available */}
+                    {typeof application.employment_history === "object" &&
+                      "employment_status" in application.employment_history &&
+                      application.employment_history.employment_status && (
+                        <div className="mb-3 pb-3 border-b">
+                          <DataField
+                            label="Employment Status"
+                            value={
+                              application.employment_history
+                                .employment_status as string
+                            }
+                          />
+                        </div>
+                      )}
+
+                    {employmentArray.map((employment: any, index: number) => (
+                      <div key={index} className="mb-3 last:mb-0">
+                        {index > 0 && <Separator className="my-3" />}
+                        <div className="space-y-0">
+                          {employment.is_current && (
+                            <Badge variant="outline" className="mb-2 text-xs">
+                              Current Employment
+                            </Badge>
+                          )}
+                          <DataField
+                            label="Employer"
+                            value={employment.employer}
+                          />
+                          <DataField label="Role" value={employment.role} />
+                          <DataField
+                            label="Industry"
+                            value={employment.industry}
+                          />
+                          <DataField
+                            label="Start Date"
+                            value={employment.start_date}
+                          />
+                          <DataField
+                            label="End Date"
+                            value={employment.end_date}
+                          />
+                          <DataField
+                            label="Responsibilities"
+                            value={employment.responsibilities}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </ReviewSection>
           )}
 
