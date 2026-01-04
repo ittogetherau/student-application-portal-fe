@@ -2,9 +2,16 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import authService, { type LoginResponse } from "@/service/auth.service";
+import { jwtDecode } from "jwt-decode";
 import { JWT } from "next-auth/jwt";
 
 export const AUTH_SECRET = process.env.NEXTAUTH_SECRET ?? "dev-secret";
+
+type DecodedAccessToken = {
+  exp?: number;
+  staff_admin?: boolean;
+  [key: string]: unknown;
+};
 
 const apiLogin = async (
   email: string,
@@ -13,18 +20,38 @@ const apiLogin = async (
   const response = await authService.login({ email, password });
 
   console.log("Login response:", response);
+
   if (!response.success || !response.data) {
     throw new Error(response.message || "Login failed");
   }
-  return response.data as LoginResponse;
-};
+  const loginData = response.data as LoginResponse;
 
+  try {
+    const decodedAccessToken = jwtDecode<DecodedAccessToken>(
+      loginData.access_token
+    );
+    console.log("Decoded access token:", decodedAccessToken);
+
+    const staffAdminFlag =
+      typeof decodedAccessToken.staff_admin === "boolean"
+        ? decodedAccessToken.staff_admin
+        : undefined;
+
+    if (staffAdminFlag !== undefined) {
+      loginData.user.staff_admin = staffAdminFlag;
+    }
+  } catch (error) {
+    console.warn("Failed to decode access token:", error);
+  }
+
+  return loginData;
+};
 
 async function refreshAccessToken(token: JWT) {
   try {
     // API expects refresh_token (not refreshToken)
     const response = await authService.refreshToken({
-      refresh_token: token.refreshToken as string
+      refresh_token: token.refreshToken as string,
     });
 
     const refreshedTokens = response.data as LoginResponse;
@@ -35,11 +62,19 @@ async function refreshAccessToken(token: JWT) {
 
     // Decode JWT to get expiration time (access tokens are JWTs)
     let accessTokenExpires: number | undefined;
+    let refreshedStaffAdmin: boolean | undefined;
     try {
       const payload = JSON.parse(
-        Buffer.from(refreshedTokens.access_token.split(".")[1], "base64").toString()
-      );
+        Buffer.from(
+          refreshedTokens.access_token.split(".")[1],
+          "base64"
+        ).toString()
+      ) as DecodedAccessToken;
       accessTokenExpires = payload.exp ? payload.exp * 1000 : undefined; // Convert to milliseconds
+      refreshedStaffAdmin =
+        typeof payload.staff_admin === "boolean"
+          ? payload.staff_admin
+          : undefined;
     } catch {
       // If we can't decode, set expiration to 20 minutes from now (default session time)
       accessTokenExpires = Date.now() + 20 * 60 * 1000;
@@ -51,6 +86,8 @@ async function refreshAccessToken(token: JWT) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
       tokenType: refreshedTokens.token_type,
       accessTokenExpires,
+      staff_admin:
+        refreshedStaffAdmin ?? (token as { staff_admin?: boolean }).staff_admin,
       // Update user info if provided
       ...(refreshedTokens.user && {
         sub: refreshedTokens.user.id,
@@ -81,13 +118,16 @@ export const authOptions: NextAuthOptions = {
         // Support Microsoft OAuth tokens (when microsoft_token is provided)
         if (credentials?.microsoft_token) {
           try {
-            const tokenData = JSON.parse(credentials.microsoft_token) as LoginResponse;
+            const tokenData = JSON.parse(
+              credentials.microsoft_token
+            ) as LoginResponse;
             return {
               id: tokenData.user.id,
               email: tokenData.user.email,
               role: tokenData.user.role,
               status: tokenData.user.status,
               rto_profile_id: tokenData.user.rto_profile_id,
+              staff_admin: tokenData.user.staff_admin,
               accessToken: tokenData.access_token,
               refreshToken: tokenData.refresh_token,
               tokenType: tokenData.token_type,
@@ -109,6 +149,7 @@ export const authOptions: NextAuthOptions = {
           role: login.user.role,
           status: login.user.status,
           rto_profile_id: login.user.rto_profile_id,
+          staff_admin: login.user.staff_admin,
           accessToken: login.access_token,
           refreshToken: login.refresh_token,
           tokenType: login.token_type,
@@ -129,6 +170,7 @@ export const authOptions: NextAuthOptions = {
         role?: string;
         status?: string;
         rto_profile_id?: string | null;
+        staff_admin?: boolean;
         accessToken?: string;
         refreshToken?: string;
         tokenType?: string;
@@ -143,7 +185,10 @@ export const authOptions: NextAuthOptions = {
         if (authUser.accessToken) {
           try {
             const payload = JSON.parse(
-              Buffer.from(authUser.accessToken.split(".")[1], "base64").toString()
+              Buffer.from(
+                authUser.accessToken.split(".")[1],
+                "base64"
+              ).toString()
             );
             accessTokenExpires = payload.exp ? payload.exp * 1000 : undefined; // Convert to milliseconds
           } catch {
@@ -157,6 +202,7 @@ export const authOptions: NextAuthOptions = {
           role: authUser.role,
           status: authUser.status,
           rto_profile_id: authUser.rto_profile_id,
+          staff_admin: authUser.staff_admin,
           accessToken: authUser.accessToken,
           refreshToken: authUser.refreshToken,
           tokenType: authUser.tokenType,
@@ -180,6 +226,7 @@ export const authOptions: NextAuthOptions = {
         role: token.role as string | undefined,
         status: token.status as string | undefined,
         rto_profile_id: token.rto_profile_id as string | null | undefined,
+        staff_admin: token.staff_admin as boolean | undefined,
       };
       session.accessToken = token.accessToken as string | undefined;
       session.refreshToken = token.refreshToken as string | undefined;
@@ -189,7 +236,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-
-    error: '/error',
+    error: "/error",
   },
 };

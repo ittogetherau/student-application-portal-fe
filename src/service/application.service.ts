@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/utils/handle-api-error";
 import type { Application } from "@/constants/types";
@@ -76,6 +77,17 @@ export interface ApplicationResponse {
     id: string;
     [key: string]: unknown;
   };
+}
+
+export interface TimelineResponse {
+  id: string;
+  entry_type: string;
+  message: string;
+  actor_email: string;
+  actor_role: "student" | "staff" | "admin" | string;
+  actor_name: string;
+  created_at: string;
+  event_payload: Record<string, unknown>;
 }
 
 class ApplicationService extends ApiService {
@@ -164,6 +176,28 @@ class ApplicationService extends ApiService {
     }
   };
 
+  getApplicationTimeline = async (
+    applicationId: string
+  ): Promise<ServiceResponse<TimelineResponse[]>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.get<TimelineResponse[]>(
+        `${this.basePath}/${applicationId}/timeline`,
+        true
+      );
+      return {
+        success: true,
+        message: "Application fetched successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError<TimelineResponse[]>(
+        error,
+        "Failed to fetch application"
+      );
+    }
+  };
+
   updateApplication = async (
     applicationId: string,
     payload: Record<string, unknown>
@@ -215,7 +249,6 @@ class ApplicationService extends ApiService {
     }
   };
 
-
   // Staff and Admin - Assign application to staff member
   assignApplication = async (
     applicationId: string,
@@ -224,8 +257,8 @@ class ApplicationService extends ApiService {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const payload = staffId ? { staff_id: staffId } : { staff_id: null };
-      const data = await this.patch<ApplicationDetailResponse>(
-        `staff/applications/${applicationId}/assign`,
+      const data = await this.post<ApplicationDetailResponse>(
+        `/applications/${applicationId}/assign`,
         payload,
         true
       );
@@ -243,6 +276,7 @@ class ApplicationService extends ApiService {
       );
     }
   };
+
   //staff and admin
   changeStage = async (
     applicationId: string,
@@ -272,12 +306,14 @@ class ApplicationService extends ApiService {
       offer_details: Record<string, unknown>;
       notes?: string;
     }
-  ): Promise<ServiceResponse<{
-    application_id: string;
-    current_stage: string;
-    message: string;
-    updated_at: string;
-  }>> => {
+  ): Promise<
+    ServiceResponse<{
+      application_id: string;
+      current_stage: string;
+      message: string;
+      updated_at: string;
+    }>
+  > => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<{
@@ -285,21 +321,37 @@ class ApplicationService extends ApiService {
         current_stage: string;
         message: string;
         updated_at: string;
-      }>(
-        `staff/applications/${applicationId}/approve`,
-        payload,
-        true
-      );
+      }>(`staff/applications/${applicationId}/approve`, payload, true);
       return {
         success: true,
         message: "Application approved successfully.",
         data,
       };
     } catch (error) {
-      return handleApiError(
-        error,
-        "Failed to approve application"
+      return handleApiError(error, "Failed to approve application");
+    }
+  };
+
+  // Staff - Approve application and generate offer
+  startApplicationReview = async (
+    applicationId: string,
+    payload: any
+  ): Promise<ServiceResponse<any>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<any>(
+        `staff/applications/${applicationId}/start-review`,
+        payload,
+        true
       );
+
+      return {
+        success: true,
+        message: "Application approved successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to approve application");
     }
   };
 
@@ -310,16 +362,21 @@ class ApplicationService extends ApiService {
       rejection_reason: string;
       is_appealable: boolean;
     }
-  ): Promise<ServiceResponse<{
-    application_id: string;
-    current_stage: string;
-    message: string;
-    updated_at: string;
-  }>> => {
+  ): Promise<
+    ServiceResponse<{
+      application_id: string;
+      current_stage: string;
+      message: string;
+      updated_at: string;
+    }>
+  > => {
     if (!applicationId) throw new Error("Application id is required");
 
     // Validate rejection reason length
-    if (payload.rejection_reason.length < 10 || payload.rejection_reason.length > 1000) {
+    if (
+      payload.rejection_reason.length < 10 ||
+      payload.rejection_reason.length > 1000
+    ) {
       return {
         success: false,
         message: "Rejection reason must be between 10 and 1000 characters",
@@ -333,21 +390,14 @@ class ApplicationService extends ApiService {
         current_stage: string;
         message: string;
         updated_at: string;
-      }>(
-        `staff/applications/${applicationId}/reject`,
-        payload,
-        true
-      );
+      }>(`staff/applications/${applicationId}/reject`, payload, true);
       return {
         success: true,
         message: "Application rejected successfully.",
         data,
       };
     } catch (error) {
-      return handleApiError(
-        error,
-        "Failed to reject application"
-      );
+      return handleApiError(error, "Failed to reject application");
     }
   };
 
@@ -361,12 +411,14 @@ class ApplicationService extends ApiService {
       conditions: string[];
       template?: string;
     }
-  ): Promise<ServiceResponse<{
-    pdf_url: string;
-    application_id: string;
-    generated_at: string;
-    message: string;
-  }>> => {
+  ): Promise<
+    ServiceResponse<{
+      pdf_url: string;
+      application_id: string;
+      generated_at: string;
+      message: string;
+    }>
+  > => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<{
@@ -385,10 +437,7 @@ class ApplicationService extends ApiService {
         data,
       };
     } catch (error) {
-      return handleApiError(
-        error,
-        "Failed to generate offer letter"
-      );
+      return handleApiError(error, "Failed to generate offer letter");
     }
   };
 }

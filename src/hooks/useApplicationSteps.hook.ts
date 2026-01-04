@@ -58,8 +58,7 @@ const useStepMutation = <TInput>(
       return response;
     },
     onSuccess: (response, payload) => {
-      const message =
-        response?.message || `Step ${stepId} saved successfully.`;
+      const message = response?.message || `Step ${stepId} saved successfully.`;
       toast.success(message);
       console.log("[Application] step saved", {
         stepId,
@@ -164,7 +163,8 @@ export const useSurveyAvailabilityCodes = () => {
   return useQuery<ServiceResponse<SurveyAvailabilityCode[]>, Error>({
     queryKey: ["survey-availability-codes"],
     queryFn: async () => {
-      const response = await applicationStepsService.getSurveyAvailabilityCodes();
+      const response =
+        await applicationStepsService.getSurveyAvailabilityCodes();
       if (!response.success) {
         throw new Error(
           response.message || "Failed to fetch survey availability codes"

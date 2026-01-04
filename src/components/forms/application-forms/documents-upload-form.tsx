@@ -21,7 +21,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import ApplicationStepHeader from "./application-step-header";
+import ApplicationStepHeader from "../../../app/dashboard/application/create/_components/application-step-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Types
@@ -46,11 +46,14 @@ type DocumentState = {
 };
 
 type DocumentsFormData = {
-  documents: Record<string, {
-    documentTypeId: string;
-    uploadedFiles: UploadedFileMetadata[];
-    uploaded: boolean;
-  }>;
+  documents: Record<
+    string,
+    {
+      documentTypeId: string;
+      uploadedFiles: UploadedFileMetadata[];
+      uploaded: boolean;
+    }
+  >;
 };
 
 const STEP_ID = 12;
@@ -73,7 +76,10 @@ const createInitialState = (
 
 const hasUploadedFiles = (state: DocumentState | undefined): boolean => {
   if (!state) return false;
-  return state.files?.some((f) => f.uploaded) || (state.uploadedFiles?.length ?? 0) > 0;
+  return (
+    state.files?.some((f) => f.uploaded) ||
+    (state.uploadedFiles?.length ?? 0) > 0
+  );
 };
 
 const isAllMandatoryUploaded = (
@@ -134,12 +140,13 @@ export default function DocumentsUploadForm() {
   } = useDocumentTypesQuery();
 
   const goToNext = useApplicationStepStore((state) => state.goToNext);
-  const markStepCompleted = useApplicationStepStore((state) => state.markStepCompleted);
+  const markStepCompleted = useApplicationStepStore(
+    (state) => state.markStepCompleted
+  );
 
   const sortedDocumentTypes = useMemo(() => {
     if (!documentTypesResponse?.data) return [];
     return [...documentTypesResponse.data].sort((a, b) => {
-
       if (a.is_mandatory !== b.is_mandatory) {
         return a.is_mandatory ? -1 : 1;
       }
@@ -150,12 +157,19 @@ export default function DocumentsUploadForm() {
 
   const documentTypesKey = useMemo(() => {
     if (!documentTypesResponse?.data) return "";
-    return documentTypesResponse.data.map((d) => d.id).sort().join(",");
+    return documentTypesResponse.data
+      .map((d) => d.id)
+      .sort()
+      .join(",");
   }, [documentTypesResponse?.data]);
 
-  const [documentStates, setDocumentStates] = useState<Record<string, DocumentState>>({});
+  const [documentStates, setDocumentStates] = useState<
+    Record<string, DocumentState>
+  >({});
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+    null
+  );
   const shouldSaveRef = useRef(false);
 
   const methods = useForm<DocumentsFormData>({
@@ -250,10 +264,21 @@ export default function DocumentsUploadForm() {
     if (isAllMandatoryUploaded(documentStates, sortedDocumentTypes)) {
       markStepCompleted(STEP_ID);
     }
-  }, [documentStates, applicationId, methods, markStepCompleted, sortedDocumentTypes, saveOnSubmit]);
+  }, [
+    documentStates,
+    applicationId,
+    methods,
+    markStepCompleted,
+    sortedDocumentTypes,
+    saveOnSubmit,
+  ]);
 
   const uploadSingleFile = useCallback(
-    async (documentTypeId: string, file: File, fileKey: string): Promise<void> => {
+    async (
+      documentTypeId: string,
+      file: File,
+      fileKey: string
+    ): Promise<void> => {
       if (!applicationId) return;
 
       setUploadingFiles((prev) => new Set(prev).add(fileKey));
@@ -286,7 +311,9 @@ export default function DocumentsUploadForm() {
               files: currentFiles.map((f) =>
                 f.file === file ? { ...f, uploading: false, uploaded: true } : f
               ),
-              uploadedFiles: fileExists ? existingUploaded : [...existingUploaded, newUploadedFile],
+              uploadedFiles: fileExists
+                ? existingUploaded
+                : [...existingUploaded, newUploadedFile],
               uploaded: true,
             },
           };
@@ -302,7 +329,14 @@ export default function DocumentsUploadForm() {
             [documentTypeId]: {
               ...prev[documentTypeId],
               files: currentFiles.map((f) =>
-                f.file === file ? { ...f, uploading: false, uploaded: false, error: "Upload failed" } : f
+                f.file === file
+                  ? {
+                      ...f,
+                      uploading: false,
+                      uploaded: false,
+                      error: "Upload failed",
+                    }
+                  : f
               ),
             },
           };
@@ -330,7 +364,11 @@ export default function DocumentsUploadForm() {
           ...prev[documentTypeId],
           files: [
             ...(prev[documentTypeId]?.files || []),
-            ...fileArray.map((file) => ({ file, uploading: true, uploaded: false })),
+            ...fileArray.map((file) => ({
+              file,
+              uploading: true,
+              uploaded: false,
+            })),
           ],
         },
       }));
@@ -373,7 +411,9 @@ export default function DocumentsUploadForm() {
 
     if (missingMandatory.length > 0) {
       const missingNames = missingMandatory.map((doc) => doc.name).join(", ");
-      toast.error(`Please upload all required documents: ${missingNames}`, { duration: 5000 });
+      toast.error(`Please upload all required documents: ${missingNames}`, {
+        duration: 5000,
+      });
       return;
     }
 
@@ -381,7 +421,14 @@ export default function DocumentsUploadForm() {
     saveOnSubmit(formData);
     markStepCompleted(STEP_ID);
     goToNext();
-  }, [applicationId, sortedDocumentTypes, documentStates, saveOnSubmit, markStepCompleted, goToNext]);
+  }, [
+    applicationId,
+    sortedDocumentTypes,
+    documentStates,
+    saveOnSubmit,
+    markStepCompleted,
+    goToNext,
+  ]);
 
   // Get all uploaded files across all document types
   const allUploadedFiles = useMemo(() => {
@@ -411,7 +458,9 @@ export default function DocumentsUploadForm() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading document types...</span>
+        <span className="ml-2 text-sm text-muted-foreground">
+          Loading document types...
+        </span>
       </div>
     );
   }
@@ -420,7 +469,9 @@ export default function DocumentsUploadForm() {
     return (
       <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3">
         <p className="text-sm text-destructive">
-          {documentTypesError?.message || documentTypesResponse?.message || "Failed to load document types"}
+          {documentTypesError?.message ||
+            documentTypesResponse?.message ||
+            "Failed to load document types"}
         </p>
       </div>
     );
@@ -429,13 +480,19 @@ export default function DocumentsUploadForm() {
   if (sortedDocumentTypes.length === 0) {
     return (
       <div className="rounded-md border px-4 py-3">
-        <p className="text-sm text-muted-foreground">No document types available</p>
+        <p className="text-sm text-muted-foreground">
+          No document types available
+        </p>
       </div>
     );
   }
 
-  const selectedDocument = sortedDocumentTypes.find((d) => d.id === selectedDocumentId);
-  const selectedState = selectedDocumentId ? documentStates[selectedDocumentId] : null;
+  const selectedDocument = sortedDocumentTypes.find(
+    (d) => d.id === selectedDocumentId
+  );
+  const selectedState = selectedDocumentId
+    ? documentStates[selectedDocumentId]
+    : null;
 
   return (
     <FormProvider {...methods}>
@@ -466,30 +523,43 @@ export default function DocumentsUploadForm() {
                         className={cn(
                           "w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200",
                           isSelected && "bg-blue-50 border-blue-500 shadow-sm",
-                          !isSelected && "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                          !isSelected &&
+                            "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-blue-600 truncate leading-tight">{docType.name}</p>
+                            <p className="text-sm font-medium text-blue-600 truncate leading-tight">
+                              {docType.name}
+                            </p>
                             <div className="flex items-center gap-1.5 mt-1">
                               <Badge
-                                variant={docType.is_mandatory ? "default" : "secondary"}
+                                variant={
+                                  docType.is_mandatory ? "default" : "secondary"
+                                }
                                 className={cn(
                                   "text-[10px] px-1.5 py-0 h-4",
-                                  docType.is_mandatory && "bg-orange-500 hover:bg-orange-600"
+                                  docType.is_mandatory &&
+                                    "bg-orange-500 hover:bg-orange-600"
                                 )}
                               >
-                                {docType.is_mandatory ? "Compulsory" : "Optional"}
+                                {docType.is_mandatory
+                                  ? "Compulsory"
+                                  : "Optional"}
                               </Badge>
                               {isUploaded && (
-                                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4 bg-green-600 hover:bg-green-700">
+                                <Badge
+                                  variant="default"
+                                  className="text-[10px] px-1.5 py-0 h-4 bg-green-600 hover:bg-green-700"
+                                >
                                   Uploaded
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          {isUploaded && <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />}
+                          {isUploaded && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
+                          )}
                         </div>
                       </button>
                     );
@@ -504,8 +574,12 @@ export default function DocumentsUploadForm() {
                     <CardContent className="pt-6">
                       <div className="space-y-6">
                         <div>
-                          <h3 className="text-xl font-semibold">{selectedDocument.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{selectedDocument.name}</p>
+                          <h3 className="text-xl font-semibold">
+                            {selectedDocument.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {selectedDocument.name}
+                          </p>
                         </div>
 
                         {/* Upload Area */}
@@ -515,66 +589,101 @@ export default function DocumentsUploadForm() {
                             id={`file-${selectedDocument.id}`}
                             className="hidden"
                             multiple
-                            onChange={(e) => handleFileSelect(selectedDocument.id, e.target.files)}
+                            onChange={(e) =>
+                              handleFileSelect(
+                                selectedDocument.id,
+                                e.target.files
+                              )
+                            }
                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                             disabled={isAnyFileUploading || !applicationId}
                           />
-                          <label htmlFor={`file-${selectedDocument.id}`} className="cursor-pointer block">
-                            <Upload className="h-16 w-16 mx-auto mb-4 text-gray-400" strokeWidth={1.5} />
-                            <p className="text-base text-gray-600 font-medium">Drop files here to upload</p>
+                          <label
+                            htmlFor={`file-${selectedDocument.id}`}
+                            className="cursor-pointer block"
+                          >
+                            <Upload
+                              className="h-16 w-16 mx-auto mb-4 text-gray-400"
+                              strokeWidth={1.5}
+                            />
+                            <p className="text-base text-gray-600 font-medium">
+                              Drop files here to upload
+                            </p>
                           </label>
                         </div>
 
                         {/* Files Table */}
-                        {selectedState?.uploadedFiles && selectedState.uploadedFiles.length > 0 && (
-                          <div className="mt-6">
-                            <table className="w-full">
-                              <thead className="border-b">
-                                <tr className="text-left text-sm text-muted-foreground">
-                                  <th className="pb-3 font-medium">NAME</th>
-                                  <th className="pb-3 font-medium">SIZE</th>
-                                  <th className="pb-3 font-medium">DATE ADDED</th>
-                                  <th className="pb-3 font-medium">ACTION</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {selectedState.uploadedFiles.map((file, index) => (
-                                  <tr key={index} className="border-b last:border-0">
-                                    <td className="py-3 text-sm">{file.fileName}</td>
-                                    <td className="py-3 text-sm">{(file.fileSize / 1024).toFixed(2)} KB</td>
-                                    <td className="py-3 text-sm">
-                                      {new Date(file.uploadedAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="py-3">
-                                      <div className="flex items-center gap-2">
-                                        <Button type="button" variant="ghost" size="sm">
-                                          <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <Button type="button" variant="ghost" size="sm">
-                                          <Download className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleRemovePersistedFile(
-                                              selectedDocument.id,
-                                              file.fileName,
-                                              file.fileSize
-                                            )
-                                          }
-                                        >
-                                          <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                      </div>
-                                    </td>
+                        {selectedState?.uploadedFiles &&
+                          selectedState.uploadedFiles.length > 0 && (
+                            <div className="mt-6">
+                              <table className="w-full">
+                                <thead className="border-b">
+                                  <tr className="text-left text-sm text-muted-foreground">
+                                    <th className="pb-3 font-medium">NAME</th>
+                                    <th className="pb-3 font-medium">SIZE</th>
+                                    <th className="pb-3 font-medium">
+                                      DATE ADDED
+                                    </th>
+                                    <th className="pb-3 font-medium">ACTION</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                                </thead>
+                                <tbody>
+                                  {selectedState.uploadedFiles.map(
+                                    (file, index) => (
+                                      <tr
+                                        key={index}
+                                        className="border-b last:border-0"
+                                      >
+                                        <td className="py-3 text-sm">
+                                          {file.fileName}
+                                        </td>
+                                        <td className="py-3 text-sm">
+                                          {(file.fileSize / 1024).toFixed(2)} KB
+                                        </td>
+                                        <td className="py-3 text-sm">
+                                          {new Date(
+                                            file.uploadedAt
+                                          ).toLocaleDateString()}
+                                        </td>
+                                        <td className="py-3">
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                            >
+                                              <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                            >
+                                              <Download className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() =>
+                                                handleRemovePersistedFile(
+                                                  selectedDocument.id,
+                                                  file.fileName,
+                                                  file.fileSize
+                                                )
+                                              }
+                                            >
+                                              <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -588,7 +697,9 @@ export default function DocumentsUploadForm() {
             <Card>
               <CardContent className="pt-6">
                 {allUploadedFiles.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No documents uploaded yet</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    No documents uploaded yet
+                  </p>
                 ) : (
                   <table className="w-full">
                     <thead className="border-b">
@@ -604,7 +715,9 @@ export default function DocumentsUploadForm() {
                         <tr key={index} className="border-b last:border-0">
                           <td className="py-3 text-sm">{file.fileName}</td>
                           <td className="py-3 text-sm">{file.documentName}</td>
-                          <td className="py-3 text-sm">{(file.fileSize / 1024).toFixed(2)} KB</td>
+                          <td className="py-3 text-sm">
+                            {(file.fileSize / 1024).toFixed(2)} KB
+                          </td>
                           <td className="py-3">
                             <div className="flex items-center gap-2">
                               <Button type="button" variant="ghost" size="sm">
@@ -633,9 +746,15 @@ export default function DocumentsUploadForm() {
           <Button
             type="button"
             onClick={handleContinue}
-            disabled={isAnyFileUploading || !applicationId || !allMandatoryUploaded}
+            disabled={
+              isAnyFileUploading || !applicationId || !allMandatoryUploaded
+            }
           >
-            {isAnyFileUploading ? "Uploading..." : allMandatoryUploaded ? "Save & Continue" : "Upload Required Documents"}
+            {isAnyFileUploading
+              ? "Uploading..."
+              : allMandatoryUploaded
+              ? "Save & Continue"
+              : "Upload Required Documents"}
           </Button>
         </ApplicationStepHeader>
       </form>

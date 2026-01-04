@@ -25,7 +25,9 @@ export const parseAuthCookie = (value?: string | null): AuthSession | null => {
 
 export const setBrowserAuthSession = (session: AuthSession) => {
   if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_COOKIE_NAME}=${encodeSession(session)}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+  document.cookie = `${AUTH_COOKIE_NAME}=${encodeSession(
+    session
+  )}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
 };
 
 export const clearBrowserAuthSession = () => {

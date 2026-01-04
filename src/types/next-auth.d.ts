@@ -13,6 +13,7 @@ declare module "next-auth" {
       role?: string;
       status?: string;
       rto_profile_id?: string | null;
+      staff_admin?: boolean;
     };
   }
 

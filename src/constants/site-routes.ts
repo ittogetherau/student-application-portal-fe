@@ -10,10 +10,7 @@ export const siteRoutes = {
     root: "/dashboard",
     application: {
       root: "/dashboard/application",
-      new: "/dashboard/application/new",
-    },
-    applicationQueue: {
-      root: "/dashboard/application-queue",
+      create: "/dashboard/application/create",
     },
     agents: {
       root: "/dashboard/agents",

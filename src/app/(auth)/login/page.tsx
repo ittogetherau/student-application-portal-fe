@@ -1,21 +1,15 @@
 import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import PortalLoginCard from "@/components/forms/auth/portal-login-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { siteRoutes } from "@/constants/site-routes";
 import Image from "next/image";
 
 const LoginPage = () => {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-lg space-y-6 px-4">
+    <main className="min-h-screen grid place-items-center w-full">
+      <div className="  space-y-6 px-4">
         <div className="space-y-2 text-center">
           <div className="relative    w-52 mx-auto flex items-center justify-center">
             <Image
@@ -40,7 +34,6 @@ const LoginPage = () => {
             <CardTitle className="text-base font-semibold text-foreground">
               Track your application as a student?
             </CardTitle>
-           
           </CardHeader>
           <CardContent className="p-0">
             <Button asChild variant="link" className="text-primary">

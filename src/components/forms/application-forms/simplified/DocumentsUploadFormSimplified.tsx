@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { documentTypes } from "@/data/document-types.data";
 import { Button } from "@/components/ui/button";
-import ApplicationStepHeader from "../application-step-header";
+import ApplicationStepHeader from "../../../../app/dashboard/application/create/_components/application-step-header";
 import { useApplicationFormContext } from "@/contexts/ApplicationFormContext";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
  * Uses FileUploadField component for each document type
  */
 export default function DocumentsUploadFormSimplified() {
-  const { applicationId, markStepCompleted, goToNext } = useApplicationFormContext();
+  const { applicationId, markStepCompleted, goToNext } =
+    useApplicationFormContext();
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
 
   const sortedDocumentTypes = [...documentTypes].sort(
@@ -53,7 +54,9 @@ export default function DocumentsUploadFormSimplified() {
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-sm">
                 {docType.name}
-                {docType.is_mandatory && <span className="text-red-500 ml-1">*</span>}
+                {docType.is_mandatory && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </h4>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
@@ -79,8 +82,8 @@ export default function DocumentsUploadFormSimplified() {
         <div className="flex items-center gap-4">
           {!allMandatoryUploaded && (
             <Badge variant="outline" className="text-orange-600">
-              {mandatoryDocs.length - Object.keys(uploadedDocs).length} mandatory
-              documents remaining
+              {mandatoryDocs.length - Object.keys(uploadedDocs).length}{" "}
+              mandatory documents remaining
             </Badge>
           )}
           <Button
@@ -94,4 +97,3 @@ export default function DocumentsUploadFormSimplified() {
     </div>
   );
 }
-

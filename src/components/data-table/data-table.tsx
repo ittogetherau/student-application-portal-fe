@@ -30,6 +30,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ApplicationKanban } from "../dashboard/applications/kanban/application-kanban";
 import { Application } from "@/constants/types";
+import { siteRoutes } from "@/constants/site-routes";
 
 export type DataTableFacetedFilterOption = {
   label: string;
@@ -190,9 +191,9 @@ export function DataTable<TData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                       </TableHead>
                     );
                   })}
@@ -208,15 +209,9 @@ export function DataTable<TData, TValue>({
                     onClick={() => {
                       const data = row.original as Record<string, unknown>;
 
-                      if (isAgent) {
-                        router.push(
-                          `/dashboard/application/${data.referenceNumber}`
-                        );
-                      } else {
-                        router.push(
-                          `/dashboard/application-queue/${data.referenceNumber}`
-                        );
-                      }
+                      router.push(
+                        `${siteRoutes.dashboard.application.root}/${data.referenceNumber}`
+                      );
                     }}
                     className="cursor-pointer hover:bg-muted/50"
                   >
@@ -261,7 +256,10 @@ export function DataTable<TData, TValue>({
         </div>
       ) : (
         <div className="rounded-md border  max-w-[1190px]">
-          <ApplicationKanban data={searchFilteredData as Application[]} isallowMovingInKanban={isallowMovingInKanban} />
+          <ApplicationKanban
+            data={searchFilteredData as Application[]}
+            isallowMovingInKanban={isallowMovingInKanban}
+          />
         </div>
       )}
 

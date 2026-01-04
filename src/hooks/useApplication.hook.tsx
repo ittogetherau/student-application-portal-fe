@@ -3,18 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
-import applicationService from "@/service/application.service";
-import type { ApplicationCreateValues } from "@/validation/application.validation";
+import { siteRoutes } from "@/constants/site-routes";
+import type { Application } from "@/constants/types";
 import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
 } from "@/service/application.service";
-import type { ServiceResponse } from "@/types/service";
-import type { Application } from "@/constants/types";
-import { siteRoutes } from "@/constants/site-routes";
+import applicationService from "@/service/application.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
-import { useApplicationStepStore } from "@/store/useApplicationStep.store";
+import type { ServiceResponse } from "@/types/service";
+import type { ApplicationCreateValues } from "@/validation/application.validation";
 
 // --- Queries ---
 
@@ -50,7 +49,9 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
 
 export const useApplicationSubmitMutation = (applicationId: string | null) => {
   const router = useRouter();
-  const clearAllData = useApplicationFormDataStore((state) => state.clearAllData);
+  const clearAllData = useApplicationFormDataStore(
+    (state) => state.clearAllData
+  );
   const queryClient = useQueryClient();
 
   return useMutation<ApplicationDetailResponse, Error, void>({
@@ -95,7 +96,6 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
   const populateFromApiResponse = useApplicationFormDataStore(
     (state) => state.populateFromApiResponse
   );
-  const clearAllData = useApplicationFormDataStore((state) => state.clearAllData);
 
   return useMutation<ServiceResponse<ApplicationDetailResponse>, Error, void>({
     mutationKey: ["application-get", applicationId],
@@ -115,9 +115,6 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
         response,
       });
 
-      // Clear any existing form data first (API is source of truth)
-      clearAllData();
-
       // Set application ID in store
       if (applicationId) {
         useApplicationFormDataStore.getState().setApplicationId(applicationId);
@@ -134,7 +131,7 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
   });
 };
 
-const DEFAULT_CREATE_PAYLOAD_temp = {
+export const DEFAULT_CREATE_PAYLOAD_temp = {
   agent_profile_id: "ea7cab76-0e47-4de8-b923-834f0d53abf1",
   course_offering_id: "4ba78380-8158-4941-9420-a1495d88e9d6",
 };
@@ -166,17 +163,10 @@ export const useApplicationCreateMutation = () => {
 
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
 
-      if (applicationId && typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        params.set("applicationId", applicationId);
-        window.history.replaceState(
-          null,
-          "",
-          `${window.location.pathname}?${params.toString()}`
-        );
-        // Ensure new application starts at step 1
-        useApplicationStepStore.getState().goToStep(1);
-      } else if (!applicationId) {
+      // Store the application ID in the store
+      if (applicationId) {
+        useApplicationFormDataStore.getState().setApplicationId(applicationId);
+      } else {
         console.warn(
           "[Application] createApplication response missing id",
           data
@@ -192,40 +182,38 @@ export const useApplicationCreateMutation = () => {
 export const useApplicationUpdateMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    ApplicationDetailResponse,
-    Error,
-    Record<string, unknown>
-  >({
-    mutationKey: ["application-update", applicationId],
-    mutationFn: async (payload) => {
-      if (!applicationId) throw new Error("Missing application reference.");
+  return useMutation<ApplicationDetailResponse, Error, Record<string, unknown>>(
+    {
+      mutationKey: ["application-update", applicationId],
+      mutationFn: async (payload) => {
+        if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.updateApplication(
-        applicationId,
-        payload
-      );
+        const response = await applicationService.updateApplication(
+          applicationId,
+          payload
+        );
 
-      if (!response.success) throw new Error(response.message);
-      if (!response.data)
-        throw new Error("Application data is missing from response.");
+        if (!response.success) throw new Error(response.message);
+        if (!response.data)
+          throw new Error("Application data is missing from response.");
 
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log("[Application] updateApplication success", {
-        applicationId,
-        response: data,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["application-get", applicationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["application-list"] });
-    },
-    onError: (error) => {
-      console.error("[Application] updateApplication failed", error);
-    },
-  });
+        return response.data;
+      },
+      onSuccess: (data) => {
+        console.log("[Application] updateApplication success", {
+          applicationId,
+          response: data,
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["application-get", applicationId],
+        });
+        queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      },
+      onError: (error) => {
+        console.error("[Application] updateApplication failed", error);
+      },
+    }
+  );
 };
 
 export const useApplicationAssignMutation = (applicationId: string | null) => {
@@ -300,9 +288,7 @@ export const useApplicationChangeStageMutation = (
 };
 
 // Staff - Approve application hook
-export const useApplicationApproveMutation = (
-  applicationId: string | null
-) => {
+export const useApplicationApproveMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -322,14 +308,13 @@ export const useApplicationApproveMutation = (
     mutationFn: async (payload) => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.approveApplication(
+      const response = await applicationService.startApplicationReview(
         applicationId,
         payload
       );
 
       if (!response.success) throw new Error(response.message);
-      if (!response.data)
-        throw new Error("Response data is missing.");
+      if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
     },
@@ -350,9 +335,7 @@ export const useApplicationApproveMutation = (
 };
 
 // Staff - Reject application hook
-export const useApplicationRejectMutation = (
-  applicationId: string | null
-) => {
+export const useApplicationRejectMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -378,8 +361,7 @@ export const useApplicationRejectMutation = (
       );
 
       if (!response.success) throw new Error(response.message);
-      if (!response.data)
-        throw new Error("Response data is missing.");
+      if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
     },
@@ -431,8 +413,7 @@ export const useApplicationGenerateOfferLetterMutation = (
       );
 
       if (!response.success) throw new Error(response.message);
-      if (!response.data)
-        throw new Error("Response data is missing.");
+      if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
     },

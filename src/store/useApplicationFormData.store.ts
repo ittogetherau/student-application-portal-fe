@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { OcrResult } from "@/service/document.service";
 
@@ -81,283 +82,325 @@ const mergeData = <T>(
   return userData;
 };
 
-export const useApplicationFormDataStore = create<FormDataState>()((set, get) => ({
-  stepData: {},
-  ocrData: {},
-  applicationId: null,
-
-  setApplicationId: (id) => {
-    set({ applicationId: id });
-  },
-
-  setStepData: <T,>(stepId: number, data: T) => {
-    set((state) => ({
-      stepData: {
-        ...state.stepData,
-        [stepId]: data,
-      },
-    }));
-  },
-
-  getStepData: <T,>(stepId: number): T | undefined => {
-    const state = get();
-    return (state.stepData[stepId] as T) || undefined;
-  },
-
-  setOcrData: <T,>(stepId: number, data: T) => {
-    set((state) => {
-      // Always store OCR data - it will be used as default when merging
-      const newOcrData = {
-        ...state.ocrData,
-        [stepId]: data,
-      };
-
-      // If user hasn't filled this step yet, prefill with OCR data
-      const existingUserData = state.stepData[stepId];
-      if (!existingUserData) {
-        return {
-          ocrData: newOcrData,
-          stepData: {
-            ...state.stepData,
-            [stepId]: data, // Prefill with OCR data
-          },
-        };
-      }
-
-      // User data exists, just update OCR data
-      return {
-        ocrData: newOcrData,
-      };
-    });
-  },
-
-  getOcrData: <T,>(stepId: number): T | undefined => {
-    const state = get();
-    return (state.ocrData[stepId] as T) || undefined;
-  },
-
-  getMergedStepData: <T,>(stepId: number): T | undefined => {
-    const state = get();
-    const ocrData = state.ocrData[stepId] as T | undefined;
-    const userData = state.stepData[stepId] as T | undefined;
-    return mergeData(ocrData, userData);
-  },
-
-  clearStepData: (stepId: number) => {
-    set((state) => {
-      const newStepData = { ...state.stepData };
-      delete newStepData[stepId];
-      return { stepData: newStepData };
-    });
-  },
-
-  clearAllData: () => {
-    set({
+export const useApplicationFormDataStore = create<FormDataState>()(
+  persist(
+    (set, get) => ({
       stepData: {},
       ocrData: {},
       applicationId: null,
-    });
-  },
 
-  populateFromApiResponse: (apiResponse: ApplicationDetailResponse) => {
-    set((state) => {
-      const newStepData = { ...state.stepData };
+      setApplicationId: (id) => {
+        set({ applicationId: id });
+      },
 
-      // Map API response fields to step IDs
-      // Step 1: Personal Details
+      setStepData: <T>(stepId: number, data: T) => {
+        set((state) => ({
+          stepData: {
+            ...state.stepData,
+            [stepId]: data,
+          },
+        }));
+      },
 
-      console.log("apiResponse.personal_details", apiResponse.personal_details);
-      if (apiResponse.personal_details) {
-        newStepData[1] = apiResponse.personal_details;
-      }
+      getStepData: <T>(stepId: number): T | undefined => {
+        const state = get();
+        return (state.stepData[stepId] as T) || undefined;
+      },
 
-      // Step 2: Emergency Contact
-      if (apiResponse.emergency_contacts) {
-        newStepData[2] = apiResponse.emergency_contacts;
-      }
+      setOcrData: <T>(stepId: number, data: T) => {
+        set((state) => {
+          // Always store OCR data - it will be used as default when merging
+          const newOcrData = {
+            ...state.ocrData,
+            [stepId]: data,
+          };
 
-      // Step 3: Health Cover
-      if (apiResponse.health_cover_policy) {
-        newStepData[3] = apiResponse.health_cover_policy;
-      }
-
-      // Step 4: Language & Culture
-      if (apiResponse.language_cultural_data) {
-        newStepData[4] = apiResponse.language_cultural;
-      }
-
-      // Step 5: Disability Support
-      if (apiResponse.disability_support) {
-        newStepData[5] = apiResponse.disability_support;
-      }
-
-      // Step 6: Schooling History
-      if (apiResponse.schooling_history) {
-        newStepData[6] = apiResponse.schooling_history;
-      }
-
-      // Step 7: Qualifications
-      if (apiResponse.qualifications) {
-        newStepData[7] = apiResponse.qualifications;
-      }
-
-      // Step 8: Employment History
-      if (apiResponse.employment_history) {
-        newStepData[8] = apiResponse.employment_history;
-      }
-
-      // Step 9: USI
-      if (apiResponse.usi) {
-        newStepData[9] = { usi: apiResponse.usi };
-      }
-
-      // Step 10: Additional Services
-      if (apiResponse.additional_services) {
-        newStepData[10] = apiResponse.additional_services;
-      }
-
-      // Step 11: Survey
-      if (apiResponse.survey_responses) {
-        newStepData[11] = apiResponse.survey_responses;
-      }
-
-      return { stepData: newStepData };
-    });
-  },
-
-  populateFromOcrResult: (ocrResult: OcrResult) => {
-    console.log('[Store] populateFromOcrResult called with:', ocrResult);
-    set((state) => {
-      const newOcrData = { ...state.ocrData };
-
-      // Map OCR sections to step IDs
-      // Step 1: Personal Details
-      if (ocrResult.sections.personal_details?.extracted_data) {
-        newOcrData[1] = ocrResult.sections.personal_details.extracted_data;
-      }
-
-      // Step 2: Emergency Contact
-      if (ocrResult.sections.emergency_contacts?.extracted_data) {
-        newOcrData[2] = ocrResult.sections.emergency_contacts.extracted_data;
-      }
-
-      // Step 3: Health Cover
-      if (ocrResult.sections.health_cover?.extracted_data) {
-        newOcrData[3] = ocrResult.sections.health_cover.extracted_data;
-      }
-
-      // Step 4: Language & Culture
-      if (ocrResult.sections.language_cultural?.extracted_data) {
-        const extractedData = ocrResult.sections.language_cultural.extracted_data;
-        // Transform OCR field names to match form field names
-        if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData)) {
-          const dataObj = extractedData as Record<string, unknown>;
-          const transformedData: Record<string, unknown> = { ...dataObj };
-
-          // Map test_type -> english_test_type
-          if (dataObj.test_type && !dataObj.english_test_type) {
-            transformedData.english_test_type = dataObj.test_type;
-            delete transformedData.test_type;
+          // If user hasn't filled this step yet, prefill with OCR data
+          const existingUserData = state.stepData[stepId];
+          if (!existingUserData) {
+            return {
+              ocrData: newOcrData,
+              stepData: {
+                ...state.stepData,
+                [stepId]: data, // Prefill with OCR data
+              },
+            };
           }
 
-          // Map overall_score -> english_test_score
-          if (dataObj.overall_score && !dataObj.english_test_score) {
-            transformedData.english_test_score = dataObj.overall_score;
-            delete transformedData.overall_score;
+          // User data exists, just update OCR data
+          return {
+            ocrData: newOcrData,
+          };
+        });
+      },
+
+      getOcrData: <T>(stepId: number): T | undefined => {
+        const state = get();
+        return (state.ocrData[stepId] as T) || undefined;
+      },
+
+      getMergedStepData: <T>(stepId: number): T | undefined => {
+        const state = get();
+        const ocrData = state.ocrData[stepId] as T | undefined;
+        const userData = state.stepData[stepId] as T | undefined;
+        return mergeData(ocrData, userData);
+      },
+
+      clearStepData: (stepId: number) => {
+        set((state) => {
+          const newStepData = { ...state.stepData };
+          delete newStepData[stepId];
+          return { stepData: newStepData };
+        });
+      },
+
+      clearAllData: () => {
+        set({
+          stepData: {},
+          ocrData: {},
+          applicationId: null,
+        });
+      },
+
+      populateFromApiResponse: (apiResponse: ApplicationDetailResponse) => {
+        set((state) => {
+          const newStepData = { ...state.stepData };
+
+          // Map API response fields to step IDs
+          // Step 1: Personal Details
+
+          console.log(
+            "apiResponse",
+            apiResponse
+          );
+          if (apiResponse.personal_details) {
+            newStepData[1] = apiResponse.personal_details;
           }
 
-          newOcrData[4] = transformedData;
-        } else {
-          newOcrData[4] = extractedData;
-        }
-      }
+          // Step 2: Emergency Contact
+          if (apiResponse.emergency_contacts) {
+            newStepData[2] = apiResponse.emergency_contacts;
 
-      // Step 5: Disability Support
-      if (ocrResult.sections.disability_support?.extracted_data) {
-        newOcrData[5] = ocrResult.sections.disability_support.extracted_data;
-      }
-
-      // Step 6: Schooling History (array)
-      if (ocrResult.sections.schooling_history && Array.isArray(ocrResult.sections.schooling_history)) {
-        const schoolingData = ocrResult.sections.schooling_history.map(
-          (section) => section.extracted_data
-        );
-        if (schoolingData.length > 0) {
-          newOcrData[6] = schoolingData;
-        }
-      }
-
-      // Step 7: Qualifications (array)
-      if (ocrResult.sections.qualifications && Array.isArray(ocrResult.sections.qualifications)) {
-        const qualificationsData = ocrResult.sections.qualifications.map(
-          (section) => section.extracted_data
-        );
-        if (qualificationsData.length > 0) {
-          newOcrData[7] = qualificationsData;
-        }
-      }
-
-      // Step 8: Employment History (array)
-      if (ocrResult.sections.employment_history && Array.isArray(ocrResult.sections.employment_history)) {
-        const employmentData = ocrResult.sections.employment_history.map(
-          (section) => section.extracted_data
-        );
-        if (employmentData.length > 0) {
-          newOcrData[8] = employmentData;
-        }
-      }
-
-      // Step 9: USI
-      if (ocrResult.sections.usi?.extracted_data) {
-        newOcrData[9] = ocrResult.sections.usi.extracted_data;
-      }
-
-      // Step 10: Additional Services
-      if (ocrResult.sections.additional_services?.extracted_data) {
-        newOcrData[10] = ocrResult.sections.additional_services.extracted_data;
-      }
-
-      // Step 11: Survey
-      if (ocrResult.sections.survey_responses?.extracted_data) {
-        newOcrData[11] = ocrResult.sections.survey_responses.extracted_data;
-      }
-
-      // Update OCR data and prefill step data if user hasn't filled it yet
-      // Always prefill with OCR data on first load, even if stepData exists but is empty
-      const newStepData = { ...state.stepData };
-      Object.keys(newOcrData).forEach((stepIdStr) => {
-        const stepId = parseInt(stepIdStr, 10);
-        if (!isNaN(stepId)) {
-          const existingStepData = newStepData[stepId];
-          const ocrDataForStep = newOcrData[stepId];
-
-          if (!ocrDataForStep) return;
-
-          // Check if existing step data is empty/null/undefined
-          const isStepDataEmpty =
-            !existingStepData ||
-            (typeof existingStepData === 'object' &&
-              !Array.isArray(existingStepData) &&
-              existingStepData !== null &&
-              Object.keys(existingStepData).length === 0) ||
-            (Array.isArray(existingStepData) && existingStepData.length === 0);
-
-          // If no user data exists or it's empty, prefill with OCR data
-          // Force update to ensure data is always available
-          if (isStepDataEmpty) {
-            newStepData[stepId] = ocrDataForStep;
           }
-        }
-      });
 
-      // Force a state update to trigger re-renders in components using this data
-      // This ensures components see the updated data immediately
+          // Step 3: Health Cover
+          if (apiResponse.health_cover_policy) {
+            newStepData[3] = apiResponse.health_cover_policy;
+          }
 
-      return {
-        ocrData: newOcrData,
-        stepData: newStepData,
-      };
-    });
-  },
-}));
+          // Step 4: Language & Culture
+          if (apiResponse.language_cultural_data) {
+            newStepData[4] = apiResponse.language_cultural_data;
+          }
 
+          // Step 5: Disability Support
+          if (apiResponse.disability_support) {
+            newStepData[5] = apiResponse.disability_support;
+          }
+
+          // Step 6: Schooling History
+          if (apiResponse.schooling_history) {
+            newStepData[6] = apiResponse.schooling_history;
+          }
+
+          // Step 7: Qualifications
+          if (apiResponse.qualifications) {
+            newStepData[7] = {
+              has_qualifications: apiResponse.qualifications.length > 0 ? "Yes" : "No",
+              qualifications: apiResponse.qualifications,
+            };
+          }
+
+          // Step 8: Employment History
+          if (apiResponse.employment_history) {
+            newStepData[8] = {
+              entries: apiResponse.employment_history,
+            };
+          }
+
+          // Step 9: USI
+          if (apiResponse.usi) {
+            newStepData[9] = { usi: apiResponse.usi };
+          }
+
+          // Step 10: Additional Services
+          if (apiResponse.additional_services) {
+            newStepData[10] = {
+              request_additional_services: apiResponse.additional_services.services?.length ? "Yes" : "No",
+              services: apiResponse.additional_services.services || [],
+            };
+          }
+
+          // Step 11: Survey
+          if (apiResponse.survey_responses && apiResponse.survey_responses.length > 0) {
+            newStepData[11] = apiResponse.survey_responses[0];
+          }
+
+          return { stepData: newStepData };
+        });
+      },
+
+      populateFromOcrResult: (ocrResult: OcrResult) => {
+        console.log("[Store] populateFromOcrResult called with:", ocrResult);
+        set((state) => {
+          const newOcrData = { ...state.ocrData };
+
+          // Map OCR sections to step IDs
+          // Step 1: Personal Details
+          if (ocrResult.sections.personal_details?.extracted_data) {
+            newOcrData[1] = ocrResult.sections.personal_details.extracted_data;
+          }
+
+          // Step 2: Emergency Contact
+          if (ocrResult.sections.emergency_contacts?.extracted_data) {
+            newOcrData[2] =
+              ocrResult.sections.emergency_contacts.extracted_data;
+          }
+
+          // Step 3: Health Cover
+          if (ocrResult.sections.health_cover?.extracted_data) {
+            newOcrData[3] = ocrResult.sections.health_cover.extracted_data;
+          }
+
+          // Step 4: Language & Culture
+          if (ocrResult.sections.language_cultural?.extracted_data) {
+            const extractedData =
+              ocrResult.sections.language_cultural.extracted_data;
+            // Transform OCR field names to match form field names
+            if (
+              extractedData &&
+              typeof extractedData === "object" &&
+              !Array.isArray(extractedData)
+            ) {
+              const dataObj = extractedData as Record<string, unknown>;
+              const transformedData: Record<string, unknown> = { ...dataObj };
+
+              // Map test_type -> english_test_type
+              if (dataObj.test_type && !dataObj.english_test_type) {
+                transformedData.english_test_type = dataObj.test_type;
+                delete transformedData.test_type;
+              }
+
+              // Map overall_score -> english_test_score
+              if (dataObj.overall_score && !dataObj.english_test_score) {
+                transformedData.english_test_score = dataObj.overall_score;
+                delete transformedData.overall_score;
+              }
+
+              newOcrData[4] = transformedData;
+            } else {
+              newOcrData[4] = extractedData;
+            }
+          }
+
+          // Step 5: Disability Support
+          if (ocrResult.sections.disability_support?.extracted_data) {
+            newOcrData[5] =
+              ocrResult.sections.disability_support.extracted_data;
+          }
+
+          // Step 6: Schooling History (array)
+          if (
+            ocrResult.sections.schooling_history &&
+            Array.isArray(ocrResult.sections.schooling_history)
+          ) {
+            const schoolingData = ocrResult.sections.schooling_history.map(
+              (section) => section.extracted_data
+            );
+            if (schoolingData.length > 0) {
+              newOcrData[6] = schoolingData;
+            }
+          }
+
+          // Step 7: Qualifications (array)
+          if (
+            ocrResult.sections.qualifications &&
+            Array.isArray(ocrResult.sections.qualifications)
+          ) {
+            const qualificationsData = ocrResult.sections.qualifications.map(
+              (section) => section.extracted_data
+            );
+            if (qualificationsData.length > 0) {
+              newOcrData[7] = qualificationsData;
+            }
+          }
+
+          // Step 8: Employment History (array)
+          if (
+            ocrResult.sections.employment_history &&
+            Array.isArray(ocrResult.sections.employment_history)
+          ) {
+            const employmentData = ocrResult.sections.employment_history.map(
+              (section) => section.extracted_data
+            );
+            if (employmentData.length > 0) {
+              newOcrData[8] = employmentData;
+            }
+          }
+
+          // Step 9: USI
+          if (ocrResult.sections.usi?.extracted_data) {
+            newOcrData[9] = ocrResult.sections.usi.extracted_data;
+          }
+
+          // Step 10: Additional Services
+          if (ocrResult.sections.additional_services?.extracted_data) {
+            newOcrData[10] =
+              ocrResult.sections.additional_services.extracted_data;
+          }
+
+          // Step 11: Survey
+          if (ocrResult.sections.survey_responses?.extracted_data) {
+            newOcrData[11] = ocrResult.sections.survey_responses.extracted_data;
+          }
+
+          // Update OCR data and prefill step data if user hasn't filled it yet
+          // Always prefill with OCR data on first load, even if stepData exists but is empty
+          const newStepData = { ...state.stepData };
+          Object.keys(newOcrData).forEach((stepIdStr) => {
+            const stepId = parseInt(stepIdStr, 10);
+            if (!isNaN(stepId)) {
+              const existingStepData = newStepData[stepId];
+              const ocrDataForStep = newOcrData[stepId];
+
+              if (!ocrDataForStep) return;
+
+              // Check if existing step data is empty/null/undefined
+              const isStepDataEmpty =
+                !existingStepData ||
+                (typeof existingStepData === "object" &&
+                  !Array.isArray(existingStepData) &&
+                  existingStepData !== null &&
+                  Object.keys(existingStepData).length === 0) ||
+                (Array.isArray(existingStepData) &&
+                  existingStepData.length === 0);
+
+              // If no user data exists or it's empty, prefill with OCR data
+              // Force update to ensure data is always available
+              if (isStepDataEmpty) {
+                newStepData[stepId] = ocrDataForStep;
+              }
+            }
+          });
+
+          // Force a state update to trigger re-renders in components using this data
+          // This ensures components see the updated data immediately
+
+          return {
+            ocrData: newOcrData,
+            stepData: newStepData,
+          };
+        });
+      },
+    }),
+    {
+      name: "application-form-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        stepData: state.stepData,
+        ocrData: state.ocrData,
+        applicationId: state.applicationId,
+      }),
+    }
+  )
+);

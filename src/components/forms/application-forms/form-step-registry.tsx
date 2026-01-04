@@ -1,29 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import type { ComponentType } from "react";
-import {
-  APPLICATION_STEP_IDS,
-  REVIEW_STEP_ID,
-  TOTAL_APPLICATION_STEPS,
-} from "@/constants/application-steps";
+// import {
+//   APPLICATION_STEP_IDS,
+//   REVIEW_STEP_ID,
+//   TOTAL_APPLICATION_STEPS,
+// } from "@/constants/application-steps";
+import AdditionalServicesForm from "../../../app/dashboard/application/create/_forms/additional-services-form";
+import DisabilityForm from "../../../app/dashboard/application/create/_forms/disability-form";
 import DocumentsUploadForm from "./documents-upload-form";
-import AdditionalServicesForm from "./additional-services-form";
-import DisabilityForm from "./disability-form";
-import EmergencyContactForm from "./emergency-contact-form";
-import EmploymentForm from "./employment-form";
-import HealthCoverForm from "./health-cover-form";
-import LanguageCulturalForm from "./language-cultural-form";
-import PersonalDetailsForm from "./personal-details-form";
-import QualificationsForm from "./qualifications-form";
-import ReviewForm from "./review-form";
-import SchoolingForm from "./schooling-form";
-import SurveyForm from "./survey-form";
-import USIForm from "./usi-form";
-import EnrollmentManagementView from "./enrollment-management-view";
+import EmergencyContactForm from "../../../app/dashboard/application/create/_forms/emergency-contact-form";
+import EmploymentForm from "../../../app/dashboard/application/create/_forms/employment-form";
+import EnrollmentManagementView from "../../../app/dashboard/application/create/_forms/enrollment-form";
+import HealthCoverForm from "../../../app/dashboard/application/create/_forms/health-cover-form";
+import LanguageCulturalForm from "../../../app/dashboard/application/create/_forms/language-cultural-form";
+import PersonalDetailsForm from "../../../app/dashboard/application/create/_forms/personal-details-form";
+import QualificationsForm from "../../../app/dashboard/application/create/_forms/qualifications-form";
+import ReviewForm from "../../../app/dashboard/application/create/_forms/review-form";
+import SchoolingForm from "../../../app/dashboard/application/create/_forms/schooling-form";
+import SurveyForm from "../../../app/dashboard/application/create/_forms/survey-form";
+import USIForm from "../../../app/dashboard/application/create/_forms/usi-form";
 
 export type ApplicationFormStep = {
   id: number;
   title: string;
-  component: ComponentType;
+  component: any;
 };
 
 export const APPLICATION_FORM_STEPS: ApplicationFormStep[] = [
@@ -43,4 +43,4 @@ export const APPLICATION_FORM_STEPS: ApplicationFormStep[] = [
   { id: 13, title: "Review", component: ReviewForm },
 ];
 
-export { APPLICATION_STEP_IDS, REVIEW_STEP_ID, TOTAL_APPLICATION_STEPS };
+// export { APPLICATION_STEP_IDS, REVIEW_STEP_ID, TOTAL_APPLICATION_STEPS };

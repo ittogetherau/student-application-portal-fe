@@ -1,0 +1,16 @@
+export const FORM_STEPS = [
+  { id: 0, title: "Enrollment" },
+  { id: 1, title: "Personal Details" },
+  { id: 2, title: "Emergency Contact" },
+  { id: 3, title: "Health Cover" },
+  { id: 4, title: "Language & Culture" },
+  { id: 5, title: "Disability" },
+  { id: 6, title: "Schooling" },
+  { id: 7, title: "Qualifications" },
+  { id: 8, title: "Employment" },
+  { id: 9, title: "USI" },
+  { id: 10, title: "Additional Services" },
+  { id: 11, title: "Survey" },
+  { id: 12, title: "Documents" },
+  { id: 13, title: "Review" },
+];

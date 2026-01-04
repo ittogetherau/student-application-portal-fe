@@ -1,17 +1,27 @@
 // User & Authentication Types
-export enum Role {
-  SUPER_ADMIN = 'super_admin',
-  STAFF_ADMIN = 'staff_admin',
-  STAFF_REVIEWER = 'staff_reviewer',
-  AGENT = 'agent',
-  STUDENT = 'student',
+export enum USER_ROLE {
+  AGENT = "agent",
+  STAFF = "staff",
+}
+
+export enum APPLICATION_STAGE {
+  DRAFT = "draft",
+  SUBMITTED = "submitted",
+  STAFF_REVIEW = "staff_review",
+  AWAITING_DOCUMENTS = "awaiting_documents",
+  GS_ASSESSMENT = "gs_assessment",
+  OFFER_GENERATED = "offer_generated",
+  OFFER_ACCEPTED = "offer_accepted",
+  ENROLLED = "enrolled",
+  REJECTED = "rejected",
+  WITHDRAWN = "withdrawn",
 }
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: Role;
+  role: USER_ROLE;
   agentId?: string;
   staffId?: string;
   createdAt: string;
@@ -20,28 +30,28 @@ export interface User {
 
 // Application Types
 export enum ApplicationStatus {
-  DRAFT = 'draft',
-  SUBMITTED = 'submitted',
-  UNDER_REVIEW = 'under_review',
-  OFFER_SENT = 'offer_sent',
-  OFFER_ACCEPTED = 'offer_accepted',
-  GS_DOCUMENTS_PENDING = 'gs_documents_pending',
-  GS_INTERVIEW_SCHEDULED = 'gs_interview_scheduled',
-  GS_APPROVED = 'gs_approved',
-  FEE_PAYMENT_PENDING = 'fee_payment_pending',
-  COE_ISSUED = 'coe_issued',
-  REJECTED = 'rejected',
+  DRAFT = "draft",
+  SUBMITTED = "submitted",
+  UNDER_REVIEW = "under_review",
+  OFFER_SENT = "offer_sent",
+  OFFER_ACCEPTED = "offer_accepted",
+  GS_DOCUMENTS_PENDING = "gs_documents_pending",
+  GS_INTERVIEW_SCHEDULED = "gs_interview_scheduled",
+  GS_APPROVED = "gs_approved",
+  FEE_PAYMENT_PENDING = "fee_payment_pending",
+  COE_ISSUED = "coe_issued",
+  REJECTED = "rejected",
 }
 
 export enum ApplicationStage {
-  INITIAL_REVIEW = 'initial_review',
-  DOCUMENT_VERIFICATION = 'document_verification',
-  OFFER_GENERATION = 'offer_generation',
-  OFFER_ACCEPTANCE = 'offer_acceptance',
-  GS_ASSESSMENT = 'gs_assessment',
-  FEE_PAYMENT = 'fee_payment',
-  COE_GENERATION = 'coe_generation',
-  COMPLETED = 'completed',
+  INITIAL_REVIEW = "initial_review",
+  DOCUMENT_VERIFICATION = "document_verification",
+  OFFER_GENERATION = "offer_generation",
+  OFFER_ACCEPTANCE = "offer_acceptance",
+  GS_ASSESSMENT = "gs_assessment",
+  FEE_PAYMENT = "fee_payment",
+  COE_GENERATION = "coe_generation",
+  COMPLETED = "completed",
 }
 
 export interface Application {
@@ -71,12 +81,12 @@ export interface Application {
 
 // Document Types
 export enum DocumentType {
-  PASSPORT = 'passport',
-  SLC_TRANSCRIPT = 'slc_transcript',
-  HSC_TRANSCRIPT = 'hsc_transcript',
-  BACHELOR_TRANSCRIPT = 'bachelor_transcript',
-  ENGLISH_TEST = 'english_test',
-  OTHER = 'other',
+  PASSPORT = "passport",
+  SLC_TRANSCRIPT = "slc_transcript",
+  HSC_TRANSCRIPT = "hsc_transcript",
+  BACHELOR_TRANSCRIPT = "bachelor_transcript",
+  ENGLISH_TEST = "english_test",
+  OTHER = "other",
 }
 
 export interface Document {
@@ -104,7 +114,7 @@ export interface PassportData {
 }
 
 export interface AcademicDocument {
-  type: 'SLC' | 'HSC' | 'Bachelor' | 'Other';
+  type: "SLC" | "HSC" | "Bachelor" | "Other";
   institution: string;
   yearOfPassing: string;
   grade: string;
@@ -112,7 +122,7 @@ export interface AcademicDocument {
 }
 
 export interface EnglishTestData {
-  testType: 'IELTS' | 'PTE' | 'DUOLINGO' | 'TOEFL';
+  testType: "IELTS" | "PTE" | "DUOLINGO" | "TOEFL";
   overallScore: number;
   listening?: number;
   reading?: number;
@@ -124,14 +134,14 @@ export interface EnglishTestData {
 
 // GS Document Types
 export enum GSDocumentCategory {
-  FINANCIAL = 'financial',
-  RELATION_PROOF = 'relation_proof',
-  TAX_RELATED = 'tax_related',
-  INCOME_DOCUMENT = 'income_document',
-  BUSINESS_INCOME = 'business_income',
-  CIHE_GS_FORM_AGENT = 'cihe_gs_form_agent',
-  GS_FORM_STUDENT = 'gs_form_student',
-  OTHER = 'other',
+  FINANCIAL = "financial",
+  RELATION_PROOF = "relation_proof",
+  TAX_RELATED = "tax_related",
+  INCOME_DOCUMENT = "income_document",
+  BUSINESS_INCOME = "business_income",
+  CIHE_GS_FORM_AGENT = "cihe_gs_form_agent",
+  GS_FORM_STUDENT = "gs_form_student",
+  OTHER = "other",
 }
 
 export interface GSDocument {
@@ -141,16 +151,16 @@ export interface GSDocument {
   fileName: string;
   fileUrl: string;
   uploadedBy: string;
-  uploadedByRole: 'agent' | 'student' | 'staff';
+  uploadedByRole: "agent" | "student" | "staff";
   uploadedAt: string;
   verified: boolean;
 }
 
 // Interview Types
 export enum InterviewOutcome {
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  REQUEST_MORE_INFO = 'request_more_info',
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  REQUEST_MORE_INFO = "request_more_info",
 }
 
 export interface Interview {
@@ -179,11 +189,11 @@ export interface InterviewAssessment {
 
 // Offer Types
 export enum OfferStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  VIEWED = 'viewed',
-  SIGNED = 'signed',
-  DECLINED = 'declined',
+  PENDING = "pending",
+  SENT = "sent",
+  VIEWED = "viewed",
+  SIGNED = "signed",
+  DECLINED = "declined",
 }
 
 export interface Offer {
@@ -220,7 +230,7 @@ export interface Activity {
   description: string;
   performedBy: string;
   performedByName: string;
-  performedByRole: Role;
+  performedByRole: USER_ROLE;
   performedAt: string;
   metadata?: Record<string, unknown>;
 }
@@ -245,12 +255,12 @@ export interface StaffDashboardMetrics {
 
 // Notification Types
 export enum NotificationType {
-  ACTION_REQUIRED = 'action_required',
-  STATUS_UPDATE = 'status_update',
-  DOCUMENT_REQUEST = 'document_request',
-  INTERVIEW_SCHEDULED = 'interview_scheduled',
-  OFFER_READY = 'offer_ready',
-  SYSTEM = 'system',
+  ACTION_REQUIRED = "action_required",
+  STATUS_UPDATE = "status_update",
+  DOCUMENT_REQUEST = "document_request",
+  INTERVIEW_SCHEDULED = "interview_scheduled",
+  OFFER_READY = "offer_ready",
+  SYSTEM = "system",
 }
 
 export interface Notification {

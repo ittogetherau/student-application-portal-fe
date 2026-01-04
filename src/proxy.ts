@@ -4,30 +4,12 @@ import { getToken } from "next-auth/jwt";
 import { AUTH_SECRET } from "@/lib/auth-options";
 import { siteRoutes } from "@/constants/site-routes";
 
-// Agent can only access these routes
-const DASHBOARD_AGENT_PATHS = [
+const SHARED_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.application.root,
-  siteRoutes.dashboard.application.new,
 ];
 
-// Staff can only access these routes (NOT agent routes)
-const DASHBOARD_STAFF_PATHS = [
-  siteRoutes.dashboard.root,
-  siteRoutes.dashboard.agents.root,
-  siteRoutes.dashboard.applicationQueue.root,
-];
-
-// Routes that are restricted to specific roles
-const STAFF_ONLY_ROUTES = [
-  siteRoutes.dashboard.agents.root,
-  siteRoutes.dashboard.applicationQueue.root,
-];
-
-const AGENT_ONLY_ROUTES = [
-  siteRoutes.dashboard.application.root,
-  siteRoutes.dashboard.application.new,
-];
+const STAFF_ONLY_PATHS = [siteRoutes.dashboard.agents.root];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,
@@ -36,54 +18,37 @@ const AUTH_PAGES = [
   siteRoutes.auth.signUpAlt,
 ] as const;
 
-const normalizePath = (pathname: string) =>
+const normalizePath = (pathname: string): string =>
   pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
 
-const isProtectedPath = (pathname: string) =>
+const isProtectedPath = (pathname: string): boolean =>
   pathname.startsWith(siteRoutes.dashboard.root);
 
-const isAllowedPath = (pathname: string, role: string) => {
+const matchesRoute = (pathname: string, route: string): boolean => {
   const normalized = normalizePath(pathname);
-  
-  // Admin can access everything
+  return normalized === route || normalized.startsWith(`${route}/`);
+};
+
+const isAllowedPath = (pathname: string, role: string): boolean => {
   if (role === "admin") return true;
-  
-  // Agent restrictions: Cannot access staff routes
-  if (role === "agent") {
-    // Check if trying to access staff-only routes
-    const isStaffRoute = STAFF_ONLY_ROUTES.some(
-      (route) => normalized === route || normalized.startsWith(`${route}/`)
-    );
-    if (isStaffRoute) return false;
-    
-    // Only allow agent routes
-    return DASHBOARD_AGENT_PATHS.some(
-      (p) => normalized === p || normalized.startsWith(`${p}/`)
-    );
-  }
-  
-  // Staff restrictions: Cannot access agent routes
-  if (role === "staff") {
-    // Check if trying to access agent-only routes
-    const isAgentRoute = AGENT_ONLY_ROUTES.some(
-      (route) => normalized === route || normalized.startsWith(`${route}/`)
-    );
-    if (isAgentRoute) return false;
-    
-    // Only allow staff routes
-    return DASHBOARD_STAFF_PATHS.some(
-      (p) => normalized === p || normalized.startsWith(`${p}/`)
-    );
-  }
-  
+
+  const isSharedPath = SHARED_PATHS.some((route) =>
+    matchesRoute(pathname, route)
+  );
+  if (isSharedPath) return true;
+
+  const isStaffOnlyPath = STAFF_ONLY_PATHS.some((route) =>
+    matchesRoute(pathname, route)
+  );
+
+  if (role === "staff") return isStaffOnlyPath;
+  if (role === "agent") return !isStaffOnlyPath;
+
   return false;
 };
 
-const defaultRedirectForRole = (role: string) => {
-  if (role === "agent") return siteRoutes.dashboard.root;
-  if (role === "staff") return siteRoutes.dashboard.root;
-  if (role === "admin") return siteRoutes.dashboard.root;
-  return siteRoutes.home;
+const getDefaultRedirect = (role: string): string => {
+  return siteRoutes.dashboard.root;
 };
 
 export async function proxy(request: NextRequest) {
@@ -93,14 +58,12 @@ export async function proxy(request: NextRequest) {
     secret: AUTH_SECRET,
   });
 
-  console.log(token);
-
   if (
     token &&
     (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
   ) {
     const redirectUrl = new URL(
-      defaultRedirectForRole((token.role as string) ?? "admin"),
+      getDefaultRedirect(token.role as string),
       request.url
     );
     return NextResponse.redirect(redirectUrl);
@@ -118,7 +81,6 @@ export async function proxy(request: NextRequest) {
 
   const role = (token.role as string | undefined) ?? "admin";
 
-  // Students cannot access dashboard
   if (role === "student") {
     const loginUrl = new URL(siteRoutes.auth.login, request.url);
     loginUrl.searchParams.set("from", pathname);
@@ -126,14 +88,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isAllowedPath(pathname, role)) {
-    // redirect to first allowed path for the role
-    const fallback =
-      role === "agent"
-        ? DASHBOARD_AGENT_PATHS[0]
-        : role === "staff"
-        ? DASHBOARD_STAFF_PATHS[0]
-        : siteRoutes.dashboard.root;
-    const redirectUrl = new URL(fallback, request.url);
+    const redirectUrl = new URL(siteRoutes.dashboard.root, request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -141,7 +96,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Next.js requires matcher entries to be static strings, so keep them literal while
-  // routing logic above continues to rely on siteRoutes for comparisons.
   matcher: ["/dashboard/:path*", "/login", "/register", "/sign-up", "/signup"],
 };

@@ -45,7 +45,6 @@ const AgentApplicationPage = () => {
         isKanban={true}
       />
 
-
       <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <p className="font-medium">
           Page {page} of {maxPage || 1} · {total} total application

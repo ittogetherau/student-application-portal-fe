@@ -1,6 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useCallback, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
@@ -61,10 +66,8 @@ export const ApplicationFormProvider: React.FC<{
     (state) => state.initializeStep
   );
 
-
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
   const getStepData = useApplicationFormDataStore((state) => state.getStepData);
-
 
   const createApplication = useApplicationCreateMutation();
   const { mutate: fetchApplication, isPending: isFetchingApplication } =
@@ -105,10 +108,9 @@ export const ApplicationFormProvider: React.FC<{
           goToStep(0);
         } else {
           // Existing application with data - initialize based on progress
-          initializeStep(applicationId);
+          initializeStep(applicationId, stepData);
         }
       }
-
       fetchApplication();
     }
   }, [applicationId, initializeStep, goToStep]);
@@ -148,4 +150,3 @@ export const ApplicationFormProvider: React.FC<{
     </ApplicationFormContext.Provider>
   );
 };
-

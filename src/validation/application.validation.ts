@@ -40,6 +40,10 @@ import {
 import { schoolingSchema, type SchoolingValues } from "./application/schooling";
 import { surveySchema, type SurveyValues } from "./application/survey";
 import { usiSchema, type USIValues } from "./application/usi";
+import {
+  threadCreateSchema,
+  type ThreadCreateValues,
+} from "./application/thread";
 
 // Draft creation schema (extend when API contract is finalized)
 export const applicationCreateSchema = z.object({
@@ -61,6 +65,7 @@ export {
   schoolingSchema,
   surveySchema,
   usiSchema,
+  threadCreateSchema,
 };
 
 export type {
@@ -77,6 +82,7 @@ export type {
   SchoolingValues,
   SurveyValues,
   USIValues,
+  ThreadCreateValues,
 };
 
 // Legacy aliases used across services/hooks

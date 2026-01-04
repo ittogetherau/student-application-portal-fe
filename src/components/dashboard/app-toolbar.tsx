@@ -39,7 +39,8 @@ const mockNotifications: Notification[] = [
     id: "1",
     type: "success",
     title: "Application Approved",
-    message: "Application #12345 has been approved and is ready for processing.",
+    message:
+      "Application #12345 has been approved and is ready for processing.",
     timestamp: "2 minutes ago",
     read: false,
   },
@@ -55,7 +56,8 @@ const mockNotifications: Notification[] = [
     id: "3",
     type: "warning",
     title: "Document Missing",
-    message: "Application #12340 is missing required documents. Please follow up.",
+    message:
+      "Application #12340 is missing required documents. Please follow up.",
     timestamp: "3 hours ago",
     read: true,
   },
@@ -63,7 +65,8 @@ const mockNotifications: Notification[] = [
     id: "4",
     type: "error",
     title: "Payment Failed",
-    message: "Payment processing failed for Application #12338. Action required.",
+    message:
+      "Payment processing failed for Application #12338. Action required.",
     timestamp: "1 day ago",
     read: true,
   },
@@ -99,16 +102,17 @@ const AppToolbar = () => {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  
+  const [notifications, setNotifications] =
+    useState<Notification[]>(mockNotifications);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
-  
+
   const markAsRead = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
   };
-  
+
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
@@ -162,7 +166,11 @@ const AppToolbar = () => {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-muted-foreground relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground relative"
+            >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 flex h-2 w-2">
@@ -201,14 +209,16 @@ const AppToolbar = () => {
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 px-4">
                     <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                    <p className="text-sm text-muted-foreground">No notifications</p>
+                    <p className="text-sm text-muted-foreground">
+                      No notifications
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y">
                     {notifications.map((notification, index) => {
                       const Icon = getNotificationIcon(notification.type);
                       const iconColor = getNotificationColor(notification.type);
-                      
+
                       return (
                         <div
                           key={notification.id}
@@ -224,10 +234,12 @@ const AppToolbar = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
-                                <p className={cn(
-                                  "text-sm font-medium",
-                                  !notification.read && "font-semibold"
-                                )}>
+                                <p
+                                  className={cn(
+                                    "text-sm font-medium",
+                                    !notification.read && "font-semibold"
+                                  )}
+                                >
                                   {notification.title}
                                 </p>
                                 {!notification.read && (

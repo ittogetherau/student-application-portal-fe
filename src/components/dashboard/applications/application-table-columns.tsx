@@ -114,8 +114,6 @@ const StatusPill = ({ status }: { status: ApplicationStatus }) => {
   );
 };
 
-import { Progress } from "@/components/ui/progress";
-
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const applicationColumns: ColumnDef<Application>[] = [
@@ -148,7 +146,7 @@ export const applicationColumns: ColumnDef<Application>[] = [
     meta: { columnTitle: "Reference" },
     size: 120,
     minSize: 100,
-    maxSize: 150,
+    maxSize: 120,
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -295,7 +293,10 @@ export const applicationColumns: ColumnDef<Application>[] = [
         stageLabelMap[stage] ||
         stage.charAt(0).toUpperCase() + stage.slice(1).replace(/_/g, " ");
       return (
-        <div className="text-sm text-muted-foreground text-start truncate whitespace-normal" title={label}>
+        <div
+          className="text-sm text-muted-foreground text-start truncate whitespace-normal"
+          title={label}
+        >
           {label}
         </div>
       );

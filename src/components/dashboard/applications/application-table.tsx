@@ -74,7 +74,7 @@ export const ApplicationTable = ({
           ) : null}
 
           <Button asChild size="sm">
-            <Link href={siteRoutes.dashboard.application.new}>
+            <Link href={siteRoutes.dashboard.application.create}>
               New Application
             </Link>
           </Button>

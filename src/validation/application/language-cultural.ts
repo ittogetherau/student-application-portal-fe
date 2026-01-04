@@ -17,7 +17,7 @@ export const languageAndCultureSchema = z.object({
   // English Test
   completed_english_test: z.string().optional(),
   english_test_type: z.string().optional(),
-  english_test_date: z.string().optional(),
+  english_test_date: z.string().optional().nullable().transform(v => v === "" ? null : v),
   english_test_listening: z.string().optional(),
   english_test_writing: z.string().optional(),
   english_test_reading: z.string().optional(),
@@ -46,7 +46,7 @@ export const languageAndCultureSchema = z.object({
   country_of_birth: z.string().optional(),
   citizenship_status: z.string().optional(),
   visa_type: z.string().optional(),
-  visa_expiry: z.string().optional(),
+  visa_expiry: z.string().optional().nullable().transform(v => v === "" ? null : v),
   english_test_score: z.string().optional(),
 });
 
@@ -66,7 +66,7 @@ export const defaultLanguageAndCultureValues: LanguageAndCultureFormValues = {
   english_instruction_previous_studies: "",
   completed_english_test: "",
   english_test_type: "",
-  english_test_date: "",
+  english_test_date: null,
   english_test_listening: "",
   english_test_writing: "",
   english_test_reading: "",
@@ -81,6 +81,6 @@ export const defaultLanguageAndCultureValues: LanguageAndCultureFormValues = {
   country_of_birth: "",
   citizenship_status: "",
   visa_type: "",
-  visa_expiry: "",
+  visa_expiry: null,
   english_test_score: "",
 };

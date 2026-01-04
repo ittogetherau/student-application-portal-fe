@@ -10,7 +10,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodType } from "zod";
 import { Button } from "@/components/ui/button";
-import ApplicationStepHeader from "./application-step-header";
+import ApplicationStepHeader from "../../../app/dashboard/application/create/_components/application-step-header";
 import { useApplicationFormContext } from "@/contexts/ApplicationFormContext";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 
