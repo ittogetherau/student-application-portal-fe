@@ -23,7 +23,7 @@ import { StatusDonutChart } from "./components/StatusDonutChart";
 
 export default function AgentDashboard() {
   return (
-    <div className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950">
+    <div className="bg-background">
       {/* Dashboard Header */}
       <div className="bg-white/40 dark:bg-neutral-900/40 border-b border-neutral-200 dark:border-neutral-800">
         <div className="wrapper py-6">

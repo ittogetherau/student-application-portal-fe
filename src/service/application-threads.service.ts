@@ -26,6 +26,7 @@ export interface CommunicationThread {
   created_by_role: string;
   created_by_name: string;
   messages: ThreadMessage[];
+  application_id?: string;
 }
 
 export interface CreateThreadPayload {
@@ -38,8 +39,27 @@ export interface CreateThreadPayload {
   is_internal?: boolean;
 }
 
-class ApplicationTimelineService extends ApiService {
+export interface StaffThreadSummary {
+  id: string;
+  application_id: string;
+  subject: string;
+  priority: string;
+  status: string;
+  deadline: string | null;
+  status_updated_at: string;
+}
+
+class ApplicationThreadsService extends ApiService {
   private readonly basePath = "applications";
+
+  listStaffThreads(): Promise<ServiceResponse<StaffThreadSummary[]>> {
+    return resolveServiceCall<StaffThreadSummary[]>(
+      () => this.get("/staff/threads", true),
+      "Staff threads fetched successfully.",
+      "Failed to fetch staff threads",
+      []
+    );
+  }
 
   listThreads(
     applicationId: string
@@ -73,7 +93,8 @@ class ApplicationTimelineService extends ApiService {
     }
 
     return resolveServiceCall<CommunicationThread>(
-      () => this.post(`${this.basePath}/${applicationId}/threads`, payload, true),
+      () =>
+        this.post(`${this.basePath}/${applicationId}/threads`, payload, true),
       "Communication thread created successfully.",
       "Failed to create communication thread"
     );
@@ -128,7 +149,32 @@ class ApplicationTimelineService extends ApiService {
       "Failed to update thread status"
     );
   }
+
+  updatePriority(
+    applicationId: string,
+    threadId: string,
+    priority: string
+  ): Promise<ServiceResponse<CommunicationThread>> {
+    if (!applicationId || !threadId) {
+      return Promise.resolve({
+        success: false,
+        data: null,
+        message: "Application id and thread id are required",
+      });
+    }
+
+    return resolveServiceCall<CommunicationThread>(
+      () =>
+        this.patch(
+          `${this.basePath}/${applicationId}/threads/${threadId}/priority`,
+          { priority },
+          true
+        ),
+      "Thread priority updated successfully.",
+      "Failed to update thread priority"
+    );
+  }
 }
 
-const applicationTimelineService = new ApplicationTimelineService();
-export default applicationTimelineService;
+const applicationThreadsService = new ApplicationThreadsService();
+export default applicationThreadsService;

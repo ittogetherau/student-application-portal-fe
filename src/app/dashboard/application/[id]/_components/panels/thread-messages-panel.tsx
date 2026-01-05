@@ -1,17 +1,27 @@
 "use client";
 
+import UrlDrivenSheet from "@/components/shared/url-driven-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { USER_ROLE } from "@/constants/types";
+import {
   useAddThreadMessageMutation,
   useApplicationThreadsQuery,
+  useUpdateThreadPriorityMutation,
+  useUpdateThreadStatusMutation,
 } from "@/hooks/application-threads.hook";
-import { SendHorizonal } from "lucide-react";
+import { ListRestart, SendHorizonal, Verified } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LoadingState } from "../states";
-import UrlDrivenSheet from "../../../../../../components/shared/url-driven-sheet";
 
 const formatDateTime = (dateString?: string | null) => {
   if (!dateString) return "";
@@ -23,6 +33,20 @@ const formatDateTime = (dateString?: string | null) => {
   });
 };
 
+export const ThreadStatus = {
+  pending: "pending",
+  under_review: "under_review",
+  completed: "completed",
+} as const;
+
+type ThreadStatusType = (typeof ThreadStatus)[keyof typeof ThreadStatus];
+const ThreadPriority = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+} as const;
+type ThreadPriorityType = (typeof ThreadPriority)[keyof typeof ThreadPriority];
+
 const ThreadMessagesPanel = () => {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -33,23 +57,64 @@ const ThreadMessagesPanel = () => {
 
   const { data, isLoading, error } = useApplicationThreadsQuery(applicationId);
   const addMessage = useAddThreadMessageMutation(applicationId, threadId);
+  const updateStatus = useUpdateThreadStatusMutation(applicationId, threadId);
+  const updatePriority = useUpdateThreadPriorityMutation(
+    applicationId,
+    threadId
+  );
 
+  const [status, setStatus] = useState<ThreadStatusType>(ThreadStatus.pending);
+  const [priority, setPriority] = useState<ThreadPriorityType>(
+    ThreadPriority.medium
+  );
   const [message, setMessage] = useState("");
+
+  const isCompleted = status === ThreadStatus.completed;
+
   const endRef = useRef<HTMLDivElement>(null);
 
   const thread = data?.data?.find((t) => t.id === threadId);
   const messages = thread?.messages || [];
   const userEmail = session?.user?.email;
+  const userRole = session?.user?.role;
 
   useEffect(() => {
     if (isOpen) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [isOpen, messages.length]);
 
+  useEffect(() => {
+    (() => {
+      if (thread?.status) setStatus(thread.status as ThreadStatusType);
+      if (thread?.priority) setPriority(thread.priority as ThreadPriorityType);
+    })();
+  }, [thread?.status, thread?.priority]);
+
   const handleSend = async () => {
+    if (isCompleted) return;
     const text = message.trim();
     if (!text || !applicationId || !threadId) return;
     await addMessage.mutateAsync(text);
     setMessage("");
+  };
+
+  const handleStatusChange = async (value: ThreadStatusType) => {
+    setStatus(value);
+    try {
+      await updateStatus.mutateAsync(value);
+    } catch (err) {
+      console.error("[ThreadMessagesPanel] update status failed", err);
+      if (thread?.status) setStatus(thread.status as ThreadStatusType);
+    }
+  };
+
+  const handlePriorityChange = async (value: ThreadPriorityType) => {
+    setPriority(value);
+    try {
+      await updatePriority.mutateAsync(value);
+    } catch (err) {
+      console.error("[ThreadMessagesPanel] update priority failed", err);
+      if (thread?.priority) setPriority(thread.priority as ThreadPriorityType);
+    }
   };
 
   if (!isOpen || !applicationId || !threadId) {
@@ -83,41 +148,115 @@ const ThreadMessagesPanel = () => {
   return (
     <UrlDrivenSheet
       clearKeysOnClose={["view", "applicationId", "threadId"]}
+      title={thread.subject}
       header={
-        <>
-          <p className="text-base font-medium">{thread.subject}</p>
-          <p className="text-xs text-muted-foreground">
-            {thread.issue_type} · {thread.target_section}
-          </p>
-        </>
+        <p className="text-xs text-muted-foreground">
+          {thread.issue_type} · {thread.target_section} · {thread.status}
+        </p>
       }
       footer={
-        <div className="flex items-center gap-2">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Message"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            className="text-sm"
-          />
-          <Button
-            onClick={handleSend}
-            disabled={addMessage.isPending}
-            size="sm"
-          >
-            <SendHorizonal className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <section className="space-y-2">
+          {userRole === USER_ROLE.STAFF && (
+            <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] font-medium text-muted-foreground">
+                  <span>Status</span>
+                </div>
+                <Select
+                  value={status}
+                  onValueChange={(v) =>
+                    handleStatusChange(v as ThreadStatusType)
+                  }
+                  disabled={updateStatus.isPending}
+                >
+                  <SelectTrigger className="w-32 h-6 text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    {Object.values(ThreadStatus).map((value) => (
+                      <SelectItem key={value} value={value} className="text-xs">
+                        {value.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] font-medium text-muted-foreground">
+                  <span>Priority</span>
+                </div>
+                <Select
+                  value={priority}
+                  onValueChange={(v) =>
+                    handlePriorityChange(v as ThreadPriorityType)
+                  }
+                  disabled={updatePriority.isPending}
+                >
+                  <SelectTrigger className="w-32 h-6 text-xs">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    {Object.values(ThreadPriority).map((value) => (
+                      <SelectItem key={value} value={value} className="text-xs">
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Input
+              disabled={isCompleted}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Message"
+              onKeyDown={(e) => {
+                if (isCompleted) return;
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              className="text-sm flex-1"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            {userRole === USER_ROLE.STAFF ? (
+              <Button
+                onClick={() =>
+                  handleStatusChange(
+                    isCompleted ? ThreadStatus.pending : ThreadStatus.completed
+                  )
+                }
+                size="sm"
+                variant={isCompleted ? "secondary" : "outline"}
+              >
+                {isCompleted ? <ListRestart /> : <Verified />}
+                {isCompleted ? "Reopen Thread" : "Mark As Resolved"}
+              </Button>
+            ) : (
+              <span></span>
+            )}
+
+            <Button
+              onClick={handleSend}
+              disabled={isCompleted || addMessage.isPending}
+              size="sm"
+            >
+              Send Message
+              <SendHorizonal className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </section>
       }
     >
       <div className="flex flex-col-reverse gap-2">
         <div ref={endRef} />
-
         {messages.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">
             No messages

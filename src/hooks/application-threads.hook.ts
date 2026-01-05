@@ -1,12 +1,24 @@
 "use client";
 
-import applicationTimelineService, {
+import applicationThreadsService, {
   CommunicationThread,
   CreateThreadPayload,
+  StaffThreadSummary,
   ThreadMessage,
-} from "@/service/application-timeline.service";
+} from "@/service/application-threads.service";
 import type { ServiceResponse } from "@/types/service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+export const useStaffThreadsQuery = () => {
+  return useQuery<ServiceResponse<StaffThreadSummary[]>, Error>({
+    queryKey: ["staff-threads"],
+    queryFn: async () => {
+      const response = await applicationThreadsService.listStaffThreads();
+      if (!response.success) throw new Error(response.message);
+      return response;
+    },
+  });
+};
 
 // Queries
 export const useApplicationThreadsQuery = (applicationId: string | null) => {
@@ -14,7 +26,7 @@ export const useApplicationThreadsQuery = (applicationId: string | null) => {
     queryKey: ["application-threads", applicationId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationTimelineService.listThreads(
+      const response = await applicationThreadsService.listThreads(
         applicationId
       );
       if (!response.success) {
@@ -34,7 +46,7 @@ export const useCreateThreadMutation = (applicationId: string | null) => {
     mutationKey: ["application-thread-create", applicationId],
     mutationFn: async (payload) => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationTimelineService.createThread(
+      const response = await applicationThreadsService.createThread(
         applicationId,
         payload
       );
@@ -65,7 +77,7 @@ export const useAddThreadMessageMutation = (
       if (!applicationId) throw new Error("Missing application reference.");
       if (!threadId) throw new Error("Missing thread reference.");
 
-      const response = await applicationTimelineService.addMessage(
+      const response = await applicationThreadsService.addMessage(
         applicationId,
         threadId,
         message
@@ -99,7 +111,7 @@ export const useUpdateThreadStatusMutation = (
       if (!applicationId) throw new Error("Missing application reference.");
       if (!threadId) throw new Error("Missing thread reference.");
 
-      const response = await applicationTimelineService.updateStatus(
+      const response = await applicationThreadsService.updateStatus(
         applicationId,
         threadId,
         status
@@ -117,6 +129,44 @@ export const useUpdateThreadStatusMutation = (
     },
     onError: (error) => {
       console.error("[ApplicationThreads] updateThreadStatus failed", error);
+    },
+  });
+};
+
+export const useUpdateThreadPriorityMutation = (
+  applicationId: string | null,
+  threadId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<CommunicationThread, Error, string>({
+    mutationKey: [
+      "application-thread-update-priority",
+      applicationId,
+      threadId,
+    ],
+    mutationFn: async (priority) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      if (!threadId) throw new Error("Missing thread reference.");
+
+      const response = await applicationThreadsService.updatePriority(
+        applicationId,
+        threadId,
+        priority
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Thread data is missing.");
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-threads", applicationId],
+      });
+    },
+    onError: (error) => {
+      console.error("[ApplicationThreads] updateThreadPriority failed", error);
     },
   });
 };

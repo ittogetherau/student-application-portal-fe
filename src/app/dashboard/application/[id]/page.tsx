@@ -132,7 +132,7 @@ export default function AgentApplicationDetail() {
 
           {/* Main */}
           <main className="min-w-0 space-y-4">
-            <Tabs defaultValue="documents" className="space-y-3">
+            <Tabs defaultValue="details" className="space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <TabsList className="w-full sm:w-auto flex flex-wrap justify-start">
                   <TabsTrigger value="details" className="text-xs px-3">

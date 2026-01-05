@@ -61,6 +61,8 @@ export async function proxy(request: NextRequest) {
     secret: AUTH_SECRET,
   });
 
+  console.log(token);
+
   if (
     token &&
     (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
