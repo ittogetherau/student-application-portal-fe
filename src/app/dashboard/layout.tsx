@@ -35,7 +35,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <SidebarInset className="bg-background overflow-hidden flex flex-col">
         <AppToolbar />
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 bg-background text-foreground">
-          <div className="max-w-[100rem] mx-auto px-2 pt-2">{children}</div>
+          <div className="max-w-[100rem] mx-auto">{children}</div>
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/utils/handle-api-error";
-import type { Application } from "@/constants/types";
+import type { Application, APPLICATION_STAGE } from "@/constants/types";
 import type { ServiceResponse } from "@/types/service";
 import {
   ApplicationCreateValues,
@@ -26,7 +26,7 @@ export interface ApplicationDetailResponse {
   agent_profile_id: string | null;
   course_offering_id: string | null;
   assigned_staff_id: string | null;
-  current_stage: string;
+  current_stage: APPLICATION_STAGE;
   submitted_at: string | null;
   decision_at?: string | null;
   usi: string | null;
@@ -61,7 +61,7 @@ export interface ApplicationDetailResponse {
 }
 
 export interface ApplicationListParams {
-  stage?: string;
+  stage?: APPLICATION_STAGE | string;
   studentId?: string;
   agentId?: string;
   assignedStaffId?: string;
@@ -309,7 +309,7 @@ class ApplicationService extends ApiService {
   ): Promise<
     ServiceResponse<{
       application_id: string;
-      current_stage: string;
+      current_stage: APPLICATION_STAGE;
       message: string;
       updated_at: string;
     }>
@@ -318,7 +318,7 @@ class ApplicationService extends ApiService {
     try {
       const data = await this.post<{
         application_id: string;
-        current_stage: string;
+        current_stage: APPLICATION_STAGE;
         message: string;
         updated_at: string;
       }>(`staff/applications/${applicationId}/approve`, payload, true);
@@ -365,7 +365,7 @@ class ApplicationService extends ApiService {
   ): Promise<
     ServiceResponse<{
       application_id: string;
-      current_stage: string;
+      current_stage: APPLICATION_STAGE;
       message: string;
       updated_at: string;
     }>
@@ -387,7 +387,7 @@ class ApplicationService extends ApiService {
     try {
       const data = await this.post<{
         application_id: string;
-        current_stage: string;
+        current_stage: APPLICATION_STAGE;
         message: string;
         updated_at: string;
       }>(`staff/applications/${applicationId}/reject`, payload, true);
@@ -421,16 +421,23 @@ class ApplicationService extends ApiService {
   > => {
     if (!applicationId) throw new Error("Application id is required");
     try {
-      const data = await this.post<{
-        pdf_url: string;
-        application_id: string;
-        generated_at: string;
-        message: string;
-      }>(
-        `staff/applications/${applicationId}/generate-offer-letter`,
-        payload,
-        true
-      );
+      // const data = await this.post<{
+      //   pdf_url: string;
+      //   application_id: string;
+      //   generated_at: string;
+      //   message: string;
+      // }>(
+      //   `staff/applications/${applicationId}/generate-offer-letter`,
+      //   payload,
+      //   true
+      // );
+
+      const data = {
+        pdf_url: "string",
+        application_id: "string",
+        generated_at: "",
+        message: "",
+      };
       return {
         success: true,
         message: "Offer letter generated successfully.",

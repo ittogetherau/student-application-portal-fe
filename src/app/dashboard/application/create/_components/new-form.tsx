@@ -55,23 +55,7 @@ const NewForm = ({
     !!applicationId && (searchParams.get("edit") === "true" || !!applicationId);
   const isCreateMode = !applicationId;
 
-  // -----------------------------
-  // CREATE APPLICATION
-  // -----------------------------
-  async function handleApplicationCreate() {
-    try {
-      const res = await createApplication.mutateAsync(
-        DEFAULT_CREATE_PAYLOAD_temp
-      );
-      const id = res.application.id;
 
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("id", id);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    } catch (error) {
-      console.error("Failed to create application draft", error);
-    }
-  }
 
   // -----------------------------
   // NAVIGATION LOGIC
@@ -186,25 +170,22 @@ const NewForm = ({
 
     // Step 0: Enrollment
     const enrollmentData = {
-      agentId: "agent-1",
-      campus: "Sydney",
-      courseType: "HigherEd",
-      intakeYear: "2025",
-      course: "Bachelor of Business",
-      preferredStartDate: "2025-02-01",
+      course: 1,
+      intake: 1,
+      campus: 1,
     };
 
     // Step 1: Personal Details
     const personalDetailsData = {
       student_origin: "Overseas Student (Offshore)",
       title: "Mr",
-      given_name: "John",
+      given_name: "juyas",
       middle_name: "Michael",
       family_name: "Smith",
       gender: "Male",
       date_of_birth: "1995-06-15",
-      email: "john.smith@example.com",
-      alternate_email: "j.smith.alt@example.com",
+      email: "sayujkuickel@gmail.com",
+      alternate_email: "j.smasith.alt@example.com",
       phone: "1234567890",
       home_phone: "0987654321",
       country_of_birth: "United States",
@@ -466,7 +447,7 @@ const NewForm = ({
       for (const { stepId, data, service } of submissions) {
         try {
           console.log(`Submitting step ${stepId} to backend...`);
-          const response = await service(currentApplicationId, data);
+          const response = await service(currentApplicationId as string, data as any);
 
           if (response.success) {
             // Save to local store after successful backend save
@@ -501,17 +482,9 @@ const NewForm = ({
   // Check if we're in development mode
   const isDevelopment = process.env.NODE_ENV === "development";
   // -----------------------------
-  // AUTO-CREATE (GUARDED)
-  // -----------------------------
-  useEffect(() => {
-    if (!isInitialized) return;
 
-    if (isCreateMode && currentStep > 0 && !createApplication.isPending) {
-      console.log("new application");
-      clearAllData();
-      handleApplicationCreate();
-    }
-  }, [currentStep, applicationId, isInitialized, isCreateMode]);
+  // We no longer trigger creation here because EnrollmentForm handles it explicitly
+  // if you click "Save & Continue" without an ID.
 
   // -----------------------------
   // LOADING STATE
@@ -582,8 +555,8 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                        ? "hover:bg-muted"
-                        : "opacity-40 cursor-not-allowed",
+                          ? "hover:bg-muted"
+                          : "opacity-40 cursor-not-allowed",
                       !canNavigate && "pointer-events-none"
                     )}
                     title={
@@ -598,10 +571,10 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                          ? "bg-emerald-100 text-emerald-700"
-                          : canNavigate
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-muted/50 text-muted-foreground/50"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : canNavigate
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-muted/50 text-muted-foreground/50"
                       )}
                     >
                       {isCompleted && !isCurrent ? (

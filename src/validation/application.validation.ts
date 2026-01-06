@@ -5,6 +5,10 @@ import {
   type AdditionalServicesValues,
 } from "./application/additional-services";
 import {
+  enrollmentSchema,
+  type EnrollmentValues,
+} from "./application/enrollment";
+import {
   disabilitySchema,
   type DisabilityValues,
 } from "./application/disability";
@@ -54,6 +58,7 @@ export type ApplicationCreateValues = z.infer<typeof applicationCreateSchema>;
 
 export {
   additionalServicesSchema,
+  enrollmentSchema,
   disabilitySchema,
   documentsSchema,
   emergencyContactsSchema,
@@ -70,6 +75,7 @@ export {
 
 export type {
   AdditionalServicesValues,
+  EnrollmentValues,
   DisabilityValues,
   DocumentsFormValues,
   DocumentType,

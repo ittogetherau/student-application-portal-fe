@@ -6,6 +6,7 @@ import {
   DisabilitySupportValues,
   EmergencyContactValues,
   EmploymentHistoryValues,
+  EnrollmentValues,
   HealthCoverValues,
   LanguageCulturalValues,
   PersonalDetailsValues,
@@ -16,6 +17,7 @@ import {
   additionalServicesSchema,
   disabilitySupportSchema,
   emergencyContactSchema,
+  enrollmentSchema,
   employmentHistorySchema,
   healthCoverSchema,
   languageCulturalSchema,
@@ -49,31 +51,24 @@ class ApplicationStepsService extends ApiService {
 
   updateEnrollment = async (
     applicationId: string,
-    input: any
+    input: EnrollmentValues
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
+      const body = enrollmentSchema.parse(input);
+      // const data = await this.patch<StepUpdateResponse>(
+      //   this.stepPath(applicationId, 0, "enrollment"),
+      //   body,
+      //   true
+      // );
+
       const data = {
-        applicationId,
-        step: 0,
-        completed: true,
-        updatedAt: new Date().toISOString(),
-        message: "Enrollment details saved.",
-      };
+
+      }
       return {
         success: true,
         message: "Enrollment details saved.",
         data,
       };
-      // const data = await this.patch<StepUpdateResponse>(
-      //   this.stepPath(applicationId, 0, "enrollment"),
-      //   input,
-      //   true
-      // );
-      // return {
-      //   success: true,
-      //   message: "Enrollment details saved.",
-      //   data,
-      // };
     } catch (error) {
       return handleApiError<StepUpdateResponse>(
         error,

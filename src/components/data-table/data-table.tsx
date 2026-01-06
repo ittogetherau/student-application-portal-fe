@@ -2,7 +2,6 @@
 
 /* eslint-disable react-hooks/incompatible-library */
 
-import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -15,7 +14,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import * as React from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -24,13 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { DataTableToolbar } from "./data-table-toolbar";
-import { useSession } from "next-auth/react";
+import { siteRoutes } from "@/constants/site-routes";
+import { Application } from "@/constants/types";
 import { useRouter } from "next/navigation";
 import { ApplicationKanban } from "../dashboard/applications/kanban/application-kanban";
-import { Application } from "@/constants/types";
-import { siteRoutes } from "@/constants/site-routes";
+import { DataTableToolbar } from "./data-table-toolbar";
 
 export type DataTableFacetedFilterOption = {
   label: string;
@@ -148,13 +147,8 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const totalRows = searchFilteredData.length;
-  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
   const hasSearch = normalizedSearchColumns.length > 0;
 
-  const session = useSession();
-
-  const isAgent = session.data?.user?.role === "agent";
   const router = useRouter();
 
   return (
@@ -255,12 +249,10 @@ export function DataTable<TData, TValue>({
           </Table>
         </div>
       ) : (
-        <div className="rounded-md border  max-w-[1190px]">
-          <ApplicationKanban
-            data={searchFilteredData as Application[]}
-            isallowMovingInKanban={isallowMovingInKanban}
-          />
-        </div>
+        <ApplicationKanban
+          data={searchFilteredData as Application[]}
+          isallowMovingInKanban={isallowMovingInKanban}
+        />
       )}
 
       {view === "table" && enableLocalPagination ? (

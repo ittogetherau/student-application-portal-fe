@@ -10,3 +10,4 @@ export * from "./qualifications";
 export * from "./schooling";
 export * from "./survey";
 export * from "./usi";
+export * from "./enrollment";

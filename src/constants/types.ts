@@ -29,31 +29,6 @@ export interface User {
 }
 
 // Application Types
-export enum ApplicationStatus {
-  DRAFT = "draft",
-  SUBMITTED = "submitted",
-  UNDER_REVIEW = "under_review",
-  OFFER_SENT = "offer_sent",
-  OFFER_ACCEPTED = "offer_accepted",
-  GS_DOCUMENTS_PENDING = "gs_documents_pending",
-  GS_INTERVIEW_SCHEDULED = "gs_interview_scheduled",
-  GS_APPROVED = "gs_approved",
-  FEE_PAYMENT_PENDING = "fee_payment_pending",
-  COE_ISSUED = "coe_issued",
-  REJECTED = "rejected",
-}
-
-export enum ApplicationStage {
-  INITIAL_REVIEW = "initial_review",
-  DOCUMENT_VERIFICATION = "document_verification",
-  OFFER_GENERATION = "offer_generation",
-  OFFER_ACCEPTANCE = "offer_acceptance",
-  GS_ASSESSMENT = "gs_assessment",
-  FEE_PAYMENT = "fee_payment",
-  COE_GENERATION = "coe_generation",
-  COMPLETED = "completed",
-}
-
 export interface Application {
   id: string;
   referenceNumber: string;
@@ -62,8 +37,7 @@ export interface Application {
   studentName: string;
   studentEmail: string;
   studentPhone: string;
-  status: ApplicationStatus;
-  currentStage: ApplicationStage;
+  stage: APPLICATION_STAGE;
   assignedStaffId?: string;
   assignedStaffName?: string;
   submittedAt: string;
@@ -277,7 +251,7 @@ export interface Notification {
 
 // Filter Types
 export interface ApplicationFilters {
-  status?: ApplicationStatus[];
+  stage?: APPLICATION_STAGE[];
   dateRange?: {
     from: string;
     to: string;

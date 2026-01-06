@@ -28,7 +28,7 @@ export function ApplicationCard({
     data: {
       type: "Application",
       application: app,
-      status: app.status,
+      status: app.stage,
     },
   });
 

@@ -101,7 +101,9 @@ export default function AgentApplicationDetail() {
 
           <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
             {/* Badge */}
-            <ApplicationStatusBadge status={application.current_stage} />
+            <ApplicationStatusBadge
+              status={application.current_stage || application.stage || ""}
+            />
 
             {/* Edit */}
             {ROLE === "agent" && (

@@ -9,6 +9,7 @@ export interface ThreadMessage {
   author_role: string;
   author_name: string;
   created_at: string;
+  attachments?: ThreadMessageAttachment[];
 }
 
 export interface CommunicationThread {
@@ -47,6 +48,18 @@ export interface StaffThreadSummary {
   status: string;
   deadline: string | null;
   status_updated_at: string;
+}
+
+export interface ThreadMessageAttachment {
+  id?: string;
+  url: string;
+  file_name?: string;
+  mime_type?: string;
+}
+
+export interface AddThreadMessagePayload {
+  message: string;
+  attachments?: File[] | FileList;
 }
 
 class ApplicationThreadsService extends ApiService {
@@ -103,7 +116,7 @@ class ApplicationThreadsService extends ApiService {
   addMessage(
     applicationId: string,
     threadId: string,
-    message: string
+    payload: AddThreadMessagePayload
   ): Promise<ServiceResponse<ThreadMessage>> {
     if (!applicationId || !threadId) {
       return Promise.resolve({
@@ -113,7 +126,29 @@ class ApplicationThreadsService extends ApiService {
       });
     }
 
-    return resolveServiceCall<ThreadMessage>(
+    const files = Array.from(payload.attachments ?? []);
+    const message = payload.message?.trim() || "";
+
+    if (files.length > 0) {
+      const formData = new FormData();
+      formData.append("message", message);
+      files.forEach((file) => {
+        formData.append("attachments", file, file.name);
+      });
+
+      return resolveServiceCall(
+        () =>
+          this.post(
+            `${this.basePath}/${applicationId}/threads/${threadId}/messages`,
+            formData,
+            true
+          ),
+        "Message added successfully.",
+        "Failed to add message to thread"
+      );
+    }
+
+    return resolveServiceCall(
       () =>
         this.post(
           `${this.basePath}/${applicationId}/threads/${threadId}/messages`,

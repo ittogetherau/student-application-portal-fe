@@ -1,13 +1,8 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
-
-import {
-  ApplicationStage,
-  ApplicationStatus,
-  type Application,
-} from "@/constants/types";
+import { useEffect } from "react";
+import { APPLICATION_STAGE, type Application } from "@/constants/types";
 import applicationService, {
   type ApplicationListParams,
 } from "@/service/application.service";
@@ -23,16 +18,24 @@ type UseApplicationsOptions = {
   storeKey?: string;
 };
 
+const normalizeStage = (value?: string): APPLICATION_STAGE => {
+  if (!value) return APPLICATION_STAGE.DRAFT;
+  const stage = value as APPLICATION_STAGE;
+  return Object.values(APPLICATION_STAGE).includes(stage)
+    ? stage
+    : APPLICATION_STAGE.DRAFT;
+};
+
 const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
   const applications: Application[] = [];
   let total: number | undefined;
 
   const pushMapped = (item: Record<string, unknown>, index: number) => {
-    const rawStatus = (item.status as string) || (item.current_stage as string);
-    const normalizedStatus =
-      rawStatus?.toLowerCase() === "draft"
-        ? ApplicationStatus.DRAFT
-        : (rawStatus as ApplicationStatus) ?? ApplicationStatus.DRAFT;
+    const rawStage =
+      (item.stage as string) ||
+      (item.current_stage as string) ||
+      (item.status as string);
+    const normalizedStage = normalizeStage(rawStage);
 
     const mapped: Application = {
       id: String(item.id ?? index),
@@ -44,15 +47,12 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       studentName: (item.student_name as string) ?? "Unknown student",
       studentEmail: (item.student_email as string) ?? "",
       studentPhone: (item.student_phone as string) ?? "",
-      status: normalizedStatus,
-      currentStage:
-        (item.current_stage as ApplicationStage) ??
-        ApplicationStage.INITIAL_REVIEW,
+      stage: normalizedStage,
       assignedStaffId: item.assigned_staff_id as string | undefined,
       assignedStaffName: item.assigned_staff_name as string | undefined,
-      destination: (item.destination as string) ?? "—",
-      course: (item.course_name as string) ?? (item.course as string) ?? "—",
-      intake: (item.intake as string) ?? "—",
+      destination: (item.destination as string) || "N/A",
+      course: (item.course_name as string) || (item.course as string) || "N/A",
+      intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",
       updatedAt:
         (item.updated_at as string) ?? (item.created_at as string) ?? "",
@@ -72,14 +72,12 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
   } else if (raw && typeof raw === "object") {
     const obj = raw as Record<string, unknown>;
 
-    // Check if the response has a 'total' or 'count' field
     if (typeof obj.total === "number") {
       total = obj.total;
     } else if (typeof obj.count === "number") {
       total = obj.count;
     }
 
-    // Check if there's a 'data' or 'applications' or 'items' array
     const dataArray = obj.data ?? obj.applications ?? obj.items;
     if (Array.isArray(dataArray)) {
       dataArray.forEach((item, idx) => {

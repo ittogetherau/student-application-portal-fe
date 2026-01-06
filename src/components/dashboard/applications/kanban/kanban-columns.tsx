@@ -1,4 +1,4 @@
-import { Application, ApplicationStatus } from "@/constants/types";
+import { Application, APPLICATION_STAGE } from "@/constants/types";
 import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
@@ -11,14 +11,14 @@ import {
 import { ApplicationCard } from "./application-card";
 
 export function KanbanColumns({
-  status,
+  stage,
   applications,
   statusLabel,
   statusColor,
   statusBackground,
   isallowMovingInKanban,
 }: {
-  status: ApplicationStatus;
+  stage: APPLICATION_STAGE;
   applications: Application[];
   statusLabel: string;
   statusColor: string;
@@ -31,10 +31,10 @@ export function KanbanColumns({
   );
 
   const { setNodeRef, isOver } = useDroppable({
-    id: status,
+    id: stage,
     data: {
       type: "StatusColumn",
-      status,
+      stage,
     },
     disabled: !isallowMovingInKanban,
   });
@@ -47,7 +47,7 @@ export function KanbanColumns({
         statusBackground,
         isOver && isallowMovingInKanban && "ring-2 ring-primary ring-offset-2"
       )}
-      data-status={status}
+      data-stage={stage}
     >
       <div className="bg-background/50 rounded-lg p-3 mb-3 border">
         <div className="flex items-center gap-2">

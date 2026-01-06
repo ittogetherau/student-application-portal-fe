@@ -61,7 +61,7 @@ export const ThreadListItem = ({
       </Badge>
     </div>
     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-      <span className="truncate">Deadline: {thread.deadline || "—"}</span>
+      <span className="truncate">Deadline: {thread.deadline || "-"}</span>
       <Badge
         variant={statusVariant(thread.status)}
         className="text-[10px] ml-2 shrink-0"
@@ -81,26 +81,52 @@ export const MessageBubble = ({
 }: {
   message: ThreadMessage;
   isSelf: boolean;
-}) => (
-  <div className={`flex ${isSelf ? "justify-end" : "justify-start"} mb-3`}>
-    <div
-      className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-        isSelf ? "bg-primary text-primary-foreground" : "bg-muted border"
-      }`}
-    >
-      <div className="flex items-center gap-1.5 mb-1 text-[10px] opacity-70">
-        <span className="font-semibold truncate">{message.author_name}</span>
-        <span>Aú</span>
-        <span className="whitespace-nowrap">
-          {formatDateTime(message.created_at)}
-        </span>
+}) => {
+  const authorLabel =
+    message.author_name || message.author_email?.split("@")[0] || "User";
+
+  return (
+    <div className={`flex ${isSelf ? "justify-end" : "justify-start"} mb-3`}>
+      <div
+        className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+          isSelf ? "bg-primary text-primary-foreground" : "bg-muted border"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 mb-1 text-[10px] opacity-70">
+          <span className="font-semibold truncate">{authorLabel}</span>
+          <span>-</span>
+          <span className="whitespace-nowrap">
+            {formatDateTime(message.created_at)}
+          </span>
+        </div>
+        {message.message && (
+          <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
+            {message.message}
+          </p>
+        )}
+        {message.attachments?.length ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {message.attachments.map((attachment, idx) => (
+              <a
+                key={attachment.id ?? `${attachment.url}-${idx}`}
+                href={attachment.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block h-20 w-20 overflow-hidden rounded-md border bg-background/60"
+              >
+                <img
+                  src={attachment.url}
+                  alt={attachment.file_name || `Attachment ${idx + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
-      <p className="text-[13px] leading-relaxed break-words whitespace-pre-wrap">
-        {message.message}
-      </p>
     </div>
-  </div>
-);
+  );
+};
 
 export const EmptyState = ({
   icon: Icon,

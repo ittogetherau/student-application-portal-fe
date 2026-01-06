@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { siteRoutes } from "@/constants/site-routes";
-import type { Application } from "@/constants/types";
+import type { Application, APPLICATION_STAGE } from "@/constants/types";
 import type {
   ApplicationDetailResponse,
   ApplicationListParams,
@@ -294,7 +294,7 @@ export const useApplicationApproveMutation = (applicationId: string | null) => {
   return useMutation<
     {
       application_id: string;
-      current_stage: string;
+      current_stage: APPLICATION_STAGE;
       message: string;
       updated_at: string;
     },
@@ -341,7 +341,7 @@ export const useApplicationRejectMutation = (applicationId: string | null) => {
   return useMutation<
     {
       application_id: string;
-      current_stage: string;
+      current_stage: APPLICATION_STAGE;
       message: string;
       updated_at: string;
     },

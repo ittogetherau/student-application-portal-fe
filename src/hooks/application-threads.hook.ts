@@ -1,6 +1,7 @@
 "use client";
 
 import applicationThreadsService, {
+  AddThreadMessagePayload,
   CommunicationThread,
   CreateThreadPayload,
   StaffThreadSummary,
@@ -71,16 +72,16 @@ export const useAddThreadMessageMutation = (
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation<ThreadMessage, Error, string>({
+  return useMutation<ThreadMessage, Error, AddThreadMessagePayload>({
     mutationKey: ["application-thread-add-message", applicationId, threadId],
-    mutationFn: async (message) => {
+    mutationFn: async (payload) => {
       if (!applicationId) throw new Error("Missing application reference.");
       if (!threadId) throw new Error("Missing thread reference.");
 
       const response = await applicationThreadsService.addMessage(
         applicationId,
         threadId,
-        message
+        payload
       );
 
       if (!response.success) throw new Error(response.message);

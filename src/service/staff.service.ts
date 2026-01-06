@@ -2,7 +2,7 @@ import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/utils/handle-api-error";
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationDetailResponse } from "@/service/application.service";
-import type { Application, Document } from "@/constants/types";
+import type { Application, APPLICATION_STAGE, Document } from "@/constants/types";
 
 // --- Request Payloads ---
 
@@ -67,7 +67,7 @@ export interface DocumentVerificationResponse {
 
 export interface ApplicationActionResponse {
   application_id: string;
-  current_stage: string;
+  current_stage: APPLICATION_STAGE;
   message: string;
   updated_at: string;
 }

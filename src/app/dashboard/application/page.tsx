@@ -3,6 +3,7 @@
 import { ApplicationTable } from "@/components/dashboard/applications/application-table";
 import { Button } from "@/components/ui/button";
 import useApplications from "@/hooks/useApplications.hook";
+import { useSession } from "next-auth/react";
 
 const AgentApplicationPage = () => {
   const {
@@ -16,6 +17,9 @@ const AgentApplicationPage = () => {
     isFetching,
     error,
   } = useApplications();
+
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
 
   const disableNext = isLoading || isFetching || page >= maxPage;
   const heading =

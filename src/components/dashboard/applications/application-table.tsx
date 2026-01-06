@@ -4,14 +4,15 @@ import {
   type DataTableFacetedFilter,
 } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import type { Application } from "@/constants/types";
+import { USER_ROLE, type Application } from "@/constants/types";
 import Link from "next/link";
 import * as React from "react";
 import {
   applicationColumns,
-  applicationStatusFilterOptions,
+  applicationStageFilterOptions,
 } from "./application-table-columns";
 import { siteRoutes } from "@/constants/site-routes";
+import { useSession } from "next-auth/react";
 
 interface ApplicationTableProps {
   data?: Application[];
@@ -30,12 +31,15 @@ export const ApplicationTable = ({
 }: ApplicationTableProps) => {
   const [view, setView] = React.useState<"table" | "kanban">("table");
 
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
+
   const filters = React.useMemo<DataTableFacetedFilter[]>(
     () => [
       {
-        columnId: "status",
-        title: "Status",
-        options: applicationStatusFilterOptions,
+        columnId: "stage",
+        title: "Stage",
+        options: applicationStageFilterOptions,
       },
     ],
     []
@@ -73,11 +77,13 @@ export const ApplicationTable = ({
             <span className="text-xs text-muted-foreground">Refreshing...</span>
           ) : null}
 
-          <Button asChild size="sm">
-            <Link href={siteRoutes.dashboard.application.create}>
-              New Application
-            </Link>
-          </Button>
+          {ROLE === USER_ROLE.AGENT && (
+            <Button asChild size="sm">
+              <Link href={siteRoutes.dashboard.application.create}>
+                New Application
+              </Link>
+            </Button>
+          )}
 
           {isKanban ? (
             <Button

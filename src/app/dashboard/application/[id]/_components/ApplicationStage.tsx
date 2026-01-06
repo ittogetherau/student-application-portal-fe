@@ -25,6 +25,7 @@ import {
   useApplicationGenerateOfferLetterMutation,
   useApplicationGetQuery,
 } from "@/hooks/useApplication.hook";
+import { APPLICATION_STAGE } from "@/constants/types";
 import { Check, FileCheck, Loader2, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -58,7 +59,7 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
   const application = response?.data;
 
   // Handlers
-  const handleStartReview = (toStage: string) => {
+  const handleStartReview = (toStage: APPLICATION_STAGE) => {
     changeStage.mutate(
       { to_stage: toStage },
       {
@@ -89,13 +90,14 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
       {
         onSuccess: (data) => {
           toast.success("Offer letter generated successfully!");
-          if (data.pdf_url) {
-            window.open(data.pdf_url, "_blank");
-          }
+          // if (data.pdf_url) {
+          //   window.open(data.pdf_url, "_blank");
+          // }
           setShowOfferLetterDialog(false);
           setCourseStartDate("");
           setTuitionFee(0);
           setMaterialFee(0);
+          handleStageChnage("gs_assessment")
         },
         onError: (error) => {
           toast.error(error.message || "Failed to generate offer letter");
@@ -126,7 +128,7 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
 
   return (
     <div className="space-y-4">
-      {application.current_stage === "submitted" ? (
+      {application.current_stage === APPLICATION_STAGE.SUBMITTED ? (
         <Card>
           <CardHeader>
             <CardTitle>Ready to Start Review?</CardTitle>
@@ -139,7 +141,7 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
           </CardContent>
           <CardFooter>
             <Button
-              onClick={() => handleStartReview("staff_review")}
+              onClick={() => handleStartReview(APPLICATION_STAGE.STAFF_REVIEW)}
               disabled={changeStage.isPending}
               className="w-full"
             >
@@ -150,7 +152,7 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
             </Button>
           </CardFooter>
         </Card>
-      ) : application.current_stage === "staff_review" ? (
+      ) : application.current_stage === APPLICATION_STAGE.STAFF_REVIEW ? (
         <Card>
           <CardHeader className="p-4">
             <CardTitle>Confirm Applicant Details</CardTitle>
@@ -166,7 +168,9 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
 
           <CardFooter className="p-4 pt-0">
             <Button
-              onClick={() => handleStartReview("offer_generated")}
+              onClick={() =>
+                handleStartReview(APPLICATION_STAGE.OFFER_GENERATED)
+              }
               disabled={changeStage.isPending}
               variant="outline"
               className="w-full"
@@ -178,7 +182,7 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
             </Button>
           </CardFooter>
         </Card>
-      ) : application.current_stage === "offer_generated" ? (
+      ) : application.current_stage === APPLICATION_STAGE.OFFER_GENERATED ? (
         <Card className="border-green-200 bg-green-50/50">
           <CardHeader>
             <CardTitle className="text-lg">
@@ -304,6 +308,15 @@ const ApplicationStage = ({ id }: ApplicationStageProps) => {
                       Manage the conditions that will be included in the letter.
                     </p>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="materialFee">Offer letter</Label>
+                  <Input
+                    id="offerLetter"
+                    type="file"
+                    placeholder="Upload  Custom Offer Letter"
+                  />
                 </div>
 
                 <DialogFooter>

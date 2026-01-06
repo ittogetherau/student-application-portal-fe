@@ -24,6 +24,8 @@ import { Separator } from "@radix-ui/react-select";
 import { MessageSquare, Send, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import ThreadAttachmentInput from "@/components/shared/thread-attachment-input";
 import {
   EmptyState,
   formatDateTime,
@@ -43,6 +45,7 @@ export default function TasksPage() {
     string | null
   >(null);
   const [composer, setComposer] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const applicationThreadsQuery = useApplicationThreadsQuery(
     selectedApplicationId
@@ -67,13 +70,16 @@ export default function TasksPage() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    (() => {
-      if (!selectedThreadId && staffThreadsList.length > 0) {
-        setSelectedThreadId(staffThreadsList[0].id);
-        setSelectedApplicationId(staffThreadsList[0].application_id);
-      }
-    })();
+    if (!selectedThreadId && staffThreadsList.length > 0) {
+      setSelectedThreadId(staffThreadsList[0].id);
+      setSelectedApplicationId(staffThreadsList[0].application_id);
+    }
   }, [staffThreadsList, selectedThreadId]);
+
+  useEffect(() => {
+    setComposer("");
+    setAttachments([]);
+  }, [selectedThreadId]);
 
   const selectedThreadFromApp = useMemo(
     () => applicationThreads.find((t) => t.id === selectedThreadId) || null,
@@ -108,18 +114,30 @@ export default function TasksPage() {
   };
 
   const handleSend = async () => {
+    if (addMessage.isPending) return;
     const text = composer.trim();
-    if (!text || !selectedThreadId || !selectedApplicationId) return;
-    await addMessage.mutateAsync(text);
+    if (
+      (!text && attachments.length === 0) ||
+      !selectedThreadId ||
+      !selectedApplicationId
+    )
+      return;
+    if (attachments.length > 0 && !text) {
+      toast.error("Please add a message when uploading attachments.");
+      return;
+    }
+    const messageToSend = text;
+    await addMessage.mutateAsync({ message: messageToSend, attachments });
     setComposer("");
+    setAttachments([]);
   };
 
   const messages = selectedThreadFromApp?.messages ?? [];
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] bg-background">
-      <div className="grid grid-cols-7 w-full">
-        <aside className="col-span-2 border-r flex flex-col bg-muted/20">
+    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-background">
+      <div className="grid grid-cols-9 h-full">
+        <aside className="col-span-2 border-r flex flex-col bg-muted/20 overflow-hidden">
           <div className="p-4 border-b bg-background/95 backdrop-blur">
             <h2 className="text-base font-semibold">Communication Threads</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -128,33 +146,31 @@ export default function TasksPage() {
             </p>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-2">
-              {isLoading ? (
-                <div className="text-sm text-muted-foreground p-3">
-                  Loading...
-                </div>
-              ) : error ? (
-                <div className="text-sm text-destructive p-3">Load failed</div>
-              ) : staffThreadsList.length === 0 ? (
-                <EmptyState icon={MessageSquare} text="No threads" />
-              ) : (
-                <ScrollArea className="max-h-[80vh] overflow-y-scroll">
-                  {staffThreadsList.map((thread) => (
-                    <ThreadListItem
-                      key={thread.id}
-                      thread={thread}
-                      isActive={thread.id === selectedThreadId}
-                      onSelect={() => handleSelectThread(thread)}
-                    />
-                  ))}
-                </ScrollArea>
-              )}
-            </div>
-          </ScrollArea>
+          <div className="flex-1 overflow-y-auto p-2">
+            {isLoading ? (
+              <div className="text-sm text-muted-foreground p-3">
+                Loading...
+              </div>
+            ) : error ? (
+              <div className="text-sm text-destructive p-3">Load failed</div>
+            ) : staffThreadsList.length === 0 ? (
+              <EmptyState icon={MessageSquare} text="No threads" />
+            ) : (
+              <div className="space-y-1">
+                {staffThreadsList.map((thread) => (
+                  <ThreadListItem
+                    key={thread.id}
+                    thread={thread}
+                    isActive={thread.id === selectedThreadId}
+                    onSelect={() => handleSelectThread(thread)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </aside>
 
-        <section className="col-span-4 flex flex-col">
+        <section className="col-span-5 flex flex-col overflow-hidden">
           {selectedThread ? (
             <>
               <div className="p-4 border-b bg-background/95 backdrop-blur">
@@ -165,7 +181,7 @@ export default function TasksPage() {
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>{selectedThread.issue_type || "Thread"}</span>
-                      <span>Aú</span>
+                      <span>·</span>
                       <span>
                         {selectedThread.target_section ||
                           selectedThread.application_id ||
@@ -176,11 +192,11 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-4 bg-muted/10 max-h-[75vh]">
+              <div className="flex-1 overflow-y-auto p-4 bg-muted/10">
                 {messages.length === 0 ? (
                   <EmptyState icon={MessageSquare} text="No messages" />
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     {messages.map((msg) => (
                       <MessageBubble
                         key={msg.id}
@@ -189,9 +205,9 @@ export default function TasksPage() {
                       />
                     ))}
                     <div ref={endRef} />
-                  </>
+                  </div>
                 )}
-              </ScrollArea>
+              </div>
 
               <div className="p-4 border-t bg-background/95 backdrop-blur">
                 <div className="flex gap-2">
@@ -211,7 +227,7 @@ export default function TasksPage() {
                   <Button
                     onClick={handleSend}
                     disabled={
-                      !composer.trim() ||
+                      (!composer.trim() && attachments.length === 0) ||
                       addMessage.isPending ||
                       !selectedApplicationId
                     }
@@ -220,34 +236,42 @@ export default function TasksPage() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* <ThreadAttachmentInput
+                  attachments={attachments}
+                  onChange={setAttachments}
+                  disabled={!selectedApplicationId || addMessage.isPending}
+                /> */}
               </div>
             </>
           ) : (
-            <EmptyState icon={Sparkles} text="Select thread" />
+            <div className="flex-1 flex items-center justify-center">
+              <EmptyState icon={Sparkles} text="Select thread" />
+            </div>
           )}
         </section>
 
-        <aside className="col-span-1 border-l bg-muted/20 p-4">
-          <h3 className="text-sm font-semibold mb-2">Thread Details</h3>
-          {selectedThread ? (
-            <div className="space-y-3 text-xs">
-              <div>
-                <p className="text-muted-foreground mb-1">Issue Type</p>
-                <p className="font-medium">
-                  {selectedThread.issue_type || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Target Section</p>
-                <p className="font-medium">
-                  {selectedThread.target_section ||
-                    selectedThread.application_id ||
-                    "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Priority</p>
-                <div className="flex items-center gap-2">
+        <aside className="col-span-2 border-l bg-muted/20 overflow-y-auto">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold mb-3">Thread Details</h3>
+            {selectedThread ? (
+              <div className="space-y-4 text-xs">
+                <div>
+                  <p className="text-muted-foreground mb-1">Issue Type</p>
+                  <p className="font-medium">
+                    {selectedThread.issue_type || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground mb-1">Target Section</p>
+                  <p className="font-medium break-words">
+                    {selectedThread.target_section ||
+                      selectedThread.application_id ||
+                      "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground mb-1">Priority</p>
                   <Select
                     value={selectedThread.priority}
                     onValueChange={(v) => updatePriority.mutate(v)}
@@ -259,16 +283,14 @@ export default function TasksPage() {
                       <SelectValue placeholder="Priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="high">high</SelectItem>
-                      <SelectItem value="medium">medium</SelectItem>
-                      <SelectItem value="low">low</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Status</p>
-                <div className="flex items-center gap-2">
+                <div>
+                  <p className="text-muted-foreground mb-1">Status</p>
                   <Select
                     value={selectedThread.status}
                     onValueChange={(v) => updateStatus.mutate(v)}
@@ -278,37 +300,35 @@ export default function TasksPage() {
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">pending</SelectItem>
-                      <SelectItem value="under_review">under review</SelectItem>
-                      <SelectItem value="completed">completed</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="under_review">Under Review</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Last Updated</p>
-                <p className="font-medium">
-                  {formatDateTime(selectedThread.status_updated_at)}
-                </p>
-              </div>
+                <div>
+                  <p className="text-muted-foreground mb-1">Last Updated</p>
+                  <p className="font-medium text-xs break-words">
+                    {formatDateTime(selectedThread.status_updated_at)}
+                  </p>
+                </div>
 
-              <Separator />
-
-              <div>
-                <Link
-                  href={`${siteRoutes.dashboard.application.root}/${selectedApplicationId}`}
-                >
-                  <Button size={"sm"} variant={"outline"} className="w-full ">
-                    View Application
-                  </Button>
-                </Link>
+                <div className="pt-2 border-t">
+                  <Link
+                    href={`${siteRoutes.dashboard.application.root}/${selectedApplicationId}`}
+                  >
+                    <Button size="sm" variant="outline" className="w-full">
+                      View Application
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Select a thread to view details
-            </p>
-          )}
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Select a thread to view details
+              </p>
+            )}
+          </div>
         </aside>
       </div>
     </div>

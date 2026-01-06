@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Application, ApplicationStatus } from "@/constants/types";
+import { Application, APPLICATION_STAGE } from "@/constants/types";
 import applicationService from "@/service/application.service";
 import {
   closestCorners,
@@ -32,7 +32,57 @@ function isTouchDevice() {
   return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
-// Droppable Status Column Component
+const STAGES: APPLICATION_STAGE[] = [
+  APPLICATION_STAGE.DRAFT,
+  APPLICATION_STAGE.SUBMITTED,
+  APPLICATION_STAGE.STAFF_REVIEW,
+  APPLICATION_STAGE.AWAITING_DOCUMENTS,
+  APPLICATION_STAGE.GS_ASSESSMENT,
+  APPLICATION_STAGE.OFFER_GENERATED,
+  APPLICATION_STAGE.OFFER_ACCEPTED,
+  APPLICATION_STAGE.ENROLLED,
+  APPLICATION_STAGE.REJECTED,
+  APPLICATION_STAGE.WITHDRAWN,
+];
+
+const STAGE_LABELS: Record<APPLICATION_STAGE, string> = {
+  [APPLICATION_STAGE.DRAFT]: "Draft",
+  [APPLICATION_STAGE.SUBMITTED]: "Submitted",
+  [APPLICATION_STAGE.STAFF_REVIEW]: "Staff Review",
+  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "Awaiting Documents",
+  [APPLICATION_STAGE.GS_ASSESSMENT]: "GS Assessment",
+  [APPLICATION_STAGE.OFFER_GENERATED]: "Offer Generated",
+  [APPLICATION_STAGE.OFFER_ACCEPTED]: "Offer Accepted",
+  [APPLICATION_STAGE.ENROLLED]: "Enrolled",
+  [APPLICATION_STAGE.REJECTED]: "Rejected",
+  [APPLICATION_STAGE.WITHDRAWN]: "Withdrawn",
+};
+
+const STAGE_COLORS: Record<APPLICATION_STAGE, string> = {
+  [APPLICATION_STAGE.DRAFT]: "bg-gray-500",
+  [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500",
+  [APPLICATION_STAGE.STAFF_REVIEW]: "bg-yellow-500",
+  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "bg-orange-500",
+  [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500",
+  [APPLICATION_STAGE.OFFER_GENERATED]: "bg-purple-500",
+  [APPLICATION_STAGE.OFFER_ACCEPTED]: "bg-green-500",
+  [APPLICATION_STAGE.ENROLLED]: "bg-emerald-600",
+  [APPLICATION_STAGE.REJECTED]: "bg-red-500",
+  [APPLICATION_STAGE.WITHDRAWN]: "bg-slate-500",
+};
+
+const STAGE_BACKGROUNDS: Record<APPLICATION_STAGE, string> = {
+  [APPLICATION_STAGE.DRAFT]: "bg-gray-500/5",
+  [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500/5",
+  [APPLICATION_STAGE.STAFF_REVIEW]: "bg-yellow-500/5",
+  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "bg-orange-500/5",
+  [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500/5",
+  [APPLICATION_STAGE.OFFER_GENERATED]: "bg-purple-500/5",
+  [APPLICATION_STAGE.OFFER_ACCEPTED]: "bg-green-500/5",
+  [APPLICATION_STAGE.ENROLLED]: "bg-emerald-500/5",
+  [APPLICATION_STAGE.REJECTED]: "bg-red-500/5",
+  [APPLICATION_STAGE.WITHDRAWN]: "bg-slate-500/5",
+};
 
 export function ApplicationKanban({
   data,
@@ -43,52 +93,10 @@ export function ApplicationKanban({
     useState<Application | null>(null);
   const queryClient = useQueryClient();
 
-  // Update local state when data prop changes
   useEffect(() => {
     setApplications(data);
   }, [data]);
 
-  const statuses = [
-    ApplicationStatus.DRAFT,
-    ApplicationStatus.SUBMITTED,
-    ApplicationStatus.UNDER_REVIEW,
-    ApplicationStatus.OFFER_SENT,
-    ApplicationStatus.OFFER_ACCEPTED,
-    ApplicationStatus.GS_INTERVIEW_SCHEDULED,
-    ApplicationStatus.COE_ISSUED,
-  ];
-
-  const statusLabels: Record<string, string> = {
-    [ApplicationStatus.SUBMITTED]: "Submitted",
-    [ApplicationStatus.DRAFT]: "Draft",
-    [ApplicationStatus.UNDER_REVIEW]: "Under Review",
-    [ApplicationStatus.OFFER_SENT]: "Offer Sent",
-    [ApplicationStatus.OFFER_ACCEPTED]: "Offer Accepted",
-    [ApplicationStatus.GS_INTERVIEW_SCHEDULED]: "GS Interview",
-    [ApplicationStatus.COE_ISSUED]: "COE Issued",
-  };
-
-  const statusColors: Record<string, string> = {
-    [ApplicationStatus.SUBMITTED]: "bg-blue-500",
-    [ApplicationStatus.UNDER_REVIEW]: "bg-yellow-500",
-    [ApplicationStatus.DRAFT]: "bg-gray-500",
-    [ApplicationStatus.OFFER_SENT]: "bg-purple-500",
-    [ApplicationStatus.OFFER_ACCEPTED]: "bg-green-500",
-    [ApplicationStatus.GS_INTERVIEW_SCHEDULED]: "bg-orange-500",
-    [ApplicationStatus.COE_ISSUED]: "bg-emerald-500",
-  };
-
-  const statusBackgrounds: Record<string, string> = {
-    [ApplicationStatus.SUBMITTED]: "bg-blue-500/5",
-    [ApplicationStatus.UNDER_REVIEW]: "bg-yellow-500/5",
-    [ApplicationStatus.DRAFT]: "bg-gray-500/5",
-    [ApplicationStatus.OFFER_SENT]: "bg-purple-500/5",
-    [ApplicationStatus.OFFER_ACCEPTED]: "bg-green-500/5",
-    [ApplicationStatus.GS_INTERVIEW_SCHEDULED]: "bg-orange-500/5",
-    [ApplicationStatus.COE_ISSUED]: "bg-emerald-500/5",
-  };
-
-  // Optimize sensor to reduce unnecessary drag events
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -123,22 +131,19 @@ export function ApplicationKanban({
       const activeId = active.id as string;
       if (active.data.current?.type !== "Application") return;
 
-      // Find the source application
       const activeApplication = applications.find((app) => app.id === activeId);
       if (!activeApplication) return;
 
-      // Find the destination status
       const isOverColumn = over.data.current?.type === "StatusColumn";
-      const overStatus = isOverColumn
-        ? (over.id as ApplicationStatus)
-        : over.data.current?.status;
+      const overStage = isOverColumn
+        ? (over.id as APPLICATION_STAGE)
+        : (over.data.current?.stage as APPLICATION_STAGE | undefined);
 
-      if (!overStatus || activeApplication.status === overStatus) return;
+      if (!overStage || activeApplication.stage === overStage) return;
 
-      // Update local state optimistically
       setApplications((prev) =>
         prev.map((app) =>
-          app.id === activeId ? { ...app, status: overStatus } : app
+          app.id === activeId ? { ...app, stage: overStage } : app
         )
       );
     },
@@ -152,7 +157,6 @@ export function ApplicationKanban({
 
       if (!over || !isallowMovingInKanban) {
         setActiveApplication(null);
-        // Revert to original data if drag was cancelled
         setApplications(data);
         return;
       }
@@ -165,21 +169,19 @@ export function ApplicationKanban({
         return;
       }
 
-      // Find the destination status
       const isOverColumn = over.data.current?.type === "StatusColumn";
-      const overStatus = isOverColumn
-        ? (over.id as ApplicationStatus)
-        : over.data.current?.status;
+      const overStage = isOverColumn
+        ? (over.id as APPLICATION_STAGE)
+        : (over.data.current?.stage as APPLICATION_STAGE | undefined);
 
-      if (!overStatus || activeApp.status === overStatus) {
+      if (!overStage || activeApp.stage === overStage) {
         setActiveApplication(null);
         return;
       }
 
-      // Handle reordering within the same column
-      if (activeApp.status === overStatus) {
+      if (activeApp.stage === overStage) {
         const sourceColumn = applications.filter(
-          (app) => app.status === overStatus
+          (app) => app.stage === overStage
         );
         const activeIndex = sourceColumn.findIndex(
           (app) => app.id === activeId
@@ -191,7 +193,7 @@ export function ApplicationKanban({
         if (activeIndex !== overIndex && overIndex !== -1) {
           const reordered = arrayMove(sourceColumn, activeIndex, overIndex);
           setApplications((prev) => {
-            const otherApps = prev.filter((app) => app.status !== overStatus);
+            const otherApps = prev.filter((app) => app.stage !== overStage);
             return [...otherApps, ...reordered];
           });
         }
@@ -199,21 +201,18 @@ export function ApplicationKanban({
         return;
       }
 
-      // Update status via API
       try {
         const response = await applicationService.updateApplication(activeId, {
-          status: overStatus,
+          stage: overStage,
         });
 
         if (response.success) {
-          // Update local state
           setApplications((prev) =>
             prev.map((app) =>
-              app.id === activeId ? { ...app, status: overStatus } : app
+              app.id === activeId ? { ...app, stage: overStage } : app
             )
           );
 
-          // Invalidate queries to refresh data
           queryClient.invalidateQueries({
             queryKey: ["application-list"],
           });
@@ -221,38 +220,36 @@ export function ApplicationKanban({
             queryKey: ["application-get", activeId],
           });
 
-          toast.success(`Application moved to "${statusLabels[overStatus]}"`, {
-            icon: "✅",
+          toast.success(`Application moved to "${STAGE_LABELS[overStage]}"`, {
+            icon: "OK",
           });
         } else {
           throw new Error(response.message || "Failed to update application");
         }
       } catch (error) {
-        // Revert on error
         setApplications(data);
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to update application status"
+            : "Failed to update application stage"
         );
       }
 
       setActiveApplication(null);
     },
-    [applications, isallowMovingInKanban, statusLabels, data]
+    [applications, isallowMovingInKanban, data, queryClient]
   );
 
-  // Group applications by status
-  const applicationsByStatus = useMemo(() => {
-    const grouped: Record<ApplicationStatus, Application[]> = {} as Record<
-      ApplicationStatus,
+  const applicationsByStage = useMemo(() => {
+    const grouped: Record<APPLICATION_STAGE, Application[]> = {} as Record<
+      APPLICATION_STAGE,
       Application[]
     >;
-    statuses.forEach((status) => {
-      grouped[status] = applications.filter((app) => app.status === status);
+    STAGES.forEach((stage) => {
+      grouped[stage] = applications.filter((app) => app.stage === stage);
     });
     return grouped;
-  }, [applications, statuses]);
+  }, [applications]);
 
   return (
     <DndContext
@@ -263,16 +260,16 @@ export function ApplicationKanban({
       collisionDetection={closestCorners}
       modifiers={[restrictToWindowEdges]}
     >
-      <div className="w-full overflow-x-auto   pb-4">
-        <div className="inline-flex gap-4 min-w-full">
-          {statuses.map((status) => (
+      <div className="w-full overflow-x-auto pb-4 ">
+        <div className="inline-flex gap-4 min-w-full ">
+          {STAGES.map((stage) => (
             <KanbanColumns
-              key={status}
-              status={status}
-              applications={applicationsByStatus[status] || []}
-              statusLabel={statusLabels[status]}
-              statusColor={statusColors[status]}
-              statusBackground={statusBackgrounds[status] || ""}
+              key={stage}
+              stage={stage}
+              applications={applicationsByStage[stage] || []}
+              statusLabel={STAGE_LABELS[stage]}
+              statusColor={STAGE_COLORS[stage]}
+              statusBackground={STAGE_BACKGROUNDS[stage] || ""}
               isallowMovingInKanban={isallowMovingInKanban}
             />
           ))}

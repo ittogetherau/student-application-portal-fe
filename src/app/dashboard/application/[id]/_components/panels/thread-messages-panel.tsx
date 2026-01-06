@@ -1,5 +1,6 @@
 "use client";
 
+import ThreadAttachmentInput from "@/components/shared/thread-attachment-input";
 import UrlDrivenSheet from "@/components/shared/url-driven-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,10 @@ import {
 } from "@/hooks/application-threads.hook";
 import { ListRestart, SendHorizonal, Verified } from "lucide-react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import { LoadingState } from "../states";
 
 const formatDateTime = (dateString?: string | null) => {
@@ -68,6 +71,7 @@ const ThreadMessagesPanel = () => {
     ThreadPriority.medium
   );
   const [message, setMessage] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const isCompleted = status === ThreadStatus.completed;
 
@@ -89,12 +93,26 @@ const ThreadMessagesPanel = () => {
     })();
   }, [thread?.status, thread?.priority]);
 
+  useEffect(() => {
+    (() => {
+      setAttachments([]);
+      setMessage("");
+    })();
+  }, [threadId, isOpen]);
+
   const handleSend = async () => {
-    if (isCompleted) return;
+    if (isCompleted || addMessage.isPending) return;
     const text = message.trim();
-    if (!text || !applicationId || !threadId) return;
-    await addMessage.mutateAsync(text);
+    if ((!text && attachments.length === 0) || !applicationId || !threadId)
+      return;
+    if (attachments.length > 0 && !text) {
+      toast.error("Please add a message when uploading attachments.");
+      return;
+    }
+    const messageToSend = text;
+    await addMessage.mutateAsync({ message: messageToSend, attachments });
     setMessage("");
+    setAttachments([]);
   };
 
   const handleStatusChange = async (value: ThreadStatusType) => {
@@ -151,7 +169,7 @@ const ThreadMessagesPanel = () => {
       title={thread.subject}
       header={
         <p className="text-xs text-muted-foreground">
-          {thread.issue_type} · {thread.target_section} · {thread.status}
+          {thread.issue_type} - {thread.target_section} - {thread.status}
         </p>
       }
       footer={
@@ -210,7 +228,7 @@ const ThreadMessagesPanel = () => {
 
           <div className="flex items-center gap-2">
             <Input
-              disabled={isCompleted}
+              disabled={isCompleted || addMessage.isPending}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Message"
@@ -224,6 +242,7 @@ const ThreadMessagesPanel = () => {
               className="text-sm flex-1"
             />
           </div>
+          {/* <ThreadAttachmentInput  attachments={attachments}  onChange={setAttachments}  disabled={isCompleted || addMessage.isPending}/> */}
 
           <div className="flex items-center justify-between gap-2">
             {userRole === USER_ROLE.STAFF ? (
@@ -281,12 +300,37 @@ const ThreadMessagesPanel = () => {
                       <span className="font-medium">
                         {msg.author_name || msg.author_email.split("@")[0]}
                       </span>
-                      <span>·</span>
+                      <span>-</span>
                       <span>{formatDateTime(msg.created_at)}</span>
                     </div>
-                    <p className="text-sm leading-snug break-words">
-                      {msg.message}
-                    </p>
+                    {msg.message && (
+                      <p className="text-sm leading-snug break-words">
+                        {msg.message}
+                      </p>
+                    )}
+                    {msg.attachments?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {msg.attachments.map((attachment, idx) => (
+                          <a
+                            key={attachment.id ?? `${attachment.url}-${idx}`}
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block h-20 w-20 overflow-hidden rounded border bg-background"
+                          >
+                            <Image
+                              width={40}
+                              height={40}
+                              src={attachment.url}
+                              alt={
+                                attachment.file_name || `Attachment ${idx + 1}`
+                              }
+                              className="h-full w-full object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

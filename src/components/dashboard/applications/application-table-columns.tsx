@@ -1,107 +1,79 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 
 import type { DataTableFacetedFilterOption } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import {
-  Application,
-  ApplicationStage,
-  ApplicationStatus,
-} from "@/constants/types";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { siteRoutes } from "@/constants/site-routes";
+import { Application, APPLICATION_STAGE } from "@/constants/types";
 import { cn } from "@/lib/utils";
 
-const STATUS_CONFIG: Record<
-  ApplicationStatus,
+const STAGE_CONFIG: Record<
+  APPLICATION_STAGE,
   { label: string; className: string }
 > = {
-  [ApplicationStatus.DRAFT]: {
+  [APPLICATION_STAGE.DRAFT]: {
     label: "Draft",
     className:
       "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100",
   },
-  [ApplicationStatus.SUBMITTED]: {
+  [APPLICATION_STAGE.SUBMITTED]: {
     label: "Submitted",
     className:
       "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
   },
-  [ApplicationStatus.UNDER_REVIEW]: {
-    label: "Under Review",
+  [APPLICATION_STAGE.STAFF_REVIEW]: {
+    label: "Staff Review",
     className:
       "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
   },
-  [ApplicationStatus.OFFER_SENT]: {
-    label: "Offer Sent",
+  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: {
+    label: "Awaiting Documents",
+    className:
+      "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
+  },
+  [APPLICATION_STAGE.GS_ASSESSMENT]: {
+    label: "GS Assessment",
+    className:
+      "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
+  },
+  [APPLICATION_STAGE.OFFER_GENERATED]: {
+    label: "Offer Generated",
     className:
       "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200",
   },
-  [ApplicationStatus.OFFER_ACCEPTED]: {
+  [APPLICATION_STAGE.OFFER_ACCEPTED]: {
     label: "Offer Accepted",
     className:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
   },
-  [ApplicationStatus.GS_DOCUMENTS_PENDING]: {
-    label: "GS Docs Pending",
-    className:
-      "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
-  },
-  [ApplicationStatus.GS_INTERVIEW_SCHEDULED]: {
-    label: "GS Interview",
-    className:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
-  },
-  [ApplicationStatus.GS_APPROVED]: {
-    label: "GS Approved",
-    className:
-      "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
-  },
-  [ApplicationStatus.FEE_PAYMENT_PENDING]: {
-    label: "Fee Pending",
-    className:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-100",
-  },
-  [ApplicationStatus.COE_ISSUED]: {
-    label: "COE Issued",
+  [APPLICATION_STAGE.ENROLLED]: {
+    label: "Enrolled",
     className:
       "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200",
   },
-  [ApplicationStatus.REJECTED]: {
+  [APPLICATION_STAGE.REJECTED]: {
     label: "Rejected",
     className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
   },
+  [APPLICATION_STAGE.WITHDRAWN]: {
+    label: "Withdrawn",
+    className:
+      "bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200",
+  },
 };
 
-const stageLabelMap: Record<ApplicationStage | string, string> = {
-  [ApplicationStage.INITIAL_REVIEW]: "Initial Review",
-  [ApplicationStage.DOCUMENT_VERIFICATION]: "Document Verification",
-  [ApplicationStage.OFFER_GENERATION]: "Offer Generation",
-  [ApplicationStage.OFFER_ACCEPTANCE]: "Offer Acceptance",
-  [ApplicationStage.GS_ASSESSMENT]: "GS Assessment",
-  [ApplicationStage.FEE_PAYMENT]: "Fee Payment",
-  [ApplicationStage.COE_GENERATION]: "COE Generation",
-  [ApplicationStage.COMPLETED]: "Completed",
-  draft: "Draft",
-};
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-
-export const applicationStatusFilterOptions: DataTableFacetedFilterOption[] =
-  Object.entries(STATUS_CONFIG).map(([status, config]) => ({
-    value: status,
+export const applicationStageFilterOptions: DataTableFacetedFilterOption[] =
+  Object.entries(STAGE_CONFIG).map(([stage, config]) => ({
+    value: stage,
     label: config.label,
   }));
 
-const StatusPill = ({ status }: { status: ApplicationStatus }) => {
-  const config = STATUS_CONFIG[status];
+const StatusPill = ({ stage }: { stage: APPLICATION_STAGE }) => {
+  const config = STAGE_CONFIG[stage];
   return (
     <span
       className={cn(
@@ -109,12 +81,21 @@ const StatusPill = ({ status }: { status: ApplicationStatus }) => {
         config?.className
       )}
     >
-      {config?.label ?? status}
+      {config?.label ?? stage}
     </span>
   );
 };
 
-import { Checkbox } from "@/components/ui/checkbox";
+const formatDate = (value?: string | null) => {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "N/A";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
 
 export const applicationColumns: ColumnDef<Application>[] = [
   {
@@ -157,83 +138,27 @@ export const applicationColumns: ColumnDef<Application>[] = [
     cell: ({ row }) => (
       <div
         className="font-semibold text-foreground truncate"
-        title={row.getValue("referenceNumber") || "—"}
+        title={(row.getValue("referenceNumber") as string) || "N/A"}
       >
-        {row.getValue("referenceNumber") || "—"}
+        {(row.getValue("referenceNumber") as string) || "N/A"}
       </div>
     ),
   },
   {
     accessorKey: "studentName",
-    meta: { columnTitle: "Student" },
+    meta: { columnTitle: "Student Name" },
     size: 150,
     minSize: 120,
     maxSize: 180,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Student" />
+      <DataTableColumnHeader column={column} title="Student Name" />
     ),
     cell: ({ row }) => (
       <div
         className="text-sm font-medium text-center truncate"
-        title={row.getValue("studentName") || "Unknown student"}
+        title={(row.getValue("studentName") as string) || "Unknown student"}
       >
-        {row.getValue("studentName") || "Unknown student"}
-      </div>
-    ),
-  },
-  // {
-  //   accessorKey: "studentEmail",
-  //   meta: { columnTitle: "Student Email" },
-  //   size: 200,
-  //   minSize: 180,
-  //   maxSize: 250,
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Student Email" />
-  //   ),
-  //   cell: ({ row }) => (
-  //     <div
-  //       className="text-sm text-muted-foreground text-center truncate"
-  //       title={row.getValue("studentEmail") || "—"}
-  //     >
-  //       {row.getValue("studentEmail") || "—"}
-  //     </div>
-  //   ),
-  // },
-
-  // {
-  //   accessorKey: "agentName",
-  //   meta: { columnTitle: "Agent" },
-  //   size: 120,
-  //   minSize: 100,
-  //   maxSize: 150,
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Agent" />
-  //   ),
-  //   cell: ({ row }) => (
-  //     <div
-  //       className="text-sm text-start truncate whitespace-normal"
-  //       title={row.getValue("agentName") || "—"}
-  //     >
-  //       {row.getValue("agentName") || "—"}
-  //     </div>
-  //   ),
-  // },
-
-  {
-    accessorKey: "destination",
-    meta: { columnTitle: "Destination" },
-    size: 120,
-    minSize: 100,
-    maxSize: 150,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Destination" />
-    ),
-    cell: ({ row }) => (
-      <div
-        className="text-sm text-start truncate whitespace-normal"
-        title={row.getValue("destination") || "—"}
-      >
-        {row.getValue("destination") || "—"}
+        {(row.getValue("studentName") as string) || "Unknown student"}
       </div>
     ),
   },
@@ -249,23 +174,40 @@ export const applicationColumns: ColumnDef<Application>[] = [
     cell: ({ row }) => (
       <div
         className="text-sm text-muted-foreground text-start truncate whitespace-normal"
-        title={row.getValue("course") || "—"}
+        title={(row.getValue("course") as string) || "N/A"}
       >
-        {row.getValue("course") || "—"}
+        {(row.getValue("course") as string) || "N/A"}
       </div>
     ),
   },
-
   {
-    accessorKey: "status",
-    meta: { columnTitle: "Status" },
-    size: 130,
-    minSize: 120,
+    accessorKey: "destination",
+    meta: { columnTitle: "Destination" },
+    size: 120,
+    minSize: 100,
     maxSize: 150,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Destination" />
+    ),
+    cell: ({ row }) => (
+      <div
+        className="text-sm text-start truncate whitespace-normal"
+        title={(row.getValue("destination") as string) || "N/A"}
+      >
+        {(row.getValue("destination") as string) || "N/A"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "stage",
+    meta: { columnTitle: "Status" },
+    size: 140,
+    minSize: 130,
+    maxSize: 180,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    cell: ({ row }) => <StatusPill status={row.original.status} />,
+    cell: ({ row }) => <StatusPill stage={row.original.stage} />,
     filterFn: (row, columnId, filterValues) => {
       if (
         !filterValues ||
@@ -278,29 +220,37 @@ export const applicationColumns: ColumnDef<Application>[] = [
     },
   },
   {
-    accessorKey: "currentStage",
-    meta: { columnTitle: "Current Stage" },
-    size: 160,
-    minSize: 140,
-    maxSize: 200,
+    accessorKey: "assignedStaffName",
+    meta: { columnTitle: "Assigned To" },
+    size: 150,
+    minSize: 130,
+    maxSize: 190,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Current Stage" />
+      <DataTableColumnHeader column={column} title="Assigned To" />
     ),
-    cell: ({ row }) => {
-      const stage = row.original.currentStage;
-      if (!stage) return <div className="text-sm text-muted-foreground">—</div>;
-      const label =
-        stageLabelMap[stage] ||
-        stage.charAt(0).toUpperCase() + stage.slice(1).replace(/_/g, " ");
-      return (
-        <div
-          className="text-sm text-muted-foreground text-start truncate whitespace-normal"
-          title={label}
-        >
-          {label}
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <div
+        className="text-sm text-start truncate whitespace-normal"
+        title={(row.getValue("assignedStaffName") as string) || "Unassigned"}
+      >
+        {(row.getValue("assignedStaffName") as string) || "Unassigned"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "submittedAt",
+    meta: { columnTitle: "Submitted" },
+    size: 130,
+    minSize: 110,
+    maxSize: 160,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Submitted" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-sm text-muted-foreground">
+        {formatDate(row.original.submittedAt)}
+      </div>
+    ),
   },
   {
     accessorKey: "intake",
@@ -314,27 +264,31 @@ export const applicationColumns: ColumnDef<Application>[] = [
     cell: ({ row }) => (
       <div
         className="text-sm text-muted-foreground text-start truncate whitespace-normal"
-        title={row.getValue("intake") || "—"}
+        title={(row.getValue("intake") as string) || "N/A"}
       >
-        {row.getValue("intake") || "—"}
+        {(row.getValue("intake") as string) || "N/A"}
       </div>
     ),
   },
-
-  // {
-  //   id: "updatedAt",
-  //   accessorKey: "updatedAt",
-  //   meta: { columnTitle: "Updated" },
-  //   size: 120,
-  //   minSize: 100,
-  //   maxSize: 140,
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Updated" />
-  //   ),
-  //   cell: ({ row }) => (
-  //     <div className="text-sm text-muted-foreground">
-  //       {formatDate(row.original.updatedAt)}
-  //     </div>
-  //   ),
-  // },
+  {
+    id: "actions",
+    meta: { columnTitle: "Actions" },
+    size: 140,
+    minSize: 120,
+    maxSize: 160,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Actions" />
+    ),
+    cell: ({ row }) => (
+      <div className="flex justify-start">
+        <Button asChild size="sm" variant="ghost" className="px-2">
+          <Link
+            href={`${siteRoutes.dashboard.application.root}/${row.original.id}`}
+          >
+            View
+          </Link>
+        </Button>
+      </div>
+    ),
+  },
 ];
