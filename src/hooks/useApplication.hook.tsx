@@ -11,6 +11,10 @@ import type {
   ApplicationResponse,
 } from "@/service/application.service";
 import applicationService from "@/service/application.service";
+import signatureService, {
+  type SendOfferLetterPayload,
+  type SendOfferLetterResponse,
+} from "@/service/signature.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationCreateValues } from "@/validation/application.validation";
@@ -287,6 +291,46 @@ export const useApplicationChangeStageMutation = (
   });
 };
 
+// Staff - Enroll course in Galaxy
+export const useApplicationEnrollGalaxyCourseMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { application_id?: string; current_stage?: string; message?: string },
+    Error,
+    void
+  >({
+    mutationKey: ["application-enroll-galaxy-course", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.enrollGalaxyCourse(
+        applicationId
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] enrollGalaxyCourse success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] enrollGalaxyCourse failed", error);
+    },
+  });
+};
+
 // Staff - Approve application hook
 export const useApplicationApproveMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
@@ -389,33 +433,26 @@ export const useApplicationGenerateOfferLetterMutation = (
 
   return useMutation<
     {
-      pdf_url: string;
+      offer_letter_url: string;
       application_id: string;
       generated_at: string;
-      message: string;
+      expires_at: string | null;
+      message?: string;
     },
-    Error,
-    {
-      course_start_date: string;
-      tuition_fee: number;
-      material_fee: number;
-      conditions: string[];
-      template?: string;
-    }
+    Error
   >({
     mutationKey: ["application-generate-offer", applicationId],
-    mutationFn: async (payload) => {
+    mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
 
       const response = await applicationService.generateOfferLetter(
-        applicationId,
-        payload
+        applicationId
       );
 
       if (!response.success) throw new Error(response.message);
       if (!response.data) throw new Error("Response data is missing.");
 
-      return response.data;
+      return { ...response.data, message: response.message };
     },
     onSuccess: (data) => {
       console.log("[Application] generateOfferLetter success", {
@@ -429,6 +466,43 @@ export const useApplicationGenerateOfferLetterMutation = (
     },
     onError: (error) => {
       console.error("[Application] generateOfferLetter failed", error);
+    },
+  });
+};
+
+// Staff - Send offer letter hook
+export const useApplicationSendOfferLetterMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<SendOfferLetterResponse, Error, SendOfferLetterPayload>({
+    mutationKey: ["application-send-offer-letter", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await signatureService.sendOfferLetter(
+        applicationId,
+        payload
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return { ...response.data, message: response.message };
+    },
+    onSuccess: (data) => {
+      console.log("[Application] sendOfferLetter success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] sendOfferLetter failed", error);
     },
   });
 };

@@ -138,6 +138,8 @@ export default function DocumentsUploadForm() {
     error: documentTypesError,
   } = useDocumentTypesQuery();
 
+  console.log(documentTypesResponse, "response");
+
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const markStepCompleted = useApplicationStepStore(
     (state) => state.markStepCompleted

@@ -39,12 +39,27 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
     name: "still_attending",
   });
 
+  const highestSchoolLevel = useWatch({
+    control: methods.control,
+    name: "highest_school_level",
+  });
+
+  const didNotGoToSchool = highestSchoolLevel === "02 - Did not go to School";
+
   // Reset secondary school type if not attending
   useEffect(() => {
     if (stillAttending === "No") {
       methods.setValue("secondary_school_type", "");
     }
   }, [stillAttending, methods]);
+
+  // Reset still_attending and secondary_school_type if user didn't go to school
+  useEffect(() => {
+    if (didNotGoToSchool) {
+      methods.setValue("still_attending", "No");
+      methods.setValue("secondary_school_type", "");
+    }
+  }, [didNotGoToSchool, methods]);
 
   const onSubmit = (values: SchoolingValues) => {
     if (applicationId) {
@@ -85,17 +100,19 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
               />
             </div>
 
-            {/* Currently Attending */}
-            <div>
-              <p className="text-sm mb-3">
-                Are you still attending secondary school?
-              </p>
-              <FormRadio
-                name="still_attending"
-                label=""
-                options={["Yes", "No"]}
-              />
-            </div>
+            {/* Currently Attending - Hidden if user didn't go to school */}
+            {!didNotGoToSchool && (
+              <div>
+                <p className="text-sm mb-3">
+                  Are you still attending secondary school?
+                </p>
+                <FormRadio
+                  name="still_attending"
+                  label=""
+                  options={["Yes", "No"]}
+                />
+              </div>
+            )}
 
             {/* Secondary School Type - Conditional */}
             {stillAttending === "Yes" && (

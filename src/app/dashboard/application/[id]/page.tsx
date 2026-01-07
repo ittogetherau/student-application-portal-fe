@@ -109,7 +109,7 @@ export default function AgentApplicationDetail() {
             {ROLE === "agent" && (
               <Button asChild variant="outline" size="sm" className="gap-2 h-8">
                 <Link
-                  href={`${siteRoutes.dashboard.application.create}?id=${application.id}`}
+                  href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
                 >
                   <SquarePen className="h-3.5 w-3.5" />
                   Edit

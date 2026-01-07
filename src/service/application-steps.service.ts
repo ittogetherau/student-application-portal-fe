@@ -55,15 +55,13 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = enrollmentSchema.parse(input);
-      // const data = await this.patch<StepUpdateResponse>(
-      //   this.stepPath(applicationId, 0, "enrollment"),
-      //   body,
-      //   true
-      // );
+      const data = await this.patch<StepUpdateResponse>(
+        this.stepPath(applicationId, 0, "enrollment"),
+        body,
+        true
+      );
 
-      const data = {
 
-      }
       return {
         success: true,
         message: "Enrollment details saved.",
@@ -135,11 +133,19 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = healthCoverSchema.parse(input);
+
+      console.log(body, "payload")
+      const payload = {
+        ...body,
+        has_oshc: body.arrange_OSHC ? "true" : "false",
+      };
       const data = await this.patch<StepUpdateResponse>(
         this.stepPath(applicationId, 3, "health-cover"),
-        body,
+        payload,
         true
       );
+
+
       return {
         success: true,
         message: "Health cover saved.",

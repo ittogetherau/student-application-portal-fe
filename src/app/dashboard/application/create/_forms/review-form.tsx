@@ -250,23 +250,27 @@ const ReviewForm = ({
           <ReviewSection title="Health Cover Policy">
             <DataField
               label="Provider"
-              value={application.health_cover_policy.provider}
+              value={application.health_cover_policy.OSHC_provider}
             />
             <DataField
               label="Policy Number"
-              value={application.health_cover_policy.policy_number}
+              value={application.health_cover_policy.OSHC_type}
             />
             <DataField
               label="Coverage Type"
-              value={application.health_cover_policy.coverage_type}
+              value={application.health_cover_policy.OSHC_start_date}
             />
             <DataField
               label="Start Date"
-              value={application.health_cover_policy.start_date}
+              value={application.health_cover_policy.OSHC_end_date}
             />
             <DataField
               label="End Date"
-              value={application.health_cover_policy.end_date}
+              value={application.health_cover_policy.OSHC_duration}
+            />
+            <DataField
+              label="End Date"
+              value={application.health_cover_policy.OSHC_fee}
             />
           </ReviewSection>
         )}

@@ -549,7 +549,6 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                             SPEAKING
                           </th>
                           <th className="text-left p-3 font-normal">OVERALL</th>
-                          <th className="text-left p-3 font-normal">ACTION</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -603,16 +602,6 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               label=""
                               placeholder="0.0"
                             />
-                          </td>
-                          <td className="p-3">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
                           </td>
                         </tr>
                       </tbody>

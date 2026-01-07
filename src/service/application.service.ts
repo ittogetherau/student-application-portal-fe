@@ -18,6 +18,7 @@ import type {
   PreviousQualificationsValues,
   SchoolingHistoryValues,
   SurveyValues,
+
 } from "@/validation/application.validation";
 
 export interface ApplicationDetailResponse {
@@ -401,43 +402,61 @@ class ApplicationService extends ApiService {
     }
   };
 
-  // Staff - Generate offer letter PDF
-  generateOfferLetter = async (
-    applicationId: string,
-    payload: {
-      course_start_date: string;
-      tuition_fee: number;
-      material_fee: number;
-      conditions: string[];
-      template?: string;
-    }
+  // Staff - Enroll course in Galaxy
+  enrollGalaxyCourse = async (
+    applicationId: string
   ): Promise<
     ServiceResponse<{
-      pdf_url: string;
-      application_id: string;
-      generated_at: string;
-      message: string;
+      application_id?: string;
+      current_stage?: string;
+      message?: string;
     }>
   > => {
     if (!applicationId) throw new Error("Application id is required");
     try {
-      // const data = await this.post<{
-      //   pdf_url: string;
-      //   application_id: string;
-      //   generated_at: string;
-      //   message: string;
-      // }>(
-      //   `staff/applications/${applicationId}/generate-offer-letter`,
-      //   payload,
-      //   true
-      // );
-
-      const data = {
-        pdf_url: "string",
-        application_id: "string",
-        generated_at: "",
-        message: "",
+      const data = await this.post<{
+        application_id?: string;
+        current_stage?: string;
+        message?: string;
+      }>(
+        `staff/applications/${applicationId}/enroll-galaxy-course`,
+        {},
+        true
+      );
+      return {
+        success: true,
+        message: "Enrolled course in Galaxy successfully.",
+        data,
       };
+    } catch (error) {
+      return handleApiError(error, "Failed to enroll course in Galaxy");
+    }
+  };
+
+  // Staff - Generate offer letter PDF
+  generateOfferLetter = async (
+    applicationId: string,
+  ): Promise<
+    ServiceResponse<{
+      offer_letter_url: string;
+      application_id: string;
+      generated_at: string;
+      expires_at: string | null;
+    }>
+  > => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<{
+        offer_letter_url: string;
+        application_id: string;
+        generated_at: string;
+        expires_at: string | null;
+      }>(
+        `staff/applications/${applicationId}/generate-offer-letter`,
+        {},
+        true
+      );
+
       return {
         success: true,
         message: "Offer letter generated successfully.",

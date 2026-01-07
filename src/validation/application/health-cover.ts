@@ -1,40 +1,99 @@
 import { z } from "zod";
 
-export const healthCoverSchema = z.object({
-  provider: z.string().optional().refine((val) => val && val.length > 0, "Provider is required"),
-  policy_number: z.string().optional().refine((val) => val && val.length > 0, "Policy number is required"),
-  start_date: z.string().optional().refine((val) => val && val.length > 0, "Start date is required"),
-  end_date: z.string().optional().refine((val) => val && val.length > 0, "End date is required"),
-  coverage_type: z.string().optional().refine((val) => val && val.length > 0, "Coverage type is required"),
-  cost: z.number().nonnegative("Cost must be zero or positive").optional(),
-}).superRefine((val, ctx) => {
-  if (!val.start_date || !val.end_date) {
-    return; // Skip validation if dates are not provided
-  }
+export const healthCoverSchema = z
+  .object({
+    arrange_OSHC: z.boolean({
+      message: "Please select whether you wish to arrange OSHC",
+    }),
+    OSHC_provider: z.string().optional(),
+    OSHC_type: z.enum(["Single", "Couple", "Family"]).optional(),
+    OSHC_start_date: z.string().optional(),
+    OSHC_end_date: z.string().optional(),
+    OSHC_duration: z.string().optional(),
+    OSHC_fee: z
+      .number()
+      .nonnegative("OSHC fee must be zero or positive")
+      .optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Only validate OSHC fields if user selected true for arrange_OSHC
+    if (val.arrange_OSHC) {
+      if (!val.OSHC_provider || val.OSHC_provider.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_provider"],
+          message: "OSHC Provider is required",
+        });
+      }
 
-  const start = new Date(val.start_date);
-  const end = new Date(val.end_date);
+      if (!val.OSHC_type || val.OSHC_type.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_type"],
+          message: "OSHC Type is required",
+        });
+      }
 
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return;
-  }
+      if (!val.OSHC_start_date || val.OSHC_start_date.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_start_date"],
+          message: "Start date is required",
+        });
+      }
 
-  if (end <= start) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["end_date"],
-      message: "End date must be after the start date",
-    });
-  }
-});
+      if (!val.OSHC_end_date || val.OSHC_end_date.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_end_date"],
+          message: "End date is required",
+        });
+      }
+
+      if (!val.OSHC_duration || val.OSHC_duration.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_duration"],
+          message: "OSHC Duration is required",
+        });
+      }
+
+      if (val.OSHC_fee === undefined || val.OSHC_fee === null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["OSHC_fee"],
+          message: "OSHC Fee is required",
+        });
+      }
+
+      // Date validation only if both dates are provided
+      if (val.OSHC_start_date && val.OSHC_end_date) {
+        const start = new Date(val.OSHC_start_date);
+        const end = new Date(val.OSHC_end_date);
+
+        if (
+          !Number.isNaN(start.getTime()) &&
+          !Number.isNaN(end.getTime()) &&
+          end <= start
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["OSHC_end_date"],
+            message: "End date must be after the start date",
+          });
+        }
+      }
+    }
+  });
 
 export type HealthCoverValues = z.infer<typeof healthCoverSchema>;
 
 export const defaultHealthCoverValues: HealthCoverValues = {
-  provider: "",
-  policy_number: "",
-  start_date: "",
-  end_date: "",
-  coverage_type: "",
-  cost: 0,
+  arrange_OSHC: false,
+  OSHC_provider: "",
+  OSHC_type: undefined,
+  OSHC_start_date: "",
+  OSHC_end_date: "",
+  OSHC_duration: "",
+  OSHC_fee: 0,
 };

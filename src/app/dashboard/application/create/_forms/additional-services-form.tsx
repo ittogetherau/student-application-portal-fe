@@ -76,7 +76,7 @@ const AdditionalServicesForm = ({
 
   const totalAdditionalFees = (services || [])
     .filter((s) => s?.selected)
-    .reduce((sum, s) => sum + (s?.fee || 0), 0);
+    .reduce((sum, s) => sum + (s?.student_price_per_service || 0), 0);
 
   const canAddMore = (fields?.length || 0) < 10;
 
@@ -142,30 +142,61 @@ const AdditionalServicesForm = ({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormInput
-                          name={`services.${index}.service_id`}
-                          label="Service ID"
-                          placeholder="e.g. SVC-001"
-                        />
-
-                        <FormInput
-                          name={`services.${index}.name`}
+                          name={`services.${index}.service_name`}
                           label="Service Name"
                           placeholder="e.g. Airport Pickup"
                         />
 
                         <FormInput
-                          name={`services.${index}.description`}
-                          label="Description"
-                          placeholder="Short description of the service"
+                          name={`services.${index}.category_name`}
+                          label="Category Name"
+                          placeholder="e.g. Transportation"
                         />
 
                         <FormInput
-                          name={`services.${index}.fee`}
-                          label="Fee"
+                          name={`services.${index}.facility_name`}
+                          label="Facility Name"
+                          placeholder="e.g. Main Campus"
+                        />
+
+                        <FormInput
+                          name={`services.${index}.service_provider`}
+                          label="Service Provider"
+                          placeholder="e.g. ABC Transport Services"
+                        />
+
+                        <FormInput
+                          name={`services.${index}.student_price_per_service`}
+                          label="Student Price per Service"
                           type="number"
                           placeholder="0"
                         />
+
+                        <FormInput
+                          name={`services.${index}.provider_price_per_service`}
+                          label="Provider Price per Service"
+                          type="number"
+                          placeholder="0"
+                        />
+
+                        <FormInput
+                          name={`services.${index}.service_start_date`}
+                          label="Service Start Date"
+                          type="date"
+                        />
+
+                        <FormInput
+                          name={`services.${index}.service_end_date`}
+                          label="Service End Date"
+                          type="date"
+                        />
                       </div>
+
+                      <FormInput
+                        name={`services.${index}.service_comment`}
+                        label="Service Comment"
+                        placeholder="Additional comments or notes about the service"
+                      />
 
                       <FormCheckbox
                         name={`services.${index}.selected`}

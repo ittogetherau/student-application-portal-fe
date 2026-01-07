@@ -143,6 +143,7 @@ export const authOptions: NextAuthOptions = {
 
         const login = await apiLogin(credentials.email, credentials.password);
 
+        console.log(login, "login")
         return {
           id: login.user.id,
           email: login.user.email,
