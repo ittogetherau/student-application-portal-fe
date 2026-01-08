@@ -38,9 +38,9 @@ type AutoFillData = {
 
 export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
   enrollmentData: {
-    course: 1,
-    intake: 1,
     campus: 1,
+    course: 6,
+    intake: 53,
   },
   personalDetailsData: {
     student_origin: "Overseas Student (Offshore)",

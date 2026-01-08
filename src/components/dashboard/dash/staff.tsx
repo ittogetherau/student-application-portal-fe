@@ -11,7 +11,7 @@ import {
 
 export default function StaffDashboard() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen p-4 bg-background">
       <div className="wrapper py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">

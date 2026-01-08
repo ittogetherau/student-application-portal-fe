@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
 } from "@/hooks/useApplication.hook";
-import type { Campus, Course, Intake } from "@/service/course.service";
+import type { Campus, Intake } from "@/service/course.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { AlertCircle, GraduationCap, Loader2 } from "lucide-react";
@@ -36,62 +37,78 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     isLoading: isLoadingCourses,
     error: coursesError,
   } = useCoursesQuery();
+
   const { mutateAsync: createApplication, isPending: isCreating } =
     useApplicationCreateMutation();
   const { mutateAsync: saveEnrollment, isPending: isSaving } =
     useSaveEnrollmentMutation();
 
-  const courses = (coursesResponse?.data || []) as Course[];
+  const courses = coursesResponse?.data ?? [];
 
   const [formData, setFormData] = useState({
     courseId: "",
-    campusId: "",
     intakeId: "",
+    campusId: "",
   });
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Load initial data from store
+  /* ---------- restore saved step ---------- */
   useEffect(() => {
-    const savedData = getStepData<any>(0);
-    if (savedData) {
+    (() => {
+      const saved = getStepData<any>(0);
+      if (!saved) return;
+
       setFormData({
-        courseId: savedData.courseId?.toString() || "",
-        campusId: savedData.campusId?.toString() || "",
-        intakeId: savedData.intakeId?.toString() || "",
+        courseId: saved.courseId?.toString() ?? "",
+        intakeId: saved.intakeId?.toString() ?? "",
+        campusId: saved.campusId?.toString() ?? "",
       });
-    }
+    })();
   }, [getStepData]);
 
-  const selectedCourse = useMemo(() => {
-    return courses.find((c) => c.id.toString() === formData.courseId);
-  }, [courses, formData.courseId]);
-
-  const availableCampuses = useMemo(() => {
-    return (selectedCourse?.campuses || []) as Campus[];
-  }, [selectedCourse]);
-
-  const availableIntakes = useMemo(() => {
-    return (selectedCourse?.intakes || []) as Intake[];
-  }, [selectedCourse]);
-
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData((p) => {
-      const newData = { ...p, [field]: value };
-
-      // Reset dependent fields
+  /* ---------- deterministic updates ---------- */
+  const handleFieldChange = (
+    field: "courseId" | "intakeId" | "campusId",
+    value: string
+  ) => {
+    setFormData((prev) => {
       if (field === "courseId") {
-        newData.campusId = "";
-        newData.intakeId = "";
+        return { courseId: value, intakeId: "", campusId: "" };
       }
 
-      return newData;
+      if (field === "intakeId") {
+        return { ...prev, intakeId: value, campusId: "" };
+      }
+
+      return { ...prev, [field]: value };
     });
   };
 
+  /* ---------- derived entities ---------- */
+  const selectedCourse = courses.find(
+    (c) => String(c.id) === formData.courseId
+  );
+
+  const selectedIntake = useMemo(
+    () =>
+      selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
+    [selectedCourse, formData.intakeId]
+  );
+
+  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
+  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
+
+  const isFormComplete =
+    formData.courseId !== "" &&
+    formData.intakeId !== "" &&
+    formData.campusId !== "";
+
+  /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
-    if (!formData.courseId || !formData.campusId || !formData.intakeId) {
+    if (!isFormComplete) {
       toast.error("Please complete all required fields");
       return;
     }
@@ -99,7 +116,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     let currentApplicationId = applicationId;
 
     try {
-      // Step 1: Create application draft if it doesn't exist
       if (!currentApplicationId) {
         toast.loading("Creating application draft...", {
           id: "application-flow",
@@ -108,218 +124,141 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         const res = await createApplication(DEFAULT_CREATE_PAYLOAD_temp);
         currentApplicationId = res.application.id;
 
-        // Update store and URL with new application ID
         setApplicationId(currentApplicationId);
+
         const params = new URLSearchParams(searchParams.toString());
         params.set("id", currentApplicationId);
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-
-        toast.success("Application draft created", { id: "application-flow" });
+        router.replace(`${pathname}?${params.toString()}`, {
+          scroll: false,
+        });
       }
 
-      // Step 2: Save enrollment data to the application
-      toast.loading("Saving enrollment details...", { id: "application-flow" });
+      toast.loading("Saving enrollment...", { id: "application-flow" });
+
+      console.log(formData);
+
       await saveEnrollment({
-        applicationId: currentApplicationId as string,
+        applicationId: currentApplicationId!,
         values: {
-          course: parseInt(formData.courseId),
-          intake: parseInt(formData.intakeId),
-          campus: parseInt(formData.campusId),
+          course: Number(formData.courseId),
+          intake: Number(formData.intakeId),
+          campus: Number(formData.campusId),
         },
       });
 
-      // Step 3: Update local store with enrollment data
       setStepData(0, {
-        courseId: parseInt(formData.courseId),
-        campusId: parseInt(formData.campusId),
-        intakeId: parseInt(formData.intakeId),
+        courseId: Number(formData.courseId),
+        intakeId: Number(formData.intakeId),
+        campusId: Number(formData.campusId),
       });
 
-      // Show success and navigate
-      toast.success("Enrollment saved successfully", {
-        id: "application-flow",
-      });
+      toast.success("Enrollment saved", { id: "application-flow" });
       markStepCompleted(0);
-
-      // Small delay to let the user see the success message
-      setTimeout(() => {
-        goToNext();
-      }, 500);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save enrollment", {
+      goToNext();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save enrollment", {
         id: "application-flow",
       });
-      console.error("Enrollment save error:", error);
     }
   };
 
+  /* ---------- loading / error ---------- */
   if (isLoadingCourses) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse font-medium">
-          Fetching course catalog...
-        </p>
       </div>
     );
   }
 
   if (coursesError) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 gap-4 text-center">
+      <div className="flex flex-col items-center justify-center p-20 gap-4">
         <AlertCircle className="h-12 w-12 text-destructive" />
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Failed to Load Courses</h3>
-          <p className="text-muted-foreground max-w-sm">
-            We encountered an issue while fetching the course list. Please try
-            again.
-          </p>
-        </div>
         <Button onClick={() => window.location.reload()} variant="outline">
-          Retry Loading
+          Retry
         </Button>
       </div>
     );
   }
 
-  const isFormComplete = !!(
-    formData.courseId &&
-    formData.campusId &&
-    formData.intakeId
-  );
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Card className="border-primary/10 shadow-sm overflow-hidden">
-        <div className="h-1 bg-linear-to-r from-primary/50 via-primary to-primary/50" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl font-bold">
-            <GraduationCap className="h-6 w-6 text-primary" />
-            Select Your Course
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Select the course, campus, and intake to proceed.
-          </p>
-        </CardHeader>
-
-        <CardContent className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Course <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.courseId}
-                onValueChange={(v) => handleFieldChange("courseId", v)}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Select course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id.toString()}>
-                      {course.course_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Campus <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.campusId}
-                onValueChange={(v) => handleFieldChange("campusId", v)}
-                disabled={!formData.courseId}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue
-                    placeholder={
-                      !formData.courseId
-                        ? "Select course first"
-                        : "Select campus"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableCampuses.map((campus) => (
-                    <SelectItem key={campus.id} value={campus.id.toString()}>
-                      {campus.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Intake <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.intakeId}
-                onValueChange={(v) => handleFieldChange("intakeId", v)}
-                disabled={!formData.courseId}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue
-                    placeholder={
-                      !formData.courseId
-                        ? "Select course first"
-                        : "Select intake month"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableIntakes.map((intake) => (
-                    <SelectItem key={intake.id} value={intake.id.toString()}>
-                      {intake.intake_name} (
-                      {new Date(intake.intake_start).toLocaleDateString()})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {selectedCourse && (
-            <div className="p-4 bg-muted/30 rounded-lg border border-border/50 animate-in fade-in zoom-in-95 duration-300">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <GraduationCap className="h-6 w-6 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-bold text-lg">
-                    {selectedCourse.course_name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {selectedCourse.course_title}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-end p-4 bg-background ">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={handleSaveAndContinue}
-            disabled={isSaving || isCreating || !isFormComplete}
-            className="px-8 font-semibold h-11 shadow-lg shadow-primary/20 transition-all active:scale-95"
+    <div className="space-y-8">
+      <div className="grid-cols-3 grid gap-4">
+        {/* Course */}
+        <div className="space-y-2">
+          <Label>Course *</Label>
+          <Select
+            value={formData.courseId}
+            onValueChange={(v) => handleFieldChange("courseId", v)}
           >
-            {isSaving || isCreating ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Processing...</span>
-              </div>
-            ) : (
-              "Save & Continue"
-            )}
-          </Button>
+            <SelectTrigger>
+              <SelectValue placeholder="Select course" />
+            </SelectTrigger>
+            <SelectContent>
+              {courses.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.course_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Intake */}
+        <div className="space-y-2">
+          <Label>Intake *</Label>
+          <Select
+            value={formData.intakeId}
+            onValueChange={(v) => handleFieldChange("intakeId", v)}
+            disabled={!formData.courseId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select intake" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableIntakes.map((i) => (
+                <SelectItem key={i.id} value={String(i.id)}>
+                  {i.intake_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Campus */}
+        <div className="space-y-2">
+          <Label>Campus *</Label>
+          <Select
+            value={formData.campusId}
+            onValueChange={(v) => handleFieldChange("campusId", v)}
+            disabled={!formData.intakeId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select campus" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableCampuses.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSaveAndContinue}
+          disabled={!isFormComplete || isSaving || isCreating}
+        >
+          {isSaving || isCreating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Save & Continue"
+          )}
+        </Button>
       </div>
     </div>
   );

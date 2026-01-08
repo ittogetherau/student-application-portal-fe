@@ -22,7 +22,6 @@ interface CreateThreadFormProps {
 }
 
 const ISSUE_TYPES = [
-  "Select",
   "Document Unclear",
   "Information incorrect",
   "Document Missing",
@@ -31,7 +30,6 @@ const ISSUE_TYPES = [
 ];
 
 const TARGET_SECTIONS = [
-  "Select",
   "Personal Information",
   "Passport",
   "Academic Documents",

@@ -101,7 +101,6 @@ const getNotificationColor = (type: NotificationType) => {
 const AppToolbar = () => {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] =
     useState<Notification[]>(mockNotifications);
 

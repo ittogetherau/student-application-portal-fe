@@ -3,9 +3,8 @@
 import { ApplicationTable } from "@/components/dashboard/applications/application-table";
 import { Button } from "@/components/ui/button";
 import useApplications from "@/hooks/useApplications.hook";
-import { useSession } from "next-auth/react";
 
-const AgentApplicationPage = () => {
+const Page = () => {
   const {
     applications,
     total,
@@ -18,9 +17,6 @@ const AgentApplicationPage = () => {
     error,
   } = useApplications();
 
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
-
   const disableNext = isLoading || isFetching || page >= maxPage;
   const heading =
     isLoading && !applications.length
@@ -28,7 +24,7 @@ const AgentApplicationPage = () => {
       : `Applications (${total ?? 0})`;
 
   return (
-    <section className="space-y-6 w-full max-w-full overflow-hidden">
+    <main className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           {heading}
@@ -73,8 +69,8 @@ const AgentApplicationPage = () => {
           </Button>
         </div>
       </div>
-    </section>
+    </main>
   );
 };
 
-export default AgentApplicationPage;
+export default Page;

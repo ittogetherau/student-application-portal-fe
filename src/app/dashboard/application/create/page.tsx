@@ -3,11 +3,11 @@ import NewForm from "./_components/new-form";
 
 const page = async () => {
   return (
-    <main>
-      <Suspense fallback={<div />}>
+    <Suspense fallback={<div />}>
+      <div className="p-4">
         <NewForm />
-      </Suspense>
-    </main>
+      </div>
+    </Suspense>
   );
 };
 

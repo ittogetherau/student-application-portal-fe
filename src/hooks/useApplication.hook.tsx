@@ -14,6 +14,7 @@ import applicationService from "@/service/application.service";
 import signatureService, {
   type SendOfferLetterPayload,
   type SendOfferLetterResponse,
+  type SignatureRequestResponse,
 } from "@/service/signature.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import type { ServiceResponse } from "@/types/service";
@@ -44,6 +45,25 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
         throw new Error(response.message);
       }
       return response;
+    },
+    enabled: !!applicationId,
+  });
+};
+
+export const useApplicationRequestSignaturesQuery = (
+  applicationId: string | null
+) => {
+  return useQuery<SignatureRequestResponse, Error>({
+    queryKey: ["application-signature-requests", applicationId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await signatureService.requestSignatures(applicationId);
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
     },
     enabled: !!applicationId,
   });
@@ -503,6 +523,34 @@ export const useApplicationSendOfferLetterMutation = (
     },
     onError: (error) => {
       console.error("[Application] sendOfferLetter failed", error);
+    },
+  });
+};
+
+export const useApplicationRequestSignaturesMutation = (
+  applicationId: string | null
+) => {
+  return useMutation<SignatureRequestResponse, Error, void>({
+    mutationKey: ["application-request-signatures", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await signatureService.requestSignatures(applicationId);
+
+      if (!response.success) throw new Error(response.message);
+
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] requestSignatures success", {
+        applicationId,
+        response: data,
+      });
+    },
+    onError: (error) => {
+      console.error("[Application] requestSignatures failed", error);
     },
   });
 };

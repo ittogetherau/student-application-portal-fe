@@ -1,18 +1,20 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
+import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useApplicationGetMutation } from "@/hooks/useApplication.hook";
-import { useApplicationStepStore } from "@/store/useApplicationStep.store";
+import { cn } from "@/lib/utils";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
+import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import useAutoFill from "../_hooks/useAutoFill";
+import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
 import { FORM_STEPS } from "../_utils/form-steps-data";
-import { Check, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useStepNavigation } from "../_hooks/useStepNavigation";
-import useAutoFill from "../_hooks/useAutoFill";
 
 const NewForm = ({
   applicationId: propApplicationId,
@@ -52,45 +54,48 @@ const NewForm = ({
 
   // Initialize form
   useEffect(() => {
-    setIsInitialized(false);
+    (() => {
+      setIsInitialized(false);
 
-    if (isCreateMode) {
-      // --- NEW APPLICATION MODE ---
-      // Always start at step 0 for new applications and clear all data
-      clearAllData();
-      resetNavigation();
-      goToStep(0);
-      setIsInitialized(true);
-    } else if (isEditMode) {
-      // --- EDIT / CONTINUE MODE ---
-      const storedId = useApplicationFormDataStore.getState().applicationId;
+      if (isCreateMode) {
+        // --- NEW APPLICATION MODE ---
+        // Always start at step 0 for new applications and clear all data
+        clearAllData();
+        resetNavigation();
+        goToStep(0);
+        setIsInitialized(true);
+      } else if (isEditMode) {
+        // --- EDIT / CONTINUE MODE ---
+        const storedId = useApplicationFormDataStore.getState().applicationId;
 
-      if (storedId !== applicationId) {
-        // Load fresh data from API
-        getApplication(undefined, {
-          onSuccess: (res) => {
-            if (res?.data) {
-              // Initialize step navigation with loaded data
-              const stepData = useApplicationFormDataStore.getState().stepData;
-              initializeStep(applicationId, stepData);
-            }
-            setIsInitialized(true);
-          },
-          onError: () => {
-            setIsInitialized(true);
-          },
-        });
+        if (storedId !== applicationId) {
+          // Load fresh data from API
+          getApplication(undefined, {
+            onSuccess: (res) => {
+              if (res?.data) {
+                // Initialize step navigation with loaded data
+                const stepData =
+                  useApplicationFormDataStore.getState().stepData;
+                initializeStep(applicationId, stepData);
+              }
+              setIsInitialized(true);
+            },
+            onError: () => {
+              setIsInitialized(true);
+            },
+          });
+        } else {
+          // Data already loaded, just initialize navigation
+          const stepData = useApplicationFormDataStore.getState().stepData;
+          initializeStep(applicationId, stepData);
+          setIsInitialized(true);
+        }
       } else {
-        // Data already loaded, just initialize navigation
-        const stepData = useApplicationFormDataStore.getState().stepData;
-        initializeStep(applicationId, stepData);
+        // applicationId exists but edit=true is not in params
+        // This means we're in view mode, not form mode
         setIsInitialized(true);
       }
-    } else {
-      // applicationId exists but edit=true is not in params
-      // This means we're in view mode, not form mode
-      setIsInitialized(true);
-    }
+    })();
   }, [
     applicationId,
     isEditMode,
@@ -99,6 +104,7 @@ const NewForm = ({
     goToStep,
     getApplication,
     initializeStep,
+    isCreateMode,
   ]);
 
   // Loading State
@@ -113,9 +119,8 @@ const NewForm = ({
     );
   }
   return (
-    <main className="relative">
-      {/* Header Section */}
-      <div className="mb-6">
+    <>
+      <ContainerLayout className="mb-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">
@@ -138,11 +143,12 @@ const NewForm = ({
             Auto Fill
           </Button>
         </div>
-      </div>
+      </ContainerLayout>
 
-      <section className="grid grid-cols-5 gap-4 max-w-7xl relative">
-        {/* Sidebar Navigation */}
-        <aside className="sticky top-4 self-start w-full">
+      <TwoColumnLayout
+        reversed={true}
+        sticky={true}
+        sidebar={
           <Card>
             <CardContent className="flex flex-col gap-1 p-2">
               {FORM_STEPS.map((step) => {
@@ -202,32 +208,29 @@ const NewForm = ({
               })}
             </CardContent>
           </Card>
-        </aside>
+        }
+      >
+        <Card className="w-full">
+          <CardContent className="pt-6">
+            <div className="mb-6 flex items-center justify-between border-b pb-4">
+              <h2 className="text-2xl font-semibold">
+                {FORM_STEPS[currentStep].title}
+              </h2>
+              <span className="text-sm text-muted-foreground">
+                Step {currentStep + 1} of {FORM_STEPS.length}
+              </span>
+            </div>
 
-        {/* Main Form Component */}
-        <div className="col-span-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="mb-6 flex items-center justify-between border-b pb-4">
-                <h2 className="text-2xl font-semibold">
-                  {FORM_STEPS[currentStep].title}
-                </h2>
-                <span className="text-sm text-muted-foreground">
-                  Step {currentStep + 1} of {FORM_STEPS.length}
-                </span>
-              </div>
-
-              {StepComponent && (
-                <StepComponent
-                  key={`${currentStep}-${autoFillKey}`}
-                  applicationId={applicationId}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-    </main>
+            {StepComponent && (
+              <StepComponent
+                key={`${currentStep}-${autoFillKey}`}
+                applicationId={applicationId}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </TwoColumnLayout>
+    </>
   );
 };
 
