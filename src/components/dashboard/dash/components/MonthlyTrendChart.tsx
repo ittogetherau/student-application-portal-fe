@@ -6,16 +6,19 @@ import { Filter, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const data = [
-    { month: 'Jul', submitted: 24, rejected: 5, offerIssued: 12, coeIssued: 8 },
-    { month: 'Aug', submitted: 32, rejected: 7, offerIssued: 18, coeIssued: 14 },
-    { month: 'Sep', submitted: 45, rejected: 9, offerIssued: 25, coeIssued: 20 },
-    { month: 'Oct', submitted: 52, rejected: 11, offerIssued: 32, coeIssued: 28 },
-    { month: 'Nov', submitted: 48, rejected: 8, offerIssued: 28, coeIssued: 22 },
-    { month: 'Dec', submitted: 65, rejected: 10, offerIssued: 38, coeIssued: 32 },
-];
+export interface MonthlyTrend {
+    month: string;
+    submitted: number;
+    rejected: number;
+    offerIssued: number;
+    coeIssued: number;
+}
 
-export function MonthlyTrendChart() {
+interface MonthlyTrendChartProps {
+    data: MonthlyTrend[];
+}
+
+export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
     const [showFilter, setShowFilter] = useState(false);
     const [selectedRange, setSelectedRange] = useState('Last 6 Months');
 

@@ -28,6 +28,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
@@ -132,6 +133,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [extractedSummary, setExtractedSummary] = useState<Record<string, any> | null>(null);
 
   // Get document types and upload hook
   const { data: documentTypesResponse } = useDocumentTypesQuery();
@@ -169,6 +171,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
       setUploadedFile(file);
       setIsUploading(true);
       setUploadSuccess(false);
+      setExtractedSummary(null); // Clear previous summary
 
       try {
         await uploadDocument.mutateAsync({
@@ -191,36 +194,70 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
             );
 
             if (ocrResponse.success && ocrResponse.data) {
+              const data = ocrResponse.data as any;
               const languageData =
-                ocrResponse.data.sections.language_cultural?.extracted_data;
-              const pendingCount = ocrResponse.data.metadata?.ocr_pending || 0;
+                data.language_cultural?.extracted_data ||
+                data.sections?.language_cultural?.extracted_data;
+              const pendingCount = data.metadata?.ocr_pending || 0;
 
               if (languageData && pendingCount === 0) {
                 let fieldsPopulated = 0;
 
-                Object.entries(languageData).forEach(([key, value]) => {
-                  try {
-                    const formFieldKey =
-                      key as keyof LanguageAndCultureFormValues;
-                    const currentValue = methods.getValues(formFieldKey);
-
-                    if (
-                      !currentValue &&
-                      value !== null &&
-                      value !== undefined &&
-                      value !== ""
-                    ) {
-                      methods.setValue(formFieldKey, value as any, {
-                        shouldValidate: false,
-                        shouldDirty: true,
-                      });
-                      fieldsPopulated++;
-                    }
-                  } catch (error) {
-                    console.error(`Error setting field "${key}":`, error);
+                // Helper to set form value if not already set
+                const setIfEmpty = (key: keyof LanguageAndCultureFormValues, value: any) => {
+                  const currentValue = methods.getValues(key);
+                  if (!currentValue && value !== null && value !== undefined && value !== "") {
+                    methods.setValue(key, value, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                    fieldsPopulated++;
                   }
+                };
+
+                // 1. Map top-level fields
+                if (languageData.test_type) {
+                  const testTypeStr = String(languageData.test_type).toUpperCase().trim();
+                  const matchedOption = testTypeOptions.find(opt =>
+                    opt.value.toUpperCase() === testTypeStr ||
+                    opt.label.toUpperCase().includes(testTypeStr)
+                  );
+                  if (matchedOption) {
+                    setIfEmpty("english_test_type", matchedOption.value);
+                  } else {
+                    setIfEmpty("english_test_type", "other");
+                  }
+                }
+
+                if (languageData.overall_score) {
+                  setIfEmpty("english_test_overall", String(languageData.overall_score));
+                }
+
+                // Handle date with multiple possible keys
+                const testDate = languageData.test_date || languageData.date_of_test || languageData.date;
+                if (testDate) {
+                  setIfEmpty("english_test_date", String(testDate));
+                }
+
+                // 2. Map nested component scores
+                const scores = languageData.component_scores;
+                if (scores && typeof scores === "object") {
+                  if (scores.listening) setIfEmpty("english_test_listening", String(scores.listening));
+                  if (scores.reading) setIfEmpty("english_test_reading", String(scores.reading));
+                  if (scores.writing) setIfEmpty("english_test_writing", String(scores.writing));
+                  if (scores.speaking) setIfEmpty("english_test_speaking", String(scores.speaking));
+                }
+
+                // 3. Mark test as completed
+                methods.setValue("completed_english_test", "Yes", {
+                  shouldValidate: true,
+                  shouldDirty: true,
                 });
 
+                // Trigger a full form validation to clear previous errors
+                setTimeout(() => methods.trigger(), 100);
+
+                setExtractedSummary(languageData);
                 setUploadSuccess(true);
                 setIsUploading(false);
 
@@ -297,6 +334,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const handleRemoveFile = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
+    setExtractedSummary(null);
   };
 
   const onSubmit = (values: LanguageAndCultureFormValues) => {
@@ -421,22 +459,22 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
           </CardContent>
         </Card>
 
+        {/* Extracted Data Preview */}
+        {uploadSuccess && extractedSummary && (
+          <ExtractedDataPreview
+            data={extractedSummary}
+            title="Extracted English Test Information"
+          />
+        )}
+
         {/* LANGUAGE AND CULTURAL DIVERSITY */}
         <section className="space-y-6">
           <div className="space-y-6">
             {/* Aboriginal/Torres Strait Islander origin */}
             <div>
-              <p className="text-sm mb-1">
-                Are you of Australian Aboriginal and Torres Strait Islander
-                origin?
-              </p>
-              <p className="text-xs text-muted-foreground mb-3">
-                For persons of both Australian Aboriginal and Torres Strait
-                Islander origin, mark both yes boxes.
-              </p>
               <FormRadio
                 name="aboriginal_torres_strait"
-                label=""
+                label="Are you of Australian Aboriginal and Torres Strait Islander origin? *"
                 options={[
                   "Yes, Both Aboriginal and Torres Strait Islander",
                   "Yes, Only Aboriginal",
@@ -445,14 +483,17 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                   "Not Stated / Prefer not to say",
                 ]}
               />
+              <p className="text-xs text-muted-foreground mb-3">
+                For persons of both Australian Aboriginal and Torres Strait
+                Islander origin, mark both yes boxes.
+              </p>
             </div>
 
             {/* Is English main language */}
             <div>
-              <p className="text-sm mb-3">Is English your main language?</p>
               <FormRadio
                 name="is_english_main_language"
-                label=""
+                label="Is English your main language? *"
                 options={["Yes", "No"]}
               />
             </div>
@@ -462,7 +503,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
               <div>
                 <FormSearchableSelect
                   name="main_language"
-                  label="If No, What is your Main Language?"
+                  label="If No, What is your Main Language? *"
                   placeholder="Select Language..."
                   searchPlaceholder="Search languages..."
                   options={languageOptions}
@@ -473,10 +514,9 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
 
             {/* English speaking proficiency */}
             <div>
-              <p className="text-sm mb-3">How well do you speak English?</p>
               <FormRadio
                 name="english_speaking_proficiency"
-                label=""
+                label="How well do you speak English? *"
                 options={[
                   "Very Well",
                   "Well",
@@ -535,20 +575,23 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                       <thead className="bg-muted/50">
                         <tr>
                           <th className="text-left p-3 font-normal">
-                            TEST TYPE
+                            TEST TYPE <span className="text-red-500">*</span>
                           </th>
                           <th className="text-left p-3 font-normal">
-                            DATE OF TEST
+                            DATE OF TEST <span className="text-red-500">*</span>
                           </th>
                           <th className="text-left p-3 font-normal">
-                            LISTENING
+                            LISTENING <span className="text-red-500">*</span>
                           </th>
-                          <th className="text-left p-3 font-normal">WRITING</th>
-                          <th className="text-left p-3 font-normal">READING</th>
+                          <th className="text-left p-3 font-normal">WRITING <span className="text-red-500">*</span>
+                          </th>
+                          <th className="text-left p-3 font-normal">READING <span className="text-red-500">*</span>
+                          </th>
                           <th className="text-left p-3 font-normal">
-                            SPEAKING
+                            SPEAKING <span className="text-red-500">*</span>
                           </th>
-                          <th className="text-left p-3 font-normal">OVERALL</th>
+                          <th className="text-left p-3 font-normal">OVERALL <span className="text-red-500">*</span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>

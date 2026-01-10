@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 type ThreadAttachmentInputProps = {
   attachments: File[];
@@ -58,8 +59,7 @@ const ThreadAttachmentInput = ({
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
     const validImages = Array.from(files).filter((file) => {
-      const isValid =
-        isAllowedImage(file) && file.size <= MAX_FILE_SIZE_BYTES;
+      const isValid = isAllowedImage(file) && file.size <= MAX_FILE_SIZE_BYTES;
       return isValid;
     });
 
@@ -82,8 +82,8 @@ const ThreadAttachmentInput = ({
     attachments.length === 0
       ? "Add image"
       : attachments.length === 1
-        ? "1 image added"
-        : `${attachments.length} images added`;
+      ? "1 image added"
+      : `${attachments.length} images added`;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -103,7 +103,7 @@ const ThreadAttachmentInput = ({
       <Button
         type="button"
         variant="outline"
-        size="icon"
+        size="icon-sm"
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         aria-label="Add image attachment"
@@ -111,14 +111,19 @@ const ThreadAttachmentInput = ({
         <Plus className="h-4 w-4" />
       </Button>
 
-      <p className="text-[11px] text-muted-foreground">{attachmentCountLabel}</p>
+      <p className="text-[11px] text-muted-foreground">
+        {attachmentCountLabel}
+      </p>
 
       {previews.map((src, index) => (
         <div
           key={`${src}-${index}`}
           className="relative h-12 w-12 overflow-hidden rounded-md border"
         >
-          <img
+          <Image
+            width={50}
+            height={50}
+            quality={50}
             src={src}
             alt={attachments[index]?.name || `Attachment ${index + 1}`}
             className="h-full w-full object-cover"

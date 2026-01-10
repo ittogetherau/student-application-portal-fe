@@ -13,16 +13,17 @@ import {
   YAxis,
 } from "recharts";
 
-const data = [
-  { name: "Under Review", value: 342, color: "#FF7A00" },
-  { name: "Pending Decision", value: 156, color: "#FFB800" },
-  { name: "Approved", value: 289, color: "#10B981" },
-  { name: "Rejected", value: 87, color: "#EF4444" },
-  { name: "Waitlisted", value: 45, color: "#8B5CF6" },
-  { name: "Withdrawn", value: 23, color: "#6B7280" },
-];
+export interface ApplicationStatusItem {
+  name: string;
+  value: number;
+  color: string;
+}
 
-export function ApplicationStatusChart() {
+interface ApplicationStatusChartProps {
+  data: ApplicationStatusItem[];
+}
+
+export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
   const [dateFilter, setDateFilter] = useState("all");
 
   return (

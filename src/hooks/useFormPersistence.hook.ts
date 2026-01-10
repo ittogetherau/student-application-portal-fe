@@ -33,6 +33,7 @@ export const useFormPersistence = <T extends FieldValues>({
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
   const getMergedStepData = useApplicationFormDataStore((state) => state.getMergedStepData);
   const ocrData = useApplicationFormDataStore((state) => state.ocrData);
+  const _hasHydrated = useApplicationFormDataStore((state) => state._hasHydrated);
   const isInitialLoadRef = useRef(true);
   const hasLoadedPersistedDataRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,8 +42,9 @@ export const useFormPersistence = <T extends FieldValues>({
   // Load persisted data on mount (using merged data: OCR + user data)
   // Also reload when stepId changes (navigating to a different step)
   useEffect(() => {
-    if (!enabled || !applicationId) {
-      isInitialLoadRef.current = false;
+    if (!enabled || !applicationId || !_hasHydrated) {
+      if (!_hasHydrated) isInitialLoadRef.current = true;
+      else isInitialLoadRef.current = false;
       return;
     }
 
@@ -124,11 +126,11 @@ export const useFormPersistence = <T extends FieldValues>({
     hasLoadedPersistedDataRef.current = true; // Allow saving even if no persisted data was found
 
     return cleanup;
-  }, [enabled, applicationId, stepId, form, getMergedStepData, onDataLoaded]);
+  }, [enabled, applicationId, stepId, form, getMergedStepData, onDataLoaded, _hasHydrated]);
 
   // Watch for OCR data changes and update form if needed
   useEffect(() => {
-    if (!enabled || !applicationId || isInitialLoadRef.current) return;
+    if (!enabled || !applicationId || !_hasHydrated || isInitialLoadRef.current) return;
 
     const stepOcrData = ocrData[stepId];
     const currentOcrDataKey = stepOcrData ? JSON.stringify(stepOcrData) : null;
@@ -162,7 +164,7 @@ export const useFormPersistence = <T extends FieldValues>({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [enabled, applicationId, stepId, form, getMergedStepData, ocrData, onDataLoaded]);
+  }, [enabled, applicationId, stepId, form, getMergedStepData, ocrData, onDataLoaded, _hasHydrated]);
 
   // Debounced save function
   const saveStepDataDebounced = useCallback(
@@ -184,7 +186,7 @@ export const useFormPersistence = <T extends FieldValues>({
 
   // Watch form values and auto-save (debounced)
   useEffect(() => {
-    if (!enabled || !applicationId) return;
+    if (!enabled || !applicationId || !_hasHydrated) return;
 
     // Wait for initial load to complete before starting auto-save
     if (isInitialLoadRef.current) return;

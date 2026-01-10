@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { OcrResult } from "@/service/document.service";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 
 type FormDataState = {
   // User input data for each step
@@ -22,6 +23,9 @@ type FormDataState = {
   clearAllData: () => void;
   populateFromApiResponse: (apiResponse: ApplicationDetailResponse) => void;
   populateFromOcrResult: (ocrResult: OcrResult) => void;
+  // Hydration status
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 };
 
 // Helper to merge OCR data with user data (user data takes precedence)
@@ -53,13 +57,8 @@ const mergeData = <T>(
       const userValue = (userData as Record<string, unknown>)[key];
       const ocrValue = (ocrData as Record<string, unknown>)[key];
 
-      // If user value is empty/null/undefined, use OCR value
-      if (
-        userValue === null ||
-        userValue === undefined ||
-        userValue === "" ||
-        (Array.isArray(userValue) && userValue.length === 0)
-      ) {
+      // If user value is null or undefined, use OCR value as fallback
+      if (userValue === null || userValue === undefined) {
         if (ocrValue !== undefined) {
           merged[key] = ocrValue;
         }
@@ -88,6 +87,8 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       stepData: {},
       ocrData: {},
       applicationId: null,
+      _hasHydrated: false,
+      setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
 
       setApplicationId: (id) => {
         set({ applicationId: id });
@@ -241,9 +242,7 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
           // Also restore completed steps in the navigation store
           // Import the step store to update navigation state
-          const { restoreCompletedSteps } =
-            require("@/store/useApplicationStep.store").useApplicationStepStore.getState();
-          restoreCompletedSteps(newStepData);
+          useApplicationStepStore.getState().restoreCompletedSteps(newStepData);
 
           return { stepData: newStepData };
         });
@@ -257,9 +256,32 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Map OCR sections to step IDs
           // Step 1: Personal Details
           if (ocrResult.sections.personal_details?.extracted_data) {
-            newOcrData[1] = ocrResult.sections.personal_details.extracted_data;
-          }
+            const extractedData = ocrResult.sections.personal_details.extracted_data;
+            if (extractedData && typeof extractedData === "object" && !Array.isArray(extractedData)) {
+              const dataObj = extractedData as Record<string, unknown>;
+              const transformedData: Record<string, unknown> = { ...dataObj };
 
+              // Map expiry_date -> passport_expiry
+              if (dataObj.expiry_date && !dataObj.passport_expiry) {
+                transformedData.passport_expiry = dataObj.expiry_date;
+                delete transformedData.expiry_date;
+              }
+
+              // Normalize gender (M -> Male, F -> Female)
+              if (dataObj.gender) {
+                const gender = String(dataObj.gender).toUpperCase();
+                if (gender === "M" || gender === "MALE") {
+                  transformedData.gender = "Male";
+                } else if (gender === "F" || gender === "FEMALE") {
+                  transformedData.gender = "Female";
+                }
+              }
+
+              newOcrData[1] = transformedData;
+            } else {
+              newOcrData[1] = extractedData;
+            }
+          }
           // Step 2: Emergency Contact
           if (ocrResult.sections.emergency_contacts?.extracted_data) {
             newOcrData[2] =
@@ -410,6 +432,9 @@ export const useApplicationFormDataStore = create<FormDataState>()(
         ocrData: state.ocrData,
         applicationId: state.applicationId,
       }),
+      onRehydrateStorage: (state) => {
+        return () => state.setHasHydrated(true);
+      },
     }
   )
 );

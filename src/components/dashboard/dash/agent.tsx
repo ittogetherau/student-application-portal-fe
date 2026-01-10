@@ -2,7 +2,11 @@
 
 import {
   AlertCircle,
+  Award,
+  CheckCircle,
+  Clock,
   FileText,
+  Mail,
   Plus,
   Search,
   TrendingUp,
@@ -18,8 +22,141 @@ import { DraftApplications } from "./components/DraftApplications";
 import { KPICard } from "./components/KPICard";
 import { MonthlyTrendChart } from "./components/MonthlyTrendChart";
 import { PendingActions } from "./components/PendingActions";
+import type { PendingAction } from "./components/PendingActions";
 import { RecentActivity } from "./components/RecentActivity";
 import { StatusDonutChart } from "./components/StatusDonutChart";
+import { agentDashboardData } from "./data/agent-dashboard-data";
+
+const kpiStyleByKey: Record<
+  string,
+  { icon: typeof FileText; iconColor: string; iconBgColor: string }
+> = {
+  totalApplications: {
+    icon: FileText,
+    iconColor: "text-blue-600",
+    iconBgColor: "bg-blue-100/50 dark:bg-blue-900/20",
+  },
+  inProgress: {
+    icon: TrendingUp,
+    iconColor: "text-amber-600",
+    iconBgColor: "bg-amber-100/50 dark:bg-amber-900/20",
+  },
+  offersIssued: {
+    icon: Users,
+    iconColor: "text-green-600",
+    iconBgColor: "bg-green-100/50 dark:bg-green-900/20",
+  },
+  actionRequired: {
+    icon: AlertCircle,
+    iconColor: "text-red-600",
+    iconBgColor: "bg-red-100/50 dark:bg-red-900/20",
+  },
+};
+
+const defaultKpiStyle = {
+  icon: FileText,
+  iconColor: "text-neutral-600",
+  iconBgColor: "bg-neutral-100 dark:bg-neutral-800",
+};
+
+const statusColorByName: Record<string, string> = {
+  Draft: "#9CA3AF",
+  Submitted: "#3B82F6",
+  "Under Review": "#8B5CF6",
+  "Offer Issued": "#10B981",
+  Accepted: "#059669",
+  Rejected: "#EF4444",
+};
+
+const applicationStatusClassByName: Record<string, string> = {
+  Draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  Submitted: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-400",
+  "Under Review":
+    "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-400",
+  "Offer Issued":
+    "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400",
+  Accepted:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400",
+  Rejected: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-400",
+};
+
+const defaultApplicationStatusClass =
+  "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400";
+
+const activityStyleByType: Record<
+  string,
+  { icon: typeof FileText; iconColor: string; iconBg: string }
+> = {
+  offer_issued: {
+    icon: Award,
+    iconColor: "text-green-600 dark:text-green-400",
+    iconBg: "bg-green-100 dark:bg-green-900",
+  },
+  application_submitted: {
+    icon: CheckCircle,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-100 dark:bg-blue-900",
+  },
+  message: {
+    icon: Mail,
+    iconColor: "text-purple-600 dark:text-purple-400",
+    iconBg: "bg-purple-100 dark:bg-purple-900",
+  },
+  document_uploaded: {
+    icon: FileText,
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    iconBg: "bg-indigo-100 dark:bg-indigo-900",
+  },
+  under_review: {
+    icon: Clock,
+    iconColor: "text-amber-600 dark:text-amber-400",
+    iconBg: "bg-amber-100 dark:bg-amber-900",
+  },
+};
+
+const defaultActivityStyle = {
+  icon: FileText,
+  iconColor: "text-neutral-600 dark:text-neutral-400",
+  iconBg: "bg-neutral-100 dark:bg-neutral-800",
+};
+
+const agentKpis = agentDashboardData.kpis.map((kpi) => ({
+  ...kpi,
+  ...(kpiStyleByKey[kpi.key] ?? defaultKpiStyle),
+}));
+
+const agentStatusBreakdown = agentDashboardData.statusBreakdown.map((item) => ({
+  name: item.status,
+  value: item.count,
+  color: statusColorByName[item.status] ?? "#6B7280",
+}));
+
+const agentRecentActivity = agentDashboardData.recentActivity.map((activity) => {
+  const style = activityStyleByType[activity.type] ?? defaultActivityStyle;
+  return {
+    ...activity,
+    ...style,
+  };
+});
+
+const agentPendingActions: PendingAction[] =
+  agentDashboardData.pendingActions.map((action) => ({
+    ...action,
+    type: action.type === "document" ? "document" : "request",
+    priority:
+      action.priority === "high"
+        ? "high"
+        : action.priority === "medium"
+        ? "medium"
+        : "low",
+  }));
+
+const agentApplications = agentDashboardData.applications.map((application) => ({
+  ...application,
+  statusColor:
+    applicationStatusClassByName[application.status] ??
+    defaultApplicationStatusClass,
+}));
 
 export default function AgentDashboard() {
   return (
@@ -65,58 +202,40 @@ export default function AgentDashboard() {
       <main className="wrapper py-8 space-y-8">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPICard
-            title="Total Applications"
-            value={170}
-            icon={FileText}
-            iconColor="text-blue-600"
-            iconBgColor="bg-blue-100/50 dark:bg-blue-900/20"
-            trend={{ value: 12, isPositive: true }}
-          />
-          <KPICard
-            title="In Progress"
-            value={28}
-            icon={TrendingUp}
-            iconColor="text-amber-600"
-            iconBgColor="bg-amber-100/50 dark:bg-amber-900/20"
-            trend={{ value: 5, isPositive: false }}
-          />
-          <KPICard
-            title="Offers Issued"
-            value={42}
-            icon={Users}
-            iconColor="text-green-600"
-            iconBgColor="bg-green-100/50 dark:bg-green-900/20"
-            trend={{ value: 18, isPositive: true }}
-          />
-          <KPICard
-            title="Action Required"
-            value={4}
-            icon={AlertCircle}
-            iconColor="text-red-600"
-            iconBgColor="bg-red-100/50 dark:bg-red-900/20"
-          />
+          {agentKpis.map((kpi) => (
+            <KPICard
+              key={kpi.key}
+              title={kpi.title}
+              value={kpi.value}
+              icon={kpi.icon}
+              iconColor={kpi.iconColor}
+              iconBgColor={kpi.iconBgColor}
+              trend={kpi.trend}
+            />
+          ))}
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <StatusDonutChart />
-          <MonthlyTrendChart />
+          <StatusDonutChart data={agentStatusBreakdown} />
+          <MonthlyTrendChart data={agentDashboardData.monthlyTrends} />
         </div>
 
         {/* Pending Actions & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PendingActions />
-          <RecentActivity />
+          <PendingActions pendingActions={agentPendingActions} />
+          <RecentActivity activities={agentRecentActivity} />
         </div>
 
         {/* Applications Table */}
         <section className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden min-w-0">
-          <ApplicationsTable />
+          <ApplicationsTable data={agentApplications} />
         </section>
 
         {/* Draft Applications */}
-        <DraftApplications />
+        <DraftApplications
+          draftApplications={agentDashboardData.draftApplications}
+        />
       </main>
     </div>
   );

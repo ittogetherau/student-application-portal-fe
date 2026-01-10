@@ -130,7 +130,10 @@ const convertToFormData = (
 // Main Component
 export default function DocumentsUploadForm() {
   const searchParams = useSearchParams();
-  const applicationId = searchParams.get("id");
+  const applicationIdFromUrl = searchParams.get("id");
+  const storedApplicationId = useApplicationFormDataStore((state) => state.applicationId);
+  const applicationId = applicationIdFromUrl || storedApplicationId;
+
   const { uploadDocument } = useDocuments(applicationId);
   const {
     data: documentTypesResponse,
@@ -335,11 +338,11 @@ export default function DocumentsUploadForm() {
               files: currentFiles.map((f) =>
                 f.file === file
                   ? {
-                      ...f,
-                      uploading: false,
-                      uploaded: false,
-                      error: "Upload failed",
-                    }
+                    ...f,
+                    uploading: false,
+                    uploaded: false,
+                    error: "Upload failed",
+                  }
                   : f
               ),
             },
@@ -357,7 +360,8 @@ export default function DocumentsUploadForm() {
   );
 
   const handleFileSelect = useCallback(
-    async (documentTypeId: string, files: FileList | null) => {
+    async (documentTypeId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
       if (!files || !applicationId) return;
 
       const fileArray = Array.from(files);
@@ -381,6 +385,9 @@ export default function DocumentsUploadForm() {
         const fileKey = `${documentTypeId}-${file.name}-${file.size}`;
         await uploadSingleFile(documentTypeId, file, fileKey);
       }
+
+      // Reset the input value to allow selecting the same file again if needed
+      event.target.value = "";
     },
     [applicationId, uploadSingleFile]
   );
@@ -530,7 +537,7 @@ export default function DocumentsUploadForm() {
                           "w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200",
                           isSelected && "bg-blue-50 border-blue-500 shadow-sm",
                           !isSelected &&
-                            "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                          "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -546,7 +553,7 @@ export default function DocumentsUploadForm() {
                                 className={cn(
                                   "text-[10px] px-1.5 py-0 h-4",
                                   docType.is_mandatory &&
-                                    "bg-orange-500 hover:bg-orange-600"
+                                  "bg-orange-500 hover:bg-orange-600"
                                 )}
                               >
                                 {docType.is_mandatory
@@ -603,10 +610,7 @@ export default function DocumentsUploadForm() {
                             className="hidden"
                             multiple
                             onChange={(e) =>
-                              handleFileSelect(
-                                selectedDocument.id,
-                                e.target.files
-                              )
+                              handleFileSelect(selectedDocument.id, e)
                             }
                             accept="*/*"
                             disabled={isAnyFileUploading || !applicationId}
@@ -637,77 +641,64 @@ export default function DocumentsUploadForm() {
                         {/* Files Table */}
                         {((selectedState?.uploadedFiles?.length ?? 0) > 0 ||
                           (selectedState?.files?.length ?? 0) > 0) && (
-                          <div className="mt-6">
-                            <table className="w-full">
-                              <thead className="border-b">
-                                <tr className="text-left text-sm text-muted-foreground">
-                                  <th className="pb-3 font-medium">NAME</th>
-                                  <th className="pb-3 font-medium">SIZE</th>
-                                  <th className="pb-3 font-medium">STATUS</th>
-                                  <th className="pb-3 font-medium">ACTION</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {/* Show uploaded files */}
-                                {selectedState?.uploadedFiles?.map(
-                                  (file, index) => (
-                                    <tr
-                                      key={`uploaded-${index}`}
-                                      className="border-b last:border-0"
-                                    >
-                                      <td className="py-3 text-sm">
-                                        {file.fileName}
-                                      </td>
-                                      <td className="py-3 text-sm">
-                                        {(file.fileSize / 1024).toFixed(2)} KB
-                                      </td>
+                            <div className="mt-6">
+                              <table className="w-full">
+                                <thead className="border-b">
+                                  <tr className="text-left text-sm text-muted-foreground">
+                                    <th className="pb-3 font-medium">NAME</th>
+                                    <th className="pb-3 font-medium">SIZE</th>
+                                    <th className="pb-3 font-medium">STATUS</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {/* Show in-progress or failed uploads */}
+                                  {selectedState?.files?.filter(f => f.uploading || f.error)?.map((f, index) => (
+                                    <tr key={`local-${index}`} className="border-b last:border-0 opacity-70">
+                                      <td className="py-3 text-sm">{f.file.name}</td>
+                                      <td className="py-3 text-sm">{(f.file.size / 1024).toFixed(2)} KB</td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                          <span className="text-sm text-green-600">
-                                            Uploaded
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="py-3">
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                          >
-                                            <Eye className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                          >
-                                            <Download className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleRemovePersistedFile(
-                                                selectedDocument.id,
-                                                file.fileName,
-                                                file.fileSize
-                                              )
-                                            }
-                                          >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                          </Button>
+                                          {f.uploading ? (
+                                            <>
+                                              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                              <span className="text-sm text-blue-500 font-medium">Uploading...</span>
+                                            </>
+                                          ) : (
+                                            <span className="text-sm text-destructive font-medium">{f.error}</span>
+                                          )}
                                         </div>
                                       </td>
                                     </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                                  ))}
+
+                                  {/* Show uploaded files */}
+                                  {selectedState?.uploadedFiles?.map(
+                                    (file, index) => (
+                                      <tr
+                                        key={`uploaded-${index}`}
+                                        className="border-b last:border-0"
+                                      >
+                                        <td className="py-3 text-sm">
+                                          {file.fileName}
+                                        </td>
+                                        <td className="py-3 text-sm">
+                                          {(file.fileSize / 1024).toFixed(2)} KB
+                                        </td>
+                                        <td className="py-3">
+                                          <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                            <span className="text-sm text-green-600">
+                                              Uploaded
+                                            </span>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -731,7 +722,6 @@ export default function DocumentsUploadForm() {
                         <th className="pb-3 font-medium">FILE NAME</th>
                         <th className="pb-3 font-medium">DOCUMENT NAME</th>
                         <th className="pb-3 font-medium">SIZE</th>
-                        <th className="pb-3 font-medium">ACTION</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -741,19 +731,6 @@ export default function DocumentsUploadForm() {
                           <td className="py-3 text-sm">{file.documentName}</td>
                           <td className="py-3 text-sm">
                             {(file.fileSize / 1024).toFixed(2)} KB
-                          </td>
-                          <td className="py-3">
-                            <div className="flex items-center gap-2">
-                              <Button type="button" variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm">
-                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </div>
                           </td>
                         </tr>
                       ))}
@@ -777,8 +754,8 @@ export default function DocumentsUploadForm() {
             {isAnyFileUploading
               ? "Uploading..."
               : allMandatoryUploaded
-              ? "Save & Continue"
-              : "Upload Required Documents"}
+                ? "Save & Continue"
+                : "Upload Required Documents"}
           </Button>
         </ApplicationStepHeader>
       </form>

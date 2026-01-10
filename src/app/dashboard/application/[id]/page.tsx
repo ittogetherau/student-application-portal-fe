@@ -35,6 +35,7 @@ import {
 import CommunicationTab from "./_components/tabs/CommunicationTab";
 import DocumentsTab, { Document } from "./_components/tabs/DocumentsTab";
 import Timeline from "./_components/tabs/TimelineTab";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 
 export default function AgentApplicationDetail() {
   const params = useParams();
@@ -78,47 +79,54 @@ export default function AgentApplicationDetail() {
     <main className="p-6 space-y-4">
       <ThreadMessagesPanel />
 
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBackNavigation}
-            className="h-8 w-8 shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+      <ContainerLayout>
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackNavigation}
+              className="h-8 w-8 shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
 
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-medium truncate">
-              {studentName()}
-            </h1>
-            <p className="text-xs text-muted-foreground truncate">
-              Reference: {application.id}
-            </p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-medium truncate">
+                {studentName()}
+              </h1>
+              {/* <p className="text-xs text-muted-foreground truncate">
+                Reference: {application.id}
+              </p> */}
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
-          {/* Badge */}
-          <ApplicationStatusBadge
-            status={application.current_stage || application.stage || ""}
-          />
+          <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
+            {/* Badge */}
+            <ApplicationStatusBadge
+              status={application.current_stage || application.stage || ""}
+            />
 
-          {/* Edit */}
-          {ROLE === "agent" &&
-            application.current_stage === APPLICATION_STAGE.DRAFT && (
-              <Button asChild variant="outline" size="sm" className="gap-2 h-8">
-                <Link
-                  href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
+            {/* Edit */}
+            {ROLE === "agent" &&
+              application.current_stage === APPLICATION_STAGE.DRAFT && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 h-8"
                 >
-                  <SquarePen className="h-3.5 w-3.5" />
-                  Edit
-                </Link>
-              </Button>
-            )}
-        </div>
-      </section>
+                  <Link
+                    href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
+                  >
+                    <SquarePen className="h-3.5 w-3.5" />
+                    Edit
+                  </Link>
+                </Button>
+              )}
+          </div>
+        </section>
+      </ContainerLayout>
 
       <TwoColumnLayout
         reversed={true}
@@ -154,16 +162,16 @@ export default function AgentApplicationDetail() {
               </TabsTrigger>
             </TabsList>
 
-            {ROLE === USER_ROLE.STAFF && (
-              <Button
-                size="sm"
-                className="h-9 w-full sm:w-auto gap-2"
-                onClick={() => setIsCreateThreadOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Create Thread
-              </Button>
-            )}
+            {/* {ROLE === USER_ROLE.STAFF && ( */}
+            <Button
+              size="sm"
+              className="h-9 w-full sm:w-auto gap-2"
+              onClick={() => setIsCreateThreadOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Create Thread
+            </Button>
+            {/* // )} */}
           </div>
 
           <TabsContent value="details" className="space-y-3">

@@ -1,13 +1,15 @@
 "use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { siteRoutes } from "@/constants/site-routes";
 import { useApplicationThreadsQuery } from "@/hooks/application-threads.hook";
 import { formatParamUrl } from "@/lib/format-param-url";
 import { Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import { useMemo, useState } from "react";
 
 interface CommunicationTabProps {
   applicationId: string;
@@ -26,11 +28,33 @@ export default function CommunicationTab({
 }: CommunicationTabProps) {
   const { data, isLoading, error } = useApplicationThreadsQuery(applicationId);
   const threads = data?.data || [];
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredThreads = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return threads;
+    return threads.filter((thread) => {
+      return (
+        thread.subject.toLowerCase().includes(term) ||
+        thread.issue_type?.toLowerCase().includes(term) ||
+        thread.target_section?.toLowerCase().includes(term) ||
+        thread.status?.toLowerCase().includes(term) ||
+        thread.priority?.toLowerCase().includes(term)
+      );
+    });
+  }, [searchTerm, threads]);
 
   return (
     <Card>
       <CardHeader className="py-3 px-4">
         <CardTitle className="text-base">Threads</CardTitle>
+        <div className="mt-2 max-w-sm">
+          <Input
+            placeholder="Search threads..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">
         {isLoading && (
@@ -45,7 +69,7 @@ export default function CommunicationTab({
           </div>
         )}
 
-        {!isLoading && !error && threads.length === 0 && (
+        {!isLoading && !error && filteredThreads.length === 0 && (
           <div className="text-center py-8 text-xs text-muted-foreground">
             No threads
           </div>
@@ -53,8 +77,8 @@ export default function CommunicationTab({
 
         {!isLoading &&
           !error &&
-          threads.length > 0 &&
-          threads.map((thread) => (
+          filteredThreads.length > 0 &&
+          filteredThreads.map((thread) => (
             <div
               key={thread.id}
               className="border rounded p-2.5 bg-muted/20 space-y-1.5"

@@ -1,10 +1,9 @@
 "use client";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
-import { useState, type ReactNode } from "react";
-
 import { ThemeProvider } from "next-themes";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { useState, type ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
 
 const Providers = ({ children }: { children: ReactNode }) => {
@@ -13,13 +12,12 @@ const Providers = ({ children }: { children: ReactNode }) => {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster
-            position="bottom-right"
-            reverseOrder={false}
-          />
-        </ThemeProvider>
+        <NuqsAdapter>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+            <Toaster position="bottom-right" reverseOrder={false} />
+          </ThemeProvider>
+        </NuqsAdapter>
       </QueryClientProvider>
     </SessionProvider>
   );

@@ -5,16 +5,17 @@ import { Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const data = [
-    { name: 'Draft', value: 12, color: '#9CA3AF' },
-    { name: 'Submitted', value: 28, color: '#3B82F6' },
-    { name: 'Under Review', value: 35, color: '#8B5CF6' },
-    { name: 'Offer Issued', value: 42, color: '#10B981' },
-    { name: 'Accepted', value: 38, color: '#059669' },
-    { name: 'Rejected', value: 15, color: '#EF4444' },
-];
+export interface StatusBreakdownItem {
+    name: string;
+    value: number;
+    color: string;
+}
 
-export function StatusDonutChart() {
+interface StatusDonutChartProps {
+    data: StatusBreakdownItem[];
+}
+
+export function StatusDonutChart({ data }: StatusDonutChartProps) {
     return (
         <Card>
             <CardHeader>

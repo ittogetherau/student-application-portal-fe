@@ -1,7 +1,7 @@
-import { Controller, useFormContext } from "react-hook-form";
-
+import { Controller, useFormContext, useFormState } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getFieldError } from "./form-errors";
 
 interface FormRadioProps {
   name: string;
@@ -10,12 +10,10 @@ interface FormRadioProps {
 }
 
 export function FormRadio({ name, label, options }: FormRadioProps) {
-  const {
-    control,
-    formState: { errors },
-  } = useFormContext<Record<string, unknown>>();
+  const { control } = useFormContext<Record<string, unknown>>();
 
-  const error = (errors[name] as { message?: string } | undefined)?.message;
+  const { errors } = useFormState({ control, name });
+  const error = getFieldError(errors, name)?.message;
 
   return (
     <div className="space-y-1">

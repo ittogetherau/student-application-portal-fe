@@ -249,10 +249,12 @@ export function DataTable<TData, TValue>({
           </Table>
         </div>
       ) : (
-        <ApplicationKanban
-          data={searchFilteredData as Application[]}
-          isallowMovingInKanban={isallowMovingInKanban}
-        />
+        <div className="">
+          <ApplicationKanban
+            data={searchFilteredData as Application[]}
+            isallowMovingInKanban={isallowMovingInKanban}
+          />
+        </div>
       )}
 
       {view === "table" && enableLocalPagination ? (

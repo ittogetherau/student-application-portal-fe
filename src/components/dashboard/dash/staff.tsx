@@ -8,6 +8,36 @@ import {
   ApplicationStatusChart as StatusChart,
   StaffWorkloadSection as WorkloadSection,
 } from "./staff-components";
+import type { Application } from "./staff-components/StaffApplicationsTable";
+import { staffDashboardData } from "./data/staff-dashboard-data";
+
+const statusColorByName: Record<string, string> = {
+  "Under Review": "#FF7A00",
+  "Pending Decision": "#FFB800",
+  Approved: "#10B981",
+  Rejected: "#EF4444",
+  Waitlisted: "#8B5CF6",
+  Withdrawn: "#6B7280",
+};
+
+const staffStatusDistribution = staffDashboardData.statusDistribution.map(
+  (item) => ({
+    name: item.status,
+    value: item.count,
+    color: statusColorByName[item.status] ?? "#6B7280",
+  })
+);
+
+const staffPriorityApplications: Application[] =
+  staffDashboardData.priorityApplications.map((application) => ({
+    ...application,
+    priority:
+      application.priority === "High"
+        ? "High"
+        : application.priority === "Medium"
+        ? "Medium"
+        : "Low",
+  }));
 
 export default function StaffDashboard() {
   return (
@@ -45,22 +75,22 @@ export default function StaffDashboard() {
       <main className="wrapper py-6 space-y-6">
         {/* Workload Section */}
         <section>
-          <WorkloadSection />
+          <WorkloadSection workload={staffDashboardData.workload} />
         </section>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-0">
           <div className="min-w-0">
-            <StatusChart />
+            <StatusChart data={staffStatusDistribution} />
           </div>
           <div className="min-w-0">
-            <AlertsPanel />
+            <AlertsPanel staffData={staffDashboardData.staffPerformance} />
           </div>
         </div>
 
         {/* Applications Table */}
         <div className="rounded-lg overflow-hidden">
-          <ApplicationsTable />
+          <ApplicationsTable data={staffPriorityApplications} />
         </div>
       </main>
     </div>

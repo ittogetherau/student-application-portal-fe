@@ -28,7 +28,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-interface Application {
+export interface Application {
     id: string;
     student: string;
     university: string;
@@ -38,59 +38,6 @@ interface Application {
     deadline: string;
     submittedDate: string;
 }
-
-const data: Application[] = [
-    {
-        id: 'APP-2024-001',
-        student: 'Sarah Chen',
-        university: 'University of Toronto',
-        program: 'Computer Science',
-        status: 'Offer Issued',
-        statusColor: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400',
-        deadline: '2025-01-15',
-        submittedDate: '2024-11-20',
-    },
-    {
-        id: 'APP-2024-002',
-        student: 'Michael Johnson',
-        university: 'McGill University',
-        program: 'Business Administration',
-        status: 'Under Review',
-        statusColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-400',
-        deadline: '2025-01-30',
-        submittedDate: '2024-12-01',
-    },
-    {
-        id: 'APP-2024-003',
-        student: 'Priya Sharma',
-        university: 'UBC',
-        program: 'Engineering',
-        status: 'Submitted',
-        statusColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-400',
-        deadline: '2025-02-01',
-        submittedDate: '2024-12-10',
-    },
-    {
-        id: 'APP-2024-004',
-        student: 'David Kim',
-        university: 'York University',
-        program: 'Data Science',
-        status: 'Draft',
-        statusColor: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
-        deadline: '2025-02-15',
-        submittedDate: '-',
-    },
-    {
-        id: 'APP-2024-005',
-        student: 'Emma Wilson',
-        university: 'University of Melbourne',
-        program: 'Medicine',
-        status: 'Accepted',
-        statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400',
-        deadline: '2025-01-20',
-        submittedDate: '2024-11-15',
-    },
-];
 
 export const columns: ColumnDef<Application>[] = [
     {
@@ -163,7 +110,11 @@ export const columns: ColumnDef<Application>[] = [
     },
 ];
 
-export function ApplicationsTable() {
+interface ApplicationsTableProps {
+    data: Application[];
+}
+
+export function ApplicationsTable({ data }: ApplicationsTableProps) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 

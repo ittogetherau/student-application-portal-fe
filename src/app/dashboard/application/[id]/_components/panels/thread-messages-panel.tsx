@@ -1,6 +1,5 @@
 "use client";
 
-import ThreadAttachmentInput from "@/components/shared/thread-attachment-input";
 import UrlDrivenSheet from "@/components/shared/url-driven-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

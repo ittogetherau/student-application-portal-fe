@@ -23,6 +23,7 @@ import {
 } from "@/validation/application/personal-details";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, FileCheck2, Loader2, Upload, X } from "lucide-react";
+import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
@@ -53,7 +54,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
+  const [extractedSummary, setExtractedSummary] = useState<Record<string, any> | null>(null);
   // Get document types and upload hook
   const { data: documentTypesResponse } = useDocumentTypesQuery();
   const { uploadDocument } = useDocuments(applicationId);
@@ -135,10 +136,33 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                 ocrResponse.data.sections.personal_details
               );
 
-              const personalDetailsData =
+              let personalDetailsData =
                 ocrResponse.data.sections.personal_details?.extracted_data;
+
+              if (personalDetailsData && typeof personalDetailsData === "object" && !Array.isArray(personalDetailsData)) {
+                // Transform data for form fields
+                const transformedData: Record<string, any> = { ...personalDetailsData };
+
+                // Map expiry_date to passport_expiry
+                if (transformedData.expiry_date && !transformedData.passport_expiry) {
+                  transformedData.passport_expiry = transformedData.expiry_date;
+                }
+
+                // Normalize gender
+                if (transformedData.gender) {
+                  const gender = String(transformedData.gender).toUpperCase();
+                  if (gender === "M" || gender === "MALE") {
+                    transformedData.gender = "Male";
+                  } else if (gender === "F" || gender === "FEMALE") {
+                    transformedData.gender = "Female";
+                  }
+                }
+
+                personalDetailsData = transformedData;
+              }
+
               console.log(
-                "[PersonalDetails] 🎯 Extracted Data:",
+                "[PersonalDetails] 🎯 Processed Data:",
                 personalDetailsData
               );
 
@@ -152,25 +176,9 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               if (personalDetailsData && pendingCount === 0) {
                 // OCR completed successfully
                 console.log("[PersonalDetails] ✅ OCR COMPLETE!");
-                console.log(
-                  "[PersonalDetails] 📦 Full data object:",
-                  personalDetailsData
-                );
-                console.log(
-                  "[PersonalDetails] 🔑 Data keys:",
-                  Object.keys(personalDetailsData)
-                );
-                console.log(
-                  "[PersonalDetails] 📝 Data entries:",
-                  Object.entries(personalDetailsData)
-                );
 
                 // Get current form values
                 const currentFormValues = methods.getValues();
-                console.log(
-                  "[PersonalDetails] 📋 Current form values:",
-                  currentFormValues
-                );
 
                 // Populate form fields with better error handling
                 let fieldsPopulated = 0;
@@ -180,70 +188,26 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                     const fieldKey = key as keyof PersonalDetailsValues;
                     const currentValue = methods.getValues(fieldKey);
 
-                    console.log(`[PersonalDetails] 🔍 Field "${fieldKey}":`, {
-                      ocrValue: value,
-                      currentValue,
-                      valueType: typeof value,
-                      willPopulate:
-                        !currentValue &&
-                        value !== null &&
-                        value !== undefined &&
-                        value !== "",
-                    });
-
                     // Skip if field already has a value
-                    if (currentValue) {
-                      console.log(
-                        `[PersonalDetails] ⏭️ Skipping "${fieldKey}" - already has value:`,
-                        currentValue
-                      );
-                      return;
-                    }
+                    if (currentValue) return;
 
-                    // Skip null/undefined values
-                    if (value === null || value === undefined || value === "") {
-                      console.log(
-                        `[PersonalDetails] ⏭️ Skipping "${fieldKey}" - empty OCR value`
-                      );
-                      return;
-                    }
+                    // Skip null/undefined/empty values
+                    if (value === null || value === undefined || value === "") return;
 
                     // Set the value
-                    console.log(
-                      `[PersonalDetails] 🎯 Setting "${fieldKey}" to:`,
-                      value
-                    );
                     methods.setValue(fieldKey, value as any, {
-                      shouldValidate: false,
+                      shouldValidate: true,
                       shouldDirty: true,
                     });
                     fieldsPopulated++;
-
-                    // Verify it was set
-                    const newValue = methods.getValues(fieldKey);
-                    console.log(
-                      `[PersonalDetails] ✓ Verified "${fieldKey}" is now:`,
-                      newValue
-                    );
                   } catch (error) {
-                    console.error(
-                      `[PersonalDetails] ❌ Error setting field "${key}":`,
-                      error
-                    );
+                    console.error(`[PersonalDetails] ❌ Error setting field "${key}":`, error);
                   }
                 });
 
-                console.log(
-                  `[PersonalDetails] 🎉 Populated ${fieldsPopulated} fields`
-                );
-                console.log(
-                  "[PersonalDetails] 📋 Final form values:",
-                  methods.getValues()
-                );
-
+                setExtractedSummary(personalDetailsData);
                 setUploadSuccess(true);
                 setIsUploading(false);
-
                 if (fieldsPopulated > 0) {
                   toast.success(
                     `Passport data extracted! ${fieldsPopulated} fields populated.`
@@ -330,6 +294,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const handleRemoveFile = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
+    setExtractedSummary(null);
   };
 
   const onSubmit = (values: PersonalDetailsValues) => {
@@ -448,6 +413,11 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Extracted Data Preview */}
+        {uploadSuccess && extractedSummary && (
+          <ExtractedDataPreview data={extractedSummary} />
+        )}
 
         {/* BASIC INFORMATION */}
         <section className="space-y-6">
@@ -596,34 +566,34 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         {/* VISA DETAILS - Only show for Onshore students */}
         {methods.watch("student_origin") ===
           "Overseas Student in Australia (Onshore)" && (
-          <section className="space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Visa Details</h3>
-              <Separator className="bg-primary/20" />
-            </div>
+            <section className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Visa Details</h3>
+                <Separator className="bg-primary/20" />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormSelect
-                name="visa_type"
-                label="VISA Type"
-                placeholder="Select VISA Type"
-                options={[
-                  { value: "graduate_485", label: "Graduate 485" },
-                  { value: "student_visa", label: "Student Visa" },
-                  { value: "tourist_visitor", label: "Tourist/Visitor" },
-                  { value: "working_holiday", label: "Working Holiday" },
-                  { value: "other", label: "Other" },
-                ]}
-              />
-              <FormInput
-                name="visa_number"
-                label="VISA Number(Optional)"
-                placeholder=""
-              />
-              <FormInput name="visa_expiry" label="Expiry Date" type="date" />
-            </div>
-          </section>
-        )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormSelect
+                  name="visa_type"
+                  label="VISA Type"
+                  placeholder="Select VISA Type"
+                  options={[
+                    { value: "graduate_485", label: "Graduate 485" },
+                    { value: "student_visa", label: "Student Visa" },
+                    { value: "tourist_visitor", label: "Tourist/Visitor" },
+                    { value: "working_holiday", label: "Working Holiday" },
+                    { value: "other", label: "Other" },
+                  ]}
+                />
+                <FormInput
+                  name="visa_number"
+                  label="VISA Number(Optional)"
+                  placeholder=""
+                />
+                <FormInput name="visa_expiry" label="Expiry Date" type="date" />
+              </div>
+            </section>
+          )}
 
         {/* RESIDENTIAL ADDRESS */}
         <section className="space-y-6">

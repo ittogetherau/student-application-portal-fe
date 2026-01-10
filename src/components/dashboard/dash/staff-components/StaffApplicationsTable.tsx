@@ -13,13 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  Search,
-  Download,
-  ChevronDown,
-  MoreHorizontal,
-  ArrowUpDown,
-} from "lucide-react";
+import { Search, Download, ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Application {
+export interface Application {
   id: string;
   studentName: string;
   program: string;
@@ -51,97 +45,6 @@ interface Application {
   daysInReview: number;
   assignedTo: string;
 }
-
-const data: Application[] = [
-  {
-    id: "APP-2025-001234",
-    studentName: "Sarah Chen",
-    program: "Computer Science",
-    intake: "Fall 2025",
-    agent: "GlobalEdu Partners",
-    status: "Under Review",
-    priority: "High",
-    daysInReview: 8,
-    assignedTo: "J. Smith",
-  },
-  {
-    id: "APP-2025-001235",
-    studentName: "Mohammed Al-Rahman",
-    program: "Business Admin",
-    intake: "Fall 2025",
-    agent: "International Gateway",
-    status: "Pending Decision",
-    priority: "High",
-    daysInReview: 12,
-    assignedTo: "M. Jones",
-  },
-  {
-    id: "APP-2025-001236",
-    studentName: "Priya Patel",
-    program: "Engineering",
-    intake: "Spring 2025",
-    agent: "StudyAbroad Connect",
-    status: "Under Review",
-    priority: "Medium",
-    daysInReview: 4,
-    assignedTo: "J. Smith",
-  },
-  {
-    id: "APP-2025-001237",
-    studentName: "Carlos Rodriguez",
-    program: "Medicine",
-    intake: "Fall 2025",
-    agent: "Elite Education",
-    status: "Under Review",
-    priority: "High",
-    daysInReview: 9,
-    assignedTo: "K. Brown",
-  },
-  {
-    id: "APP-2025-001238",
-    studentName: "Yuki Tanaka",
-    program: "Arts & Design",
-    intake: "Summer 2025",
-    agent: "Future Leaders",
-    status: "Pending Decision",
-    priority: "Medium",
-    daysInReview: 6,
-    assignedTo: "M. Jones",
-  },
-  {
-    id: "APP-2025-001239",
-    studentName: "Emma Johnson",
-    program: "Law",
-    intake: "Fall 2025",
-    agent: "Academic Bridge",
-    status: "Under Review",
-    priority: "Low",
-    daysInReview: 3,
-    assignedTo: "J. Smith",
-  },
-  {
-    id: "APP-2025-001240",
-    studentName: "Dmitri Volkov",
-    program: "Computer Science",
-    intake: "Fall 2025",
-    agent: "GlobalEdu Partners",
-    status: "Pending Decision",
-    priority: "High",
-    daysInReview: 11,
-    assignedTo: "K. Brown",
-  },
-  {
-    id: "APP-2025-001241",
-    studentName: "Aisha Okonkwo",
-    program: "Business Admin",
-    intake: "Spring 2025",
-    agent: "International Gateway",
-    status: "Under Review",
-    priority: "Medium",
-    daysInReview: 5,
-    assignedTo: "M. Jones",
-  },
-];
 
 export const columns: ColumnDef<Application>[] = [
   {
@@ -287,7 +190,11 @@ export const columns: ColumnDef<Application>[] = [
   },
 ];
 
-export function StaffApplicationsTable() {
+interface StaffApplicationsTableProps {
+  data: Application[];
+}
+
+export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []

@@ -29,7 +29,7 @@ import { toast } from "react-hot-toast";
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { goToNext, markStepCompleted } = useApplicationStepStore();
-  const { setStepData, getStepData, setApplicationId } =
+  const { setStepData, getStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
 
   const {
@@ -55,19 +55,39 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const isFormComplete =
+    formData.courseId !== "" &&
+    formData.intakeId !== "" &&
+    formData.campusId !== "";
+
   /* ---------- restore saved step ---------- */
   useEffect(() => {
-    (() => {
-      const saved = getStepData<any>(0);
-      if (!saved) return;
+    if (!_hasHydrated) return;
 
-      setFormData({
-        courseId: saved.courseId?.toString() ?? "",
-        intakeId: saved.intakeId?.toString() ?? "",
-        campusId: saved.campusId?.toString() ?? "",
+    const saved = getStepData<any>(0);
+    if (!saved) return;
+
+    setFormData({
+      courseId: saved.courseId?.toString() ?? "",
+      intakeId: saved.intakeId?.toString() ?? "",
+      campusId: saved.campusId?.toString() ?? "",
+    });
+  }, [getStepData, _hasHydrated]);
+
+  /* ---------- auto-save to store ---------- */
+  useEffect(() => {
+    if (!_hasHydrated || !isFormComplete) return;
+
+    const timeoutId = setTimeout(() => {
+      setStepData(0, {
+        courseId: Number(formData.courseId),
+        intakeId: Number(formData.intakeId),
+        campusId: Number(formData.campusId),
       });
-    })();
-  }, [getStepData]);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, setStepData, _hasHydrated, isFormComplete]);
 
   /* ---------- deterministic updates ---------- */
   const handleFieldChange = (
@@ -100,11 +120,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
   const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
-
-  const isFormComplete =
-    formData.courseId !== "" &&
-    formData.intakeId !== "" &&
-    formData.campusId !== "";
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {

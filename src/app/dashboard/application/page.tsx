@@ -1,6 +1,7 @@
 "use client";
 
 import { ApplicationTable } from "@/components/dashboard/applications/application-table";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import { Button } from "@/components/ui/button";
 import useApplications from "@/hooks/useApplications.hook";
 
@@ -24,7 +25,7 @@ const Page = () => {
       : `Applications (${total ?? 0})`;
 
   return (
-    <main className="p-6 space-y-4">
+    <ContainerLayout className=" space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           {heading}
@@ -38,12 +39,14 @@ const Page = () => {
         </div>
       ) : null}
 
-      <ApplicationTable
-        data={applications}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isKanban={true}
-      />
+      <div className="">
+        <ApplicationTable
+          data={applications}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isKanban={true}
+        />
+      </div>
 
       <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <p className="font-medium">
@@ -69,7 +72,7 @@ const Page = () => {
           </Button>
         </div>
       </div>
-    </main>
+    </ContainerLayout>
   );
 };
 

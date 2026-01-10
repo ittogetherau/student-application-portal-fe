@@ -31,7 +31,15 @@ function WorkloadItem({ label, count, color, icon }: WorkloadItemProps) {
   );
 }
 
-export function StaffWorkloadSection() {
+interface StaffWorkloadSectionProps {
+  workload: {
+    assignedToMe: number;
+    unassigned: number;
+    overdue: number;
+  };
+}
+
+export function StaffWorkloadSection({ workload }: StaffWorkloadSectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -42,19 +50,19 @@ export function StaffWorkloadSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <WorkloadItem
           label="Assigned to Me"
-          count={34}
+          count={workload.assignedToMe}
           color="bg-primary/10 text-primary"
           icon={<Users className="w-5 h-5" />}
         />
         <WorkloadItem
           label="Unassigned"
-          count={127}
+          count={workload.unassigned}
           color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
           icon={<Clock className="w-5 h-5" />}
         />
         <WorkloadItem
           label="Overdue (>5 days)"
-          count={8}
+          count={workload.overdue}
           color="bg-red-500/10 text-red-600 dark:text-red-400"
           icon={<Timer className="w-5 h-5" />}
         />

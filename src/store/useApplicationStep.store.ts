@@ -19,6 +19,8 @@ type ApplicationStepState = {
   isStepCompleted: (step: number) => boolean;
   restoreCompletedSteps: (stepData: StepData) => void;
   resetNavigation: () => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 };
 
 const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max);
@@ -79,7 +81,8 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       currentStep: 0,
       totalSteps: FORM_STEPS.length,
       completedSteps: [],
-
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       initializeStep: (applicationId, stepData) => {
         const totalSteps = get().totalSteps;
         const step = getInitialStep(applicationId, stepData, totalSteps);
@@ -136,6 +139,9 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
         currentStep: state.currentStep,
         completedSteps: state.completedSteps,
       }),
+      onRehydrateStorage: (state) => {
+        return () => state.setHasHydrated(true);
+      },
     }
   )
 );

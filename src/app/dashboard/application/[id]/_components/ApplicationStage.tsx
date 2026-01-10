@@ -200,7 +200,11 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       ) : application.current_stage === APPLICATION_STAGE.AWAITING_DOCUMENTS ? (
         <>
           {/* {current_role === USER_ROLE.AGENT && ()} */}
-          <ApplicationSignDisplay applicationId={id} />
+          <ApplicationSignDisplay
+            applicationId={id}
+            currentRole={current_role}
+            studentEmail={application?.personal_details?.email}
+          />
         </>
       ) : null}
     </div>

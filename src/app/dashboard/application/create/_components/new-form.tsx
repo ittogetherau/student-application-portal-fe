@@ -36,6 +36,10 @@ const NewForm = ({
     resetNavigation,
   } = useApplicationStepStore();
 
+  const storedApplicationId = useApplicationFormDataStore(
+    (state) => state.applicationId
+  );
+  const stepData = useApplicationFormDataStore((state) => state.stepData);
   const clearAllData = useApplicationFormDataStore(
     (state) => state.clearAllData
   );
@@ -46,29 +50,40 @@ const NewForm = ({
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const hasHydratedData = useApplicationFormDataStore((state) => state._hasHydrated);
+  const hasHydratedSteps = useApplicationStepStore((state) => state._hasHydrated);
+  const isHydrated = hasHydratedData && hasHydratedSteps;
+
   // Determine mode
   const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
   const isCreateMode = !applicationId;
 
   const { canNavigateToStep } = useStepNavigation(isEditMode);
+  const hasStoredStepData = Object.keys(stepData).length > 0;
+  const shouldFetchEditData =
+    isEditMode &&
+    (!storedApplicationId ||
+      storedApplicationId !== applicationId ||
+      !hasStoredStepData);
 
   // Initialize form
   useEffect(() => {
+    if (!isHydrated) return;
+
     (() => {
       setIsInitialized(false);
 
       if (isCreateMode) {
-        // --- NEW APPLICATION MODE ---
-        // Always start at step 0 for new applications and clear all data
-        clearAllData();
-        resetNavigation();
-        goToStep(0);
+
+        if (storedApplicationId || !hasStoredStepData) {
+          clearAllData();
+          resetNavigation();
+          goToStep(0);
+        }
         setIsInitialized(true);
       } else if (isEditMode) {
         // --- EDIT / CONTINUE MODE ---
-        const storedId = useApplicationFormDataStore.getState().applicationId;
-
-        if (storedId !== applicationId) {
+        if (shouldFetchEditData) {
           // Load fresh data from API
           getApplication(undefined, {
             onSuccess: (res) => {
@@ -105,10 +120,12 @@ const NewForm = ({
     getApplication,
     initializeStep,
     isCreateMode,
+    shouldFetchEditData,
+    isHydrated,
   ]);
 
   // Loading State
-  if (isFetching || !isInitialized) {
+  if (isFetching || !isInitialized || !isHydrated) {
     return (
       <div className="flex items-center justify-center p-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -167,8 +184,8 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                        ? "hover:bg-muted"
-                        : "opacity-40 cursor-not-allowed",
+                          ? "hover:bg-muted"
+                          : "opacity-40 cursor-not-allowed",
                       !canNavigate && "pointer-events-none"
                     )}
                     title={
@@ -183,10 +200,10 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                          ? "bg-emerald-100 text-emerald-700"
-                          : canNavigate
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-muted/50 text-muted-foreground/50"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : canNavigate
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-muted/50 text-muted-foreground/50"
                       )}
                     >
                       {isCompleted && !isCurrent ? (

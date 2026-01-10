@@ -18,6 +18,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       href: siteRoutes.dashboard.application.root,
       icon: "applications",
     },
+    {
+      label: "Tasks",
+      href: siteRoutes.dashboard.tasks,
+      icon: "tasks",
+    },
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },

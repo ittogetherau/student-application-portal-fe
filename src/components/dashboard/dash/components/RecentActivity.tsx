@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle, Clock, Mail, FileText, Award, LucideIcon } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Activity {
+export interface Activity {
     id: number;
     type: string;
     title: string;
@@ -14,60 +14,11 @@ interface Activity {
     iconBg: string;
 }
 
-const activities: Activity[] = [
-    {
-        id: 1,
-        type: 'offer',
-        title: 'Offer Issued',
-        description: 'Emma Wilson received an offer from University of Melbourne',
-        time: '2 hours ago',
-        icon: Award,
-        iconColor: 'text-green-600 dark:text-green-400',
-        iconBg: 'bg-green-100 dark:bg-green-900',
-    },
-    {
-        id: 2,
-        type: 'status',
-        title: 'Application Submitted',
-        description: 'Alex Turner\'s application to University of Sydney submitted',
-        time: '5 hours ago',
-        icon: CheckCircle,
-        iconColor: 'text-blue-600 dark:text-blue-400',
-        iconBg: 'bg-blue-100 dark:bg-blue-900',
-    },
-    {
-        id: 3,
-        type: 'message',
-        title: 'New Message',
-        description: 'University of Auckland requested additional documents',
-        time: '1 day ago',
-        icon: Mail,
-        iconColor: 'text-purple-600 dark:text-purple-400',
-        iconBg: 'bg-purple-100 dark:bg-purple-900',
-    },
-    {
-        id: 4,
-        type: 'document',
-        title: 'Document Uploaded',
-        description: 'Lisa Park uploaded transcript for McGill University',
-        time: '1 day ago',
-        icon: FileText,
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        iconBg: 'bg-indigo-100 dark:bg-indigo-900',
-    },
-    {
-        id: 5,
-        type: 'status',
-        title: 'Under Review',
-        description: 'James Lee\'s application moved to under review',
-        time: '2 days ago',
-        icon: Clock,
-        iconColor: 'text-amber-600 dark:text-amber-400',
-        iconBg: 'bg-amber-100 dark:bg-amber-900',
-    },
-];
+interface RecentActivityProps {
+    activities: Activity[];
+}
 
-export function RecentActivity() {
+export function RecentActivity({ activities }: RecentActivityProps) {
     return (
         <Card>
             <CardHeader>

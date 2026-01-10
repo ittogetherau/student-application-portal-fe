@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CircleAlert, FileText, Calendar, Users } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -13,45 +13,19 @@ import {
 } from "recharts";
 import { useState } from "react";
 
-const staffData = [
-  {
-    staff: "J. Smith",
-    underReview: 14,
-    pendingDecision: 8,
-    approved: 9,
-    rejected: 3,
-  },
-  {
-    staff: "M. Jones",
-    underReview: 11,
-    pendingDecision: 6,
-    approved: 12,
-    rejected: 4,
-  },
-  {
-    staff: "K. Brown",
-    underReview: 9,
-    pendingDecision: 7,
-    approved: 10,
-    rejected: 2,
-  },
-  {
-    staff: "A. Davis",
-    underReview: 13,
-    pendingDecision: 5,
-    approved: 8,
-    rejected: 3,
-  },
-  {
-    staff: "R. Wilson",
-    underReview: 10,
-    pendingDecision: 9,
-    approved: 11,
-    rejected: 5,
-  },
-];
+export interface StaffPerformanceItem {
+  staff: string;
+  underReview: number;
+  pendingDecision: number;
+  approved: number;
+  rejected: number;
+}
 
-export function AlertsPanel() {
+interface AlertsPanelProps {
+  staffData: StaffPerformanceItem[];
+}
+
+export function AlertsPanel({ staffData }: AlertsPanelProps) {
   const [dateFilter, setDateFilter] = useState("all");
   const [staffFilter, setStaffFilter] = useState("all");
 

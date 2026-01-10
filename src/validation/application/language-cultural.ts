@@ -2,14 +2,14 @@ import { z } from "zod";
 
 export const languageAndCultureSchema = z.object({
   // Aboriginal/Torres Strait Islander origin
-  aboriginal_torres_strait: z.string().optional(),
+  aboriginal_torres_strait: z.string().min(1, "Please select an option"),
 
   // Main Language
-  is_english_main_language: z.string().optional(),
+  is_english_main_language: z.string().min(1, "Please select an option"),
   main_language: z.string().optional(),
 
   // English Proficiency
-  english_speaking_proficiency: z.string().optional(),
+  english_speaking_proficiency: z.string().min(1, "Please select an option"),
 
   // Previous studies
   english_instruction_previous_studies: z.string().optional(),
@@ -48,6 +48,68 @@ export const languageAndCultureSchema = z.object({
   visa_type: z.string().optional(),
   visa_expiry: z.string().optional().nullable().transform(v => v === "" ? null : v),
   english_test_score: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Main language requirement
+  if (data.is_english_main_language === "No" && !data.main_language) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select your main language",
+      path: ["main_language"],
+    });
+  }
+
+  // English test requirements
+  if (data.completed_english_test === "Yes") {
+    if (!data.english_test_type) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Test type is required",
+        path: ["english_test_type"],
+      });
+    }
+    if (!data.english_test_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Test date is required",
+        path: ["english_test_date"],
+      });
+    }
+    if (!data.english_test_listening) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Listening score is required",
+        path: ["english_test_listening"],
+      });
+    }
+    if (!data.english_test_writing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Writing score is required",
+        path: ["english_test_writing"],
+      });
+    }
+    if (!data.english_test_reading) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Reading score is required",
+        path: ["english_test_reading"],
+      });
+    }
+    if (!data.english_test_speaking) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Speaking score is required",
+        path: ["english_test_speaking"],
+      });
+    }
+    if (!data.english_test_overall) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Overall score is required",
+        path: ["english_test_overall"],
+      });
+    }
+  }
 });
 
 export type LanguageAndCultureValues = z.output<
