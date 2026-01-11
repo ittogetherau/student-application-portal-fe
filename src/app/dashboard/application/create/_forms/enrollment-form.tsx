@@ -2,7 +2,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,18 +18,24 @@ import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
 } from "@/hooks/useApplication.hook";
+import { useApplicationStepQuery } from "@/hooks/useApplicationSteps.hook";
 import type { Campus, Intake } from "@/service/course.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
-import { AlertCircle, GraduationCap, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { goToNext, markStepCompleted } = useApplicationStepStore();
-  const { setStepData, getStepData, setApplicationId, _hasHydrated } =
+  const { setStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
+
+  const savedData = useApplicationFormDataStore((state) => state.stepData[0]) as any;
+
+  // Fetch saved data from backend
+  useApplicationStepQuery(applicationId ?? null, 0);
 
   const {
     data: coursesResponse,
@@ -55,6 +60,25 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  /* ---------- derived entities ---------- */
+  const selectedCourse = courses.find(
+    (c) => String(c.id) === formData.courseId
+  );
+
+  const selectedIntake = useMemo(
+    () =>
+      selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
+    [selectedCourse, formData.intakeId]
+  );
+
+  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
+  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
+
+  const selectedCampus = useMemo(
+    () => availableCampuses.find((c) => String(c.id) === formData.campusId),
+    [availableCampuses, formData.campusId]
+  );
+
   const isFormComplete =
     formData.courseId !== "" &&
     formData.intakeId !== "" &&
@@ -62,17 +86,14 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   /* ---------- restore saved step ---------- */
   useEffect(() => {
-    if (!_hasHydrated) return;
-
-    const saved = getStepData<any>(0);
-    if (!saved) return;
+    if (!_hasHydrated || !savedData) return;
 
     setFormData({
-      courseId: saved.courseId?.toString() ?? "",
-      intakeId: saved.intakeId?.toString() ?? "",
-      campusId: saved.campusId?.toString() ?? "",
+      courseId: (savedData.courseId || savedData.course)?.toString() ?? "",
+      intakeId: (savedData.intakeId || savedData.intake)?.toString() ?? "",
+      campusId: (savedData.campusId || savedData.campus)?.toString() ?? "",
     });
-  }, [getStepData, _hasHydrated]);
+  }, [savedData, _hasHydrated]);
 
   /* ---------- auto-save to store ---------- */
   useEffect(() => {
@@ -81,8 +102,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const timeoutId = setTimeout(() => {
       setStepData(0, {
         courseId: Number(formData.courseId),
+        course_name: selectedCourse?.course_name ?? "",
         intakeId: Number(formData.intakeId),
+        intake_name: selectedIntake?.intake_name ?? "",
         campusId: Number(formData.campusId),
+        campus_name: selectedCampus?.name ?? "",
       });
     }, 500);
 
@@ -107,19 +131,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     });
   };
 
-  /* ---------- derived entities ---------- */
-  const selectedCourse = courses.find(
-    (c) => String(c.id) === formData.courseId
-  );
-
-  const selectedIntake = useMemo(
-    () =>
-      selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
-    [selectedCourse, formData.intakeId]
-  );
-
-  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
@@ -150,21 +161,27 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
 
-      console.log(formData);
+
 
       await saveEnrollment({
         applicationId: currentApplicationId!,
         values: {
           course: Number(formData.courseId),
+          course_name: selectedCourse?.course_name ?? "",
           intake: Number(formData.intakeId),
+          intake_name: selectedIntake?.intake_name ?? "",
           campus: Number(formData.campusId),
+          campus_name: selectedCampus?.name ?? "",
         },
       });
 
       setStepData(0, {
         courseId: Number(formData.courseId),
+        course_name: selectedCourse?.course_name ?? "",
         intakeId: Number(formData.intakeId),
+        intake_name: selectedIntake?.intake_name ?? "",
         campusId: Number(formData.campusId),
+        campus_name: selectedCampus?.name ?? "",
       });
 
       toast.success("Enrollment saved", { id: "application-flow" });
@@ -266,7 +283,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       <div className="flex justify-end">
         <Button
           onClick={handleSaveAndContinue}
-          disabled={!isFormComplete || isSaving || isCreating}
+          disabled={isSaving || isCreating}
         >
           {isSaving || isCreating ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -41,6 +41,9 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     campus: 1,
     course: 6,
     intake: 53,
+    campus_name: "",
+    course_name: "",
+    intake_name: "",
   },
   personalDetailsData: {
     student_origin: "Overseas Student (Offshore)",

@@ -6,6 +6,15 @@ const apiProxyTarget =
 const nextConfig: NextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "churchilltest.blob.core.windows.net",
+        pathname: "/**",
+      },
+    ],
+  },
 
   redirects: async () => {
     return [

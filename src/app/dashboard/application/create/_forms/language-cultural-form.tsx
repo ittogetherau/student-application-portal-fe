@@ -116,7 +116,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<LanguageAndCultureFormValues>({
     resolver: zodResolver(languageAndCultureSchema),
     defaultValues: defaultLanguageAndCultureValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

@@ -22,7 +22,7 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<USIValues>({
     resolver: zodResolver(usiSchema),
     defaultValues: defaultUSIValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

@@ -35,7 +35,7 @@ const AdditionalServicesForm = ({
   const methods = useForm<AdditionalServicesValues>({
     resolver: zodResolver(additionalServicesSchema),
     defaultValues: defaultAdditionalServicesValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

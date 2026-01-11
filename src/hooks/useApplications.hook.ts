@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { APPLICATION_STAGE, type Application } from "@/constants/types";
 import applicationService, {
   type ApplicationListParams,
@@ -113,7 +113,7 @@ const resolveFallbackTotal = (
 };
 
 export const useApplications = ({
-  filters = {},
+  filters: initialFilters = {},
   storeKey = "applications",
 }: UseApplicationsOptions = {}) => {
   const paginationStore = usePaginationStoreByKey(storeKey);
@@ -127,17 +127,45 @@ export const useApplications = ({
   const nextPage = paginationStore((state) => state.nextPage);
   const prevPage = paginationStore((state) => state.prevPage);
 
+  // Additional filters state
+  const [extraFilters, setExtraFilters] = useState<ApplicationListParams>(
+    initialFilters
+  );
+
+  // Debounce search query
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const isSearchingOrFiltering =
+    !!debouncedQuery ||
+    Object.values(extraFilters).some((v) => v !== undefined);
+
   const applicationsQuery = useQuery({
-    queryKey: ["applications", { ...filters, search: query, page, perPage }],
+    queryKey: [
+      "applications",
+      {
+        ...extraFilters,
+        search: debouncedQuery,
+        page: page,
+        perPage,
+      },
+    ],
     queryFn: async () => {
       const response = await applicationService.listApplications({
-        ...filters,
-        search: query || undefined,
+        ...extraFilters,
+        search: debouncedQuery || undefined,
         limit: perPage,
         offset: (page - 1) * perPage,
       });
 
-      console.log(response, "hellow world");
+      console.log(response, "api response");
 
       if (!response.success || !response.data) {
         throw new Error(response.message || "Failed to fetch applications");
@@ -170,6 +198,17 @@ export const useApplications = ({
     setQuery(value);
   };
 
+  const handleFilterChange = (newFilters: ApplicationListParams) => {
+    setPage(1);
+    setExtraFilters((prev) => ({ ...prev, ...newFilters }));
+  };
+
+  const resetFilters = () => {
+    setPage(1);
+    setQuery("");
+    setExtraFilters(initialFilters);
+  };
+
   return {
     applications: applicationsQuery.data?.applications ?? [],
     total: resolvedTotal,
@@ -183,6 +222,11 @@ export const useApplications = ({
     prevPage,
     setPage,
     setQuery: handleSearch,
+    searchValue: query,
+    extraFilters,
+    setExtraFilters: handleFilterChange,
+    isSearchingOrFiltering,
+    resetFilters,
     refetch: applicationsQuery.refetch,
   };
 };

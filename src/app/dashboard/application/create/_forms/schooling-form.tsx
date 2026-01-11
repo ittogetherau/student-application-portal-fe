@@ -22,7 +22,7 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<SchoolingValues>({
     resolver: zodResolver(schoolingSchema),
     defaultValues: defaultSchoolingValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

@@ -16,9 +16,9 @@ import {
 import { Calendar, Building, ArrowUpDown, Search } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import {
     Table,
     TableBody,
@@ -34,7 +34,6 @@ export interface Application {
     university: string;
     program: string;
     status: string;
-    statusColor: string;
     deadline: string;
     submittedDate: string;
 }
@@ -88,15 +87,12 @@ export const columns: ColumnDef<Application>[] = [
     {
         accessorKey: "status",
         header: "Status",
-        cell: ({ row }) => {
-            const status = row.getValue("status") as string;
-            const statusColor = row.original.statusColor;
-            return (
-                <Badge className={statusColor} variant="secondary">
-                    {status}
-                </Badge>
-            );
-        },
+        cell: ({ row }) => (
+            <ApplicationStagePill
+                stage={row.getValue("status") as string}
+                className="text-[10px] font-medium uppercase tracking-wider"
+            />
+        ),
     },
     {
         accessorKey: "deadline",

@@ -38,8 +38,13 @@ import {
   MessageBubble,
   ThreadListItem,
 } from "./general";
+import { useSession } from "next-auth/react";
+import { USER_ROLE } from "@/constants/types";
 
 export default function TasksPageClient() {
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
+
   const { data: staffThreads, isLoading, error } = useStaffThreadsQuery();
   const staffThreadsList = useMemo(
     () => staffThreads?.data ?? [],
@@ -330,62 +335,90 @@ export default function TasksPageClient() {
                       "—"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground mb-1">Priority</p>
-                  <Select
-                    value={selectedThread.priority}
-                    onValueChange={(v) => updatePriority.mutate(v)}
-                    disabled={
-                      updatePriority.isPending || !selectedApplicationId
-                    }
-                  >
-                    <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-1">Status</p>
-                  <Select
-                    value={selectedThread.status}
-                    onValueChange={(v) => updateStatus.mutate(v)}
-                    disabled={updateStatus.isPending || !selectedApplicationId}
-                  >
-                    <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="under_review">Under Review</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Button
-                    onClick={() =>
-                      updateStatus.mutate(
-                        isThreadCompleted ? "pending" : "completed"
-                      )
-                    }
-                    size="sm"
-                    variant={isThreadCompleted ? "secondary" : "outline"}
-                    disabled={!canUpdateStatus || updateStatus.isPending}
-                    className="w-full"
-                  >
-                    {isThreadCompleted ? (
-                      <ListRestart className="h-4 w-4 mr-2" />
-                    ) : (
-                      <Verified className="h-4 w-4 mr-2" />
-                    )}
-                    {isThreadCompleted ? "Reopen Thread" : "Mark As Resolved"}
-                  </Button>
-                </div>
+
+                {ROLE === USER_ROLE.STAFF ? (
+                  <div>
+                    <p className="text-muted-foreground mb-1">Priority</p>
+                    <Select
+                      value={selectedThread.priority}
+                      onValueChange={(v) => updatePriority.mutate(v)}
+                      disabled={
+                        updatePriority.isPending || !selectedApplicationId
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-muted-foreground mb-1">Priority</p>
+                    <p className="font-medium text-xs break-words">
+                      {selectedThread.priority}
+                    </p>
+                  </div>
+                )}
+
+                {ROLE === USER_ROLE.STAFF ? (
+                  <div>
+                    <p className="text-muted-foreground mb-1">Status</p>
+                    <Select
+                      value={selectedThread.status}
+                      onValueChange={(v) => updateStatus.mutate(v)}
+                      disabled={
+                        updateStatus.isPending || !selectedApplicationId
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="under_review">
+                          Under Review
+                        </SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-muted-foreground mb-1">Status</p>
+                    <p className="font-medium text-xs break-words">
+                      {selectedThread.status}
+                    </p>
+                  </div>
+                )}
+
+                {ROLE === USER_ROLE.STAFF && (
+                  <div>
+                    <Button
+                      onClick={() =>
+                        updateStatus.mutate(
+                          isThreadCompleted ? "pending" : "completed"
+                        )
+                      }
+                      size="sm"
+                      variant={isThreadCompleted ? "secondary" : "outline"}
+                      disabled={!canUpdateStatus || updateStatus.isPending}
+                      className="w-full"
+                    >
+                      {isThreadCompleted ? (
+                        <ListRestart className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Verified className="h-4 w-4 mr-2" />
+                      )}
+                      {isThreadCompleted ? "Reopen Thread" : "Mark As Resolved"}
+                    </Button>
+                  </div>
+                )}
+
                 <div>
                   <p className="text-muted-foreground mb-1">Last Updated</p>
                   <p className="font-medium text-xs break-words">

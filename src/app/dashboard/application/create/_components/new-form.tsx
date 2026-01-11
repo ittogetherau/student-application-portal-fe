@@ -11,6 +11,7 @@ import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useApplicationStepQuery } from "@/hooks/useApplicationSteps.hook";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
@@ -46,6 +47,12 @@ const NewForm = ({
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
+
+  // Fetch step data for the current step
+  const { isLoading: isStepLoading } = useApplicationStepQuery(
+    applicationId || null,
+    currentStep
+  );
 
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
@@ -130,7 +137,7 @@ const NewForm = ({
       <div className="flex items-center justify-center p-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">
-          {isEditMode ? "Loading Application Data..." : "Initializing Form..."}
+          {isFetching ? "Loading Application..." : "Initializing Form..."}
         </span>
       </div>
     );

@@ -50,3 +50,5 @@ pnpm-lock.yaml
 yarn.lock
 
 .gemini
+
+.env.local

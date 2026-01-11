@@ -24,7 +24,7 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<DisabilityFormValues>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: defaultDisabilityValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

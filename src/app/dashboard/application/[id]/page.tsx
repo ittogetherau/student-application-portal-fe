@@ -1,6 +1,7 @@
 "use client";
 
-import { ApplicationStatusBadge } from "@/components/shared/ApplicationStatusBadge";
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { siteRoutes } from "@/constants/site-routes";
-import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
+import { APPLICATION_STAGE } from "@/constants/types";
 import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
 import { useApplicationGetQuery } from "@/hooks/useApplication.hook";
 import { ArrowLeft, Plus, SquarePen } from "lucide-react";
@@ -21,7 +22,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
-import ApplicationSignDisplay from "./_components/ApplicationSignDisplay";
 import ApplicationSidebar from "./_components/ApplicationSidebar";
 import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
@@ -35,7 +35,6 @@ import {
 import CommunicationTab from "./_components/tabs/CommunicationTab";
 import DocumentsTab, { Document } from "./_components/tabs/DocumentsTab";
 import Timeline from "./_components/tabs/TimelineTab";
-import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 
 export default function AgentApplicationDetail() {
   const params = useParams();
@@ -103,8 +102,8 @@ export default function AgentApplicationDetail() {
 
           <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
             {/* Badge */}
-            <ApplicationStatusBadge
-              status={application.current_stage || application.stage || ""}
+            <ApplicationStagePill
+              stage={application.current_stage || application.stage || ""}
             />
 
             {/* Edit */}

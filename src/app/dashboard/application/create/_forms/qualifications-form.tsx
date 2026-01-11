@@ -31,7 +31,7 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<QualificationsFormValues>({
     resolver: zodResolver(qualificationsSchema),
     defaultValues: defaultQualificationsValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

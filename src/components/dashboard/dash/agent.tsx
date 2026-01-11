@@ -1,5 +1,9 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { siteRoutes } from "@/constants/site-routes";
+import { useAgentDashboardQuery } from "@/hooks/useDashboard.hook";
 import {
   AlertCircle,
   Award,
@@ -12,20 +16,15 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { siteRoutes } from "@/constants/site-routes";
 import Link from "next/link";
 import { ApplicationsTable } from "./components/ApplicationsTable";
 import { DraftApplications } from "./components/DraftApplications";
 import { KPICard } from "./components/KPICard";
 import { MonthlyTrendChart } from "./components/MonthlyTrendChart";
-import { PendingActions } from "./components/PendingActions";
 import type { PendingAction } from "./components/PendingActions";
+import { PendingActions } from "./components/PendingActions";
 import { RecentActivity } from "./components/RecentActivity";
 import { StatusDonutChart } from "./components/StatusDonutChart";
-import { agentDashboardData } from "./data/agent-dashboard-data";
 
 const kpiStyleByKey: Record<
   string,
@@ -68,21 +67,6 @@ const statusColorByName: Record<string, string> = {
   Rejected: "#EF4444",
 };
 
-const applicationStatusClassByName: Record<string, string> = {
-  Draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-  Submitted: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-400",
-  "Under Review":
-    "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-400",
-  "Offer Issued":
-    "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400",
-  Accepted:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400",
-  Rejected: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-400",
-};
-
-const defaultApplicationStatusClass =
-  "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400";
-
 const activityStyleByType: Record<
   string,
   { icon: typeof FileText; iconColor: string; iconBg: string }
@@ -120,45 +104,56 @@ const defaultActivityStyle = {
   iconBg: "bg-neutral-100 dark:bg-neutral-800",
 };
 
-const agentKpis = agentDashboardData.kpis.map((kpi) => ({
-  ...kpi,
-  ...(kpiStyleByKey[kpi.key] ?? defaultKpiStyle),
-}));
+export default function AgentDashboard() {
+  const { data } = useAgentDashboardQuery();
+  const dashboardData = data?.data;
+  const kpis = dashboardData?.kpis ?? [];
+  const statusBreakdown = dashboardData?.statusBreakdown ?? [];
+  const recentActivity = dashboardData?.recentActivity ?? [];
+  const pendingActions = dashboardData?.pendingActions ?? [];
+  const applications = dashboardData?.applications ?? [];
+  const monthlyTrends = dashboardData?.monthlyTrends ?? [];
+  const draftApplications = dashboardData?.draftApplications ?? [];
 
-const agentStatusBreakdown = agentDashboardData.statusBreakdown.map((item) => ({
-  name: item.status,
-  value: item.count,
-  color: statusColorByName[item.status] ?? "#6B7280",
-}));
+  const agentKpis = kpis.map((kpi) => ({
+    ...kpi,
+    ...(kpiStyleByKey[kpi.key] ?? defaultKpiStyle),
+  }));
 
-const agentRecentActivity = agentDashboardData.recentActivity.map((activity) => {
-  const style = activityStyleByType[activity.type] ?? defaultActivityStyle;
-  return {
-    ...activity,
-    ...style,
-  };
-});
+  const agentStatusBreakdown = statusBreakdown.map((item) => ({
+    name: item.status,
+    value: item.count,
+    color: statusColorByName[item.status] ?? "#6B7280",
+  }));
 
-const agentPendingActions: PendingAction[] =
-  agentDashboardData.pendingActions.map((action) => ({
-    ...action,
+  const agentRecentActivity = recentActivity.map((activity, index) => {
+    const style = activityStyleByType[activity.type] ?? defaultActivityStyle;
+    return {
+      ...activity,
+      id: Number(activity.id ?? index),
+      ...style,
+    };
+  });
+
+  const agentPendingActions: PendingAction[] = pendingActions.map((action) => ({
+    id: Number(action.id ?? 0),
     type: action.type === "document" ? "document" : "request",
+    title: action.title ?? "Action required",
+    student: action.student ?? "N/A",
+    applicationId: action.applicationId ?? "N/A",
+    university: action.university ?? "N/A",
+    deadline: action.deadline ?? "N/A",
     priority:
       action.priority === "high"
         ? "high"
         : action.priority === "medium"
         ? "medium"
         : "low",
+    universityComment: action.universityComment ?? action.description ?? "",
   }));
 
-const agentApplications = agentDashboardData.applications.map((application) => ({
-  ...application,
-  statusColor:
-    applicationStatusClassByName[application.status] ??
-    defaultApplicationStatusClass,
-}));
+  const agentApplications = applications;
 
-export default function AgentDashboard() {
   return (
     <div className="bg-background p-4">
       {/* Dashboard Header */}
@@ -218,7 +213,7 @@ export default function AgentDashboard() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <StatusDonutChart data={agentStatusBreakdown} />
-          <MonthlyTrendChart data={agentDashboardData.monthlyTrends} />
+          <MonthlyTrendChart data={monthlyTrends} />
         </div>
 
         {/* Pending Actions & Recent Activity */}
@@ -233,9 +228,7 @@ export default function AgentDashboard() {
         </section>
 
         {/* Draft Applications */}
-        <DraftApplications
-          draftApplications={agentDashboardData.draftApplications}
-        />
+        <DraftApplications draftApplications={draftApplications} />
       </main>
     </div>
   );

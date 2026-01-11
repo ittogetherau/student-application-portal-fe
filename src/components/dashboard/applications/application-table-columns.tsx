@@ -3,88 +3,12 @@
 import { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 
-import type { DataTableFacetedFilterOption } from "@/components/data-table/data-table";
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { siteRoutes } from "@/constants/site-routes";
-import { Application, APPLICATION_STAGE } from "@/constants/types";
-import { cn } from "@/lib/utils";
-
-const STAGE_CONFIG: Record<
-  APPLICATION_STAGE,
-  { label: string; className: string }
-> = {
-  [APPLICATION_STAGE.DRAFT]: {
-    label: "Draft",
-    className:
-      "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100",
-  },
-  [APPLICATION_STAGE.SUBMITTED]: {
-    label: "Submitted",
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
-  },
-  [APPLICATION_STAGE.STAFF_REVIEW]: {
-    label: "Staff Review",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
-  },
-  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: {
-    label: "Awaiting Documents",
-    className:
-      "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
-  },
-  [APPLICATION_STAGE.GS_ASSESSMENT]: {
-    label: "GS Assessment",
-    className:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
-  },
-  [APPLICATION_STAGE.OFFER_GENERATED]: {
-    label: "Offer Generated",
-    className:
-      "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200",
-  },
-  [APPLICATION_STAGE.OFFER_ACCEPTED]: {
-    label: "Offer Accepted",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
-  },
-  [APPLICATION_STAGE.ENROLLED]: {
-    label: "Enrolled",
-    className:
-      "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200",
-  },
-  [APPLICATION_STAGE.REJECTED]: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
-  },
-  [APPLICATION_STAGE.WITHDRAWN]: {
-    label: "Withdrawn",
-    className:
-      "bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200",
-  },
-};
-
-export const applicationStageFilterOptions: DataTableFacetedFilterOption[] =
-  Object.entries(STAGE_CONFIG).map(([stage, config]) => ({
-    value: stage,
-    label: config.label,
-  }));
-
-const StatusPill = ({ stage }: { stage: APPLICATION_STAGE }) => {
-  const config = STAGE_CONFIG[stage];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        config?.className
-      )}
-    >
-      {config?.label ?? stage}
-    </span>
-  );
-};
+import { Application } from "@/constants/types";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "N/A";
@@ -207,7 +131,7 @@ export const applicationColumns: ColumnDef<Application>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    cell: ({ row }) => <StatusPill stage={row.original.stage} />,
+    cell: ({ row }) => <ApplicationStagePill stage={row.original.stage} />,
     filterFn: (row, columnId, filterValues) => {
       if (
         !filterValues ||

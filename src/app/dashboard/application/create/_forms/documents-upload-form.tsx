@@ -648,6 +648,7 @@ export default function DocumentsUploadForm() {
                                     <th className="pb-3 font-medium">NAME</th>
                                     <th className="pb-3 font-medium">SIZE</th>
                                     <th className="pb-3 font-medium">STATUS</th>
+                                    <th className="pb-3 font-medium text-right">ACTIONS</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -692,6 +693,34 @@ export default function DocumentsUploadForm() {
                                             </span>
                                           </div>
                                         </td>
+                                        <td className="py-3 text-right">
+                                          <div className="flex items-center justify-end gap-1">
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                            >
+                                              <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                            >
+                                              <Download className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </td>
                                       </tr>
                                     )
                                   )}
@@ -722,6 +751,7 @@ export default function DocumentsUploadForm() {
                         <th className="pb-3 font-medium">FILE NAME</th>
                         <th className="pb-3 font-medium">DOCUMENT NAME</th>
                         <th className="pb-3 font-medium">SIZE</th>
+                        <th className="pb-3 font-medium text-right">ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -731,6 +761,34 @@ export default function DocumentsUploadForm() {
                           <td className="py-3 text-sm">{file.documentName}</td>
                           <td className="py-3 text-sm">
                             {(file.fileSize / 1024).toFixed(2)} KB
+                          </td>
+                          <td className="py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -748,7 +806,7 @@ export default function DocumentsUploadForm() {
             type="button"
             onClick={handleContinue}
             disabled={
-              isAnyFileUploading || !applicationId || !allMandatoryUploaded
+              isAnyFileUploading || !applicationId
             }
           >
             {isAnyFileUploading

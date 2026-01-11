@@ -49,6 +49,44 @@ class ApplicationStepsService extends ApiService {
     return `${this.basePath}/${applicationId}/steps/${step}/${slug}`;
   }
 
+  private stepNameMap: Record<number, string> = {
+    0: "enrollment",
+    1: "personal_details",
+    2: "emergency_contact",
+    3: "health_cover",
+    4: "language_cultural",
+    5: "disability",
+    6: "schooling",
+    7: "previous_qualifications",
+    8: "employment",
+    9: "usi",
+    10: "additional_services",
+    11: "survey",
+    12: "document",
+  };
+
+  getStepData = async (
+    applicationId: string,
+    stepId: number
+  ): Promise<ServiceResponse<any>> => {
+    try {
+      const stepName = this.stepNameMap[stepId];
+      if (!stepName) throw new Error(`Invalid step ID: ${stepId}`);
+
+      const data = await this.get<any>(
+        `${this.basePath}/${applicationId}/steps/${stepName}`,
+        true
+      );
+      return {
+        success: true,
+        message: "Step data fetched.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, `Failed to fetch data for step ${stepId}`);
+    }
+  };
+
   updateEnrollment = async (
     applicationId: string,
     input: EnrollmentValues

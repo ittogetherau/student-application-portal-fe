@@ -37,7 +37,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: defaultPersonalDetailsValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

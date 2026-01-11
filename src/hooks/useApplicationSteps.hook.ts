@@ -1,5 +1,6 @@
 "use client";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   APPLICATION_STEP_IDS,
   type ApplicationStepId,
@@ -157,6 +158,37 @@ export const useApplicationStepMutations = (applicationId: string | null) => ({
     applicationId
   ),
 });
+
+export const useApplicationStepQuery = (
+  applicationId: string | null,
+  stepId: number
+) => {
+  const setStepData = useApplicationFormDataStore((state) => state.setStepData);
+
+  const query = useQuery<ServiceResponse<any>, Error>({
+    queryKey: ["application-step-data", applicationId, stepId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      const response = await applicationStepsService.getStepData(
+        applicationId,
+        stepId
+      );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    enabled: !!applicationId && stepId !== undefined,
+  });
+
+  useEffect(() => {
+    if (query.data?.data?.data) {
+      setStepData(stepId, query.data.data.data);
+    }
+  }, [query.data, stepId, setStepData]);
+
+  return query;
+};
 
 // Query hook for fetching survey availability codes
 export const useSurveyAvailabilityCodes = () => {

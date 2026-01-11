@@ -18,7 +18,6 @@ import type {
   PreviousQualificationsValues,
   SchoolingHistoryValues,
   SurveyValues,
-
 } from "@/validation/application.validation";
 
 export interface ApplicationDetailResponse {
@@ -102,7 +101,7 @@ class ApplicationService extends ApiService {
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }
-    if (params.search) searchParams.set("search", params.search);
+    if (params.search) searchParams.set("query", params.search);
     if (params.fromDate) searchParams.set("from_date", params.fromDate);
     if (params.toDate) searchParams.set("to_date", params.toDate);
     if (params.limit) searchParams.set("limit", params.limit.toString());
@@ -418,11 +417,7 @@ class ApplicationService extends ApiService {
         application_id?: string;
         current_stage?: string;
         message?: string;
-      }>(
-        `staff/applications/${applicationId}/enroll-galaxy-course`,
-        {},
-        true
-      );
+      }>(`staff/applications/${applicationId}/enroll-galaxy-course`, {}, true);
       return {
         success: true,
         message: "Enrolled course in Galaxy successfully.",
@@ -435,7 +430,7 @@ class ApplicationService extends ApiService {
 
   // Staff - Generate offer letter PDF
   generateOfferLetter = async (
-    applicationId: string,
+    applicationId: string
   ): Promise<
     ServiceResponse<{
       offer_letter_url: string;
@@ -451,11 +446,7 @@ class ApplicationService extends ApiService {
         application_id: string;
         generated_at: string;
         expires_at: string | null;
-      }>(
-        `staff/applications/${applicationId}/generate-offer-letter`,
-        {},
-        true
-      );
+      }>(`staff/applications/${applicationId}/generate-offer-letter`, {}, true);
 
       return {
         success: true,

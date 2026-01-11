@@ -76,6 +76,13 @@ interface DataTableProps<TData, TValue> {
 
   isallowMovingInKanban?: boolean;
   view: "table" | "kanban";
+  manualFiltering?: boolean;
+  onFilterChange?: (filters: ColumnFiltersState) => void;
+  columnFilters?: ColumnFiltersState;
+  onSearch?: (value: string) => void;
+  searchValue?: string;
+  onReset?: () => void;
+  isSearchingOrFiltering?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -91,15 +98,27 @@ export function DataTable<TData, TValue>({
   enableLocalPagination = true,
   isallowMovingInKanban = false,
   view = "table",
+  manualFiltering = false,
+  onFilterChange,
+  columnFilters: externalColumnFilters,
+  onSearch: externalOnSearch,
+  searchValue: externalSearchValue,
+  onReset,
+  isSearchingOrFiltering,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
+  const [internalColumnFilters, setInternalColumnFilters] =
+    React.useState<ColumnFiltersState>([]);
+  const columnFilters = externalColumnFilters ?? internalColumnFilters;
+  const setColumnFilters = onFilterChange ?? setInternalColumnFilters;
+
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(defaultColumnVisibility ?? {});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [searchValue, setSearchValue] = React.useState("");
+
+  const [internalSearchValue, setInternalSearchValue] = React.useState("");
+  const searchValue = externalSearchValue ?? internalSearchValue;
+  const onSearch = externalOnSearch ?? setInternalSearchValue;
 
   const normalizedSearchColumns = React.useMemo(
     () => searchableColumns?.map(String) ?? [],
@@ -107,7 +126,11 @@ export function DataTable<TData, TValue>({
   );
 
   const searchFilteredData = React.useMemo(() => {
-    if (!searchValue.trim() || normalizedSearchColumns.length === 0) {
+    if (
+      externalOnSearch ||
+      !searchValue.trim() ||
+      normalizedSearchColumns.length === 0
+    ) {
       return data;
     }
 
@@ -119,17 +142,22 @@ export function DataTable<TData, TValue>({
         return String(rawValue).toLowerCase().includes(query);
       })
     );
-  }, [data, normalizedSearchColumns, searchValue]);
+  }, [data, normalizedSearchColumns, searchValue, externalOnSearch]);
 
   const table = useReactTable({
     data: searchFilteredData,
     columns,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(columnFilters) : updater;
+      setColumnFilters(nextFilters);
+    },
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
+    manualFiltering,
     state: {
       sorting,
       columnFilters,
@@ -158,10 +186,12 @@ export function DataTable<TData, TValue>({
         columnVisibility={columnVisibility}
         facetedFilters={facetedFilters}
         searchValue={hasSearch ? searchValue : undefined}
-        onSearch={hasSearch ? setSearchValue : undefined}
+        onSearch={hasSearch ? onSearch : undefined}
         placeholder={searchPlaceholder}
         actions={toolbarActions}
         view={view}
+        onReset={onReset}
+        isSearchingOrFiltering={isSearchingOrFiltering}
       />
 
       {view === "table" ? (
@@ -185,9 +215,9 @@ export function DataTable<TData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     );
                   })}

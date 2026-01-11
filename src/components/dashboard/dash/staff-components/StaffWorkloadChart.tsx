@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Calendar, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,11 @@ const staffData = [
 
 export function StaffWorkloadChart() {
     const [staffFilter, setStaffFilter] = useState('all');
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const filteredData = staffData.filter(item =>
         staffFilter === 'all' || item.staff === staffFilter
@@ -44,34 +49,36 @@ export function StaffWorkloadChart() {
 
             <CardContent className="flex-1 pt-8">
                 <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={filteredData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                            <XAxis
-                                dataKey="staff"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }}
-                            />
-                            <Tooltip
-                                cursor={{ fill: '#F8FAFC' }}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Legend
-                                wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 600, color: '#64748B' }}
-                                iconType="circle"
-                            />
-                            <Bar dataKey="underReview" stackId="status" fill="#2563EB" name="Under Review" radius={[0, 0, 0, 0]} barSize={35} />
-                            <Bar dataKey="pendingDecision" stackId="status" fill="#D97706" name="Pending Decision" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="approved" stackId="status" fill="#059669" name="Approved" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="rejected" stackId="status" fill="#DC2626" name="Rejected" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {isMounted ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={filteredData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <XAxis
+                                    dataKey="staff"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#F8FAFC' }}
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Legend
+                                    wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 600, color: '#64748B' }}
+                                    iconType="circle"
+                                />
+                                <Bar dataKey="underReview" stackId="status" fill="#2563EB" name="Under Review" radius={[0, 0, 0, 0]} barSize={35} />
+                                <Bar dataKey="pendingDecision" stackId="status" fill="#D97706" name="Pending Decision" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="approved" stackId="status" fill="#059669" name="Approved" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="rejected" stackId="status" fill="#DC2626" name="Rejected" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : null}
                 </div>
             </CardContent>
         </Card>

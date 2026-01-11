@@ -24,7 +24,7 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
   const methods = useForm<EmploymentFormValues>({
     resolver: zodResolver(employmentSchema),
     defaultValues: defaultEmploymentValues,
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

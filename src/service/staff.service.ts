@@ -2,7 +2,11 @@ import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/utils/handle-api-error";
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationDetailResponse } from "@/service/application.service";
-import type { Application, APPLICATION_STAGE, Document } from "@/constants/types";
+import type {
+  Application,
+  APPLICATION_STAGE,
+  Document,
+} from "@/constants/types";
 
 // --- Request Payloads ---
 
@@ -103,7 +107,10 @@ class StaffService extends ApiService {
 
   getMetrics = async (): Promise<ServiceResponse<StaffMetrics>> => {
     try {
-      const data = await this.get<StaffMetrics>(`${this.basePath}/metrics`, true);
+      const data = await this.get<StaffMetrics>(
+        `${this.basePath}/metrics`,
+        true
+      );
       return {
         success: true,
         message: "Staff metrics fetched.",
@@ -375,4 +382,3 @@ class StaffService extends ApiService {
 
 const staffService = new StaffService();
 export default staffService;
-

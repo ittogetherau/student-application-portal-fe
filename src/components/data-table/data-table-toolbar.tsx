@@ -24,6 +24,8 @@ interface DataTableToolbarProps<TData> {
   onSearch?: (value: string) => void;
   actions?: React.ReactNode;
   view?: "table" | "kanban";
+  onReset?: () => void;
+  isSearchingOrFiltering?: boolean;
 }
 
 export function DataTableToolbar<TData>({
@@ -35,6 +37,8 @@ export function DataTableToolbar<TData>({
   onSearch,
   actions,
   view,
+  onReset,
+  isSearchingOrFiltering,
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || !!searchValue?.length;
@@ -107,20 +111,17 @@ export function DataTableToolbar<TData>({
           );
         })}
 
-        {isFiltered ? (
+        {isSearchingOrFiltering && onReset && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => {
-              table.resetColumnFilters();
-              onSearch?.("");
-            }}
-            className="gap-1 text-xs"
+            onClick={onReset}
+            className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
+            <X className="h-3.5 w-3.5" />
             Reset
-            <X className="h-3 w-3" />
           </Button>
-        ) : null}
+        )}
 
         {table.getFilteredSelectedRowModel().rows.length > 0 ? (
           <div className="flex items-center gap-2">

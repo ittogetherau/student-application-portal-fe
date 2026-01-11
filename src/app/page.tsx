@@ -1,14 +1,13 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { siteRoutes } from "@/constants/site-routes";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+
 const Index = () => {
   const session = useSession();
 
-  console.log(session, "klahsldjflkas");
   return (
     <div className="w-screen h-screen overflow-hidden grid md:grid-cols-10">
       {/* Left side - Hero Image */}

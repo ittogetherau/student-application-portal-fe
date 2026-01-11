@@ -20,9 +20,7 @@ interface PendingActionsProps {
   pendingActions: PendingAction[];
 }
 
-export function PendingActions({
-  pendingActions,
-}: PendingActionsProps) {
+export function PendingActions({ pendingActions }: PendingActionsProps) {
   return (
     <Card>
       <CardHeader>
@@ -32,7 +30,7 @@ export function PendingActions({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-4 max-h-96 overflow-y-scroll">
           {pendingActions.map((action) => (
             <div
               key={action.id}

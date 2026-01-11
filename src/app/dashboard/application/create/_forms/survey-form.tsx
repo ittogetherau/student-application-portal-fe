@@ -27,7 +27,7 @@ const SurveyForm = ({ applicationId }: { applicationId: string }) => {
     defaultValues: {
       availability_status: "",
     },
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

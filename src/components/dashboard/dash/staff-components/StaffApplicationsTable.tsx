@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 
 export interface Application {
   id: string;
@@ -97,39 +98,12 @@ export const columns: ColumnDef<Application>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      let variant: "default" | "secondary" | "destructive" | "outline" =
-        "secondary";
-      let className = "";
-
-      switch (status) {
-        case "Under Review":
-          className = "bg-primary/10 text-primary border-none";
-          break;
-        case "Pending Decision":
-          className =
-            "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-none";
-          break;
-        case "Approved":
-          className =
-            "bg-green-500/10 text-green-700 dark:text-green-400 border-none";
-          break;
-        case "Rejected":
-          className =
-            "bg-red-500/10 text-red-700 dark:text-red-400 border-none";
-          break;
-      }
-
-      return (
-        <Badge
-          variant={variant}
-          className={`text-[10px] font-medium uppercase tracking-wider rounded-full ${className}`}
-        >
-          {status}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => (
+      <ApplicationStagePill
+        stage={row.getValue("status") as string}
+        className="text-[10px] font-medium uppercase tracking-wider"
+      />
+    ),
   },
   {
     accessorKey: "priority",

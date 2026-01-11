@@ -26,7 +26,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
     defaultValues: {
       contacts: [createEmptyContact()],
     },
-    mode: "onBlur",
+    mode: "onSubmit",
     reValidateMode: "onChange",
   });
 

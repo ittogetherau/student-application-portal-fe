@@ -1,17 +1,17 @@
 "use client";
 
 import { Calendar, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip,
   Legend,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { useState } from "react";
 
 export interface StaffPerformanceItem {
   staff: string;
@@ -28,6 +28,11 @@ interface AlertsPanelProps {
 export function AlertsPanel({ staffData }: AlertsPanelProps) {
   const [dateFilter, setDateFilter] = useState("all");
   const [staffFilter, setStaffFilter] = useState("all");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const filteredData = staffData.filter(
     (item) => staffFilter === "all" || item.staff === staffFilter
@@ -80,84 +85,86 @@ export function AlertsPanel({ staffData }: AlertsPanelProps) {
 
       <div className="p-4 sm:p-6 flex-1">
         <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={filteredData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="var(--border)"
-              />
-              <XAxis
-                dataKey="staff"
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fill: "var(--muted-foreground)",
-                  fontSize: 11,
-                  fontWeight: 500,
-                }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fill: "var(--muted-foreground)",
-                  fontSize: 11,
-                  fontWeight: 500,
-                }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  borderColor: "var(--border)",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                }}
-              />
-              <Legend
-                iconType="circle"
-                wrapperStyle={{
-                  paddingTop: "20px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                }}
-              />
-              <Bar
-                dataKey="underReview"
-                stackId="a"
-                fill="#FF7A00"
-                name="Under Review"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="pendingDecision"
-                stackId="a"
-                fill="#FFB800"
-                name="Pending Decision"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="approved"
-                stackId="a"
-                fill="#10B981"
-                name="Approved"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="rejected"
-                stackId="a"
-                fill="#EF4444"
-                name="Rejected"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={filteredData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="var(--border)"
+                />
+                <XAxis
+                  dataKey="staff"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "var(--muted-foreground)",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "var(--muted-foreground)",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--card)",
+                    borderColor: "var(--border)",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Legend
+                  iconType="circle"
+                  wrapperStyle={{
+                    paddingTop: "20px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                  }}
+                />
+                <Bar
+                  dataKey="underReview"
+                  stackId="a"
+                  fill="#FF7A00"
+                  name="Under Review"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="pendingDecision"
+                  stackId="a"
+                  fill="#FFB800"
+                  name="Pending Decision"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="approved"
+                  stackId="a"
+                  fill="#10B981"
+                  name="Approved"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="rejected"
+                  stackId="a"
+                  fill="#EF4444"
+                  name="Rejected"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : null}
         </div>
       </div>
     </div>

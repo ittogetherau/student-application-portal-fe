@@ -15,18 +15,18 @@ class StudentService extends ApiService {
     return resolveServiceCall<unknown>(
       () => this.post(this.basePath, payload, true),
       "Student profile created.",
-      "Failed to create student profile",
+      "Failed to create student profile"
     );
   }
 
   listStudents(
-    params: Record<string, QueryValue> = {},
+    params: Record<string, QueryValue> = {}
   ): Promise<ServiceResponse<unknown>> {
     const query = buildQueryString(params);
     return resolveServiceCall<unknown>(
       () => this.get(`${this.basePath}${query}`, true),
       "Students fetched.",
-      "Failed to fetch students",
+      "Failed to fetch students"
     );
   }
 
@@ -34,7 +34,7 @@ class StudentService extends ApiService {
     return resolveServiceCall<unknown>(
       () => this.get(`${this.basePath}/me/dashboard`, true),
       "Student dashboard fetched.",
-      "Failed to fetch student dashboard",
+      "Failed to fetch student dashboard"
     );
   }
 
@@ -43,11 +43,11 @@ class StudentService extends ApiService {
     return resolveServiceCall<unknown>(
       () =>
         this.get(
-          `${this.basePath}/me/applications/${applicationId}/track`,
-          true,
+          `${this.basePath}/me/applications/track-by-identifier/${applicationId}`,
+          true
         ),
       "Application tracking fetched.",
-      "Failed to fetch application tracking",
+      "Failed to fetch application tracking"
     );
   }
 
@@ -55,7 +55,7 @@ class StudentService extends ApiService {
     return resolveServiceCall<unknown>(
       () => this.patch(`${this.basePath}/me`, payload, true),
       "Profile updated.",
-      "Failed to update profile",
+      "Failed to update profile"
     );
   }
 }

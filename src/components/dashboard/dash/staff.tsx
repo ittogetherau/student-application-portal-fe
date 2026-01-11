@@ -9,7 +9,7 @@ import {
   StaffWorkloadSection as WorkloadSection,
 } from "./staff-components";
 import type { Application } from "./staff-components/StaffApplicationsTable";
-import { staffDashboardData } from "./data/staff-dashboard-data";
+import { useStaffDashboardQuery } from "@/hooks/useDashboard.hook";
 
 const statusColorByName: Record<string, string> = {
   "Under Review": "#FF7A00",
@@ -20,26 +20,35 @@ const statusColorByName: Record<string, string> = {
   Withdrawn: "#6B7280",
 };
 
-const staffStatusDistribution = staffDashboardData.statusDistribution.map(
-  (item) => ({
+export default function StaffDashboard() {
+  const { data } = useStaffDashboardQuery();
+  const dashboardData = data?.data;
+  const workload = dashboardData?.workload ?? {
+    assignedToMe: 0,
+    unassigned: 0,
+    overdue: 0,
+  };
+  const statusDistribution = dashboardData?.statusDistribution ?? [];
+  const staffPerformance = dashboardData?.staffPerformance ?? [];
+  const priorityApplications = dashboardData?.priorityApplications ?? [];
+
+  const staffStatusDistribution = statusDistribution.map((item) => ({
     name: item.status,
     value: item.count,
     color: statusColorByName[item.status] ?? "#6B7280",
-  })
-);
-
-const staffPriorityApplications: Application[] =
-  staffDashboardData.priorityApplications.map((application) => ({
-    ...application,
-    priority:
-      application.priority === "High"
-        ? "High"
-        : application.priority === "Medium"
-        ? "Medium"
-        : "Low",
   }));
 
-export default function StaffDashboard() {
+  const staffPriorityApplications: Application[] =
+    priorityApplications.map((application) => ({
+      ...application,
+      priority:
+        application.priority === "High"
+          ? "High"
+          : application.priority === "Medium"
+          ? "Medium"
+          : "Low",
+    }));
+
   return (
     <div className="min-h-screen p-4 bg-background">
       <div className="wrapper py-6">
@@ -73,10 +82,10 @@ export default function StaffDashboard() {
 
       {/* Main Content */}
       <main className="wrapper py-6 space-y-6">
-        {/* Workload Section */}
-        <section>
-          <WorkloadSection workload={staffDashboardData.workload} />
-        </section>
+      {/* Workload Section */}
+      <section>
+          <WorkloadSection workload={workload} />
+      </section>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-0">
@@ -84,7 +93,7 @@ export default function StaffDashboard() {
             <StatusChart data={staffStatusDistribution} />
           </div>
           <div className="min-w-0">
-            <AlertsPanel staffData={staffDashboardData.staffPerformance} />
+            <AlertsPanel staffData={staffPerformance} />
           </div>
         </div>
 

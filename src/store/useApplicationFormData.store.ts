@@ -428,8 +428,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       name: "application-form-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        stepData: state.stepData,
-        ocrData: state.ocrData,
         applicationId: state.applicationId,
       }),
       onRehydrateStorage: (state) => {

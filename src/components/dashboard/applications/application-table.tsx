@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { USER_ROLE, type Application } from "@/constants/types";
 import Link from "next/link";
 import * as React from "react";
-import {
-  applicationColumns,
-  applicationStageFilterOptions,
-} from "./application-table-columns";
+import { applicationColumns } from "./application-table-columns";
+import { applicationStageFilterOptions } from "@/components/shared/ApplicationStagePill";
 import { siteRoutes } from "@/constants/site-routes";
 import { useSession } from "next-auth/react";
+
+import type { ColumnFiltersState } from "@tanstack/react-table";
 
 interface ApplicationTableProps {
   data?: Application[];
@@ -20,6 +20,12 @@ interface ApplicationTableProps {
   isFetching?: boolean;
   isKanban?: boolean;
   isallowMovingInKanban?: boolean;
+  filters?: ColumnFiltersState;
+  onFilterChange?: (filters: ColumnFiltersState) => void;
+  searchValue?: string;
+  onSearch?: (value: string) => void;
+  onReset?: () => void;
+  isSearchingOrFiltering?: boolean;
 }
 
 export const ApplicationTable = ({
@@ -28,6 +34,12 @@ export const ApplicationTable = ({
   isFetching = false,
   isKanban = false,
   isallowMovingInKanban = false,
+  filters: externalFilters,
+  onFilterChange,
+  searchValue,
+  onSearch,
+  onReset,
+  isSearchingOrFiltering,
 }: ApplicationTableProps) => {
   const [view, setView] = React.useState<"table" | "kanban">("table");
 
@@ -60,6 +72,13 @@ export const ApplicationTable = ({
       isallowMovingInKanban={isallowMovingInKanban}
       data={data}
       facetedFilters={filters}
+      manualFiltering={true}
+      columnFilters={externalFilters}
+      onFilterChange={onFilterChange}
+      searchValue={searchValue}
+      onSearch={onSearch}
+      onReset={onReset}
+      isSearchingOrFiltering={isSearchingOrFiltering}
       searchableColumns={[
         "referenceNumber",
         "studentName",
