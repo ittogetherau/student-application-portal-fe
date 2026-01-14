@@ -3,13 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -20,13 +13,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { USER_ROLE } from "@/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
   useApplicationRequestSignaturesMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/hooks/useApplication.hook";
-import { AlertCircle, Loader2, Mail, ShieldCheck, User } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  ExternalLink,
+  Loader2,
+  Mail,
+  RotateCw,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 import { memo, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 const formatDateTime = (value: string | null) => {
   if (!value) return "N/A";
@@ -55,10 +58,7 @@ const SignerRow = memo(
       rel="noreferrer"
       className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="p-2 rounded-full bg-muted text-muted-foreground">
-          {icon}
-        </div>
+      <div className="flex items-center justify-between w-full gap-3 min-w-0">
         <div className="space-y-0.5 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium leading-none truncate">{name}</p>
@@ -74,6 +74,12 @@ const SignerRow = memo(
             <span className="truncate max-w-[16ch] block">{email}</span>
           </div>
         </div>
+
+        <div className="s">
+          <Button variant={"ghost"} size={"icon-sm"}>
+            <ExternalLink />
+          </Button>
+        </div>
       </div>
     </a>
   )
@@ -85,12 +91,14 @@ interface ApplicationSignDisplayProps {
   applicationId: string;
   currentRole?: string;
   studentEmail?: string | null;
+  cardBorderClass?: string;
 }
 
 const ApplicationSignDisplay = ({
   applicationId,
   currentRole,
   studentEmail,
+  cardBorderClass,
 }: ApplicationSignDisplayProps) => {
   const {
     data,
@@ -117,135 +125,136 @@ const ApplicationSignDisplay = ({
 
   if (error) {
     return (
-      <Card className="border-destructive/40">
-        <CardContent className="pt-6 text-center space-y-2">
-          <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
-          <p className="text-sm font-medium">Signature data unavailable</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => requestSignatures()}
-          >
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className={cardBorderClass}>
+        <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+        <p className="text-sm font-medium">Signature data unavailable</p>
+        <Button variant="outline" size="sm" onClick={() => requestSignatures()}>
+          Retry
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2 bg-muted/30">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold tracking-tight">
-            Signatures
-          </CardTitle>
+    <div className={`${cardBorderClass}`}>
+      <div className=" flex items-center justify-between">
+        {isPending && (
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
 
-          {isPending && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      {!data?.items?.length ? (
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground italic">
+            {isPending
+              ? "Loading signature records"
+              : "No active signature requests"}
+          </p>
+        </div>
+      ) : (
+        <div className="">
+          {data.items.map((item, i) => {
+            if (i === 0)
+              return (
+                <div key={item.id} className="space-y-1">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    {item.document_title}
+                  </h4>
+
+                  <div>
+                    <SignerRow
+                      name={item.student.name}
+                      email={item.student.email}
+                      url={item.student.signing_url}
+                      icon={<User className="h-4 w-4" />}
+                      signedAt={item.student.signed_at}
+                    />
+                    <SignerRow
+                      name={item.agent.name}
+                      email={item.agent.email}
+                      url={item.agent.signing_url}
+                      icon={<ShieldCheck className="h-4 w-4" />}
+                      signedAt={item.agent.signed_at}
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-right text-muted-foreground">
+                    Initiated {formatDateTime(item.created_at)}
+                  </p>
+                </div>
+              );
+          })}
+        </div>
+      )}
+
+      {currentRole === USER_ROLE.STAFF && (
+        <div className="p-2">
+          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <DialogTrigger asChild>
+              <Button
+                className="w-full h-9 text-xs font-semibold"
+                variant="outline"
+                disabled={!studentEmail || isSending}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Processing
+                  </>
+                ) : (
+                  <>
+                    <RotateCw />
+                    Resend Offer Letter
+                  </>
+                )}
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset signatures</DialogTitle>
+                <DialogDescription>
+                  Existing signatures will be invalidated. Both parties must
+                  sign again.
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">Cancel</Button>
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  onClick={handleResend}
+                  disabled={isSending}
+                >
+                  Confirm resend
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {!studentEmail && (
+            <p className="mt-2 text-[10px] text-center text-destructive font-medium">
+              Student email required
+            </p>
           )}
         </div>
-      </CardHeader>
+      )}
 
-      <CardContent className="p-0">
-        {!data?.items?.length ? (
-          <div className="p-8 text-center">
-            <p className="text-xs text-muted-foreground italic">
-              {isPending
-                ? "Loading signature records…"
-                : "No active signature requests"}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border ">
-            {data.items.map((item, i) => {
-              if (i === 0)
-                return (
-                  <div key={item.id} className="p-4 space-y-1">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-primary" />
-                      {item.document_title}
-                    </h4>
+      {/* <Separator className="mb-2" /> */}
 
-                    <div className="">
-                      <SignerRow
-                        name={item.student.name}
-                        email={item.student.email}
-                        url={item.student.signing_url}
-                        icon={<User className="h-4 w-4" />}
-                        signedAt={item.student.signed_at}
-                      />
-                      <SignerRow
-                        name={item.agent.name}
-                        email={item.agent.email}
-                        url={item.agent.signing_url}
-                        icon={<ShieldCheck className="h-4 w-4" />}
-                        signedAt={item.agent.signed_at}
-                      />
-                    </div>
-
-                    <p className="text-[10px] text-right text-muted-foreground">
-                      Initiated {formatDateTime(item.created_at)}
-                    </p>
-                  </div>
-                );
-            })}
+      {currentRole === USER_ROLE.STAFF &&
+        data?.items[0].student.signed_at &&
+        data?.items[0].agent.signed_at && (
+          <div className="px-2">
+            <Button className="w-full">
+              Start GS Documentation
+              <ArrowRight />
+            </Button>
           </div>
         )}
-
-        {currentRole === USER_ROLE.STAFF && (
-          <div className="p-4 border-t bg-muted/10">
-            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  className="w-full h-9 text-xs font-semibold"
-                  variant="outline"
-                  disabled={!studentEmail || isSending}
-                >
-                  {isSending ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Processing
-                    </>
-                  ) : (
-                    "Resend Offer Letter"
-                  )}
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Reset signatures</DialogTitle>
-                  <DialogDescription>
-                    Existing signatures will be invalidated. Both parties must
-                    sign again.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="ghost">Cancel</Button>
-                  </DialogClose>
-                  <Button
-                    variant="destructive"
-                    onClick={handleResend}
-                    disabled={isSending}
-                  >
-                    Confirm resend
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {!studentEmail && (
-              <p className="mt-2 text-[10px] text-center text-destructive font-medium">
-                Student email required
-              </p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 

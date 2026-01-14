@@ -4,7 +4,12 @@
 import ApplicationStepHeader from "@/app/dashboard/application/create/_components/application-step-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Table,
   TableBody,
@@ -165,31 +170,36 @@ function CompactTable({
 }
 
 function Section({
+  value,
   title,
   icon: Icon,
   badge,
   children,
 }: {
+  value: string;
   title: string;
   icon?: any;
   badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader className="py-2">
+    <AccordionItem
+      value={value}
+      className="rounded-md border border-b-0 bg-card"
+    >
+      <AccordionTrigger className="px-3 py-2 hover:no-underline">
         <div className="flex items-center gap-2">
           {Icon ? (
             <div className="grid h-6 w-6 place-items-center rounded-md border bg-muted/30">
               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
           ) : null}
-          <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+          <span className="text-sm font-semibold">{title}</span>
           {badge ? <div className="ml-1">{badge}</div> : null}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0 pb-2">{children}</CardContent>
-    </Card>
+      </AccordionTrigger>
+      <AccordionContent className="px-3 pb-2">{children}</AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -207,7 +217,7 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
 
 const ReviewForm = ({
   applicationId,
-  showDetails = true,
+  showDetails = false,
 }: {
   applicationId: string;
   showDetails: boolean;
@@ -310,6 +320,55 @@ const ReviewForm = ({
     (application.additional_services as any)?.request_additional_services ??
     null;
 
+  const sections = useMemo(() => {
+    const values: string[] = [];
+    if (enrollmentData) values.push("enrollment");
+    if (application.personal_details) values.push("personal");
+    if (emergencyContacts.length) values.push("emergency-contacts");
+    if (application.health_cover_policy) values.push("health-cover");
+    if (application.language_cultural_data) values.push("language-cultural");
+    if (application.disability_support) values.push("disability-support");
+    if (application.schooling_history) values.push("schooling");
+    if (qualificationsArray.length) values.push("qualifications");
+    if (employmentArray.length || employmentStatus) values.push("employment");
+    if (application.usi) values.push("usi");
+    if (
+      application.additional_services &&
+      ((Array.isArray(application.additional_services) &&
+        application.additional_services.length > 0) ||
+        (typeof application.additional_services === "object" &&
+          "services" in application.additional_services &&
+          Array.isArray((application.additional_services as any).services) &&
+          (application.additional_services as any).services.length > 0))
+    ) {
+      values.push("additional-services");
+    }
+    if (application.survey_responses?.length) values.push("survey");
+    return values;
+  }, [
+    application.additional_services,
+    application.disability_support,
+    application.health_cover_policy,
+    application.language_cultural_data,
+    application.personal_details,
+    application.schooling_history,
+    application.survey_responses,
+    application.usi,
+    emergencyContacts.length,
+    employmentArray.length,
+    employmentStatus,
+    enrollmentData,
+    qualificationsArray.length,
+  ]);
+
+  const defaultOpenValues = useMemo(() => {
+    const values: string[] = [];
+    if (sections.includes("enrollment")) values.push("enrollment");
+    if (sections.includes("personal")) values.push("personal");
+    if (!values.length && sections.length) values.push(sections[0]);
+    return values.length ? values : undefined;
+  }, [sections]);
+
   return (
     <div className="space-y-2">
       {showDetails ? (
@@ -328,9 +387,13 @@ const ReviewForm = ({
         </div>
       ) : null}
 
-      <div className="space-y-2">
+      <Accordion
+        type="multiple"
+        defaultValue={defaultOpenValues}
+        className="space-y-2"
+      >
         {enrollmentData ? (
-          <Section title="Enrollment" icon={FileText}>
+          <Section value="enrollment" title="Enrollment" icon={FileText}>
             <FieldsGrid>
               <Field
                 label="Campus"
@@ -365,7 +428,7 @@ const ReviewForm = ({
         ) : null}
 
         {application.personal_details ? (
-          <Section title="Personal" icon={User2}>
+          <Section value="personal" title="Personal" icon={User2}>
             <FieldsGrid>
               <Field
                 label="Given Name"
@@ -458,6 +521,7 @@ const ReviewForm = ({
 
         {emergencyContacts.length ? (
           <Section
+            value="emergency-contacts"
             title="Emergency Contacts"
             icon={Contact2}
             badge={
@@ -492,7 +556,7 @@ const ReviewForm = ({
         ) : null}
 
         {application.health_cover_policy ? (
-          <Section title="Health Cover" icon={HeartPulse}>
+          <Section value="health-cover" title="Health Cover" icon={HeartPulse}>
             <FieldsGrid>
               <Field
                 label="Arrange OSHC"
@@ -544,7 +608,11 @@ const ReviewForm = ({
         ) : null}
 
         {application.language_cultural_data ? (
-          <Section title="Language & Cultural" icon={Languages}>
+          <Section
+            value="language-cultural"
+            title="Language & Cultural"
+            icon={Languages}
+          >
             <FieldsGrid>
               <Field
                 label="First Language"
@@ -594,7 +662,11 @@ const ReviewForm = ({
         ) : null}
 
         {application.disability_support ? (
-          <Section title="Disability Support" icon={Shield}>
+          <Section
+            value="disability-support"
+            title="Disability Support"
+            icon={Shield}
+          >
             <FieldsGrid>
               <Field
                 label="Has Disability"
@@ -625,7 +697,7 @@ const ReviewForm = ({
         ) : null}
 
         {application.schooling_history ? (
-          <Section title="Schooling" icon={GraduationCap}>
+          <Section value="schooling" title="Schooling" icon={GraduationCap}>
             {schoolingEntries?.length ? (
               <Group>
                 <CompactTable
@@ -672,6 +744,7 @@ const ReviewForm = ({
 
         {qualificationsArray.length ? (
           <Section
+            value="qualifications"
             title="Qualifications"
             icon={GraduationCap}
             badge={
@@ -705,6 +778,7 @@ const ReviewForm = ({
 
         {employmentArray.length || employmentStatus ? (
           <Section
+            value="employment"
             title="Employment"
             icon={Briefcase}
             badge={
@@ -751,7 +825,7 @@ const ReviewForm = ({
         ) : null}
 
         {application.usi ? (
-          <Section title="USI" icon={Shield}>
+          <Section value="usi" title="USI" icon={Shield}>
             <FieldsGrid>
               <Field
                 label="USI Number"
@@ -781,7 +855,11 @@ const ReviewForm = ({
             "services" in application.additional_services &&
             Array.isArray((application.additional_services as any).services) &&
             (application.additional_services as any).services.length > 0)) ? (
-          <Section title="Additional Services" icon={FileText}>
+          <Section
+            value="additional-services"
+            title="Additional Services"
+            icon={FileText}
+          >
             <FieldsGrid>
               <Field
                 label="Requested"
@@ -816,6 +894,7 @@ const ReviewForm = ({
 
         {application.survey_responses?.length ? (
           <Section
+            value="survey"
             title="Survey"
             icon={FileText}
             badge={
@@ -844,7 +923,7 @@ const ReviewForm = ({
             </Group>
           </Section>
         ) : null}
-      </div>
+      </Accordion>
 
       {showDetails ? (
         <ApplicationStepHeader className="mt-4">

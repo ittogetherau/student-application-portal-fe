@@ -1,4 +1,7 @@
-import { FORM_STEPS } from "@/app/dashboard/application/create/_utils/form-steps-data";
+import {
+  FORM_STEPS,
+  HIDDEN_STEP_IDS,
+} from "@/app/dashboard/application/create/_utils/form-steps-data";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -24,6 +27,21 @@ type ApplicationStepState = {
 };
 
 const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max);
+const isHiddenStep = (stepId: number) => HIDDEN_STEP_IDS.includes(stepId);
+
+const getNextVisibleStep = (current: number, totalSteps: number) => {
+  for (let i = current + 1; i < totalSteps; i++) {
+    if (!isHiddenStep(i)) return i;
+  }
+  return current;
+};
+
+const getPreviousVisibleStep = (current: number) => {
+  for (let i = current - 1; i >= 0; i--) {
+    if (!isHiddenStep(i)) return i;
+  }
+  return 0;
+};
 
 const getInitialStep = (
   applicationId: string | null,
@@ -43,6 +61,7 @@ const getInitialStep = (
     );
 
   for (let i = 0; i < totalSteps; i++) {
+    if (isHiddenStep(i)) continue;
     if (!filledSteps.includes(i)) return i;
   }
 
@@ -95,16 +114,27 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       },
 
       goToStep: (step) =>
-        set((s) => ({ currentStep: clamp(step, s.totalSteps) })),
+        set((s) => {
+          const target = isHiddenStep(step)
+            ? getNextVisibleStep(step, s.totalSteps)
+            : step;
+          return { currentStep: clamp(target, s.totalSteps) };
+        }),
 
       goToNext: () =>
         set((s) => ({
-          currentStep: clamp(s.currentStep + 1, s.totalSteps),
+          currentStep: clamp(
+            getNextVisibleStep(s.currentStep, s.totalSteps),
+            s.totalSteps
+          ),
         })),
 
       goToPrevious: () =>
         set((s) => ({
-          currentStep: clamp(s.currentStep - 1, s.totalSteps),
+          currentStep: clamp(
+            getPreviousVisibleStep(s.currentStep),
+            s.totalSteps
+          ),
         })),
 
       setTotalSteps: (total) =>

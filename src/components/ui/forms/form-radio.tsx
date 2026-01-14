@@ -36,15 +36,17 @@ export function FormRadio({
           <RadioGroup
             value={value as string}
             onValueChange={onChange}
-            className="flex gap-4 flex-wrap"
+            className="flex gap-1 flex-wrap"
           >
             {options.map((option) => {
-              const optValue = typeof option === "string" ? option : option.value;
-              const optLabel = typeof option === "string" ? option : option.label;
+              const optValue =
+                typeof option === "string" ? option : option.value;
+              const optLabel =
+                typeof option === "string" ? option : option.label;
               return (
                 <Label
                   key={optValue}
-                  className="flex items-center space-x-2 cursor-pointer font-normal"
+                  className=" flex items-center gap-2 px-3 py-2.5 border rounded cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5"
                 >
                   <RadioGroupItem value={optValue} />
                   <span>{optLabel}</span>

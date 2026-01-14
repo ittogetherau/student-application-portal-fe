@@ -66,7 +66,7 @@ export function AlertsPanel({ staffData }: AlertsPanelProps) {
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-1">
+            {/* <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4 text-neutral-500 ml-1" />
               <select
                 value={dateFilter}
@@ -78,7 +78,7 @@ export function AlertsPanel({ staffData }: AlertsPanelProps) {
                 <option value="30days">30 Days</option>
                 <option value="all">All Time</option>
               </select>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

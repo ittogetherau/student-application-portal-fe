@@ -14,3 +14,5 @@ export const FORM_STEPS = [
   { id: 12, title: "Documents" },
   { id: 13, title: "Review" },
 ];
+
+export const HIDDEN_STEP_IDS = [3, 6, 8, 10, 11];

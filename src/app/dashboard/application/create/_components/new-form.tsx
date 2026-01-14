@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
-import { FORM_STEPS } from "../_utils/form-steps-data";
+import { FORM_STEPS, HIDDEN_STEP_IDS } from "../_utils/form-steps-data";
 
 const NewForm = ({
   applicationId: propApplicationId,
@@ -47,8 +47,6 @@ const NewForm = ({
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
-
-
 
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
@@ -87,7 +85,9 @@ const NewForm = ({
     if (isCreateMode) {
       // If we are in create mode but have stale data from a previous session, clear it
       if (storedApplicationId || hasStoredStepData || hasCompletedSteps) {
-        console.log("[NewForm] 🧹 Clearing stale application data for new session");
+        console.log(
+          "[NewForm] Clearing stale application data for new session"
+        );
         clearAllData();
         resetNavigation();
         goToStep(0);
@@ -180,7 +180,9 @@ const NewForm = ({
         sidebar={
           <Card>
             <CardContent className="flex flex-col gap-1 p-2">
-              {FORM_STEPS.map((step) => {
+              {FORM_STEPS.filter(
+                (step) => !HIDDEN_STEP_IDS.includes(step.id)
+              ).map((step, index) => {
                 const canNavigate = canNavigateToStep(step.id, currentStep);
                 const isCompleted = isStepCompleted(step.id);
                 const isCurrent = currentStep === step.id;
@@ -196,8 +198,8 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                          ? "hover:bg-muted"
-                          : "cursor-not-allowed",
+                        ? "hover:bg-muted"
+                        : "cursor-not-allowed",
                       !canNavigate && "pointer-events-none"
                     )}
                     title={
@@ -212,16 +214,16 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                            ? "bg-emerald-100 text-emerald-700"
-                            : canNavigate
-                              ? "bg-muted text-muted-foreground"
-                              : "bg-muted/50 text-muted-foreground/50"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : canNavigate
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-muted/50 text-muted-foreground/50"
                       )}
                     >
                       {isCompleted && !isCurrent ? (
                         <Check className="h-3 w-3" />
                       ) : (
-                        step.id + 1
+                        index + 1
                       )}
                     </div>
                     <span
@@ -252,6 +254,7 @@ const NewForm = ({
           <StepComponent
             key={`${currentStep}-${autoFillKey}`}
             applicationId={applicationId}
+            showDetails={true}
           />
         )}
       </TwoColumnLayout>

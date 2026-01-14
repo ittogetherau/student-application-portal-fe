@@ -128,9 +128,13 @@ export default function AgentApplicationDetail() {
         reversed={true}
         sidebar={
           <div className="space-y-4">
-            <ApplicationStage current_role={ROLE} id={id} />
+            <ApplicationStage
+              currentStatus={application.current_stage}
+              current_role={ROLE}
+              id={id}
+            />
 
-            <ApplicationSidebar application={application} />
+            {/* <ApplicationSidebar application={application} /> */}
           </div>
         }
       >
@@ -222,6 +226,7 @@ export default function AgentApplicationDetail() {
           <CreateThreadForm
             applicationId={application.id}
             onSuccess={() => setIsCreateThreadOpen(false)}
+            currentRole={ROLE}
           />
         </DialogContent>
       </Dialog>

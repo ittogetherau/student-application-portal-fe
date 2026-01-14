@@ -1,10 +1,19 @@
+import { HIDDEN_STEP_IDS } from "../_utils/form-steps-data";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 
 export const useStepNavigation = (isEditMode: boolean) => {
   const { completedSteps } = useApplicationStepStore();
+  const isHiddenStep = (stepId: number) => HIDDEN_STEP_IDS.includes(stepId);
+  const getPreviousVisibleStep = (stepId: number) => {
+    for (let i = stepId - 1; i >= 0; i--) {
+      if (!isHiddenStep(i)) return i;
+    }
+    return null;
+  };
 
   const canNavigateToStep = (stepId: number, currentStep: number): boolean => {
     if (isEditMode) return true;
+    if (isHiddenStep(stepId)) return false;
     if (stepId === currentStep) return true;
     if (stepId === 0) return true;
 
@@ -12,10 +21,11 @@ export const useStepNavigation = (isEditMode: boolean) => {
     // Use completedSteps array directly to ensure reactivity
     if (completedSteps.includes(stepId)) return true;
 
-    console.log(completedSteps.includes(stepId - 1), stepId);
+    const previousVisibleStep = getPreviousVisibleStep(stepId);
+    if (previousVisibleStep === null) return true;
 
-    // For sequential navigation, require previous step to be completed
-    return completedSteps.includes(stepId - 1);
+    // For sequential navigation, require previous visible step to be completed
+    return completedSteps.includes(previousVisibleStep);
   };
 
   return { canNavigateToStep };

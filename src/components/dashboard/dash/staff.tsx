@@ -38,8 +38,8 @@ export default function StaffDashboard() {
     color: statusColorByName[item.status] ?? "#6B7280",
   }));
 
-  const staffPriorityApplications: Application[] =
-    priorityApplications.map((application) => ({
+  const staffPriorityApplications: Application[] = priorityApplications.map(
+    (application) => ({
       ...application,
       priority:
         application.priority === "High"
@@ -47,7 +47,8 @@ export default function StaffDashboard() {
           : application.priority === "Medium"
           ? "Medium"
           : "Low",
-    }));
+    })
+  );
 
   return (
     <div className="min-h-screen p-4 bg-background">
@@ -67,7 +68,7 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          <div className="flex-1 max-w-md w-full md:ml-auto">
+          {/* <div className="flex-1 max-w-md w-full md:ml-auto">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-4 h-4 transition-colors group-focus-within:text-primary z-10" />
               <Input
@@ -76,16 +77,16 @@ export default function StaffDashboard() {
                 className="w-full pl-10 h-12 bg-white dark:bg-neutral-600 border-none rounded-2xl text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700 outline-none"
               />
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
       {/* Main Content */}
       <main className="wrapper py-6 space-y-6">
-      {/* Workload Section */}
-      <section>
+        {/* Workload Section */}
+        <section>
           <WorkloadSection workload={workload} />
-      </section>
+        </section>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-0">

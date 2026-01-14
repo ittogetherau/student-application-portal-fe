@@ -32,9 +32,9 @@ export interface CommunicationThread {
 
 export interface CreateThreadPayload {
   subject: string;
-  issue_type: string;
-  target_section: string;
-  priority: string;
+  issue_type?: string;
+  target_section?: string;
+  priority?: string;
   deadline?: string;
   message: string;
   is_internal?: boolean;

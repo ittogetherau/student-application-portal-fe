@@ -38,6 +38,7 @@ import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { ExtractedDataPreview } from "../_components/extracted-data-preview";
+import HealthCoverAutoSubmit from "../_components/health-cover-auto-submit";
 
 const stepId = 1;
 
@@ -334,6 +335,8 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
   return (
     <FormProvider {...methods}>
+      <HealthCoverAutoSubmit applicationId={applicationId} />
+
       <form className="space-y-5" onSubmit={methods.handleSubmit(onSubmit)}>
         {/* Passport Upload Section */}
         <Card className="border-primary/20 bg-primary/5 shadow-sm">
@@ -594,33 +597,33 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         {/* VISA DETAILS - Only show for Onshore students */}
         {methods.watch("student_origin") ===
           "Overseas Student in Australia (Onshore)" && (
-            <section className="space-y-3 border p-4 rounded-lg">
-              <div>
-                <h3 className="text-lg font-semibold">Visa Details</h3>
-              </div>
+          <section className="space-y-3 border p-4 rounded-lg">
+            <div>
+              <h3 className="text-lg font-semibold">Visa Details</h3>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormSelect
-                  name="visa_type"
-                  label="VISA Type"
-                  placeholder="Select VISA Type"
-                  options={[
-                    { value: "graduate_485", label: "Graduate 485" },
-                    { value: "student_visa", label: "Student Visa" },
-                    { value: "tourist_visitor", label: "Tourist/Visitor" },
-                    { value: "working_holiday", label: "Working Holiday" },
-                    { value: "other", label: "Other" },
-                  ]}
-                />
-                <FormInput
-                  name="visa_number"
-                  label="VISA Number"
-                  placeholder="Enter visa number"
-                />
-                <FormInput name="visa_expiry" label="Expiry Date" type="date" />
-              </div>
-            </section>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormSelect
+                name="visa_type"
+                label="VISA Type"
+                placeholder="Select VISA Type"
+                options={[
+                  { value: "graduate_485", label: "Graduate 485" },
+                  { value: "student_visa", label: "Student Visa" },
+                  { value: "tourist_visitor", label: "Tourist/Visitor" },
+                  { value: "working_holiday", label: "Working Holiday" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
+              <FormInput
+                name="visa_number"
+                label="VISA Number"
+                placeholder="Enter visa number"
+              />
+              <FormInput name="visa_expiry" label="Expiry Date" type="date" />
+            </div>
+          </section>
+        )}
 
         <section className="space-y-3 border p-4 rounded-lg">
           <div className="flex items-center gap-1">
@@ -799,7 +802,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           </div>
         </section>
 
-        <ApplicationStepHeader className="mt-8 pt-6 border-t">
+        <ApplicationStepHeader>
           <Button type="submit" disabled={personalDetailsMutation.isPending}>
             {personalDetailsMutation.isPending
               ? "Saving..."

@@ -19,6 +19,7 @@ import {
 interface CreateThreadFormProps {
   applicationId: string;
   onSuccess?: () => void;
+  currentRole?: string;
 }
 
 const ISSUE_TYPES = [
@@ -37,20 +38,22 @@ const TARGET_SECTIONS = [
   "Other",
 ];
 
-const PRIORITIES: ThreadCreateValues["priority"][] = ["low", "medium", "high"];
+const PRIORITIES = ["low", "medium", "high"] as const;
 
 export function CreateThreadForm({
   applicationId,
   onSuccess,
+  currentRole,
 }: CreateThreadFormProps) {
+  const isStaff = currentRole === "staff";
   const form = useForm<ThreadCreateValues>({
     resolver: zodResolver(threadCreateSchema),
     defaultValues: {
       subject: "",
-      issue_type: ISSUE_TYPES[0],
-      target_section: TARGET_SECTIONS[0],
-      priority: "low",
-      deadline: undefined,
+      issue_type: undefined,
+      target_section: undefined,
+      priority: undefined,
+      deadline: "",
       message: "",
     },
   });
@@ -60,13 +63,21 @@ export function CreateThreadForm({
   useApplicationThreadsQuery(applicationId);
 
   const onSubmit = async (values: ThreadCreateValues) => {
-    await mutateAsync(values);
+    const normalizedValues = {
+      ...values,
+      issue_type: isStaff ? values.issue_type || undefined : undefined,
+      target_section: isStaff ? values.target_section || undefined : undefined,
+      priority: isStaff ? values.priority || undefined : undefined,
+      deadline: isStaff ? values.deadline || undefined : undefined,
+    };
+
+    await mutateAsync(normalizedValues);
     form.reset({
       subject: "",
-      issue_type: ISSUE_TYPES[0],
-      target_section: TARGET_SECTIONS[0],
-      priority: "low",
-      deadline: undefined,
+      issue_type: undefined,
+      target_section: undefined,
+      priority: undefined,
+      deadline: "",
       message: "",
     });
     onSuccess?.();
@@ -77,46 +88,50 @@ export function CreateThreadForm({
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
         <FormInput name="subject" label="Subject" placeholder="Enter subject" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormSelect
-            name="issue_type"
-            label="Issue Type"
-            options={ISSUE_TYPES.map((value) => ({
-              value,
-              label: value,
-            }))}
-            placeholder="Select issue type"
-          />
+        {isStaff ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormSelect
+                name="issue_type"
+                label="Issue Type"
+                options={ISSUE_TYPES.map((value) => ({
+                  value,
+                  label: value,
+                }))}
+                placeholder="Select issue type"
+              />
 
-          <FormSelect
-            name="target_section"
-            label="Target Section"
-            options={TARGET_SECTIONS.map((value) => ({
-              value,
-              label: value,
-            }))}
-            placeholder="Select section"
-          />
-        </div>
+              <FormSelect
+                name="target_section"
+                label="Target Section"
+                options={TARGET_SECTIONS.map((value) => ({
+                  value,
+                  label: value,
+                }))}
+                placeholder="Select section"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormSelect
-            name="priority"
-            label="Priority"
-            options={PRIORITIES.map((value) => ({
-              value,
-              label: value.charAt(0).toUpperCase() + value.slice(1),
-            }))}
-            placeholder="Select priority"
-          />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormSelect
+                name="priority"
+                label="Priority"
+                options={PRIORITIES.map((value) => ({
+                  value,
+                  label: value.charAt(0).toUpperCase() + value.slice(1),
+                }))}
+                placeholder="Select priority"
+              />
 
-          <FormInput
-            name="deadline"
-            label="Deadline"
-            type="date"
-            placeholder="Select deadline"
-          />
-        </div>
+              <FormInput
+                name="deadline"
+                label="Deadline"
+                type="date"
+                placeholder="Select deadline"
+              />
+            </div>
+          </>
+        ) : null}
 
         <FormTextarea
           name="message"
