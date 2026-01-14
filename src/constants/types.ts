@@ -53,6 +53,21 @@ export interface Application {
   completionPercentage?: number;
 }
 
+export interface ApplicationTableRow {
+  id: string;
+  referenceNumber: string;
+  agentName: string;
+  studentName: string;
+  studentEmail: string;
+  course: string;
+  destination: string;
+  stage: APPLICATION_STAGE;
+  assignedStaffId?: string | null;
+  assignedStaffName?: string;
+  submittedAt: string;
+  intake: string;
+}
+
 // Document Types
 export enum DocumentType {
   PASSPORT = "passport",

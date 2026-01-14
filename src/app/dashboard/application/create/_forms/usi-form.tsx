@@ -26,7 +26,7 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
     reValidateMode: "onChange",
   });
 
-  console.log(methods.getValues())
+  console.log(methods.getValues());
 
   // Enable automatic form persistence
   const { saveOnSubmit } = useFormPersistence({
@@ -48,28 +48,34 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
   return (
     <FormProvider {...methods}>
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="bg-muted/50 p-4 rounded-lg">
-          <p className="text-sm">
-            If you already completed nationally recognised training (RSA, White
-            Card, First Aid, TAFE, etc.) you may already have a USI. Please
-            check before creating a new one:{" "}
-            <a
-              href="https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline"
-            >
-              https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/
-            </a>
-          </p>
-        </div>
+        <section className="border rounded-lg p-4 space-y-6">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="text-sm">
+              If you already completed nationally recognised training (RSA,
+              White Card, First Aid, TAFE, etc.) you may already have a USI.
+              Please check before creating a new one:{" "}
+              <a
+                href="https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/
+              </a>
+            </p>
+          </div>
 
-        <FormInput name="usi" label="USI (optional)" placeholder="ABC1234567" />
+          <FormInput
+            name="usi"
+            label="USI (optional)"
+            placeholder="Enter USI"
+          />
 
-        <FormCheckbox
-          name="consent_to_verify"
-          label="I authorize my provider to verify or create a USI on my behalf"
-        />
+          <FormCheckbox
+            name="consent_to_verify"
+            label="I authorize my provider to verify or create a USI on my behalf"
+          />
+        </section>
 
         <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={usiMutation.isPending}>

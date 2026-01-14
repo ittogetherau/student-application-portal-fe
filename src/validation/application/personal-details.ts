@@ -2,63 +2,123 @@ import { z } from "zod";
 
 export const personalDetailsSchema = z.object({
   // Basic Information
-  student_origin: z.string().min(1, "Please select student origin"),
-  title: z.string().min(1, "Please select a title"),
-  given_name: z.string().min(1, "First name is required"),
-  middle_name: z.string().optional().or(z.literal("")),
-  family_name: z.string().min(1, "Last name is required"),
-  gender: z.string().min(1, "Please select a gender"),
-  date_of_birth: z.string().min(1, "Date of birth is required"),
+  student_origin: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Please select student origin"),
+  title: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Please select a title"),
+  given_name: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "First name is required"),
+  middle_name: z.string().optional(),
+  family_name: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Last name is required"),
+  gender: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Please select a gender"),
+  date_of_birth: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Date of birth is required"),
 
   // Contact Details
   email: z
     .string()
-    .min(1, "Email is required")
-    .email("Enter a valid email address"),
+    .optional()
+    .refine(
+      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+      "Enter a valid email address"
+    )
+    .refine((val) => val && val.length > 0, "Email is required"),
   alternate_email: z
     .string()
-    .email("Enter a valid email address")
     .optional()
-    .or(z.literal("")),
-  phone: z.string().min(1, "Phone number is required"),
-  home_phone: z.string().optional().or(z.literal("")),
+    .refine(
+      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+      "Enter a valid email address"
+    ),
+  phone: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Phone number is required"),
+  home_phone: z.string().optional(),
 
   // Passport Details
-  country_of_birth: z.string().min(1, "Country of birth is required"),
-  nationality: z.string().min(1, "Nationality is required"),
-  passport_number: z.string().min(1, "Passport number is required"),
-  passport_expiry: z.string().min(1, "Passport expiry is required"),
+  country_of_birth: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Country of birth is required"),
+  nationality: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Nationality is required"),
+  passport_number: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Passport number is required"),
+  passport_expiry: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Passport expiry is required"),
 
   // Visa Details
-  visa_type: z.string().optional().or(z.literal("")),
-  visa_number: z.string().optional().or(z.literal("")),
-  visa_expiry: z.string().optional().or(z.literal("")).nullable(),
+  visa_type: z.string().optional(),
+  visa_number: z.string().optional(),
+  visa_expiry: z.string().optional().nullable(),
 
   // Residential Address
-  search_address: z.string().optional().or(z.literal("")),
-  country: z.string().min(1, "Country is required"),
-  building_name: z.string().optional().or(z.literal("")),
-  flat_unit: z.string().optional().or(z.literal("")),
-  street_number: z.string().min(1, "Street number is required"),
-  street_name: z.string().min(1, "Street name is required"),
-  suburb: z.string().min(1, "City/Town/Suburb is required"),
-  state: z.string().min(1, "State/Province is required"),
-  postcode: z.string().min(1, "Post code is required"),
+  search_address: z.string().optional(),
+  country: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Country is required"),
+  building_name: z.string().optional(),
+  flat_unit: z.string().optional(),
+  street_number: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Street number is required"),
+  street_name: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Street name is required"),
+  suburb: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "City/Town/Suburb is required"),
+  state: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "State/Province is required"),
+  postcode: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Post code is required"),
 
   // Postal Address
-  postal_same_as_residential: z.string().min(1, "Please select an option"),
-  postal_country: z.string().optional().or(z.literal("")),
-  postal_building_name: z.string().optional().or(z.literal("")),
-  postal_flat_unit: z.string().optional().or(z.literal("")),
-  postal_street_number: z.string().optional().or(z.literal("")),
-  postal_street_name: z.string().optional().or(z.literal("")),
-  postal_suburb: z.string().optional().or(z.literal("")),
-  postal_state: z.string().optional().or(z.literal("")),
-  postal_postcode: z.string().optional().or(z.literal("")),
+  postal_same_as_residential: z
+    .string()
+    .optional()
+    .refine((val) => val && val.length > 0, "Please select an option"),
+  postal_country: z.string().optional(),
+  postal_building_name: z.string().optional(),
+  postal_flat_unit: z.string().optional(),
+  postal_street_number: z.string().optional(),
+  postal_street_name: z.string().optional(),
+  postal_suburb: z.string().optional(),
+  postal_state: z.string().optional(),
+  postal_postcode: z.string().optional(),
 
   // Overseas/Permanent Address
-  overseas_country: z.string().optional().or(z.literal("")),
-  overseas_address: z.string().optional().or(z.literal("")),
+  overseas_country: z.string().optional(),
+  overseas_address: z.string().optional(),
 });
 
 export type PersonalDetailsValues = z.infer<typeof personalDetailsSchema>;

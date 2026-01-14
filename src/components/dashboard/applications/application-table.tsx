@@ -4,22 +4,58 @@ import {
   type DataTableFacetedFilter,
 } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { USER_ROLE, type Application } from "@/constants/types";
+import { USER_ROLE, type ApplicationTableRow } from "@/constants/types";
 import Link from "next/link";
 import * as React from "react";
-import { applicationColumns } from "./application-table-columns";
+import { getApplicationColumns } from "./application-table-columns";
 import { applicationStageFilterOptions } from "@/components/shared/ApplicationStagePill";
 import { siteRoutes } from "@/constants/site-routes";
 import { useSession } from "next-auth/react";
 
 import type { ColumnFiltersState } from "@tanstack/react-table";
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  ChevronsUpDown,
+  Kanban,
+  Plus,
+  Table,
+  Trash2,
+} from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from "react-hot-toast";
+import useStaffMembersQuery from "@/app/dashboard/application/[id]/_hooks/useStaffMembers.hook";
 
 interface ApplicationTableProps {
-  data?: Application[];
+  data?: ApplicationTableRow[];
   isLoading?: boolean;
   isFetching?: boolean;
   isKanban?: boolean;
   isallowMovingInKanban?: boolean;
+  isArchived?: boolean;
   filters?: ColumnFiltersState;
   onFilterChange?: (filters: ColumnFiltersState) => void;
   searchValue?: string;
@@ -28,12 +64,83 @@ interface ApplicationTableProps {
   isSearchingOrFiltering?: boolean;
 }
 
+const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
+  const [open, setOpen] = React.useState(false);
+  const { data: staffResponse, isLoading } = useStaffMembersQuery();
+  const staffMembers = staffResponse?.data || [];
+
+  const handleAssign = (label: string) => {
+    toast.success(
+      `Assigned ${selectedCount} application${
+        selectedCount === 1 ? "" : "s"
+      } to ${label}.`
+    );
+    setOpen(false);
+  };
+
+  const handleUnassign = () => {
+    toast.success(
+      `Unassigned ${selectedCount} application${
+        selectedCount === 1 ? "" : "s"
+      }.`
+    );
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" disabled={isLoading}>
+          Assign
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[280px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search staff..." className="h-9" />
+          <CommandList>
+            <CommandEmpty>No staff member found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem value="unassigned" onSelect={handleUnassign}>
+                <Check className="mr-2 h-4 w-4 opacity-0" />
+                <span className="text-foreground">Unassigned</span>
+              </CommandItem>
+              {staffMembers.map((staff) => {
+                if (!staff.staff_profile) return null;
+
+                return (
+                  <CommandItem
+                    key={staff.id}
+                    value={staff.email}
+                    onSelect={() => handleAssign(staff.email)}
+                  >
+                    <Check className="mr-2 h-4 w-4 opacity-0" />
+                    <div className="flex flex-col text-foreground">
+                      <span>{staff.email}</span>
+                      {staff.staff_profile?.department && (
+                        <span className="text-xs text-muted-foreground">
+                          {staff.staff_profile.department}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export const ApplicationTable = ({
   data = [],
   isLoading = false,
   isFetching = false,
   isKanban = false,
   isallowMovingInKanban = false,
+  isArchived = false,
   filters: externalFilters,
   onFilterChange,
   searchValue,
@@ -44,7 +151,13 @@ export const ApplicationTable = ({
   const [view, setView] = React.useState<"table" | "kanban">("table");
 
   const { data: session } = useSession();
-  const ROLE = session?.user.role;
+  const ROLE = React.useMemo(() => {
+    const role = session?.user.role;
+    return Object.values(USER_ROLE).includes(role as USER_ROLE)
+      ? (role as USER_ROLE)
+      : undefined;
+  }, [session?.user.role]);
+  const isStaffAdmin = session?.user.staff_admin;
 
   const filters = React.useMemo<DataTableFacetedFilter[]>(
     () => [
@@ -55,6 +168,10 @@ export const ApplicationTable = ({
       },
     ],
     []
+  );
+  const columns = React.useMemo(
+    () => getApplicationColumns(ROLE, isStaffAdmin, isArchived),
+    [ROLE, isStaffAdmin, isArchived]
   );
 
   if (isLoading) {
@@ -67,7 +184,7 @@ export const ApplicationTable = ({
 
   return (
     <DataTable
-      columns={applicationColumns}
+      columns={columns}
       view={view}
       isallowMovingInKanban={isallowMovingInKanban}
       data={data}
@@ -82,6 +199,7 @@ export const ApplicationTable = ({
       searchableColumns={[
         "referenceNumber",
         "studentName",
+        "studentEmail",
         "course",
         "destination",
       ]}
@@ -90,37 +208,149 @@ export const ApplicationTable = ({
         title: "No applications found",
         description: "Try a different search term or filter combination.",
       }}
-      toolbarActions={
-        <div className="flex items-center gap-3">
-          {isFetching ? (
-            <span className="text-xs text-muted-foreground">Refreshing...</span>
-          ) : null}
+      toolbarActions={(table) => {
+        const selectedCount = table.getSelectedRowModel().rows.length;
 
-          {ROLE === USER_ROLE.AGENT && (
-            <Button asChild size="sm">
+        return (
+          <div className="flex items-center gap-3">
+            {selectedCount > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {selectedCount} selected
+                </span>
+                {isArchived ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 />
+                        Delete all
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete selected applications?</DialogTitle>
+                        <DialogDescription>
+                          This will permanently delete {selectedCount} archived
+                          application
+                          {selectedCount === 1 ? "" : "s"}.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="ghost">Cancel</Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button
+                            variant="destructive"
+                            onClick={() => {
+                              toast.success("Deleted selected applications.");
+                            }}
+                          >
+                            Delete all
+                          </Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <>
+                    {ROLE === USER_ROLE.STAFF && isStaffAdmin ? (
+                      <BulkAssignPopover selectedCount={selectedCount} />
+                    ) : null}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Archive />
+                          Archive all
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            Archive selected applications?
+                          </DialogTitle>
+                          <DialogDescription>
+                            This will archive {selectedCount} application
+                            {selectedCount === 1 ? "" : "s"}.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="ghost">Cancel</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button
+                              onClick={() => {
+                                toast.success(
+                                  "Archived selected applications."
+                                );
+                              }}
+                            >
+                              Archive all
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {isFetching ? (
+              <span className="text-xs text-muted-foreground">
+                Refreshing...
+              </span>
+            ) : null}
+
+            {ROLE === USER_ROLE.AGENT && (
               <Link href={siteRoutes.dashboard.application.create}>
-                New Application
+                <Button size="sm">
+                  <Plus /> New Application
+                </Button>
               </Link>
-            </Button>
-          )}
+            )}
 
-          {isKanban ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (view === "kanban") {
-                  setView("table");
-                } else {
-                  setView("kanban");
-                }
-              }}
+            <Link
+              href={
+                isArchived
+                  ? siteRoutes.dashboard.application.root
+                  : siteRoutes.dashboard.application.archived
+              }
             >
-              {view === "kanban" ? "Table View" : "Kanban View"}
-            </Button>
-          ) : null}
-        </div>
-      }
+              <Button variant="ghost" size="sm">
+                {isArchived ? <ArchiveRestore /> : <Archive />}
+
+                {isArchived ? "View Applications" : "View archived"}
+              </Button>
+            </Link>
+
+            {isKanban ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (view === "kanban") {
+                    setView("table");
+                  } else {
+                    setView("kanban");
+                  }
+                }}
+              >
+                {view === "kanban" ? (
+                  <>
+                    <Table /> Table
+                  </>
+                ) : (
+                  <>
+                    <Kanban /> Kanban
+                  </>
+                )}
+              </Button>
+            ) : null}
+          </div>
+        );
+      }}
       enableLocalPagination={false}
     />
   );

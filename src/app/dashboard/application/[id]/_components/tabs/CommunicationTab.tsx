@@ -46,14 +46,16 @@ export default function CommunicationTab({
 
   return (
     <Card>
-      <CardHeader className="py-3 px-4">
-        <CardTitle className="text-base">Threads</CardTitle>
-        <div className="mt-2 max-w-sm">
-          <Input
-            placeholder="Search threads..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
+      <CardHeader className="">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">Threads</CardTitle>
+          <div className="max-w-xs w-full">
+            <Input
+              placeholder="Search threads..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-2">

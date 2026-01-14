@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -13,10 +12,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search, Download, ArrowUpDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
+import * as React from "react";
 
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -25,15 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 
 export interface Application {
   id: string;
@@ -210,82 +202,6 @@ export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
               </p>
             </div>
           </div>
-
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-3.5 h-3.5" />
-              <Input
-                placeholder="Filter students..."
-                value={
-                  (table
-                    .getColumn("studentName")
-                    ?.getFilterValue() as string) ?? ""
-                }
-                onChange={(event) =>
-                  table
-                    .getColumn("studentName")
-                    ?.setFilterValue(event.target.value)
-                }
-                className="pl-9 h-9 bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl text-xs focus-visible:ring-2 focus-visible:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={
-                  (table.getColumn("status")?.getFilterValue() as string) ??
-                  "all"
-                }
-                onValueChange={(value) =>
-                  table
-                    .getColumn("status")
-                    ?.setFilterValue(value === "all" ? "" : value)
-                }
-              >
-                <SelectTrigger className="w-[130px] h-9 bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-neutral-200 dark:border-neutral-800">
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Under Review">Under Review</SelectItem>
-                  <SelectItem value="Pending Decision">
-                    Pending Decision
-                  </SelectItem>
-                  <SelectItem value="Approved">Approved</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={
-                  (table.getColumn("intake")?.getFilterValue() as string) ??
-                  "all"
-                }
-                onValueChange={(value) =>
-                  table
-                    .getColumn("intake")
-                    ?.setFilterValue(value === "all" ? "" : value)
-                }
-              >
-                <SelectTrigger className="w-[130px] h-9 bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700">
-                  <SelectValue placeholder="All Intakes" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-neutral-200 dark:border-neutral-800">
-                  <SelectItem value="all">All Intakes</SelectItem>
-                  <SelectItem value="Fall 2025">Fall 2025</SelectItem>
-                  <SelectItem value="Spring 2025">Spring 2025</SelectItem>
-                  <SelectItem value="Summer 2025">Summer 2025</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button>
-                <Download className="w-6 h-6 mb-1" />
-                <span className="text-[10px] font-black uppercase tracking-wider">
-                  Export
-                </span>
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -348,42 +264,6 @@ export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="px-4 py-3 border-t border-neutral-100 dark:border-neutral-800 bg-card">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">
-            Showing{" "}
-            <span className="text-neutral-900 dark:text-neutral-100 font-bold">
-              {table.getFilteredRowModel().rows.length}
-            </span>{" "}
-            of{" "}
-            <span className="text-neutral-900 dark:text-neutral-100 font-bold">
-              {data.length}
-            </span>{" "}
-            results
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="px-4 border-neutral-200 dark:border-neutral-700 rounded-xl text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors h-9"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="px-4 border-neutral-200 dark:border-neutral-700 rounded-xl text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors h-9"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );

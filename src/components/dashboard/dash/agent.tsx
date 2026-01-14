@@ -113,7 +113,12 @@ export default function AgentDashboard() {
   const pendingActions = dashboardData?.pendingActions ?? [];
   const applications = dashboardData?.applications ?? [];
   const monthlyTrends = dashboardData?.monthlyTrends ?? [];
-  const draftApplications = dashboardData?.draftApplications ?? [];
+  const draftApplications = (dashboardData?.draftApplications ?? []).map(
+    (draft) => ({
+      ...draft,
+      applicationUuid: draft.applicationUuid ?? draft.id,
+    })
+  );
 
   const agentKpis = kpis.map((kpi) => ({
     ...kpi,
@@ -157,7 +162,7 @@ export default function AgentDashboard() {
   return (
     <div className="bg-background p-4">
       {/* Dashboard Header */}
-      <div className="bg-white/40 dark:bg-neutral-900/40 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="bg-white/40 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800">
         <div className="wrapper py-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -175,16 +180,16 @@ export default function AgentDashboard() {
             </div>
 
             <div className="flex items-center gap-4 flex-1 max-w-2xl w-full md:ml-auto justify-end">
-              <div className="relative group flex-1 max-w-md">
+              {/* <div className="relative group flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-4 h-4 transition-colors group-focus-within:text-primary" />
                 <Input
                   type="text"
                   placeholder="Search Applications..."
                   className="w-full pl-10 h-12 bg-white dark:bg-neutral-800 border-none rounded-2xl text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700 outline-none"
                 />
-              </div>
+              </div> */}
               <Link href={siteRoutes.dashboard.application.create}>
-                <Button className="gap-2 h-12 px-6 rounded-2xl font-medium shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                <Button className="gap-2 h-12 px-6 font-medium shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
                   <Plus className="h-4 w-4" />
                   New Application
                 </Button>

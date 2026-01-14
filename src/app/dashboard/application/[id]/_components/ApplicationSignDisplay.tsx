@@ -25,14 +25,7 @@ import {
   useApplicationRequestSignaturesMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/hooks/useApplication.hook";
-import {
-  AlertCircle,
-  ExternalLink,
-  Loader2,
-  Mail,
-  ShieldCheck,
-  User,
-} from "lucide-react";
+import { AlertCircle, Loader2, Mail, ShieldCheck, User } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 
 const formatDateTime = (value: string | null) => {
@@ -47,45 +40,44 @@ const formatDateTime = (value: string | null) => {
 };
 
 interface SignerRowProps {
-  label: string;
   name: string;
   email: string;
   url: string;
   icon: React.ReactNode;
+  signedAt?: string | null;
 }
 
-const SignerRow = memo(({ label, name, email, url, icon }: SignerRowProps) => (
-  <div className="flex items-center justify-between py-2">
-    <div className="flex items-center gap-3">
-      <div className="p-2 rounded-full bg-muted text-muted-foreground">
-        {icon}
-      </div>
-      <div className="space-y-0.5">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-          {label}
-        </p>
-        <p className="text-sm font-medium leading-none">{name}</p>
+const SignerRow = memo(
+  ({ name, email, url, icon, signedAt }: SignerRowProps) => (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="p-2 rounded-full bg-muted text-muted-foreground">
+          {icon}
+        </div>
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium leading-none truncate">{name}</p>
+            {signedAt ? (
+              <Badge variant="default" className="text-[10px] px-1.5">
+                Signed
+              </Badge>
+            ) : null}
+          </div>
 
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Mail className="h-3 w-3" />
-          <span className="truncate max-w-[16ch] block">{email}</span>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Mail className="h-3 w-3" />
+            <span className="truncate max-w-[16ch] block">{email}</span>
+          </div>
         </div>
       </div>
-    </div>
-
-    <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-xs">
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center gap-1"
-      >
-        Open
-        <ExternalLink className="h-3 w-3" />
-      </a>
-    </Button>
-  </div>
-));
+    </a>
+  )
+);
 
 SignerRow.displayName = "SignerRow";
 
@@ -148,15 +140,9 @@ const ApplicationSignDisplay = ({
           <CardTitle className="text-sm font-semibold tracking-tight">
             Signatures
           </CardTitle>
-          {data?.items.length && (
-            <div>
-              <span className="text-xs text-muted-foreground">
-                {data.items.length} Signatures
-              </span>
-              {isPending && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-            </div>
+
+          {isPending && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
       </CardHeader>
@@ -171,47 +157,39 @@ const ApplicationSignDisplay = ({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border max-h-56 overflow-y-scroll">
-            {data.items.map((item) => (
-              <div key={item.id} className="p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    {item.document_title}
-                  </h4>
-                  <Badge
-                    variant={
-                      item.status === "completed" ? "default" : "secondary"
-                    }
-                    className="text-[10px] capitalize"
-                  >
-                    {item.status}
-                  </Badge>
-                </div>
+          <div className="divide-y divide-border ">
+            {data.items.map((item, i) => {
+              if (i === 0)
+                return (
+                  <div key={item.id} className="p-4 space-y-1">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      {item.document_title}
+                    </h4>
 
-                <div className="rounded-lg border bg-muted/20 px-3">
-                  <SignerRow
-                    label="Student"
-                    name={item.student.name}
-                    email={item.student.email}
-                    url={item.student.signing_url}
-                    icon={<User className="h-4 w-4" />}
-                  />
-                  <Separator />
-                  <SignerRow
-                    label="Agent"
-                    name={item.agent.name}
-                    email={item.agent.email}
-                    url={item.agent.signing_url}
-                    icon={<ShieldCheck className="h-4 w-4" />}
-                  />
-                </div>
+                    <div className="">
+                      <SignerRow
+                        name={item.student.name}
+                        email={item.student.email}
+                        url={item.student.signing_url}
+                        icon={<User className="h-4 w-4" />}
+                        signedAt={item.student.signed_at}
+                      />
+                      <SignerRow
+                        name={item.agent.name}
+                        email={item.agent.email}
+                        url={item.agent.signing_url}
+                        icon={<ShieldCheck className="h-4 w-4" />}
+                        signedAt={item.agent.signed_at}
+                      />
+                    </div>
 
-                <p className="text-[10px] text-right text-muted-foreground">
-                  Initiated {formatDateTime(item.created_at)}
-                </p>
-              </div>
-            ))}
+                    <p className="text-[10px] text-right text-muted-foreground">
+                      Initiated {formatDateTime(item.created_at)}
+                    </p>
+                  </div>
+                );
+            })}
           </div>
         )}
 

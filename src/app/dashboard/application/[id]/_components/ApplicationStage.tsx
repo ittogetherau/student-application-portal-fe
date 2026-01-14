@@ -105,7 +105,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       {application.current_stage === "submitted" ? (
         <>
           {current_role === USER_ROLE.STAFF && (
-            <Card className="bg-chart-4/10 border border-chart-4">
+            <Card className="bg-primary/10 border border-primary">
               <CardHeader>
                 <CardTitle>Ready to Start Review?</CardTitle>
               </CardHeader>
@@ -135,7 +135,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       ) : application.current_stage === APPLICATION_STAGE.STAFF_REVIEW ? (
         <>
           {current_role === USER_ROLE.STAFF && (
-            <Card className="bg-chart-1/10 border border-chart-1">
+            <Card className="bg-primary/10 border border-primary">
               <CardHeader>
                 <CardTitle>Confirm Applicant Details</CardTitle>
               </CardHeader>
@@ -152,7 +152,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
                 <Button
                   onClick={handleEnrollGalaxyCourse}
                   disabled={changeStage.isPending}
-                  className="w-full bg-chart-1 hover:bg-chart-1/50 text-background"
+                  className="w-full"
                 >
                   {enrollGalaxyCourse.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -199,7 +199,6 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         </>
       ) : application.current_stage === APPLICATION_STAGE.AWAITING_DOCUMENTS ? (
         <>
-          {/* {current_role === USER_ROLE.AGENT && ()} */}
           <ApplicationSignDisplay
             applicationId={id}
             currentRole={current_role}

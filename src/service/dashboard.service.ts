@@ -99,6 +99,7 @@ export interface AgentDashboardApplication {
 
 export interface AgentDashboardDraftApplication {
   id: string;
+  applicationUuid?: string;
   studentName: string;
   university: string;
   program: string;

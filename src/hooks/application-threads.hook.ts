@@ -127,6 +127,9 @@ export const useUpdateThreadStatusMutation = (
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["staff-threads"],
+      });
     },
     onError: (error) => {
       console.error("[ApplicationThreads] updateThreadStatus failed", error);
@@ -164,6 +167,9 @@ export const useUpdateThreadPriorityMutation = (
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["staff-threads"],
       });
     },
     onError: (error) => {

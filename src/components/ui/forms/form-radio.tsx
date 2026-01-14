@@ -7,17 +7,25 @@ interface FormRadioProps {
   name: string;
   label: string;
   options: string[];
+  colMode?: boolean;
 }
 
-export function FormRadio({ name, label, options }: FormRadioProps) {
+export function FormRadio({
+  name,
+  label,
+  options,
+  colMode = false,
+}: FormRadioProps) {
   const { control } = useFormContext<Record<string, unknown>>();
 
   const { errors } = useFormState({ control, name });
   const error = getFieldError(errors, name)?.message;
 
   return (
-    <div className="space-y-1">
-      <Label>{label}</Label>
+    <div className={`flex gap-2 ${colMode ? "flex-col" : "items-center"}`}>
+      <Label>
+        {label} {label && ": "}{" "}
+      </Label>
 
       <Controller
         name={name}

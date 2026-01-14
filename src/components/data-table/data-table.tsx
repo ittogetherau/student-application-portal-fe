@@ -13,6 +13,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  type Table as TableType,
 } from "@tanstack/react-table";
 import * as React from "react";
 
@@ -26,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { siteRoutes } from "@/constants/site-routes";
-import { Application } from "@/constants/types";
+import { ApplicationTableRow } from "@/constants/types";
 import { useRouter } from "next/navigation";
 import { ApplicationKanban } from "../dashboard/applications/kanban/application-kanban";
 import { DataTableToolbar } from "./data-table-toolbar";
@@ -71,7 +72,7 @@ interface DataTableProps<TData, TValue> {
   };
   searchableColumns?: Array<keyof TData | string>;
   searchPlaceholder?: string;
-  toolbarActions?: React.ReactNode;
+  toolbarActions?: React.ReactNode | ((table: TableType<TData>) => React.ReactNode);
   enableLocalPagination?: boolean;
 
   isallowMovingInKanban?: boolean;
@@ -179,6 +180,9 @@ export function DataTable<TData, TValue>({
 
   const router = useRouter();
 
+  const resolvedToolbarActions =
+    typeof toolbarActions === "function" ? toolbarActions(table) : toolbarActions;
+
   return (
     <div className="space-y-4 w-full">
       <DataTableToolbar
@@ -188,7 +192,7 @@ export function DataTable<TData, TValue>({
         searchValue={hasSearch ? searchValue : undefined}
         onSearch={hasSearch ? onSearch : undefined}
         placeholder={searchPlaceholder}
-        actions={toolbarActions}
+        actions={resolvedToolbarActions}
         view={view}
         onReset={onReset}
         isSearchingOrFiltering={isSearchingOrFiltering}
@@ -215,9 +219,9 @@ export function DataTable<TData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                       </TableHead>
                     );
                   })}
@@ -232,10 +236,18 @@ export function DataTable<TData, TValue>({
                     data-state={row.getIsSelected() && "selected"}
                     onClick={() => {
                       const data = row.original as Record<string, unknown>;
+                      const applicationId =
+                        typeof data.id === "string" && data.id
+                          ? data.id
+                          : typeof data.referenceNumber === "string"
+                          ? data.referenceNumber
+                          : "";
 
-                      router.push(
-                        `${siteRoutes.dashboard.application.root}/${data.referenceNumber}`
-                      );
+                      if (applicationId) {
+                        router.push(
+                          `${siteRoutes.dashboard.application.root}/${applicationId}`
+                        );
+                      }
                     }}
                     className="cursor-pointer hover:bg-muted/50"
                   >
@@ -281,7 +293,7 @@ export function DataTable<TData, TValue>({
       ) : (
         <div className="">
           <ApplicationKanban
-            data={searchFilteredData as Application[]}
+            data={searchFilteredData as ApplicationTableRow[]}
             isallowMovingInKanban={isallowMovingInKanban}
           />
         </div>

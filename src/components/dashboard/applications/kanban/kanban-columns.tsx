@@ -1,4 +1,4 @@
-import { Application, APPLICATION_STAGE } from "@/constants/types";
+import { ApplicationTableRow, APPLICATION_STAGE } from "@/constants/types";
 import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ export function KanbanColumns({
   isallowMovingInKanban,
 }: {
   stage: APPLICATION_STAGE;
-  applications: Application[];
+  applications: ApplicationTableRow[];
   statusLabel: string;
   statusColor: string;
   statusBackground: string;

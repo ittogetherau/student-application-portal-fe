@@ -172,11 +172,15 @@ class DocumentService extends ApiService {
     applicationId: string
   ): Promise<ServiceResponse<ApplicationDocumentListItem[]>> {
     return resolveServiceCall<ApplicationDocumentListItem[]>(
-      () =>
-        this.get(
-          `${this.basePath}/application/${applicationId}/list`,
-          true
-        ),
+      async () => {
+        const data = await this.get<
+          ApplicationDocumentListItem[] | { items?: ApplicationDocumentListItem[] }
+        >(`${this.basePath}/application/${applicationId}/list`, true);
+
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.items)) return data.items;
+        return [];
+      },
       "Application documents fetched successfully.",
       "Failed to fetch application documents"
     );

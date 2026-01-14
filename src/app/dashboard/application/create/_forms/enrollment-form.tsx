@@ -18,11 +18,10 @@ import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
 } from "@/hooks/useApplication.hook";
-import { useApplicationStepQuery } from "@/hooks/useApplicationSteps.hook";
 import type { Campus, Intake } from "@/service/course.service";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -31,11 +30,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { goToNext, markStepCompleted } = useApplicationStepStore();
   const { setStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
-
-  const savedData = useApplicationFormDataStore((state) => state.stepData[0]) as any;
-
-  // Fetch saved data from backend
-  useApplicationStepQuery(applicationId ?? null, 0);
+  const storedStepData = useApplicationFormDataStore(
+    (state) => state.stepData[0]
+  );
 
   const {
     data: coursesResponse,
@@ -60,25 +57,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  /* ---------- derived entities ---------- */
-  const selectedCourse = courses.find(
-    (c) => String(c.id) === formData.courseId
-  );
-
-  const selectedIntake = useMemo(
-    () =>
-      selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
-    [selectedCourse, formData.intakeId]
-  );
-
-  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
-
-  const selectedCampus = useMemo(
-    () => availableCampuses.find((c) => String(c.id) === formData.campusId),
-    [availableCampuses, formData.campusId]
-  );
-
   const isFormComplete =
     formData.courseId !== "" &&
     formData.intakeId !== "" &&
@@ -86,14 +64,30 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   /* ---------- restore saved step ---------- */
   useEffect(() => {
-    if (!_hasHydrated || !savedData) return;
+    if (!_hasHydrated) return;
+
+    const saved = storedStepData as
+      | {
+          courseId?: number;
+          intakeId?: number;
+          campusId?: number;
+          course?: number;
+          intake?: number;
+          campus?: number;
+        }
+      | undefined;
+    if (!saved) return;
+
+    const courseId = (saved as { courseId?: number }).courseId ?? saved.course;
+    const intakeId = (saved as { intakeId?: number }).intakeId ?? saved.intake;
+    const campusId = (saved as { campusId?: number }).campusId ?? saved.campus;
 
     setFormData({
-      courseId: (savedData.courseId || savedData.course)?.toString() ?? "",
-      intakeId: (savedData.intakeId || savedData.intake)?.toString() ?? "",
-      campusId: (savedData.campusId || savedData.campus)?.toString() ?? "",
+      courseId: courseId?.toString() ?? "",
+      intakeId: intakeId?.toString() ?? "",
+      campusId: campusId?.toString() ?? "",
     });
-  }, [savedData, _hasHydrated]);
+  }, [storedStepData, _hasHydrated]);
 
   /* ---------- auto-save to store ---------- */
   useEffect(() => {
@@ -102,11 +96,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const timeoutId = setTimeout(() => {
       setStepData(0, {
         courseId: Number(formData.courseId),
-        course_name: selectedCourse?.course_name ?? "",
         intakeId: Number(formData.intakeId),
-        intake_name: selectedIntake?.intake_name ?? "",
         campusId: Number(formData.campusId),
-        campus_name: selectedCampus?.name ?? "",
       });
     }, 500);
 
@@ -131,6 +122,25 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     });
   };
 
+  /* ---------- derived entities ---------- */
+  const selectedCourse = courses.find(
+    (c) => String(c.id) === formData.courseId
+  );
+
+  const selectedIntake = useMemo(
+    () =>
+      selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
+    [selectedCourse, formData.intakeId]
+  );
+
+  const selectedCampus = useMemo(
+    () =>
+      selectedIntake?.campuses?.find((c) => String(c.id) === formData.campusId),
+    [selectedIntake, formData.campusId]
+  );
+
+  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
+  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
@@ -161,8 +171,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
 
-
-
       await saveEnrollment({
         applicationId: currentApplicationId!,
         values: {
@@ -177,11 +185,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
       setStepData(0, {
         courseId: Number(formData.courseId),
-        course_name: selectedCourse?.course_name ?? "",
         intakeId: Number(formData.intakeId),
-        intake_name: selectedIntake?.intake_name ?? "",
         campusId: Number(formData.campusId),
-        campus_name: selectedCampus?.name ?? "",
       });
 
       toast.success("Enrollment saved", { id: "application-flow" });
@@ -215,7 +220,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 border rounded-lg">
       <div className="grid-cols-3 grid gap-4">
         {/* Course */}
         <div className="space-y-2">
@@ -286,9 +291,15 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           disabled={isSaving || isCreating}
         >
           {isSaving || isCreating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading...
+            </>
           ) : (
-            "Save & Continue"
+            <>
+              Save & Continue
+              <ChevronRight className="h-4 w-4" />
+            </>
           )}
         </Button>
       </div>

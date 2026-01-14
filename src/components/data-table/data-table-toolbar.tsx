@@ -60,7 +60,7 @@ export function DataTableToolbar<TData>({
           if (!column) return null;
 
           const selectedValues = new Set(
-            (column.getFilterValue() as string[]) ?? [],
+            (column.getFilterValue() as string[]) ?? []
           );
 
           return (
@@ -94,7 +94,9 @@ export function DataTableToolbar<TData>({
                         next.delete(option.value);
                       }
                       column.setFilterValue(
-                        Array.from(next.values()).length ? Array.from(next) : undefined,
+                        Array.from(next.values()).length
+                          ? Array.from(next)
+                          : undefined
                       );
                     }}
                   >
@@ -133,9 +135,9 @@ export function DataTableToolbar<TData>({
                 // In a real app, this would delete the selected rows
                 console.log(
                   "Delete",
-                  table.getFilteredSelectedRowModel().rows.map(
-                    (row) => row.original
-                  )
+                  table
+                    .getFilteredSelectedRowModel()
+                    .rows.map((row) => row.original)
                 );
                 table.resetRowSelection();
               }}

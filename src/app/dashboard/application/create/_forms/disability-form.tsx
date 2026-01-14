@@ -13,6 +13,7 @@ import {
   type DisabilityValues,
 } from "@/validation/application/disability";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
@@ -67,7 +68,7 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
   return (
     <FormProvider {...methods}>
       <form className="space-y-8" onSubmit={methods.handleSubmit(onSubmit)}>
-        <section className="space-y-6">
+        <section className="space-y-6 border p-4 rounded-lg">
           <div className="space-y-4">
             <div>
               <p className="text-sm mb-3">
@@ -115,9 +116,15 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
           </div>
         </section>
 
-        <ApplicationStepHeader className="mt-8 pt-6 border-t">
+        <ApplicationStepHeader>
           <Button type="submit" disabled={disabilityMutation.isPending}>
-            {disabilityMutation.isPending ? "Saving..." : "Save & Continue"}
+            {disabilityMutation.isPending ? (
+              "Saving..."
+            ) : (
+              <>
+                Save & Continue <ChevronRight />
+              </>
+            )}
           </Button>
         </ApplicationStepHeader>
       </form>

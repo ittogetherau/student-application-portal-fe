@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Application, APPLICATION_STAGE } from "@/constants/types";
+import { ApplicationTableRow, APPLICATION_STAGE } from "@/constants/types";
 import applicationService from "@/service/application.service";
 import {
   closestCorners,
@@ -23,7 +23,7 @@ import { toast } from "react-hot-toast";
 import { KanbanColumns } from "./kanban-columns";
 
 interface ApplicationKanbanProps {
-  data: Application[];
+  data: ApplicationTableRow[];
   isallowMovingInKanban: boolean;
 }
 
@@ -88,9 +88,10 @@ export function ApplicationKanban({
   data,
   isallowMovingInKanban,
 }: ApplicationKanbanProps) {
-  const [applications, setApplications] = useState<Application[]>(data);
+  const [applications, setApplications] =
+    useState<ApplicationTableRow[]>(data);
   const [activeApplication, setActiveApplication] =
-    useState<Application | null>(null);
+    useState<ApplicationTableRow | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -241,9 +242,9 @@ export function ApplicationKanban({
   );
 
   const applicationsByStage = useMemo(() => {
-    const grouped: Record<APPLICATION_STAGE, Application[]> = {} as Record<
+    const grouped: Record<APPLICATION_STAGE, ApplicationTableRow[]> = {} as Record<
       APPLICATION_STAGE,
-      Application[]
+      ApplicationTableRow[]
     >;
     STAGES.forEach((stage) => {
       grouped[stage] = applications.filter((app) => app.stage === stage);

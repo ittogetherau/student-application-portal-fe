@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Download, Eye, FileText, Loader2 } from "lucide-react";
+import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
 
 //
 export interface Document {
@@ -35,37 +36,42 @@ const formatBytes = (bytes: number, decimals: number = 2): string => {
 //
 
 interface DocumentsTabProps {
-  documents: Document[];
-  isLoading: boolean;
+  applicationId: string;
 }
 
-const DocumentsTab = ({ documents, isLoading }: DocumentsTabProps) => (
-  <Card>
-    <CardHeader className="py-3 px-4">
-      <CardTitle className="text-base">Application Documents</CardTitle>
-      <CardDescription className="text-xs">
-        All documents submitted with this application
-      </CardDescription>
-    </CardHeader>
-    <CardContent className="px-4 pb-4">
-      {isLoading ? (
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : documents.length === 0 ? (
-        <div className="text-center py-6 text-xs text-muted-foreground">
-          No documents found for this application
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {documents.map((doc) => (
-            <DocumentCard key={doc.id} doc={doc} />
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
+  const { data: documentsResponse, isLoading } =
+    useApplicationDocumentsQuery(applicationId);
+  const documents = (documentsResponse?.data || []) as Document[];
+
+  return (
+    <Card>
+      <CardHeader className="py-3 px-4">
+        <CardTitle className="text-base">Application Documents</CardTitle>
+        <CardDescription className="text-xs">
+          All documents submitted with this application
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : documents.length === 0 ? (
+          <div className="text-center py-6 text-xs text-muted-foreground">
+            No documents found for this application
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {documents.map((doc) => (
+              <DocumentCard key={doc.id} doc={doc} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default DocumentsTab;
 

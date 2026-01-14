@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { siteRoutes } from "@/constants/site-routes";
-import { Application } from "@/constants/types";
+import { ApplicationTableRow } from "@/constants/types";
 import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -12,7 +12,7 @@ export function ApplicationCard({
   app,
   isallowMovingInKanban,
 }: {
-  app: Application;
+  app: ApplicationTableRow;
   isallowMovingInKanban: boolean;
 }) {
   const {
@@ -49,23 +49,34 @@ export function ApplicationCard({
         <CardContent className="p-2.5 sm:p-3">
           <div className="space-y-2">
             <div className="min-w-0">
-              <p className="font-medium text-xs sm:text-sm mb-0.5 truncate" title={app.studentName}>
+              <p
+                className="font-medium text-xs sm:text-sm mb-0.5 truncate"
+                title={app.studentName}
+              >
                 {app.studentName}
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={app.course}>
+              <p
+                className="text-[10px] sm:text-xs text-muted-foreground truncate"
+                title={app.course}
+              >
                 {app.course}
               </p>
             </div>
 
             <div className="flex items-center justify-between gap-1.5 sm:gap-2 text-[10px] sm:text-xs min-w-0">
-              <span className="text-muted-foreground truncate flex-1 min-w-0" title={app.destination}>
+              <span
+                className="text-muted-foreground truncate flex-1 min-w-0"
+                title={app.destination}
+              >
                 {app.destination}
               </span>
-              
             </div>
 
             {app.assignedStaffName && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate" title={app.assignedStaffName}>
+              <p
+                className="text-[10px] sm:text-xs text-muted-foreground truncate"
+                title={app.assignedStaffName}
+              >
                 👤 {app.assignedStaffName}
               </p>
             )}
@@ -85,7 +96,11 @@ export function ApplicationCard({
                 href={`${siteRoutes.dashboard.application.root}/${app.id}`}
                 className="flex-1 min-w-0"
               >
-                <Button variant="ghost" size="sm" className="w-full gap-1.5 sm:gap-2 h-7 sm:h-8 text-[10px] sm:text-xs px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full gap-1.5 sm:gap-2 h-7 sm:h-8 text-[10px] sm:text-xs px-2"
+                >
                   <Eye className="h-3 w-3 shrink-0" />
                   <span className="truncate">View</span>
                 </Button>

@@ -45,7 +45,7 @@ const useAutoFill = ({
     const uniqueId = Math.random().toString(36).substring(2, 8);
     const uniquePersonalDetailsData = {
       ...personalDetailsData,
-      email: `john.smith.${uniqueId}@example.com`,
+      email: `sayujkuickel@gmail.com`,
       alternate_email: `j.smith.alt.${uniqueId}@example.com`,
     };
 

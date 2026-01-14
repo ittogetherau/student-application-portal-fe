@@ -4,19 +4,19 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+# RUN npm install -g pnpm
 
 # Copy dependency files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
 # Copy the rest of the app
 COPY . .
 
 # Build the Next.js app
-RUN pnpm build
+RUN npm run build
 
 # ---- Production runner image ----
 FROM node:20-alpine AS runner
@@ -34,4 +34,4 @@ COPY --from=builder /app ./
 EXPOSE 3005
 
 # Start the app (uses "start": "next start" from package.json)
-CMD ["pnpm", "start"]
+CMD ["npm", "run", "start"]

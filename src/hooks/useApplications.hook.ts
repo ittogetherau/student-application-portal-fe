@@ -2,14 +2,14 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { APPLICATION_STAGE, type Application } from "@/constants/types";
+import { APPLICATION_STAGE, type ApplicationTableRow } from "@/constants/types";
 import applicationService, {
   type ApplicationListParams,
 } from "@/service/application.service";
 import { usePaginationStoreByKey } from "@/store/usePagination.store";
 
 type ApplicationsResult = {
-  applications: Application[];
+  applications: ApplicationTableRow[];
   total?: number;
 };
 
@@ -27,7 +27,7 @@ const normalizeStage = (value?: string): APPLICATION_STAGE => {
 };
 
 const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
-  const applications: Application[] = [];
+  const applications: ApplicationTableRow[] = [];
   let total: number | undefined;
 
   const pushMapped = (item: Record<string, unknown>, index: number) => {
@@ -37,28 +37,29 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       (item.status as string);
     const normalizedStage = normalizeStage(rawStage);
 
-    const mapped: Application = {
+    const mapped: ApplicationTableRow = {
       id: String(item.id ?? index),
       referenceNumber:
+        (item.tracking_code as string) ??
         (item.reference_number as string) ??
-        String(item.id ?? `APP-${index + 1}`),
-      agentId: (item.agent_id as string) ?? "",
+        String(item.id ?? `ERR-${index + 1}`),
       agentName: (item.agent_name as string) ?? "",
       studentName: (item.student_name as string) ?? "Unknown student",
       studentEmail: (item.student_email as string) ?? "",
-      studentPhone: (item.student_phone as string) ?? "",
       stage: normalizedStage,
-      assignedStaffId: item.assigned_staff_id as string | undefined,
-      assignedStaffName: item.assigned_staff_name as string | undefined,
+      assignedStaffId:
+        (item.assigned_staff_id as string) ??
+        ((item.assigned_staff as { id?: string } | null | undefined)?.id ??
+          null),
+      assignedStaffName:
+        (item.assigned_staff_name as string) ??
+        ((
+          item.assigned_staff as { email?: string } | null | undefined
+        )?.email ?? undefined),
       destination: (item.destination as string) || "N/A",
       course: (item.course_name as string) || (item.course as string) || "N/A",
       intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",
-      updatedAt:
-        (item.updated_at as string) ?? (item.created_at as string) ?? "",
-      studentProfileId: (item.student_profile_id as string) ?? null,
-      courseOfferingId: (item.course_offering_id as string) ?? null,
-      completionPercentage: (item.completion_percentage as number) ?? 0,
     };
 
     applications.push(mapped);
@@ -78,7 +79,7 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       total = obj.count;
     }
 
-    const dataArray = obj.data ?? obj.applications ?? obj.items;
+    const dataArray = obj.items ?? obj.data ?? obj.applications ?? obj.results;
     if (Array.isArray(dataArray)) {
       dataArray.forEach((item, idx) => {
         if (item && typeof item === "object")
@@ -101,17 +102,6 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
   };
 };
 
-const resolveFallbackTotal = (
-  count: number,
-  page: number,
-  perPage: number
-): number => {
-  if (perPage <= 0) return count;
-  if (count === 0) return (page - 1) * perPage;
-  if (count < perPage) return (page - 1) * perPage + count;
-  return (page + 1) * perPage;
-};
-
 export const useApplications = ({
   filters: initialFilters = {},
   storeKey = "applications",
@@ -128,9 +118,8 @@ export const useApplications = ({
   const prevPage = paginationStore((state) => state.prevPage);
 
   // Additional filters state
-  const [extraFilters, setExtraFilters] = useState<ApplicationListParams>(
-    initialFilters
-  );
+  const [extraFilters, setExtraFilters] =
+    useState<ApplicationListParams>(initialFilters);
 
   // Debounce search query
   const [debouncedQuery, setDebouncedQuery] = useState(query);
@@ -177,15 +166,7 @@ export const useApplications = ({
     staleTime: 1000 * 60 * 2,
   });
 
-  const resolvedTotal = (() => {
-    const dataTotal = applicationsQuery.data?.total;
-    if (typeof dataTotal === "number") return dataTotal;
-    return resolveFallbackTotal(
-      applicationsQuery.data?.applications.length ?? 0,
-      page,
-      perPage
-    );
-  })();
+  const resolvedTotal = applicationsQuery.data?.total ?? 0;
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(resolvedTotal / perPage || 1));

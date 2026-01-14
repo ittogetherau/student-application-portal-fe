@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { USER_ROLE } from "@/constants/types";
 import { ApplicationDetailResponse } from "@/service/application.service";
 import {
   Calendar,
@@ -14,7 +13,6 @@ import {
   User2,
 } from "lucide-react";
 import React from "react";
-import { StaffAssignmentSelect } from "./StaffAssignmentSelect";
 
 const formatDate = (dateString?: string | null): string => {
   if (!dateString) return "N/A";
@@ -31,15 +29,9 @@ const formatDate = (dateString?: string | null): string => {
 
 interface ApplicationSidebarProps {
   application: ApplicationDetailResponse;
-  current_role?: string;
-  is_admin_staff?: boolean;
 }
 
-const ApplicationSidebar = ({
-  application,
-  current_role,
-  is_admin_staff,
-}: ApplicationSidebarProps) => {
+const ApplicationSidebar = ({ application }: ApplicationSidebarProps) => {
   const overviewItems: InfoItemProps[] = [
     {
       icon: Mail,
@@ -64,12 +56,6 @@ const ApplicationSidebar = ({
       value: application.personal_details?.country || "Australia",
     },
     { icon: Calendar, label: "Intake", value: "February 2025" },
-    // {
-    //   icon: UserCheck,
-    //   label: "Assigned Staff",
-    //   value: application.assigned_staff_id || "Not assigned",
-    //   title: application.assigned_staff_id || undefined,
-    // },
     {
       icon: Clock,
       label: "Submitted",
@@ -80,11 +66,6 @@ const ApplicationSidebar = ({
       label: "Last Updated",
       value: formatDate(application.updated_at),
     },
-    // {
-    //   icon: Activity,
-    //   label: "Current Stage",
-    //   value: application.current_stage || "N/A",
-    // },
   ];
 
   return (
@@ -95,15 +76,6 @@ const ApplicationSidebar = ({
         </CardHeader>
         <CardContent className="px-4 pt-2 pb-4">
           <div className="grid gap-y-4">
-            {current_role === USER_ROLE.STAFF && is_admin_staff && (
-              <InfoItem label="Assign" icon={User2}>
-                <StaffAssignmentSelect
-                  applicationId={application.id}
-                  assignedStaffId={application.assigned_staff_id}
-                />
-              </InfoItem>
-            )}
-
             {overviewItems.map((item, idx) => (
               <InfoItem key={idx} {...item} />
             ))}

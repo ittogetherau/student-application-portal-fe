@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,6 +22,11 @@ const formatSegment = (segment: string) =>
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
 
 type NotificationType = "info" | "success" | "warning" | "error";
 
@@ -116,16 +121,26 @@ const AppToolbar = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const breadcrumbs = segments.reduce<Array<{ label: string; href: string }>>(
-    (acc, segment, index) => {
-      const href = "/" + segments.slice(0, index + 1).join("/");
-      acc.push({
-        label: index === 0 ? "Dashboard" : formatSegment(segment),
-        href,
-      });
-      return acc;
-    },
-    []
+  const breadcrumbs = useMemo(
+    () =>
+      segments.reduce<Array<{ label: string; href: string }>>(
+        (acc, segment, index) => {
+          const href = "/" + segments.slice(0, index + 1).join("/");
+          const isApplicationId =
+            segments[index - 1] === "application" && isUuid(segment);
+          if (isApplicationId) {
+            return acc;
+          }
+
+          acc.push({
+            label: index === 0 ? "Dashboard" : formatSegment(segment),
+            href,
+          });
+          return acc;
+        },
+        []
+      ),
+    [segments]
   );
 
   return (

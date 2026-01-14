@@ -16,7 +16,9 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
   const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
 
   return (
-    <div className={`flex items-center gap-3 ${className ?? ""}`}>
+    <div
+      className={`flex items-center justify-between gap-3 ${className ?? ""}`}
+    >
       <Button
         type="button"
         variant="outline"

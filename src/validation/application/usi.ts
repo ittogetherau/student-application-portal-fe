@@ -15,5 +15,5 @@ export type USIValues = z.infer<typeof usiSchema>;
 
 export const defaultUSIValues: USIValues = {
   usi: "",
-  consent_to_verify: false,
+  consent_to_verify: true,
 };

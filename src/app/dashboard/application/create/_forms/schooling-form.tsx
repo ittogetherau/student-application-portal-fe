@@ -3,6 +3,11 @@
 import ApplicationStepHeader from "@/app/dashboard/application/create/_components/application-step-header";
 import { Button } from "@/components/ui/button";
 import { FormRadio } from "@/components/ui/forms/form-radio";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import {
@@ -11,6 +16,7 @@ import {
   type SchoolingValues,
 } from "@/validation/application/schooling";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronRight, Info, InfoIcon } from "lucide-react";
 import { useEffect } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
@@ -71,34 +77,41 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
   return (
     <FormProvider {...methods}>
       <form className="space-y-8" onSubmit={methods.handleSubmit(onSubmit)}>
-        <section className="space-y-6">
+        <section className="space-y-6 border p-4 rounded-lg">
           <div className="space-y-8">
             {/* Highest Completed School Level */}
-            <div>
-              <p className="text-sm mb-1">
+            <div className="flex items-center gap-1">
+              <p className="text-sm">
                 What is your highest COMPLETED school level?
               </p>
-              <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-                If you are currently enrolled in secondary education, the
-                Highest school level completed refers to the highest school
-                level you have actually completed and not the level you are
-                currently undertaking. For example, if you are currently in Year
-                10 the Highest school level completed is Year 9
-              </p>
-              <FormRadio
-                name="highest_school_level"
-                label=""
-                options={[
-                  "02 - Did not go to School",
-                  "08 - Year 8 or below",
-                  "09 - Year 9 or below",
-                  "10 - Completed year 10",
-                  "11 - Completed year 11",
-                  "12 - Completed year 12",
-                  "@@ - Not Specified",
-                ]}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info size={16} className="text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  If you are currently enrolled in secondary education, the
+                  Highest school level completed refers to the highest school
+                  level you have actually completed and not the level you are
+                  currently undertaking. For example, if you are currently in
+                  Year 10 the Highest school level completed is Year 9
+                </TooltipContent>
+              </Tooltip>
             </div>
+
+            {/* <p className="text-xs text-muted-foreground mb-5 leading-relaxed"></p> */}
+            <FormRadio
+              name="highest_school_level"
+              label=""
+              options={[
+                "02 - Did not go to School",
+                "08 - Year 8 or below",
+                "09 - Year 9 or below",
+                "10 - Completed year 10",
+                "11 - Completed year 11",
+                "12 - Completed year 12",
+                "@@ - Not Specified",
+              ]}
+            />
 
             {/* Currently Attending - Hidden if user didn't go to school */}
             {!didNotGoToSchool && (
@@ -140,9 +153,16 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
           </div>
         </section>
 
-        <ApplicationStepHeader className="mt-8 pt-6 border-t">
+        <ApplicationStepHeader>
           <Button type="submit" disabled={schoolingMutation.isPending}>
-            {schoolingMutation.isPending ? "Saving..." : "Save & Continue"}
+            {schoolingMutation.isPending ? (
+              "Saving..."
+            ) : (
+              <>
+                Save & Continue
+                <ChevronRight />
+              </>
+            )}
           </Button>
         </ApplicationStepHeader>
       </form>

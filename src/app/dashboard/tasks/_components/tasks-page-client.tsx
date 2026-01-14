@@ -4,6 +4,11 @@ import ThreadAttachmentInput from "@/components/shared/thread-attachment-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -11,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { siteRoutes } from "@/constants/site-routes";
+import { USER_ROLE } from "@/constants/types";
 import {
   useAddThreadMessageMutation,
   useApplicationThreadsQuery,
@@ -22,12 +28,15 @@ import type { StaffThreadSummary } from "@/service/application-threads.service";
 import { CommunicationThread } from "@/service/application-threads.service";
 import {
   Eye,
+  Filter,
   ListRestart,
   MessageSquare,
   Send,
   Sparkles,
   Verified,
+  X,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,8 +47,6 @@ import {
   MessageBubble,
   ThreadListItem,
 } from "./general";
-import { useSession } from "next-auth/react";
-import { USER_ROLE } from "@/constants/types";
 
 export default function TasksPageClient() {
   const { data: session } = useSession();
@@ -52,6 +59,8 @@ export default function TasksPageClient() {
   );
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   const [selectedThreadId, setSelectedThreadId] = useQueryState("threadId");
   const [selectedApplicationId, setSelectedApplicationId] =
@@ -138,8 +147,14 @@ export default function TasksPageClient() {
 
   const filteredStaffThreads = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return staffThreadsList;
     return staffThreadsList.filter((thread) => {
+      if (statusFilter !== "all" && thread.status !== statusFilter) {
+        return false;
+      }
+      if (priorityFilter !== "all" && thread.priority !== priorityFilter) {
+        return false;
+      }
+      if (!term) return true;
       return (
         thread.subject.toLowerCase().includes(term) ||
         thread.application_id.toLowerCase().includes(term) ||
@@ -147,7 +162,7 @@ export default function TasksPageClient() {
         thread.priority.toLowerCase().includes(term)
       );
     });
-  }, [searchTerm, staffThreadsList]);
+  }, [searchTerm, staffThreadsList, statusFilter, priorityFilter]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,12 +206,80 @@ export default function TasksPageClient() {
               {filteredStaffThreads.length === 1 ? "thread" : "threads"}
             </p>
 
-            <div className="mt-3">
+            <div className="mt-3 flex flex-col gap-px sm:flex-row sm:items-center">
               <Input
                 placeholder="Search threads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="sm:flex-1"
               />
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon-sm">
+                      <Filter />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <Select
+                          value={statusFilter}
+                          onValueChange={setStatusFilter}
+                        >
+                          <SelectTrigger className="h-9 text-xs w-full">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All status</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="under_review">
+                              Under Review
+                            </SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Priority
+                        </p>
+                        <Select
+                          value={priorityFilter}
+                          onValueChange={setPriorityFilter}
+                        >
+                          <SelectTrigger className="h-9 text-xs w-full">
+                            <SelectValue placeholder="Priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All priority</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {searchTerm.trim() ||
+                statusFilter !== "all" ||
+                priorityFilter !== "all" ? (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                      setPriorityFilter("all");
+                    }}
+                    aria-label="Clear filters"
+                  >
+                    <X size={14} />
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
 

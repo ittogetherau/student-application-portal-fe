@@ -13,13 +13,14 @@ import {
   type EmergencyContactsValues,
 } from "@/validation/application/emergency-contacts";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronRight, Plus } from "lucide-react";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 
-const stepId = 2;
+const STEP_ID = 2;
 
 const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
   const emergencyContactMutation =
-    useApplicationStepMutations(applicationId)[stepId];
+    useApplicationStepMutations(applicationId)[STEP_ID];
 
   const methods = useForm<EmergencyContactsValues>({
     resolver: zodResolver(emergencyContactsSchema),
@@ -29,60 +30,53 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId,
-    stepId,
-    form: methods,
-    enabled: !!applicationId,
-  });
-
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = methods;
 
+  // Enable automatic form persistence
+  const { saveOnSubmit } = useFormPersistence({
+    applicationId,
+    stepId: STEP_ID,
+    form: methods,
+    enabled: !!applicationId,
+  });
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "contacts",
   });
 
-  const canAddMore = fields.length < 3;
-
-  console.log(methods.formState);
+  const maxContacts = 3;
+  const canAddMore = fields.length < maxContacts;
+  const contactsErrorMessage =
+    errors.contacts?.message ?? errors.contacts?.root?.message;
 
   return (
     <FormProvider {...methods}>
       <form
         className="space-y-6"
         onSubmit={handleSubmit((values) => {
-          // Save to Zustand store before submitting to API
-          if (applicationId) {
-            saveOnSubmit(values);
-          }
-          emergencyContactMutation.mutate(values);
+          const normalizedValues = {
+            ...values,
+            contacts: values.contacts.map((contact) => ({
+              ...createEmptyContact(),
+              ...contact,
+            })),
+          };
+
+          if (applicationId) saveOnSubmit(normalizedValues);
+          emergencyContactMutation.mutate(normalizedValues);
         })}
       >
-        <div className="flex items-center justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => append(createEmptyContact())}
-            disabled={!canAddMore}
-          >
-            Add Contact
-          </Button>
-        </div>
-
         <div className="space-y-4">
           {fields.map((field, index) => {
             const contactError = errors.contacts?.[index];
 
             return (
-              <div key={field.id} className="space-y-4 rounded-lg border p-4">
+              <div key={field.id} className="space-y-4 border p-4 rounded-lg">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">Contact {index + 1}</p>
 
@@ -102,7 +96,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
                   <FormInput
                     name={`contacts.${index}.name`}
                     label="Name"
-                    placeholder="Jane Doe"
+                    placeholder="Enter full name"
                   />
                   <FormSelect
                     name={`contacts.${index}.relationship`}
@@ -120,12 +114,12 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
                   <FormInput
                     name={`contacts.${index}.phone`}
                     label="Phone"
-                    placeholder="+61 400 000 000"
+                    placeholder="Enter phone number"
                   />
                   <FormInput
                     name={`contacts.${index}.email`}
                     label="Email"
-                    placeholder="user@example.com"
+                    placeholder="Enter email address"
                     type="email"
                   />
                 </div>
@@ -133,7 +127,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
                 <FormInput
                   name={`contacts.${index}.address`}
                   label="Address"
-                  placeholder="123 Main Street, Suburb"
+                  placeholder="Enter street address"
                 />
 
                 <FormCheckbox
@@ -149,13 +143,31 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
               </div>
             );
           })}
+
+          <div className="flex items-center justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append(createEmptyContact())}
+              disabled={!canAddMore}
+            >
+              <Plus /> Add More Contact
+            </Button>
+          </div>
         </div>
+
+        {contactsErrorMessage && (
+          <p className="text-sm text-red-500">{contactsErrorMessage}</p>
+        )}
 
         <ApplicationStepHeader className="mt-4">
           <Button type="submit" disabled={emergencyContactMutation.isPending}>
             {emergencyContactMutation.isPending
               ? "Saving..."
               : "Save & Continue"}
+
+            <ChevronRight />
           </Button>
         </ApplicationStepHeader>
       </form>

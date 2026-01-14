@@ -22,6 +22,8 @@ import type {
 
 export interface ApplicationDetailResponse {
   id: string;
+  tracking_code?: string | null;
+  reference_number?: string | null;
   student_profile_id: string | null;
   agent_profile_id: string | null;
   course_offering_id: string | null;

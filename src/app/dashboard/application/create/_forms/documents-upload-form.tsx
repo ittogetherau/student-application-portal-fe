@@ -3,11 +3,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
-import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import {
   CheckCircle2,
   Download,
@@ -21,7 +22,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import ApplicationStepHeader from "../_components/application-step-header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Types
 type FileUploadState = {
@@ -131,7 +131,9 @@ const convertToFormData = (
 export default function DocumentsUploadForm() {
   const searchParams = useSearchParams();
   const applicationIdFromUrl = searchParams.get("id");
-  const storedApplicationId = useApplicationFormDataStore((state) => state.applicationId);
+  const storedApplicationId = useApplicationFormDataStore(
+    (state) => state.applicationId
+  );
   const applicationId = applicationIdFromUrl || storedApplicationId;
 
   const { uploadDocument } = useDocuments(applicationId);
@@ -338,11 +340,11 @@ export default function DocumentsUploadForm() {
               files: currentFiles.map((f) =>
                 f.file === file
                   ? {
-                    ...f,
-                    uploading: false,
-                    uploaded: false,
-                    error: "Upload failed",
-                  }
+                      ...f,
+                      uploading: false,
+                      uploaded: false,
+                      error: "Upload failed",
+                    }
                   : f
               ),
             },
@@ -360,7 +362,10 @@ export default function DocumentsUploadForm() {
   );
 
   const handleFileSelect = useCallback(
-    async (documentTypeId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    async (
+      documentTypeId: string,
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
       const files = event.target.files;
       if (!files || !applicationId) return;
 
@@ -478,7 +483,7 @@ export default function DocumentsUploadForm() {
 
   if (documentTypesError || !documentTypesResponse?.success) {
     return (
-      <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3">
+      <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3">
         <p className="text-sm text-destructive">
           {documentTypesError?.message ||
             documentTypesResponse?.message ||
@@ -535,14 +540,14 @@ export default function DocumentsUploadForm() {
                         onClick={() => setSelectedDocumentId(docType.id)}
                         className={cn(
                           "w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200",
-                          isSelected && "bg-blue-50 border-blue-500 shadow-sm",
+                          isSelected && "bg-accent border-primary/50 shadow-sm",
                           !isSelected &&
-                          "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                            "border-border hover:bg-muted/50 hover:border-muted-foreground/40"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-blue-600 truncate leading-tight">
+                            <p className="text-sm font-medium text-foreground truncate leading-tight">
                               {docType.name}
                             </p>
                             <div className="flex items-center gap-1.5 mt-1">
@@ -550,28 +555,21 @@ export default function DocumentsUploadForm() {
                                 variant={
                                   docType.is_mandatory ? "default" : "secondary"
                                 }
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0 h-4",
-                                  docType.is_mandatory &&
-                                  "bg-orange-500 hover:bg-orange-600"
-                                )}
+                                className="text-[10px] px-1.5 py-0 h-4"
                               >
                                 {docType.is_mandatory
                                   ? "Compulsory"
                                   : "Optional"}
                               </Badge>
                               {isUploaded && (
-                                <Badge
-                                  variant="default"
-                                  className="text-[10px] px-1.5 py-0 h-4 bg-green-600 hover:bg-green-700"
-                                >
+                                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
                                   Uploaded
                                 </Badge>
                               )}
                             </div>
                           </div>
                           {isUploaded && (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                           )}
                         </div>
                       </button>
@@ -580,10 +578,9 @@ export default function DocumentsUploadForm() {
                 </div>
               </div>
 
-              {/* Main Upload Area - 3 columns (wider) */}
               <div className="lg:col-span-3 space-y-4">
                 {selectedDocument && (
-                  <Card className="border-gray-200">
+                  <Card>
                     <CardContent className="pt-6">
                       <div className="space-y-6">
                         <div>
@@ -600,8 +597,8 @@ export default function DocumentsUploadForm() {
                           className={cn(
                             "border-2 border-dashed rounded-lg p-16 text-center transition-all duration-200 cursor-pointer",
                             isAnyFileUploading
-                              ? "border-blue-400 bg-blue-50/50"
-                              : "border-gray-300 bg-gray-50/50 hover:border-blue-400 hover:bg-blue-50/30"
+                              ? "border-primary/50 bg-primary/10"
+                              : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
                           )}
                         >
                           <input
@@ -620,19 +617,19 @@ export default function DocumentsUploadForm() {
                             className="cursor-pointer block"
                           >
                             {isAnyFileUploading ? (
-                              <Loader2 className="h-16 w-16 mx-auto mb-4 text-blue-500 animate-spin" />
+                              <Loader2 className="h-16 w-16 mx-auto mb-4 text-primary animate-spin" />
                             ) : (
                               <Upload
-                                className="h-16 w-16 mx-auto mb-4 text-gray-400"
+                                className="h-16 w-16 mx-auto mb-4 text-muted-foreground"
                                 strokeWidth={1.5}
                               />
                             )}
-                            <p className="text-base text-gray-600 font-medium">
+                            <p className="text-base text-foreground font-medium">
                               {isAnyFileUploading
                                 ? "Uploading files..."
                                 : "Drop files here to upload or click to browse"}
                             </p>
-                            <p className="text-sm text-gray-500 mt-2">
+                            <p className="text-sm text-muted-foreground mt-2">
                               Supports all file types (PDF, JPG, PNG, DOC, etc.)
                             </p>
                           </label>
@@ -641,93 +638,108 @@ export default function DocumentsUploadForm() {
                         {/* Files Table */}
                         {((selectedState?.uploadedFiles?.length ?? 0) > 0 ||
                           (selectedState?.files?.length ?? 0) > 0) && (
-                            <div className="mt-6">
-                              <table className="w-full">
-                                <thead className="border-b">
-                                  <tr className="text-left text-sm text-muted-foreground">
-                                    <th className="pb-3 font-medium">NAME</th>
-                                    <th className="pb-3 font-medium">SIZE</th>
-                                    <th className="pb-3 font-medium">STATUS</th>
-                                    <th className="pb-3 font-medium text-right">ACTIONS</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {/* Show in-progress or failed uploads */}
-                                  {selectedState?.files?.filter(f => f.uploading || f.error)?.map((f, index) => (
-                                    <tr key={`local-${index}`} className="border-b last:border-0 opacity-70">
-                                      <td className="py-3 text-sm">{f.file.name}</td>
-                                      <td className="py-3 text-sm">{(f.file.size / 1024).toFixed(2)} KB</td>
+                          <div className="mt-6">
+                            <table className="w-full">
+                              <thead className="border-b">
+                                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
+                                  <th className="pb-3 font-medium">NAME</th>
+                                  <th className="pb-3 font-medium">SIZE</th>
+                                  <th className="pb-3 font-medium">STATUS</th>
+                                  <th className="pb-3 font-medium text-right">
+                                    ACTIONS
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* Show in-progress or failed uploads */}
+                                {selectedState?.files
+                                  ?.filter((f) => f.uploading || f.error)
+                                  ?.map((f, index) => (
+                                    <tr
+                                      key={`local-${index}`}
+                                      className="border-b last:border-0 opacity-70"
+                                    >
+                                      <td className="py-3 text-sm">
+                                        {f.file.name}
+                                      </td>
+                                      <td className="py-3 text-sm">
+                                        {(f.file.size / 1024).toFixed(2)} KB
+                                      </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
                                           {f.uploading ? (
                                             <>
-                                              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                                              <span className="text-sm text-blue-500 font-medium">Uploading...</span>
+                                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                              <span className="text-sm text-primary font-medium">
+                                                Uploading...
+                                              </span>
                                             </>
                                           ) : (
-                                            <span className="text-sm text-destructive font-medium">{f.error}</span>
+                                            <span className="text-sm text-destructive font-medium">
+                                              {f.error}
+                                            </span>
                                           )}
                                         </div>
                                       </td>
                                     </tr>
                                   ))}
 
-                                  {/* Show uploaded files */}
-                                  {selectedState?.uploadedFiles?.map(
-                                    (file, index) => (
-                                      <tr
-                                        key={`uploaded-${index}`}
-                                        className="border-b last:border-0"
-                                      >
-                                        <td className="py-3 text-sm">
-                                          {file.fileName}
-                                        </td>
-                                        <td className="py-3 text-sm">
-                                          {(file.fileSize / 1024).toFixed(2)} KB
-                                        </td>
-                                        <td className="py-3">
-                                          <div className="flex items-center gap-2">
-                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                            <span className="text-sm text-green-600">
-                                              Uploaded
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td className="py-3 text-right">
-                                          <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                            >
-                                              <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                            >
-                                              <Download className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
+                                {/* Show uploaded files */}
+                                {selectedState?.uploadedFiles?.map(
+                                  (file, index) => (
+                                    <tr
+                                      key={`uploaded-${index}`}
+                                      className="border-b last:border-0"
+                                    >
+                                      <td className="py-3 text-sm">
+                                        {file.fileName}
+                                      </td>
+                                      <td className="py-3 text-sm">
+                                        {(file.fileSize / 1024).toFixed(2)} KB
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                                          <span className="text-sm text-primary">
+                                            Uploaded
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -747,7 +759,7 @@ export default function DocumentsUploadForm() {
                 ) : (
                   <table className="w-full">
                     <thead className="border-b">
-                      <tr className="text-left text-sm text-muted-foreground">
+                      <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
                         <th className="pb-3 font-medium">FILE NAME</th>
                         <th className="pb-3 font-medium">DOCUMENT NAME</th>
                         <th className="pb-3 font-medium">SIZE</th>
@@ -806,14 +818,14 @@ export default function DocumentsUploadForm() {
             type="button"
             onClick={handleContinue}
             disabled={
-              isAnyFileUploading || !applicationId
+              isAnyFileUploading || !applicationId || !allMandatoryUploaded
             }
           >
             {isAnyFileUploading
               ? "Uploading..."
               : allMandatoryUploaded
-                ? "Save & Continue"
-                : "Upload Required Documents"}
+              ? "Save & Continue"
+              : "Save & Continue"}
           </Button>
         </ApplicationStepHeader>
       </form>

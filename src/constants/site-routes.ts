@@ -11,6 +11,7 @@ export const siteRoutes = {
     application: {
       root: "/dashboard/application",
       create: "/dashboard/application/create",
+      archived: "/dashboard/application/archived",
     },
     agents: {
       root: "/dashboard/agents",

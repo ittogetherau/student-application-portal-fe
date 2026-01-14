@@ -1,6 +1,13 @@
 "use client";
 
-import { FileText, Edit3, Trash2, Clock } from "lucide-react";
+import * as React from "react";
+import { FileText, Edit3, Trash2, Clock, Plus } from "lucide-react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import {
   Card,
   CardContent,
@@ -10,9 +17,21 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import Link from "next/link";
+import { siteRoutes } from "@/constants/site-routes";
+import { useRouter } from "next/navigation";
 
 export interface DraftApplication {
   id: string;
+  applicationUuid: string;
   studentName: string;
   university: string;
   program: string;
@@ -27,6 +46,92 @@ interface DraftApplicationsProps {
 export function DraftApplications({
   draftApplications,
 }: DraftApplicationsProps) {
+  const router = useRouter();
+
+  const columns = React.useMemo<ColumnDef<DraftApplication>[]>(
+    () => [
+      {
+        accessorKey: "studentName",
+        header: "Student",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{row.getValue("studentName")}</span>
+            <Badge variant="secondary">{row.original.id}</Badge>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "university",
+        header: "University",
+        cell: ({ row }) => (
+          <span className="text-sm">{row.getValue("university")}</span>
+        ),
+      },
+      {
+        accessorKey: "program",
+        header: "Program",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.getValue("program")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "lastEdited",
+        header: "Last Edited",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            Last edited {row.getValue("lastEdited")}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "completionPercent",
+        header: "Completion",
+        cell: ({ row }) => {
+          const percent = row.getValue("completionPercent") as number;
+          return (
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium">{percent}%</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: () => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="icon">
+              <Edit3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: draftApplications,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -42,73 +147,86 @@ export function DraftApplications({
               </CardDescription>
             </div>
           </div>
-          <Button>+ New Draft</Button>
+
+          <Link href={siteRoutes.dashboard.application.create}>
+            <Button>
+              <Plus />
+              New Draft
+            </Button>
+          </Link>
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="divide-y divide-border">
-          {draftApplications.map((draft) => (
-            <div
-              key={draft.id}
-              className="p-6 hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold">{draft.studentName}</h3>
-                    <Badge variant="secondary">{draft.id}</Badge>
-                  </div>
-                  <p className="text-sm mb-1">{draft.university}</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {draft.program}
-                  </p>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5" />
-                      Last edited {draft.lastEdited}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${draft.completionPercent}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium">
-                        {draft.completionPercent}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Edit3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="px-4 h-10 text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody className="divide-y">
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() =>
+                      router.push(
+                        `${siteRoutes.dashboard.application.root}/${row.original.applicationUuid}`
+                      )
+                    }
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="px-4 py-3 whitespace-nowrap"
+                        onClick={(event) => {
+                          if (cell.column.id === "actions") {
+                            event.stopPropagation();
+                          }
+                        }}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <div className="py-8">
+                      <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">
+                        No draft applications
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Start a new application to see it here
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-
-        {draftApplications.length === 0 && (
-          <div className="p-12 text-center">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No draft applications</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Start a new application to see it here
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

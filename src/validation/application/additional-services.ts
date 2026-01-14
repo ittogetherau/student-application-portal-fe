@@ -48,7 +48,7 @@ export const createEmptyAdditionalService = (): unknown => ({
   service_start_date: "",
   service_end_date: "",
   service_comment: "",
-  selected: false,
+  selected: true,
 });
 
 export const defaultAdditionalServicesValues: AdditionalServicesValues = {

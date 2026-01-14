@@ -14,7 +14,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { siteRoutes } from "@/constants/site-routes";
 import { APPLICATION_STAGE } from "@/constants/types";
-import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
 import { useApplicationGetQuery } from "@/hooks/useApplication.hook";
 import { ArrowLeft, Plus, SquarePen } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -24,6 +23,7 @@ import { useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
 import ApplicationSidebar from "./_components/ApplicationSidebar";
 import ApplicationStage from "./_components/ApplicationStage";
+import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
 import {
@@ -33,7 +33,7 @@ import {
   NotFoundState,
 } from "./_components/states";
 import CommunicationTab from "./_components/tabs/CommunicationTab";
-import DocumentsTab, { Document } from "./_components/tabs/DocumentsTab";
+import DocumentsTab from "./_components/tabs/DocumentsTab";
 import Timeline from "./_components/tabs/TimelineTab";
 
 export default function AgentApplicationDetail() {
@@ -54,11 +54,7 @@ export default function AgentApplicationDetail() {
     error,
   } = useApplicationGetQuery(id);
 
-  const { data: documentsResponse, isLoading: isDocumentsLoading } =
-    useApplicationDocumentsQuery(id);
-
   const application = response?.data;
-  const documents = (documentsResponse?.data || []) as Document[];
 
   const handleBackNavigation = () =>
     router.push(siteRoutes.dashboard.application.root);
@@ -94,9 +90,10 @@ export default function AgentApplicationDetail() {
               <h1 className="text-xl sm:text-2xl font-medium truncate">
                 {studentName()}
               </h1>
-              {/* <p className="text-xs text-muted-foreground truncate">
-                Reference: {application.id}
-              </p> */}
+
+              <p className="text-xs text-muted-foreground truncate">
+                Reference: {application?.tracking_code || "N/A"}
+              </p>
             </div>
           </div>
 
@@ -133,11 +130,7 @@ export default function AgentApplicationDetail() {
           <div className="space-y-4">
             <ApplicationStage current_role={ROLE} id={id} />
 
-            <ApplicationSidebar
-              current_role={ROLE}
-              is_admin_staff={IS_ADMIN_STAFF}
-              application={application}
-            />
+            <ApplicationSidebar application={application} />
           </div>
         }
       >
@@ -161,16 +154,25 @@ export default function AgentApplicationDetail() {
               </TabsTrigger>
             </TabsList>
 
-            {/* {ROLE === USER_ROLE.STAFF && ( */}
-            <Button
-              size="sm"
-              className="h-9 w-full sm:w-auto gap-2"
-              onClick={() => setIsCreateThreadOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Create Thread
-            </Button>
-            {/* // )} */}
+            <div className="flex items-center justify-end gap-2">
+              {ROLE === "staff" && IS_ADMIN_STAFF && (
+                <div className="max-w-86">
+                  <StaffAssignmentSelect
+                    applicationId={application.id}
+                    assignedStaffId={application.assigned_staff_id}
+                  />
+                </div>
+              )}
+
+              <Button
+                size="sm"
+                className="h-9 w-full sm:w-auto gap-2"
+                onClick={() => setIsCreateThreadOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Create Thread
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="details" className="space-y-3">
@@ -178,10 +180,7 @@ export default function AgentApplicationDetail() {
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-3">
-            <DocumentsTab
-              documents={documents}
-              isLoading={isDocumentsLoading}
-            />
+            <DocumentsTab applicationId={application.id} />
           </TabsContent>
 
           <TabsContent value="timeline" className="space-y-3">

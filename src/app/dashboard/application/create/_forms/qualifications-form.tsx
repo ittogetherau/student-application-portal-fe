@@ -13,6 +13,7 @@ import {
   type QualificationsFormValues,
 } from "@/validation/application/qualifications";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronRight, Plus } from "lucide-react";
 import { useEffect } from "react";
 import {
   FormProvider,
@@ -78,7 +79,7 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
       <form className="space-y-8" onSubmit={handleSubmit(onSubmit)}>
         <section className="space-y-6">
           <div className="space-y-6">
-            <div>
+            <div className="border p-4 rounded-lg">
               <p className="text-sm mb-3">
                 Have you successfully completed any previous qualifications?
               </p>
@@ -90,25 +91,12 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
             </div>
 
             {hasQualifications === "Yes" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm">Qualifications List</h4>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!canAddMore}
-                    onClick={() => append(createEmptyQualification() as any)}
-                  >
-                    Add Qualification
-                  </Button>
-                </div>
-
+              <div className="">
                 <div className="space-y-6">
                   {fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="space-y-4 rounded-lg border p-4 bg-muted/5"
+                      className="space-y-4 rounded-lg border p-4"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-sm">Qualification {index + 1}</p>
@@ -129,25 +117,25 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
                         <FormInput
                           name={`qualifications.${index}.qualification_name`}
                           label="Qualification Name"
-                          placeholder="e.g. Bachelor of IT"
+                          placeholder="Enter qualification name"
                         />
 
                         <FormInput
                           name={`qualifications.${index}.institution`}
                           label="Institution"
-                          placeholder="e.g. XYZ University"
+                          placeholder="Enter institution"
                         />
 
                         <FormInput
                           name={`qualifications.${index}.field_of_study`}
                           label="Field of Study"
-                          placeholder="e.g. Software Engineering"
+                          placeholder="Enter field of study"
                         />
 
                         <FormInput
                           name={`qualifications.${index}.grade`}
                           label="Grade"
-                          placeholder="e.g. Distinction"
+                          placeholder="Enter grade"
                         />
 
                         <FormInput
@@ -159,7 +147,7 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
                         <FormInput
                           name={`qualifications.${index}.certificate_number`}
                           label="Certificate Number"
-                          placeholder="e.g. CERT-123456"
+                          placeholder="Enter certificate number"
                         />
                       </div>
                     </div>
@@ -167,12 +155,32 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
                 </div>
               </div>
             )}
+
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!canAddMore}
+                onClick={() => append(createEmptyQualification() as any)}
+              >
+                <Plus />
+                Add Qualification
+              </Button>
+            </div>
           </div>
         </section>
 
-        <ApplicationStepHeader className="mt-8 pt-6 border-t">
+        <ApplicationStepHeader>
           <Button type="submit" disabled={qualificationsMutation.isPending}>
-            {qualificationsMutation.isPending ? "Saving..." : "Save & Continue"}
+            {qualificationsMutation.isPending ? (
+              "Saving..."
+            ) : (
+              <>
+                Save & Continue
+                <ChevronRight />
+              </>
+            )}
           </Button>
         </ApplicationStepHeader>
       </form>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import AgentSignInForm from "./agent-sign-in-form";
 import StaffSignInForm from "./staff-sign-in-form";
@@ -17,6 +18,16 @@ type PortalTab = "agent" | "staff";
 
 const PortalLoginCard = () => {
   const [activeTab, setActiveTab] = useState<PortalTab>("agent");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const hasMicrosoftParams =
+      searchParams.has("code") ||
+      searchParams.has("access_token") ||
+      searchParams.has("error");
+
+    if (hasMicrosoftParams && activeTab !== "staff") setActiveTab("staff");
+  }, [activeTab, searchParams]);
 
   return (
     <Card className="p-0">
@@ -33,17 +44,17 @@ const PortalLoginCard = () => {
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 gap-1 p-1 min-h-12 bg-muted/50">
-            <TabsTrigger 
-              className="h-auto min-h-full py-2 px-2 text-xs sm:text-sm leading-tight data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold font-medium transition-all hover:bg-background/50 whitespace-normal text-center" 
+            <TabsTrigger
+              className="h-auto min-h-full py-2 px-2 text-xs sm:text-sm leading-tight data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold font-medium transition-all hover:bg-background/50 whitespace-normal text-center"
               value="agent"
             >
-              Login as  Education Partner
+              Login as Education Partner
             </TabsTrigger>
-            <TabsTrigger 
-              className="h-auto min-h-full py-2 px-2 text-xs sm:text-sm leading-tight data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold font-medium transition-all hover:bg-background/50 whitespace-normal text-center" 
+            <TabsTrigger
+              className="h-auto min-h-full py-2 px-2 text-xs sm:text-sm leading-tight data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:font-semibold font-medium transition-all hover:bg-background/50 whitespace-normal text-center"
               value="staff"
             >
-              Login as  Staff Member
+              Login as Staff Member
             </TabsTrigger>
           </TabsList>
           <TabsContent value="agent" className="mt-6">

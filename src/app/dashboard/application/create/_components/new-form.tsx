@@ -11,7 +11,6 @@ import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useApplicationStepQuery } from "@/hooks/useApplicationSteps.hook";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
@@ -48,17 +47,21 @@ const NewForm = ({
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
 
-  // Fetch step data for the current step
-  const { isLoading: isStepLoading } = useApplicationStepQuery(
-    applicationId || null,
-    currentStep
-  );
+  // // Fetch step data for the current step
+  // const { isLoading: isStepLoading } = useApplicationStepQuery(
+  //   applicationId || null,
+  //   currentStep
+  // );
 
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const hasHydratedData = useApplicationFormDataStore((state) => state._hasHydrated);
-  const hasHydratedSteps = useApplicationStepStore((state) => state._hasHydrated);
+  const hasHydratedData = useApplicationFormDataStore(
+    (state) => state._hasHydrated
+  );
+  const hasHydratedSteps = useApplicationStepStore(
+    (state) => state._hasHydrated
+  );
   const isHydrated = hasHydratedData && hasHydratedSteps;
 
   // Determine mode
@@ -81,7 +84,6 @@ const NewForm = ({
       setIsInitialized(false);
 
       if (isCreateMode) {
-
         if (storedApplicationId || !hasStoredStepData) {
           clearAllData();
           resetNavigation();
@@ -191,8 +193,8 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                          ? "hover:bg-muted"
-                          : "opacity-40 cursor-not-allowed",
+                        ? "hover:bg-muted"
+                        : "cursor-not-allowed",
                       !canNavigate && "pointer-events-none"
                     )}
                     title={
@@ -207,10 +209,10 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                            ? "bg-emerald-100 text-emerald-700"
-                            : canNavigate
-                              ? "bg-muted text-muted-foreground"
-                              : "bg-muted/50 text-muted-foreground/50"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : canNavigate
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-muted/50 text-muted-foreground/50"
                       )}
                     >
                       {isCompleted && !isCurrent ? (
@@ -234,25 +236,21 @@ const NewForm = ({
           </Card>
         }
       >
-        <Card className="w-full">
-          <CardContent className="pt-6">
-            <div className="mb-6 flex items-center justify-between border-b pb-4">
-              <h2 className="text-2xl font-semibold">
-                {FORM_STEPS[currentStep].title}
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                Step {currentStep + 1} of {FORM_STEPS.length}
-              </span>
-            </div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">
+            {FORM_STEPS[currentStep].title}
+          </h2>
+          {/* <span className="text-sm text-muted-foreground">
+            Step {currentStep + 1} of {FORM_STEPS.length}
+          </span> */}
+        </div>
 
-            {StepComponent && (
-              <StepComponent
-                key={`${currentStep}-${autoFillKey}`}
-                applicationId={applicationId}
-              />
-            )}
-          </CardContent>
-        </Card>
+        {StepComponent && (
+          <StepComponent
+            key={`${currentStep}-${autoFillKey}`}
+            applicationId={applicationId}
+          />
+        )}
       </TwoColumnLayout>
     </>
   );

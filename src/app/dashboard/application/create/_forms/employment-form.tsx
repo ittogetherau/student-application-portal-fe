@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { FormCheckbox } from "@/components/ui/forms/form-checkbox";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import {
@@ -13,6 +18,7 @@ import {
   type EmploymentFormValues,
 } from "@/validation/application/employment";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronRight, Info } from "lucide-react";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import ApplicationStepHeader from "../_components/application-step-header";
 
@@ -58,17 +64,24 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
     <FormProvider {...methods}>
       <form className="space-y-8" onSubmit={handleSubmit(onSubmit)}>
         <section className="space-y-6">
-          <div>
-            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              For casual, seasonal, contract and shift work, use the current
-              number of hours worked per week to determine whether full time (35
-              hours or more per week) or part-time employed (less than 35 hours
-              per week).
-            </p>
+          <section className="border p-4 rounded-lg">
+            <div className="flex items-center gap-1 mb-2">
+              <p>Which BEST describes your current employment status?</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info size={16} className="text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="max-w-[32ch] block">
+                    For casual, seasonal, contract and shift work, use the
+                    current number of hours worked per week to determine whether
+                    full time (35 hours or more per week) or part-time employed
+                    (less than 35 hours per week).
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-            <p className="text-sm mb-3">
-              Which BEST describes your current employment status? <span className="text-red-500">*</span>
-            </p>
             <FormRadio
               name="employment_status"
               label=""
@@ -84,32 +97,18 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
                 "09 - Not Specified",
               ]}
             />
-          </div>
+          </section>
         </section>
 
-        {/* Detailed Employment History Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg">Employment History</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!canAddMore}
-              onClick={() => append(createEmptyEmploymentEntry())}
-            >
-              Add Entry
-            </Button>
-          </div>
-
+        <>
           <div className="space-y-6">
             {fields.map((field, index) => {
               const isCurrent = watchEntries?.[index]?.is_current;
 
               return (
-                <div key={field.id} className="space-y-6 rounded-lg border p-6 bg-card relative group">
+                <div key={field.id} className="space-y-6 rounded-lg border p-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm text-primary">Entry {index + 1}</h4>
+                    <p className="text-sm">Entry {index + 1}</p>
 
                     {fields.length > 1 && (
                       <Button
@@ -128,25 +127,25 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
                     <FormInput
                       name={`entries.${index}.employer`}
                       label="Employer *"
-                      placeholder="e.g. ABC Pty Ltd"
+                      placeholder="Enter employer name"
                     />
 
                     <FormInput
                       name={`entries.${index}.role`}
                       label="Role *"
-                      placeholder="e.g. IT Support Engineer"
+                      placeholder="Enter role"
                     />
 
                     <FormInput
                       name={`entries.${index}.industry`}
                       label="Industry *"
-                      placeholder="e.g. Information Technology"
+                      placeholder="Enter industry"
                     />
 
                     <FormInput
                       name={`entries.${index}.responsibilities`}
                       label="Responsibilities *"
-                      placeholder="e.g. Help desk, ticket triage..."
+                      placeholder="Describe responsibilities"
                     />
 
                     <FormInput
@@ -160,7 +159,9 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
                         name={`entries.${index}.end_date`}
                         label={isCurrent ? "End Date" : "End Date *"}
                         type="date"
-                        description={isCurrent ? "Not required for current role" : ""}
+                        description={
+                          isCurrent ? "Not required for current role" : ""
+                        }
                       />
                       {isCurrent && (
                         <div className="absolute inset-0 z-10 bg-background/50 cursor-not-allowed mt-6 rounded-md" />
@@ -178,11 +179,30 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
               );
             })}
           </div>
-        </section>
 
-        <ApplicationStepHeader className="mt-8 pt-6 border-t">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!canAddMore}
+              onClick={() => append(createEmptyEmploymentEntry())}
+            >
+              Add Entry
+            </Button>
+          </div>
+        </>
+
+        <ApplicationStepHeader>
           <Button type="submit" disabled={employmentMutation.isPending}>
-            {employmentMutation.isPending ? "Saving..." : "Save & Continue"}
+            {employmentMutation.isPending ? (
+              "Saving..."
+            ) : (
+              <>
+                Save & Continue
+                <ChevronRight />
+              </>
+            )}
           </Button>
         </ApplicationStepHeader>
       </form>

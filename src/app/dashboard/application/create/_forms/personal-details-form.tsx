@@ -8,8 +8,11 @@ import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
 import { FormSearchableSelect } from "@/components/ui/forms/form-searchable-select";
 import { FormSelect } from "@/components/ui/forms/form-select";
-import { FormTextarea } from "@/components/ui/forms/form-textarea";
-import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getCountriesList, getNationalitiesList } from "@/data/country-list";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
@@ -22,11 +25,19 @@ import {
   type PersonalDetailsValues,
 } from "@/validation/application/personal-details";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, FileCheck2, Loader2, Upload, X } from "lucide-react";
-import { ExtractedDataPreview } from "../_components/extracted-data-preview";
+import {
+  CheckCircle2,
+  ChevronRight,
+  FileCheck2,
+  Info,
+  Loader2,
+  Upload,
+  X,
+} from "lucide-react";
 import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 
 const stepId = 1;
 
@@ -54,7 +65,10 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [extractedSummary, setExtractedSummary] = useState<Record<string, any> | null>(null);
+  const [extractedSummary, setExtractedSummary] = useState<Record<
+    string,
+    any
+  > | null>(null);
   // Get document types and upload hook
   const { data: documentTypesResponse } = useDocumentTypesQuery();
   const { uploadDocument } = useDocuments(applicationId);
@@ -139,12 +153,21 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               let personalDetailsData =
                 ocrResponse.data.sections.personal_details?.extracted_data;
 
-              if (personalDetailsData && typeof personalDetailsData === "object" && !Array.isArray(personalDetailsData)) {
+              if (
+                personalDetailsData &&
+                typeof personalDetailsData === "object" &&
+                !Array.isArray(personalDetailsData)
+              ) {
                 // Transform data for form fields
-                const transformedData: Record<string, any> = { ...personalDetailsData };
+                const transformedData: Record<string, any> = {
+                  ...personalDetailsData,
+                };
 
                 // Map expiry_date to passport_expiry
-                if (transformedData.expiry_date && !transformedData.passport_expiry) {
+                if (
+                  transformedData.expiry_date &&
+                  !transformedData.passport_expiry
+                ) {
                   transformedData.passport_expiry = transformedData.expiry_date;
                 }
 
@@ -192,7 +215,8 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                     if (currentValue) return;
 
                     // Skip null/undefined/empty values
-                    if (value === null || value === undefined || value === "") return;
+                    if (value === null || value === undefined || value === "")
+                      return;
 
                     // Set the value
                     methods.setValue(fieldKey, value as any, {
@@ -201,7 +225,10 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                     });
                     fieldsPopulated++;
                   } catch (error) {
-                    console.error(`[PersonalDetails] ❌ Error setting field "${key}":`, error);
+                    console.error(
+                      `[PersonalDetails] ❌ Error setting field "${key}":`,
+                      error
+                    );
                   }
                 });
 
@@ -307,7 +334,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
   return (
     <FormProvider {...methods}>
-      <form className="space-y-10" onSubmit={methods.handleSubmit(onSubmit)}>
+      <form className="space-y-5" onSubmit={methods.handleSubmit(onSubmit)}>
         {/* Passport Upload Section */}
         <Card className="border-primary/20 bg-primary/5 shadow-sm">
           <CardContent className="p-4">
@@ -419,119 +446,9 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           <ExtractedDataPreview data={extractedSummary} />
         )}
 
-        {/* BASIC INFORMATION */}
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Basic Information</h3>
-            <Separator className="bg-primary/20" />
-          </div>
-
-          <div className="space-y-4">
-            {/* Student Origin */}
-            <div>
-              <FormRadio
-                name="student_origin"
-                label="Student Origin"
-                options={[
-                  "Overseas Student (Offshore)",
-                  "Overseas Student in Australia (Onshore)",
-                  "Resident Student (Domestic)",
-                ]}
-              />
-            </div>
-
-            {/* Title */}
-            <div>
-              <FormRadio
-                name="title"
-                label="Title"
-                options={["Mr", "Ms", "Mrs", "Other"]}
-              />
-            </div>
-
-            {/* Full Name */}
-            <div>
-              <p className="text-sm font-medium mb-2">Enter your Full Name</p>
-              <p className="text-xs text-muted-foreground mb-3">
-                Please write the name that you used when you applied for your
-                Unique Student Identifier (USI), including any middle names. If
-                you do not have a USI please write your name exactly as written
-                in the identity document you choose to use
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormInput
-                  name="given_name"
-                  label="First Name"
-                  placeholder="Merritt"
-                />
-                <FormInput
-                  name="middle_name"
-                  label="Middle Name(Optional)"
-                  placeholder="Quinn Shaw"
-                />
-                <FormInput
-                  name="family_name"
-                  label="Last Name"
-                  placeholder="Higgins"
-                />
-              </div>
-            </div>
-
-            {/* Gender */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormRadio
-                name="gender"
-                label="Gender"
-                options={["Male", "Female", "Other"]}
-              />
-              <FormInput
-                name="date_of_birth"
-                label="Date of birth"
-                type="date"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* CONTACT DETAILS */}
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Contact Details</h3>
-            <Separator className="bg-primary/20" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput
-              name="email"
-              label="Contact Email Address"
-              type="email"
-              placeholder="hisucug@mailinator.com"
-            />
-            <FormInput
-              name="alternate_email"
-              label="Alternate Email Address(Optional)"
-              type="email"
-              placeholder="tokuxlt@mailinator.com"
-            />
-            <FormInput
-              name="phone"
-              label="Mobile Number"
-              placeholder="9875237523"
-            />
-            <FormInput
-              name="home_phone"
-              label="Home Phone(Optional)"
-              placeholder="9875237523"
-            />
-          </div>
-        </section>
-
         {/* PASSPORT DETAILS */}
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Passport Details</h3>
-            <Separator className="bg-primary/20" />
-          </div>
+        <section className="space-y-3 border p-4 rounded-lg">
+          <h3 className="text-lg font-semibold">Passport Details</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormSearchableSelect
@@ -553,7 +470,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
             <FormInput
               name="passport_number"
               label="Passport Number"
-              placeholder="19"
+              placeholder="Enter passport number"
             />
             <FormInput
               name="passport_expiry"
@@ -563,68 +480,185 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           </div>
         </section>
 
-        {/* VISA DETAILS - Only show for Onshore students */}
-        {methods.watch("student_origin") ===
-          "Overseas Student in Australia (Onshore)" && (
-            <section className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Visa Details</h3>
-                <Separator className="bg-primary/20" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormSelect
-                  name="visa_type"
-                  label="VISA Type"
-                  placeholder="Select VISA Type"
-                  options={[
-                    { value: "graduate_485", label: "Graduate 485" },
-                    { value: "student_visa", label: "Student Visa" },
-                    { value: "tourist_visitor", label: "Tourist/Visitor" },
-                    { value: "working_holiday", label: "Working Holiday" },
-                    { value: "other", label: "Other" },
-                  ]}
-                />
-                <FormInput
-                  name="visa_number"
-                  label="VISA Number(Optional)"
-                  placeholder=""
-                />
-                <FormInput name="visa_expiry" label="Expiry Date" type="date" />
-              </div>
-            </section>
-          )}
-
-        {/* RESIDENTIAL ADDRESS */}
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Residential Address</h3>
-            <Separator className="bg-primary/20" />
+        {/* BASIC INFORMATION */}
+        <section className="space-y-3 border p-4 rounded-lg">
+          <div>
+            <h3 className="text-lg font-semibold">Basic Information</h3>
           </div>
 
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Please provide the physical address (street number and name not
-              post office box) where you usually reside rather than any
-              temporary address at which you reside for training, work or other
-              purposes before returning to your home.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              If you are from a rural area use the address from your state or
-              territory's rural property addressing or 'numbering' system as
-              your residential street address.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Building/property name is the official place name or common usage
-              name for an address site, including the name of a building,
-              Aboriginal community, homestead, building complex, agricultural
-              property, park or unbounded address site.
-            </p>
+            {/* Student Origin */}
+            <FormRadio
+              name="student_origin"
+              label="Student Origin"
+              options={[
+                "Overseas Student (Offshore)",
+                "Overseas Student in Australia (Onshore)",
+                "Resident Student (Domestic)",
+              ]}
+            />
 
+            {/* Title */}
+            <div>
+              <FormRadio
+                name="title"
+                label="Title"
+                options={["Mr", "Ms", "Mrs", "Other"]}
+              />
+            </div>
+
+            {/* Full Name */}
+            <div>
+              <div className="flex items-center gap-0.5 mb-1">
+                <p className="text-sm font-medium">Enter your Full Name</p>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info size={16} className="text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span className="max-w-[32ch] block">
+                      Please write the name that you used when you applied for
+                      your Unique Student Identifier (USI), including any middle
+                      names. If you do not have a USI please write your name
+                      exactly as written in the identity document you choose to
+                      use
+                    </span>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormInput
+                  name="given_name"
+                  label="First Name"
+                  placeholder="Enter first name"
+                />
+                <FormInput
+                  name="middle_name"
+                  label="Middle Name(Optional)"
+                  placeholder="Enter middle name"
+                />
+                <FormInput
+                  name="family_name"
+                  label="Last Name"
+                  placeholder="Enter last name"
+                />
+                <FormInput
+                  name="date_of_birth"
+                  label="Date of birth"
+                  type="date"
+                />
+              </div>
+            </div>
+
+            <FormRadio
+              name="gender"
+              label="Gender"
+              options={["Male", "Female", "Other"]}
+            />
+          </div>
+        </section>
+
+        {/* CONTACT DETAILS */}
+        <section className="space-y-3 border p-4 rounded-lg">
+          <div>
+            <h3 className="text-lg font-semibold">Contact Details</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormInput
+              name="email"
+              label="Contact Email Address"
+              type="email"
+              placeholder="Enter email address"
+            />
+            {/* <FormInput
+              name="alternate_email"
+              label="Alternate Email Address(Optional)"
+              type="email"
+              placeholder="Enter alternate email address"
+            /> */}
+            <FormInput
+              name="phone"
+              label="Mobile Number"
+              placeholder="Enter mobile number"
+            />
+            {/* <FormInput
+              name="home_phone"
+              label="Home Phone(Optional)"
+              placeholder="Enter home phone"
+            /> */}
+          </div>
+        </section>
+
+        {/* VISA DETAILS - Only show for Onshore students */}
+        {methods.watch("student_origin") ===
+          "Overseas Student in Australia (Onshore)" && (
+          <section className="space-y-3 border p-4 rounded-lg">
+            <div>
+              <h3 className="text-lg font-semibold">Visa Details</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormSelect
+                name="visa_type"
+                label="VISA Type"
+                placeholder="Select VISA Type"
+                options={[
+                  { value: "graduate_485", label: "Graduate 485" },
+                  { value: "student_visa", label: "Student Visa" },
+                  { value: "tourist_visitor", label: "Tourist/Visitor" },
+                  { value: "working_holiday", label: "Working Holiday" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
+              <FormInput
+                name="visa_number"
+                label="VISA Number"
+                placeholder="Enter visa number"
+              />
+              <FormInput name="visa_expiry" label="Expiry Date" type="date" />
+            </div>
+          </section>
+        )}
+
+        <section className="space-y-3 border p-4 rounded-lg">
+          <div className="flex items-center gap-1">
+            <h3 className="text-lg font-semibold">Residential Address</h3>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info size={16} className="text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm space-y-2 text-xs">
+                <p>
+                  Please provide the physical address (street number and name
+                  not post office box) where you usually reside rather than any
+                  temporary address at which you reside for training, work or
+                  other purposes before returning to your home.
+                </p>
+
+                <p>
+                  If you are from a rural area use the address from your state
+                  or territorys rural property addressing or numbering system as
+                  your residential street address.
+                </p>
+
+                <p>
+                  Building/property name is the official place name or common
+                  usage name for an address site, including the name of a
+                  building, Aboriginal community, homestead, building complex,
+                  agricultural property, park or unbounded address site.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="space-y-4">
             <FormInput
               name="search_address"
               label="Search Address"
-              placeholder="Search Address"
+              placeholder="Enter address or search"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -636,46 +670,49 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                 options={getCountriesList()}
                 emptyMessage="No country found."
               />
-              <FormInput
+              {/* <FormInput
                 name="building_name"
                 label="Building / Property name(Optional)"
-                placeholder="Bert Randolph"
+                placeholder="Enter building name"
               />
               <FormInput
                 name="flat_unit"
                 label="Flat / Unit(Optional)"
-                placeholder="Et culpa quis modi e"
-              />
+                placeholder="Enter unit or apartment"
+              /> */}
               <FormInput
                 name="street_number"
                 label="Street Number"
-                placeholder="549"
+                placeholder="Enter street number"
               />
               <FormInput
                 name="street_name"
                 label="Street Name"
-                placeholder="Tad Kelly"
+                placeholder="Enter street name"
               />
               <FormInput
                 name="suburb"
                 label="City/Town/Suburb"
-                placeholder="Ut porro qui in saep"
+                placeholder="Enter suburb or city"
               />
               <FormInput
                 name="state"
                 label="State/Province"
-                placeholder="wefghjk"
+                placeholder="Enter state or province"
               />
-              <FormInput name="postcode" label="Post Code" placeholder="1214" />
+              <FormInput
+                name="postcode"
+                label="Post Code"
+                placeholder="Enter postcode"
+              />
             </div>
           </div>
         </section>
 
         {/* POSTAL ADDRESS */}
-        <section className="space-y-6">
-          <div className="space-y-2">
+        <section className="space-y-3 border p-4 rounded-lg">
+          <div>
             <h3 className="text-lg font-semibold">Postal Address</h3>
-            <Separator className="bg-primary/20" />
           </div>
 
           <div className="space-y-4">
@@ -689,7 +726,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormSearchableSelect
                   name="postal_country"
-                  label="Country(Optional)"
+                  label="Country"
                   placeholder="Select country..."
                   searchPlaceholder="Search countries..."
                   options={getCountriesList()}
@@ -697,38 +734,38 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                 />
                 <FormInput
                   name="postal_building_name"
-                  label="Building/Property name(Optional)"
-                  placeholder="Bert Randolph"
+                  label="Building/Property name"
+                  placeholder="Enter building name"
                 />
                 <FormInput
                   name="postal_flat_unit"
-                  label="Flat/Unit(Optional)"
-                  placeholder="Et culpa quis modi e"
+                  label="Flat/Unit"
+                  placeholder="Enter unit or apartment"
                 />
                 <FormInput
                   name="postal_street_number"
-                  label="Street Number(Optional)"
-                  placeholder="549"
+                  label="Street Number"
+                  placeholder="Enter street number"
                 />
                 <FormInput
                   name="postal_street_name"
-                  label="Street Name(Optional)"
-                  placeholder="Tad Kelly"
+                  label="Street Name"
+                  placeholder="Enter street name"
                 />
                 <FormInput
                   name="postal_suburb"
-                  label="City/Town/Suburb(Optional)"
-                  placeholder="Ut porro qui in saep"
+                  label="City/Town/Suburb"
+                  placeholder="Enter suburb or city"
                 />
                 <FormInput
                   name="postal_state"
-                  label="State/Province(Optional)"
-                  placeholder="wefghjk"
+                  label="State/Province"
+                  placeholder="Enter state or province"
                 />
                 <FormInput
                   name="postal_postcode"
-                  label="Post Code(Optional)"
-                  placeholder="1214"
+                  label="Post Code"
+                  placeholder="Enter postcode"
                 />
               </div>
             )}
@@ -736,12 +773,11 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         </section>
 
         {/* OVERSEAS/PERMANENT ADDRESS */}
-        <section className="space-y-6">
-          <div className="space-y-2">
+        <section className="space-y-3 border p-4 rounded-lg">
+          <div>
             <h3 className="text-lg font-semibold">
               Overseas/Permanent Address
             </h3>
-            <Separator className="bg-primary/20" />
           </div>
 
           <div className="space-y-4">
@@ -754,12 +790,12 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               emptyMessage="No country found."
             />
 
-            <FormTextarea
+            {/* <FormTextarea
               name="overseas_address"
               label="Overseas Address(Optional)"
-              placeholder=""
+              placeholder="Enter overseas address"
               rows={5}
-            />
+            /> */}
           </div>
         </section>
 
@@ -768,6 +804,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
             {personalDetailsMutation.isPending
               ? "Saving..."
               : "Save & Continue"}
+            <ChevronRight />
           </Button>
         </ApplicationStepHeader>
       </form>

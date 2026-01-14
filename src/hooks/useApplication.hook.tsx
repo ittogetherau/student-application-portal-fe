@@ -9,6 +9,7 @@ import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
+  TimelineResponse,
 } from "@/service/application.service";
 import applicationService from "@/service/application.service";
 import signatureService, {
@@ -64,6 +65,23 @@ export const useApplicationRequestSignaturesQuery = (
       if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
+    },
+    enabled: !!applicationId,
+  });
+};
+
+export const useApplicationTimelineQuery = (applicationId: string | null) => {
+  return useQuery<ServiceResponse<TimelineResponse[]>, Error>({
+    queryKey: ["application-timeline", applicationId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      const response = await applicationService.getApplicationTimeline(
+        applicationId
+      );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
     },
     enabled: !!applicationId,
   });
