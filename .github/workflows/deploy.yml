@@ -1,0 +1,60 @@
+name: Deploy Frontend to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: AWS VPS
+            host_secret: AWS_VPS_HOST
+            user_secret: AWS_VPS_USER
+          - name: Hostinger VPS
+            host_secret: HOSTINGER_VPS_HOST
+            user_secret: HOSTINGER_VPS_USER
+      fail-fast: false  # Continue deploying to other VPS even if one fails
+    
+    name: Deploy to ${{ matrix.name }}
+    
+    steps:
+      - name: Deploy to ${{ matrix.name }} via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets[matrix.user_secret] }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/churchill-portal/application-portal-fe
+            
+            # Pull latest code
+            git pull origin main
+            
+            # Build and restart containers
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+            
+            # Wait for frontend to be healthy
+            echo "Waiting for frontend to start..."
+            for i in {1..30}; do
+              if curl -f http://localhost:3005 > /dev/null 2>&1; then
+                echo "Frontend is healthy on ${{ matrix.name }}!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 2
+            done
+            
+            # Reload nginx to reconnect to frontend
+            docker restart nginx_proxy
+            echo "Nginx reloaded"
+            
+            # Clean up old images
+            docker image prune -f
+            
+            echo "Deployment to ${{ matrix.name }} completed successfully!"
