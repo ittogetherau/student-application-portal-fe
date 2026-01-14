@@ -54,7 +54,7 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     gender: "Male",
     date_of_birth: "1995-06-15",
     email: "john12.smith@example.com",
-    alternate_email: "j.smith.alt@example.com",
+    // alternate_email: "j.smith.alt@example.com",
     phone: "1234567890",
     home_phone: "0987654321",
     country_of_birth: "United States",
@@ -83,7 +83,7 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     postal_state: "",
     postal_postcode: "",
     overseas_country: "United States",
-    overseas_address: "456 Oak Avenue, New York, NY 10001",
+    // overseas_address: "456 Oak Avenue, New York, NY 10001",
   },
   emergencyContactData: {
     contacts: [
@@ -107,8 +107,7 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     OSHC_fee: 650,
   },
   languageCultureData: {
-    aboriginal_torres_strait:
-      "No, Neither Aboriginal and Torres Strait Islander",
+    is_aus_aboriginal_or_islander: "4",
     is_english_main_language: "Yes",
     main_language: "English",
     english_speaking_proficiency: "Very Well",
@@ -116,11 +115,11 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     completed_english_test: "Yes",
     english_test_type: "ielts",
     english_test_date: "2024-06-15",
-    english_test_listening: "7.5",
-    english_test_writing: "7.0",
-    english_test_reading: "8.0",
-    english_test_speaking: "7.5",
-    english_test_overall: "7.5",
+    english_test_listening: 7.5,
+    english_test_writing: 7.0,
+    english_test_reading: 8.0,
+    english_test_speaking: 7.5,
+    english_test_overall: 7.5,
     first_language: "English",
     english_proficiency: "Native",
     other_languages: ["Spanish", "French"],
@@ -152,6 +151,21 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
   schoolingData: {
     highest_school_level: "12 - Completed year 12",
     still_attending: "No",
+    entries: [
+      {
+
+        country: "Australia",
+
+        institution: "St. Mary's High School",
+        start_year: 2012,
+        qualification_level: "12 - Completed year 12",
+        currently_attending: false,
+
+
+
+
+      },
+    ],
     secondary_school_type: "Government",
   },
   qualificationsData: {

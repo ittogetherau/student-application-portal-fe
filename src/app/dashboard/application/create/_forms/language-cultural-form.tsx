@@ -167,8 +167,8 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
         return;
       }
 
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size must be less than 10MB");
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
         return;
       }
 
@@ -425,7 +425,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                         Upload test report to auto-fill
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        IELTS, TOEFL, PTE - JPG, PNG or PDF (max 10MB)
+                        IELTS, TOEFL, PTE - JPG, PNG or PDF (max 5MB)
                       </p>
                     </div>
                   </label>
@@ -505,14 +505,29 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
               <div>
                 <FormRadio
                   colMode={true}
-                  name="aboriginal_torres_strait"
+                  name="is_aus_aboriginal_or_islander"
                   label="Are you of Australian Aboriginal and Torres Strait Islander origin? *"
                   options={[
-                    "Yes, Both Aboriginal and Torres Strait Islander",
-                    "Yes, Only Aboriginal",
-                    "Yes, Only Torres Strait Islander",
-                    "No, Neither Aboriginal and Torres Strait Islander",
-                    "Not Stated / Prefer not to say",
+                    {
+                      label: "Yes, Aboriginal",
+                      value: "1",
+                    },
+                    {
+                      label: "Yes, Torres Strait Islander",
+                      value: "2",
+                    },
+                    {
+                      label: "Yes, Both Aboriginal and Torres Strait Islander",
+                      value: "3",
+                    },
+                    {
+                      label: "No",
+                      value: "4",
+                    },
+                    {
+                      label: "Not Stated",
+                      value: "@",
+                    },
                   ]}
                 />
                 <p className="text-xs text-muted-foreground mb-3">
@@ -650,6 +665,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               <FormInput
                                 name="english_test_listening"
                                 label=""
+                                type="number"
                                 placeholder="Enter score"
                               />
                             </td>
@@ -657,6 +673,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               <FormInput
                                 name="english_test_writing"
                                 label=""
+                                type="number"
                                 placeholder="Enter score"
                               />
                             </td>
@@ -664,6 +681,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               <FormInput
                                 name="english_test_reading"
                                 label=""
+                                type="number"
                                 placeholder="Enter score"
                               />
                             </td>
@@ -671,6 +689,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               <FormInput
                                 name="english_test_speaking"
                                 label=""
+                                type="number"
                                 placeholder="Enter score"
                               />
                             </td>
@@ -678,6 +697,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                               <FormInput
                                 name="english_test_overall"
                                 label=""
+                                type="number"
                                 placeholder="Enter score"
                               />
                             </td>

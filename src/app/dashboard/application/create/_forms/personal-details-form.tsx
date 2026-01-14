@@ -98,9 +98,9 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         return;
       }
 
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size must be less than 10MB");
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
         return;
       }
 
@@ -376,7 +376,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                         Upload passport to auto-fill
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        JPG, PNG or PDF (max 10MB)
+                        JPG, PNG or PDF (max 5MB)
                       </p>
                     </div>
                   </label>
@@ -594,33 +594,33 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         {/* VISA DETAILS - Only show for Onshore students */}
         {methods.watch("student_origin") ===
           "Overseas Student in Australia (Onshore)" && (
-          <section className="space-y-3 border p-4 rounded-lg">
-            <div>
-              <h3 className="text-lg font-semibold">Visa Details</h3>
-            </div>
+            <section className="space-y-3 border p-4 rounded-lg">
+              <div>
+                <h3 className="text-lg font-semibold">Visa Details</h3>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormSelect
-                name="visa_type"
-                label="VISA Type"
-                placeholder="Select VISA Type"
-                options={[
-                  { value: "graduate_485", label: "Graduate 485" },
-                  { value: "student_visa", label: "Student Visa" },
-                  { value: "tourist_visitor", label: "Tourist/Visitor" },
-                  { value: "working_holiday", label: "Working Holiday" },
-                  { value: "other", label: "Other" },
-                ]}
-              />
-              <FormInput
-                name="visa_number"
-                label="VISA Number"
-                placeholder="Enter visa number"
-              />
-              <FormInput name="visa_expiry" label="Expiry Date" type="date" />
-            </div>
-          </section>
-        )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormSelect
+                  name="visa_type"
+                  label="VISA Type"
+                  placeholder="Select VISA Type"
+                  options={[
+                    { value: "graduate_485", label: "Graduate 485" },
+                    { value: "student_visa", label: "Student Visa" },
+                    { value: "tourist_visitor", label: "Tourist/Visitor" },
+                    { value: "working_holiday", label: "Working Holiday" },
+                    { value: "other", label: "Other" },
+                  ]}
+                />
+                <FormInput
+                  name="visa_number"
+                  label="VISA Number"
+                  placeholder="Enter visa number"
+                />
+                <FormInput name="visa_expiry" label="Expiry Date" type="date" />
+              </div>
+            </section>
+          )}
 
         <section className="space-y-3 border p-4 rounded-lg">
           <div className="flex items-center gap-1">

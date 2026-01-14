@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
+import { useApplicationDocumentsQuery, useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
@@ -35,6 +35,7 @@ type UploadedFileMetadata = {
   fileName: string;
   fileSize: number;
   uploadedAt: string;
+  previewUrl?: string;
 };
 
 type DocumentState = {
@@ -83,12 +84,19 @@ const hasUploadedFiles = (state: DocumentState | undefined): boolean => {
 
 const isAllMandatoryUploaded = (
   documentStates: Record<string, DocumentState>,
-  documentTypes: Array<{ id: string; is_mandatory: boolean }>
+  documentTypes: Array<{ id: string; is_mandatory: boolean }>,
+  uploadedDocuments: any[] = []
 ): boolean => {
   if (!documentTypes || documentTypes.length === 0) return true;
   const mandatoryDocs = documentTypes.filter((doc) => doc.is_mandatory);
   if (mandatoryDocs.length === 0) return true;
-  return mandatoryDocs.every((doc) => hasUploadedFiles(documentStates[doc.id]));
+  return mandatoryDocs.every((doc) => {
+    const isLocalUploaded = hasUploadedFiles(documentStates[doc.id]);
+    const isApiUploaded = uploadedDocuments.some(
+      (apiDoc: any) => apiDoc.document_type_id === doc.id
+    );
+    return isLocalUploaded || isApiUploaded;
+  });
 };
 
 const convertToFormData = (
@@ -103,6 +111,7 @@ const convertToFormData = (
         fileName: f.file.name,
         fileSize: f.file.size,
         uploadedAt: new Date().toISOString(),
+        previewUrl: state.uploadedFiles.find(uf => uf.fileName === f.file.name && uf.fileSize === f.file.size)?.previewUrl,
       }));
 
     const existingUploaded = state.uploadedFiles || [];
@@ -142,6 +151,8 @@ export default function DocumentsUploadForm() {
     isLoading: isLoadingDocumentTypes,
     error: documentTypesError,
   } = useDocumentTypesQuery();
+
+  const { data: documentsResponse, isLoading: isLoadingDocuments } = useApplicationDocumentsQuery(applicationId);
 
   console.log(documentTypesResponse, "response");
 
@@ -216,8 +227,8 @@ export default function DocumentsUploadForm() {
   });
 
   const allMandatoryUploaded = useMemo(
-    () => isAllMandatoryUploaded(documentStates, sortedDocumentTypes),
-    [documentStates, sortedDocumentTypes]
+    () => isAllMandatoryUploaded(documentStates, sortedDocumentTypes, documentsResponse?.data || []),
+    [documentStates, sortedDocumentTypes, documentsResponse?.data]
   );
 
   const isAnyFileUploading = uploadingFiles.size > 0;
@@ -269,7 +280,7 @@ export default function DocumentsUploadForm() {
       shouldSaveRef.current = false;
     }
 
-    if (isAllMandatoryUploaded(documentStates, sortedDocumentTypes)) {
+    if (isAllMandatoryUploaded(documentStates, sortedDocumentTypes, documentsResponse?.data || [])) {
       markStepCompleted(STEP_ID);
     }
   }, [
@@ -279,6 +290,7 @@ export default function DocumentsUploadForm() {
     markStepCompleted,
     sortedDocumentTypes,
     saveOnSubmit,
+    documentsResponse?.data,
   ]);
 
   const uploadSingleFile = useCallback(
@@ -293,36 +305,33 @@ export default function DocumentsUploadForm() {
       setUploadingFiles((prev) => new Set(prev).add(fileKey));
 
       try {
-        await uploadDocument.mutateAsync({
+        const response: any = await uploadDocument.mutateAsync({
           application_id: applicationId,
           document_type_id: documentTypeId,
           file,
         });
 
-        setDocumentStates((prev) => {
-          const currentFiles = prev[documentTypeId]?.files || [];
-          const existingUploaded = prev[documentTypeId]?.uploadedFiles || [];
+        console.log("Upload response", response);
 
-          const newUploadedFile = {
+        const previewUrl = response?.data?.preview_url || response?.preview_url;
+
+        setDocumentStates((prev) => {
+          // New file logic: Replace existing files.
+          // We only want to keep the file we just uploaded.
+
+          const newUploadedFile: UploadedFileMetadata = {
             fileName: file.name,
             fileSize: file.size,
             uploadedAt: new Date().toISOString(),
+            previewUrl: previewUrl,
           };
-
-          const fileExists = existingUploaded.some(
-            (f) => f.fileName === file.name && f.fileSize === file.size
-          );
 
           return {
             ...prev,
             [documentTypeId]: {
               ...prev[documentTypeId],
-              files: currentFiles.map((f) =>
-                f.file === file ? { ...f, uploading: false, uploaded: true } : f
-              ),
-              uploadedFiles: fileExists
-                ? existingUploaded
-                : [...existingUploaded, newUploadedFile],
+              files: [{ file, uploading: false, uploaded: true }], // Only keep current
+              uploadedFiles: [newUploadedFile], // Only keep current
               uploaded: true,
             },
           };
@@ -332,21 +341,18 @@ export default function DocumentsUploadForm() {
       } catch (error) {
         console.error("Upload failed:", error);
         setDocumentStates((prev) => {
-          const currentFiles = prev[documentTypeId]?.files || [];
           return {
             ...prev,
             [documentTypeId]: {
               ...prev[documentTypeId],
-              files: currentFiles.map((f) =>
-                f.file === file
-                  ? {
-                      ...f,
-                      uploading: false,
-                      uploaded: false,
-                      error: "Upload failed",
-                    }
-                  : f
-              ),
+              files: [
+                {
+                  file,
+                  uploading: false,
+                  uploaded: false,
+                  error: "Upload failed",
+                }
+              ],
             },
           };
         });
@@ -369,29 +375,42 @@ export default function DocumentsUploadForm() {
       const files = event.target.files;
       if (!files || !applicationId) return;
 
+      // Since we only really support "one file" per type in this view (last one wins),
+      // we'll take the first one if multiple were somehow selected, or handle them sequentially
+      // but essentially replace the state each time.
       const fileArray = Array.from(files);
+      // We will only process the first file to enforce "single file" display logic comfortably
+      const file = fileArray[0];
+      if (!file) return;
 
+      // 5MB Limit Check
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size exceeds 5MB limit");
+        event.target.value = ""; // Reset input
+        return;
+      }
+
+      const fileKey = `${documentTypeId}-${file.name}-${file.size}`;
+
+      // Reset state for this doc type to just this file in "uploading" state
       setDocumentStates((prev) => ({
         ...prev,
         [documentTypeId]: {
           ...prev[documentTypeId],
           files: [
-            ...(prev[documentTypeId]?.files || []),
-            ...fileArray.map((file) => ({
+            {
               file,
               uploading: true,
               uploaded: false,
-            })),
+            }
           ],
         },
       }));
 
-      for (const file of fileArray) {
-        const fileKey = `${documentTypeId}-${file.name}-${file.size}`;
-        await uploadSingleFile(documentTypeId, file, fileKey);
-      }
+      // Upload it
+      await uploadSingleFile(documentTypeId, file, fileKey);
 
-      // Reset the input value to allow selecting the same file again if needed
+      // Reset the input value
       event.target.value = "";
     },
     [applicationId, uploadSingleFile]
@@ -399,16 +418,15 @@ export default function DocumentsUploadForm() {
 
   const handleRemovePersistedFile = useCallback(
     (documentTypeId: string, fileName: string, fileSize: number) => {
+      // ... (implementation not strictly needed if we always replace, but keeping for safety)
       setDocumentStates((prev) => {
         const existingUploaded = prev[documentTypeId]?.uploadedFiles || [];
         return {
           ...prev,
           [documentTypeId]: {
             ...prev[documentTypeId],
-            uploadedFiles: existingUploaded.filter(
-              (f) => !(f.fileName === fileName && f.fileSize === fileSize)
-            ),
-            uploaded: existingUploaded.length > 1,
+            uploadedFiles: [], // Clear all since we are in single-file mode effectively
+            uploaded: false,
           },
         };
       });
@@ -420,9 +438,14 @@ export default function DocumentsUploadForm() {
   const handleContinue = useCallback(() => {
     if (!applicationId) return;
 
+    const uploadedDocs = documentsResponse?.data || [];
     const missingMandatory = sortedDocumentTypes.filter((doc) => {
       const state = documentStates[doc.id];
-      return doc.is_mandatory && (!state || !hasUploadedFiles(state));
+      const isLocalUploaded = hasUploadedFiles(state);
+      const isApiUploaded = uploadedDocs.some(
+        (apiDoc: any) => apiDoc.document_type_id === doc.id
+      );
+      return doc.is_mandatory && !isLocalUploaded && !isApiUploaded;
     });
 
     if (missingMandatory.length > 0) {
@@ -512,305 +535,284 @@ export default function DocumentsUploadForm() {
 
   console.log(selectedState, "selected state");
 
+  // Get uploaded documents from API
+  const uploadedDocuments = documentsResponse?.data || [];
+
   return (
     <FormProvider {...methods}>
-      <form className="space-y-6">
-        <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="upload">Upload Documents</TabsTrigger>
-            <TabsTrigger value="gallery">Documents Gallery</TabsTrigger>
-          </TabsList>
-
-          {/* Upload Documents Tab */}
-          <TabsContent value="upload" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Document Types Grid - 2 columns */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-lg font-semibold">Document Types</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
-                  {sortedDocumentTypes.map((docType) => {
-                    const state = documentStates[docType.id];
-                    const isUploaded = hasUploadedFiles(state);
-                    const isSelected = selectedDocumentId === docType.id;
-
-                    return (
-                      <button
-                        key={docType.id}
-                        type="button"
-                        onClick={() => setSelectedDocumentId(docType.id)}
-                        className={cn(
-                          "w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200",
-                          isSelected && "bg-accent border-primary/50 shadow-sm",
-                          !isSelected &&
-                            "border-border hover:bg-muted/50 hover:border-muted-foreground/40"
-                        )}
-                      >
+      <form className="space-y-8">
+        {/* Gallery Section - Shown First */}
+        {/* Gallery Section - Shown First */}
+        <Card className="border-none shadow-none bg-transparent">
+          <CardContent className="p-0">
+            <h3 className="text-lg font-semibold mb-4">Uploaded Documents</h3>
+            {uploadedDocuments.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No documents uploaded yet
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {uploadedDocuments.map((doc: any, index: number) => (
+                  <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 flex flex-col justify-between gap-3">
+                      <div>
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate leading-tight">
-                              {docType.name}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <Badge
-                                variant={
-                                  docType.is_mandatory ? "default" : "secondary"
-                                }
-                                className="text-[10px] px-1.5 py-0 h-4"
-                              >
-                                {docType.is_mandatory
-                                  ? "Compulsory"
-                                  : "Optional"}
-                              </Badge>
-                              {isUploaded && (
-                                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
-                                  Uploaded
-                                </Badge>
-                              )}
-                            </div>
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
                           </div>
-                          {isUploaded && (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                          {doc.view_url && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => window.open(doc.view_url, "_blank")}
+                              title="Preview Document"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="lg:col-span-3 space-y-4">
-                {selectedDocument && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="text-xl font-semibold">
-                            {selectedDocument.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {selectedDocument.name}
+                        <div className="mt-3">
+                          <p className="font-medium text-sm truncate" title={doc.document_type_name}>
+                            {doc.document_type_name || "Unknown Type"}
+                          </p>
+                          {doc.uploaded_at && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {new Date(doc.uploaded_at).toLocaleDateString()}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground">
+                            {(doc.file_size_bytes / 1024).toFixed(2)} KB
                           </p>
                         </div>
-
-                        {/* Upload Area */}
-                        <div
-                          className={cn(
-                            "border-2 border-dashed rounded-lg p-16 text-center transition-all duration-200 cursor-pointer",
-                            isAnyFileUploading
-                              ? "border-primary/50 bg-primary/10"
-                              : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
-                          )}
-                        >
-                          <input
-                            type="file"
-                            id={`file-${selectedDocument.id}`}
-                            className="hidden"
-                            multiple
-                            onChange={(e) =>
-                              handleFileSelect(selectedDocument.id, e)
-                            }
-                            accept="*/*"
-                            disabled={isAnyFileUploading || !applicationId}
-                          />
-                          <label
-                            htmlFor={`file-${selectedDocument.id}`}
-                            className="cursor-pointer block"
-                          >
-                            {isAnyFileUploading ? (
-                              <Loader2 className="h-16 w-16 mx-auto mb-4 text-primary animate-spin" />
-                            ) : (
-                              <Upload
-                                className="h-16 w-16 mx-auto mb-4 text-muted-foreground"
-                                strokeWidth={1.5}
-                              />
-                            )}
-                            <p className="text-base text-foreground font-medium">
-                              {isAnyFileUploading
-                                ? "Uploading files..."
-                                : "Drop files here to upload or click to browse"}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Supports all file types (PDF, JPG, PNG, DOC, etc.)
-                            </p>
-                          </label>
-                        </div>
-
-                        {/* Files Table */}
-                        {((selectedState?.uploadedFiles?.length ?? 0) > 0 ||
-                          (selectedState?.files?.length ?? 0) > 0) && (
-                          <div className="mt-6">
-                            <table className="w-full">
-                              <thead className="border-b">
-                                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                                  <th className="pb-3 font-medium">NAME</th>
-                                  <th className="pb-3 font-medium">SIZE</th>
-                                  <th className="pb-3 font-medium">STATUS</th>
-                                  <th className="pb-3 font-medium text-right">
-                                    ACTIONS
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {/* Show in-progress or failed uploads */}
-                                {selectedState?.files
-                                  ?.filter((f) => f.uploading || f.error)
-                                  ?.map((f, index) => (
-                                    <tr
-                                      key={`local-${index}`}
-                                      className="border-b last:border-0 opacity-70"
-                                    >
-                                      <td className="py-3 text-sm">
-                                        {f.file.name}
-                                      </td>
-                                      <td className="py-3 text-sm">
-                                        {(f.file.size / 1024).toFixed(2)} KB
-                                      </td>
-                                      <td className="py-3">
-                                        <div className="flex items-center gap-2">
-                                          {f.uploading ? (
-                                            <>
-                                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                              <span className="text-sm text-primary font-medium">
-                                                Uploading...
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <span className="text-sm text-destructive font-medium">
-                                              {f.error}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-
-                                {/* Show uploaded files */}
-                                {selectedState?.uploadedFiles?.map(
-                                  (file, index) => (
-                                    <tr
-                                      key={`uploaded-${index}`}
-                                      className="border-b last:border-0"
-                                    >
-                                      <td className="py-3 text-sm">
-                                        {file.fileName}
-                                      </td>
-                                      <td className="py-3 text-sm">
-                                        {(file.fileSize / 1024).toFixed(2)} KB
-                                      </td>
-                                      <td className="py-3">
-                                        <div className="flex items-center gap-2">
-                                          <CheckCircle2 className="h-4 w-4 text-primary" />
-                                          <span className="text-sm text-primary">
-                                            Uploaded
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                          >
-                                            <Eye className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                          >
-                                            <Download className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ))}
               </div>
-            </div>
-          </TabsContent>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Documents Gallery Tab */}
-          <TabsContent value="gallery" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                {allUploadedFiles.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No documents uploaded yet
-                  </p>
-                ) : (
-                  <table className="w-full">
-                    <thead className="border-b">
-                      <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                        <th className="pb-3 font-medium">FILE NAME</th>
-                        <th className="pb-3 font-medium">DOCUMENT NAME</th>
-                        <th className="pb-3 font-medium">SIZE</th>
-                        <th className="pb-3 font-medium text-right">ACTIONS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allUploadedFiles.map((file, index) => (
-                        <tr key={index} className="border-b last:border-0">
-                          <td className="py-3 text-sm">{file.fileName}</td>
-                          <td className="py-3 text-sm">{file.documentName}</td>
-                          <td className="py-3 text-sm">
-                            {(file.fileSize / 1024).toFixed(2)} KB
-                          </td>
-                          <td className="py-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Upload Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Document Types Grid - 2 columns */}
+          <div className="lg:col-span-2 space-y-4">
+            <h3 className="text-lg font-semibold">Select Document Type to Upload</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
+              {sortedDocumentTypes.map((docType) => {
+                const state = documentStates[docType.id];
+                const isSelected = selectedDocumentId === docType.id;
+                const isUploaded =
+                  hasUploadedFiles(state) ||
+                  uploadedDocuments.some(
+                    (doc: any) => doc.document_type_id === docType.id
+                  );
+
+                const isMandatory = docType.is_mandatory && !isUploaded;
+
+                return (
+                  <button
+                    key={docType.id}
+                    type="button"
+                    onClick={() => setSelectedDocumentId(docType.id)}
+                    className={cn(
+                      "w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200",
+                      isSelected && "bg-accent border-primary/50 shadow-sm",
+                      !isSelected &&
+                      "border-border hover:bg-muted/50 hover:border-muted-foreground/40"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate leading-tight">
+                          {docType.name}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Badge
+                            variant={
+                              isMandatory ? "default" : "secondary"
+                            }
+                            className="text-[10px] px-1.5 py-0 h-4"
+                          >
+                            {isMandatory
+                              ? "Compulsory"
+                              : "Optional"}
+                          </Badge>
+                          {isUploaded && (
+                            <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
+                              Uploaded
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {isUploaded && (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="lg:col-span-3 space-y-4">
+            {selectedDocument && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        {selectedDocument.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedDocument.name}
+                      </p>
+                    </div>
+
+                    {/* Upload Area */}
+                    <div
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-16 text-center transition-all duration-200 cursor-pointer",
+                        isAnyFileUploading
+                          ? "border-primary/50 bg-primary/10"
+                          : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted/60"
+                      )}
+                    >
+                      <input
+                        type="file"
+                        id={`file-${selectedDocument.id}`}
+                        className="hidden"
+                        onChange={(e) =>
+                          handleFileSelect(selectedDocument.id, e)
+                        }
+                        accept="*/*"
+                        disabled={isAnyFileUploading || !applicationId}
+                      />
+                      <label
+                        htmlFor={`file-${selectedDocument.id}`}
+                        className="cursor-pointer block"
+                      >
+                        {isAnyFileUploading ? (
+                          <Loader2 className="h-16 w-16 mx-auto mb-4 text-primary animate-spin" />
+                        ) : (
+                          <Upload
+                            className="h-16 w-16 mx-auto mb-4 text-muted-foreground"
+                            strokeWidth={1.5}
+                          />
+                        )}
+                        <p className="text-base text-foreground font-medium">
+                          {isAnyFileUploading
+                            ? "Uploading files..."
+                            : "Drop files here to upload or click to browse"}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Max file size: 5MB. Supports PDF, JPG, PNG, DOC, etc.
+                        </p>
+                      </label>
+                    </div>
+
+                    {/* Files Table */}
+                    {((selectedState?.uploadedFiles?.length ?? 0) > 0 ||
+                      (selectedState?.files?.length ?? 0) > 0) && (
+                        <div className="mt-6">
+                          <table className="w-full">
+                            <thead className="border-b">
+                              <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
+                                <th className="pb-3 font-medium">NAME</th>
+                                <th className="pb-3 font-medium">SIZE</th>
+                                <th className="pb-3 font-medium">STATUS</th>
+                                <th className="pb-3 font-medium text-right">
+                                  ACTIONS
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {/* Show in-progress or failed uploads */}
+                              {selectedState?.files
+                                ?.filter((f) => f.uploading || f.error)
+                                ?.map((f, index) => (
+                                  <tr
+                                    key={`local-${index}`}
+                                    className="border-b last:border-0 opacity-70"
+                                  >
+                                    <td className="py-3 text-sm">
+                                      {f.file.name}
+                                    </td>
+                                    <td className="py-3 text-sm">
+                                      {(f.file.size / 1024).toFixed(2)} KB
+                                    </td>
+                                    <td className="py-3">
+                                      <div className="flex items-center gap-2">
+                                        {f.uploading ? (
+                                          <>
+                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                            <span className="text-sm text-primary font-medium">
+                                              Uploading...
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-sm text-destructive font-medium">
+                                            {f.error}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+
+                              {/* Show uploaded files */}
+                              {selectedState?.uploadedFiles?.map(
+                                (file, index) => (
+                                  <tr
+                                    key={`uploaded-${index}`}
+                                    className="border-b last:border-0"
+                                  >
+                                    <td className="py-3 text-sm">
+                                      {file.fileName}
+                                    </td>
+                                    <td className="py-3 text-sm">
+                                      {(file.fileSize / 1024).toFixed(2)} KB
+                                    </td>
+                                    <td className="py-3">
+                                      <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                                        <span className="text-sm text-primary">
+                                          Uploaded
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="py-3 text-right">
+                                      <div className="flex items-center justify-end gap-1">
+                                        {file.previewUrl && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                            onClick={() => window.open(file.previewUrl, "_blank")}
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
 
         {/* Continue Button */}
         <ApplicationStepHeader className="mt-4">
@@ -824,8 +826,8 @@ export default function DocumentsUploadForm() {
             {isAnyFileUploading
               ? "Uploading..."
               : allMandatoryUploaded
-              ? "Save & Continue"
-              : "Save & Continue"}
+                ? "Save & Continue"
+                : "Save & Continue"}
           </Button>
         </ApplicationStepHeader>
       </form>

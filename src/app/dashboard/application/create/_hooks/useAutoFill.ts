@@ -6,7 +6,8 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DEFAULT_AUTO_FILL_DATA } from "../constants/autofill-data";
-import { Dispatch, SetStateAction, useCallback } from "react";
+import { Dispatch, SetStateAction, useCallback, useMemo } from "react";
+import { useCoursesQuery } from "@/hooks/course.hook";
 
 const useAutoFill = ({
   applicationId,
@@ -22,9 +23,12 @@ const useAutoFill = ({
     useApplicationFormDataStore.getState();
   const { markStepCompleted } = useApplicationStepStore.getState();
 
+  const { data: coursesResponse } = useCoursesQuery();
+  const courses = coursesResponse?.data || [];
+
   const createApplication = useApplicationCreateMutation();
   const {
-    enrollmentData,
+    enrollmentData: baseEnrollmentData,
     personalDetailsData,
     emergencyContactData,
     healthCoverData,
@@ -40,12 +44,34 @@ const useAutoFill = ({
     reviewData,
   } = DEFAULT_AUTO_FILL_DATA;
 
+  // Resolve dynamic enrollment data based on available courses
+  const enrollmentData = useMemo(() => {
+    if (courses.length > 0) {
+      const firstCourse = courses[0];
+      const firstIntake = firstCourse.intakes?.[0];
+      const firstCampus = firstIntake?.campuses?.[0] || firstCourse.campuses?.[0];
+
+      if (firstCourse && firstIntake && firstCampus) {
+        return {
+          ...baseEnrollmentData,
+          course: firstCourse.id,
+          course_name: firstCourse.course_name,
+          intake: firstIntake.id,
+          intake_name: firstIntake.intake_name,
+          campus: firstCampus.id,
+          campus_name: firstCampus.name,
+        };
+      }
+    }
+    return baseEnrollmentData;
+  }, [courses, baseEnrollmentData]);
+
   const performAutoFill = useCallback(async () => {
     // Generate unique emails for this auto-fill session
     const uniqueId = Math.random().toString(36).substring(2, 8);
     const uniquePersonalDetailsData = {
       ...personalDetailsData,
-      email: `sayujkuickel@gmail.com`,
+      email: `student.${uniqueId}@example.com`,
       alternate_email: `j.smith.alt.${uniqueId}@example.com`,
     };
 

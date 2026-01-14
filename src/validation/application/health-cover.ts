@@ -5,20 +5,20 @@ export const healthCoverSchema = z
     arrange_OSHC: z.boolean({
       message: "Please select whether you wish to arrange OSHC",
     }),
-    OSHC_provider: z.string().optional(),
-    OSHC_type: z.enum(["Single", "Couple", "Family"]).optional(),
-    OSHC_start_date: z.string().optional(),
-    OSHC_end_date: z.string().optional(),
-    OSHC_duration: z.string().optional(),
-    OSHC_fee: z
+    OSHC_provider: z.string().nullish(),
+    OSHC_type: z.enum(["Single", "Couple", "Family"]).nullish(),
+    OSHC_start_date: z.string().nullish(),
+    OSHC_end_date: z.string().nullish(),
+    OSHC_duration: z.string().nullish(),
+    OSHC_fee: z.coerce
       .number()
       .nonnegative("OSHC fee must be zero or positive")
-      .optional(),
+      .nullish().default(0),
   })
   .superRefine((val, ctx) => {
     // Only validate OSHC fields if user selected true for arrange_OSHC
     if (val.arrange_OSHC) {
-      if (!val.OSHC_provider || val.OSHC_provider.length === 0) {
+      if (!val.OSHC_provider || val.OSHC_provider.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["OSHC_provider"],
@@ -26,7 +26,7 @@ export const healthCoverSchema = z
         });
       }
 
-      if (!val.OSHC_type || val.OSHC_type.length === 0) {
+      if (!val.OSHC_type) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["OSHC_type"],
@@ -34,7 +34,7 @@ export const healthCoverSchema = z
         });
       }
 
-      if (!val.OSHC_start_date || val.OSHC_start_date.length === 0) {
+      if (!val.OSHC_start_date) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["OSHC_start_date"],
@@ -42,7 +42,7 @@ export const healthCoverSchema = z
         });
       }
 
-      if (!val.OSHC_end_date || val.OSHC_end_date.length === 0) {
+      if (!val.OSHC_end_date) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["OSHC_end_date"],
@@ -50,7 +50,7 @@ export const healthCoverSchema = z
         });
       }
 
-      if (!val.OSHC_duration || val.OSHC_duration.length === 0) {
+      if (!val.OSHC_duration || val.OSHC_duration.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["OSHC_duration"],

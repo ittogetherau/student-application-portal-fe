@@ -26,7 +26,7 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
   const schoolingMutation = useApplicationStepMutations(applicationId)[stepId];
 
   const methods = useForm<SchoolingValues>({
-    resolver: zodResolver(schoolingSchema),
+    resolver: zodResolver(schoolingSchema as any),
     defaultValues: defaultSchoolingValues,
     mode: "onSubmit",
     reValidateMode: "onChange",
@@ -51,21 +51,6 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
   });
 
   const didNotGoToSchool = highestSchoolLevel === "02 - Did not go to School";
-
-  // Reset secondary school type if not attending
-  useEffect(() => {
-    if (stillAttending === "No") {
-      methods.setValue("secondary_school_type", "");
-    }
-  }, [stillAttending, methods]);
-
-  // Reset still_attending and secondary_school_type if user didn't go to school
-  useEffect(() => {
-    if (didNotGoToSchool) {
-      methods.setValue("still_attending", "No");
-      methods.setValue("secondary_school_type", "");
-    }
-  }, [didNotGoToSchool, methods]);
 
   const onSubmit = (values: SchoolingValues) => {
     if (applicationId) {

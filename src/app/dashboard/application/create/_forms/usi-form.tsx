@@ -67,7 +67,7 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
 
           <FormInput
             name="usi"
-            label="USI (optional)"
+            label="USI (Optional)"
             placeholder="Enter USI"
           />
 

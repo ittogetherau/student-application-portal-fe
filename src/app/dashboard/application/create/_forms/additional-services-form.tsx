@@ -33,7 +33,7 @@ const AdditionalServicesForm = ({
     useApplicationStepMutations(applicationId)[stepId];
 
   const methods = useForm<AdditionalServicesValues>({
-    resolver: zodResolver(additionalServicesSchema),
+    resolver: zodResolver(additionalServicesSchema as any),
     defaultValues: defaultAdditionalServicesValues,
     mode: "onSubmit",
     reValidateMode: "onChange",
@@ -64,7 +64,7 @@ const AdditionalServicesForm = ({
     if (requestServices === "No") {
       methods.setValue("services", []);
     } else if (requestServices === "Yes" && fields.length === 0) {
-      append(createEmptyAdditionalService() as any);
+      append(createEmptyAdditionalService());
     }
   }, [requestServices, methods, fields.length, append]);
 
@@ -76,7 +76,7 @@ const AdditionalServicesForm = ({
 
   const totalAdditionalFees = (services || [])
     .filter((s) => s?.selected)
-    .reduce((sum, s) => sum + (s?.student_price_per_service || 0), 0);
+    .reduce((sum, s) => sum + (Number(s?.student_price_per_service) || 0), 0);
 
   const canAddMore = (fields?.length || 0) < 10;
 
@@ -200,7 +200,7 @@ const AdditionalServicesForm = ({
                   variant="outline"
                   size="sm"
                   disabled={!canAddMore}
-                  onClick={() => append(createEmptyAdditionalService() as any)}
+                  onClick={() => append(createEmptyAdditionalService())}
                 >
                   <Plus />
                   Add Service

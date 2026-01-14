@@ -165,19 +165,18 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
       populateFromApiResponse: (apiResponse: ApplicationDetailResponse) => {
         set((state) => {
-          const newStepData = { ...state.stepData };
+          // Clear previous data to prevent leaking between applications
+          const newStepData: Record<number, unknown> = {};
 
           // Map API response fields to step IDs
           // Step 1: Personal Details
-
-          console.log("apiResponse", apiResponse);
           if (apiResponse.personal_details) {
             newStepData[1] = apiResponse.personal_details;
           }
 
           // Step 2: Emergency Contact
           if (apiResponse.emergency_contacts) {
-            newStepData[2] = apiResponse.emergency_contacts;
+            newStepData[2] = { contacts: apiResponse.emergency_contacts };
           }
 
           // Step 3: Health Cover
@@ -192,12 +191,46 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
           // Step 5: Disability Support
           if (apiResponse.disability_support) {
-            newStepData[5] = apiResponse.disability_support;
+            const ds = { ...apiResponse.disability_support } as Record<
+              string,
+              unknown
+            >;
+
+            // Normalize has_disability
+            if (typeof ds.has_disability === "boolean") {
+              ds.has_disability = ds.has_disability ? "Yes" : "No";
+            }
+
+            // Map legacy disability_type string to booleans if needed
+            if (
+              ds.has_disability === "Yes" &&
+              ds.disability_type &&
+              typeof ds.disability_type === "string"
+            ) {
+              const types = ds.disability_type.toLowerCase();
+              if (types.includes("hearing") || types.includes("deaf"))
+                ds.disability_hearing = true;
+              if (types.includes("physical")) ds.disability_physical = true;
+              if (types.includes("intellectual"))
+                ds.disability_intellectual = true;
+              if (types.includes("learning")) ds.disability_learning = true;
+              if (types.includes("mental")) ds.disability_mental_illness = true;
+              if (types.includes("brain")) ds.disability_acquired_brain = true;
+              if (types.includes("vision")) ds.disability_vision = true;
+              if (types.includes("medical"))
+                ds.disability_medical_condition = true;
+              if (types.includes("other")) ds.disability_other = true;
+            }
+
+            newStepData[5] = ds;
           }
 
           // Step 6: Schooling History
-          if (apiResponse.schooling_history) {
-            newStepData[6] = apiResponse.schooling_history;
+          if (
+            apiResponse.schooling_history &&
+            apiResponse.schooling_history.length > 0
+          ) {
+            newStepData[6] = apiResponse.schooling_history[0];
           }
 
           // Step 7: Qualifications
@@ -210,10 +243,11 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           }
 
           // Step 8: Employment History
-          if (apiResponse.employment_history) {
-            newStepData[8] = {
-              entries: apiResponse.employment_history,
-            };
+          if (
+            apiResponse.employment_history &&
+            apiResponse.employment_history.length > 0
+          ) {
+            newStepData[8] = apiResponse.employment_history[0];
           }
 
           // Step 9: USI
@@ -241,7 +275,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           }
 
           // Also restore completed steps in the navigation store
-          // Import the step store to update navigation state
           useApplicationStepStore.getState().restoreCompletedSteps(newStepData);
 
           return { stepData: newStepData };
@@ -282,17 +315,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
               newOcrData[1] = extractedData;
             }
           }
-          // Step 2: Emergency Contact
-          if (ocrResult.sections.emergency_contacts?.extracted_data) {
-            newOcrData[2] =
-              ocrResult.sections.emergency_contacts.extracted_data;
-          }
-
-          // Step 3: Health Cover
-          if (ocrResult.sections.health_cover?.extracted_data) {
-            newOcrData[3] = ocrResult.sections.health_cover.extracted_data;
-          }
-
           // Step 4: Language & Culture
           if (ocrResult.sections.language_cultural?.extracted_data) {
             const extractedData =
@@ -322,67 +344,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
             } else {
               newOcrData[4] = extractedData;
             }
-          }
-
-          // Step 5: Disability Support
-          if (ocrResult.sections.disability_support?.extracted_data) {
-            newOcrData[5] =
-              ocrResult.sections.disability_support.extracted_data;
-          }
-
-          // Step 6: Schooling History (array)
-          if (
-            ocrResult.sections.schooling_history &&
-            Array.isArray(ocrResult.sections.schooling_history)
-          ) {
-            const schoolingData = ocrResult.sections.schooling_history.map(
-              (section) => section.extracted_data
-            );
-            if (schoolingData.length > 0) {
-              newOcrData[6] = schoolingData;
-            }
-          }
-
-          // Step 7: Qualifications (array)
-          if (
-            ocrResult.sections.qualifications &&
-            Array.isArray(ocrResult.sections.qualifications)
-          ) {
-            const qualificationsData = ocrResult.sections.qualifications.map(
-              (section) => section.extracted_data
-            );
-            if (qualificationsData.length > 0) {
-              newOcrData[7] = qualificationsData;
-            }
-          }
-
-          // Step 8: Employment History (array)
-          if (
-            ocrResult.sections.employment_history &&
-            Array.isArray(ocrResult.sections.employment_history)
-          ) {
-            const employmentData = ocrResult.sections.employment_history.map(
-              (section) => section.extracted_data
-            );
-            if (employmentData.length > 0) {
-              newOcrData[8] = employmentData;
-            }
-          }
-
-          // Step 9: USI
-          if (ocrResult.sections.usi?.extracted_data) {
-            newOcrData[9] = ocrResult.sections.usi.extracted_data;
-          }
-
-          // Step 10: Additional Services
-          if (ocrResult.sections.additional_services?.extracted_data) {
-            newOcrData[10] =
-              ocrResult.sections.additional_services.extracted_data;
-          }
-
-          // Step 11: Survey
-          if (ocrResult.sections.survey_responses?.extracted_data) {
-            newOcrData[11] = ocrResult.sections.survey_responses.extracted_data;
           }
 
           // Update OCR data and prefill step data if user hasn't filled it yet
@@ -429,6 +390,8 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         applicationId: state.applicationId,
+        stepData: state.stepData,
+        ocrData: state.ocrData,
       }),
       onRehydrateStorage: (state) => {
         return () => state.setHasHydrated(true);

@@ -1,5 +1,4 @@
-// components/form/form-input.tsx
-import { useFormContext, useFormState } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getFieldError } from "./form-errors";
@@ -19,9 +18,10 @@ export function FormInput({
   type = "text",
   description,
 }: FormInputProps) {
-  const { register, control } = useFormContext();
-
-  const { errors } = useFormState({ control, name });
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext();
 
   const error = getFieldError(errors, name)?.message as string | undefined;
 
@@ -29,11 +29,24 @@ export function FormInput({
     <div className="space-y-1">
       <Label htmlFor={name}>{label}</Label>
 
-      <Input
-        id={name}
-        type={type}
-        placeholder={placeholder}
-        {...register(name, type === "number" ? { valueAsNumber: true } : {})}
+      <Controller
+        name={name}
+        control={control}
+        render={({ field: { value, onChange, onBlur, ref } }) => (
+          <Input
+            id={name}
+            ref={ref}
+            type={type}
+            placeholder={placeholder}
+            aria-invalid={!!error}
+            value={value ?? ""}
+            onChange={(e) => {
+              const val = type === "number" ? e.target.valueAsNumber : e.target.value;
+              onChange(val);
+            }}
+            onBlur={onBlur}
+          />
+        )}
       />
 
       {description && (

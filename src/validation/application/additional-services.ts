@@ -1,32 +1,46 @@
 import { z } from "zod";
 
+// Manual interface definitions to avoid z.coerce inference issues in Zod v4
+export interface AdditionalServiceEntry {
+  service_name: string;
+  category_name: string;
+  facility_name: string;
+  service_provider: string;
+  student_price_per_service: number;
+  provider_price_per_service: number;
+  service_start_date: string;
+  service_end_date: string;
+  service_comment?: string;
+  selected: boolean;
+}
+
+export interface AdditionalServicesValues {
+  request_additional_services: "Yes" | "No";
+  services: AdditionalServiceEntry[];
+}
+
 export const serviceSchema = z.object({
-  service_name: z.string().optional(),
-  category_name: z.string().optional(),
-  facility_name: z.string().optional(),
-  service_provider: z.string().optional(),
-  student_price_per_service: z.number().optional(),
-  provider_price_per_service: z.number().optional(),
-  service_start_date: z.string().optional(),
-  service_end_date: z.string().optional(),
+  service_name: z.string().min(1, "Service name is required"),
+  category_name: z.string().min(1, "Category is required"),
+  facility_name: z.string().min(1, "Facility is required"),
+  service_provider: z.string().min(1, "Provider is required"),
+  student_price_per_service: z.coerce.number().min(0, "Price must be positive"),
+  provider_price_per_service: z.coerce.number().min(0, "Price must be positive"),
+  service_start_date: z.string().min(1, "Start date is required"),
+  service_end_date: z.string().min(1, "End date is required"),
   service_comment: z.string().optional(),
-  selected: z.boolean().optional(),
+  selected: z.boolean(),
 });
 
-export const additionalServicesSchema = z
-  .object({
-    request_additional_services: z.enum(["Yes", "No"]),
-    services: z.array(serviceSchema).optional(),
-  })
-  .superRefine((val, ctx) => {
+export const additionalServicesBaseSchema = z.object({
+  request_additional_services: z.enum(["Yes", "No"]),
+  services: z.array(serviceSchema),
+});
+
+export const additionalServicesSchema = additionalServicesBaseSchema.superRefine(
+  (val, ctx) => {
     if (val.request_additional_services === "Yes") {
-      // If Yes is selected, we might want to ensure at least one service is in the list
-      // OR we just ensure the list exists.
-      // The previous validation had min(1).
       if (!val.services || val.services.length === 0) {
-        // It's possible to hav an empty list if they haven't added any.
-        // We can leave it flexible or enforce adding one.
-        // Based on "validate it nicely", enforcing at least one seems appropriate if they said YES.
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["services"],
@@ -34,22 +48,22 @@ export const additionalServicesSchema = z
         });
       }
     }
+  }
+);
+
+export const createEmptyAdditionalService =
+  (): AdditionalServiceEntry => ({
+    service_name: "",
+    category_name: "",
+    facility_name: "",
+    service_provider: "",
+    student_price_per_service: 0,
+    provider_price_per_service: 0,
+    service_start_date: "",
+    service_end_date: "",
+    service_comment: "",
+    selected: true,
   });
-
-export type AdditionalServicesValues = z.infer<typeof additionalServicesSchema>;
-
-export const createEmptyAdditionalService = (): unknown => ({
-  service_name: "",
-  category_name: "",
-  facility_name: "",
-  service_provider: "",
-  student_price_per_service: 0,
-  provider_price_per_service: 0,
-  service_start_date: "",
-  service_end_date: "",
-  service_comment: "",
-  selected: true,
-});
 
 export const defaultAdditionalServicesValues: AdditionalServicesValues = {
   request_additional_services: "No",

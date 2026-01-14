@@ -24,31 +24,29 @@ export const disabilitySchema = z
     documentation_status: z.string().optional(),
     adjustments_needed: z.any().optional(), // permissive for now
   })
-  .refine(
-    (data) => {
-      // If "Yes" is selected, at least one disability checkbox must be checked
-      if (data.has_disability === "Yes") {
-        const hasAnyDisability =
-          data.disability_hearing ||
-          data.disability_physical ||
-          data.disability_intellectual ||
-          data.disability_learning ||
-          data.disability_mental_illness ||
-          data.disability_acquired_brain ||
-          data.disability_vision ||
-          data.disability_medical_condition ||
-          data.disability_other;
+  .superRefine((data, ctx) => {
+    // If "Yes" is selected, at least one disability checkbox must be checked
+    if (data.has_disability === "Yes") {
+      const hasAnyDisability =
+        data.disability_hearing ||
+        data.disability_physical ||
+        data.disability_intellectual ||
+        data.disability_learning ||
+        data.disability_mental_illness ||
+        data.disability_acquired_brain ||
+        data.disability_vision ||
+        data.disability_medical_condition ||
+        data.disability_other;
 
-        return hasAnyDisability;
+      if (!hasAnyDisability) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select at least one disability type",
+          path: ["disability_type"],
+        });
       }
-      return true; // If "No" is selected, validation passes
-    },
-    {
-      message:
-        "Please select at least one disability type when 'Yes' is selected",
-      path: ["has_disability"], // This will show the error on the radio button field
     }
-  );
+  });
 
 export type DisabilityValues = z.output<typeof disabilitySchema>;
 export type DisabilityFormValues = z.input<typeof disabilitySchema>;

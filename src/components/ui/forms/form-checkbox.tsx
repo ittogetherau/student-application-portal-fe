@@ -1,4 +1,4 @@
-import { Controller, useFormContext, useFormState } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,11 @@ interface FormCheckboxProps {
 }
 
 export function FormCheckbox({ name, label }: FormCheckboxProps) {
-  const { control } = useFormContext<Record<string, unknown>>();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext<Record<string, unknown>>();
 
-  const { errors } = useFormState({ control, name });
   const error = getFieldError(errors, name)?.message;
 
   return (
@@ -26,6 +28,7 @@ export function FormCheckbox({ name, label }: FormCheckboxProps) {
             ref={ref}
             checked={Boolean(value)}
             onCheckedChange={(checked) => onChange(checked === true)}
+            aria-invalid={!!error}
           />
         )}
       />

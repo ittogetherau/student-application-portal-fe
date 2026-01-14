@@ -257,20 +257,9 @@ class ApplicationStepsService extends ApiService {
   ): Promise<ServiceResponse<StepUpdateResponse>> => {
     try {
       const body = schoolingHistorySchema.parse(input);
-      const newBody = {
-        ...body,
-        entries: [
-          {
-            start_year: "2020",
-            country: "Australia",
-            institution: "afasdf",
-            qualification_level: "Degree",
-          },
-        ],
-      };
       const data = await this.patch<StepUpdateResponse>(
         this.stepPath(applicationId, 6, "schooling-history"),
-        newBody,
+        body,
         true
       );
       return {

@@ -34,7 +34,7 @@ const HealthCoverForm = ({ applicationId }: { applicationId: string }) => {
   }, [applicationId, getStepData]);
 
   const methods = useForm<HealthCoverValues>({
-    resolver: zodResolver(healthCoverSchema),
+    resolver: zodResolver(healthCoverSchema as any),
     defaultValues: initialValues,
     mode: "onSubmit",
     reValidateMode: "onChange",

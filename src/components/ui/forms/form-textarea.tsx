@@ -1,5 +1,4 @@
-// components/form/form-textarea.tsx
-import { useFormContext, useFormState } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getFieldError } from "./form-errors";
@@ -19,9 +18,10 @@ export function FormTextarea({
     description,
     rows = 4,
 }: FormTextareaProps) {
-    const { register, control } = useFormContext();
-
-    const { errors } = useFormState({ control, name });
+    const {
+        control,
+        formState: { errors },
+    } = useFormContext();
 
     const error = getFieldError(errors, name)?.message as string | undefined;
 
@@ -29,11 +29,21 @@ export function FormTextarea({
         <div className="space-y-1">
             <Label htmlFor={name}>{label}</Label>
 
-            <Textarea
-                id={name}
-                placeholder={placeholder}
-                rows={rows}
-                {...register(name)}
+            <Controller
+                name={name}
+                control={control}
+                render={({ field: { value, onChange, onBlur, ref } }) => (
+                    <Textarea
+                        id={name}
+                        ref={ref}
+                        placeholder={placeholder}
+                        rows={rows}
+                        aria-invalid={!!error}
+                        value={value ?? ""}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                    />
+                )}
             />
 
             {description && (

@@ -49,15 +49,15 @@ import {
   type ThreadCreateValues,
 } from "./application/thread";
 
-
-
-// Draft creation schema (extend when API contract is finalized)
+// Application creation schema
 export const applicationCreateSchema = z.object({
   agent_profile_id: z.string().uuid(),
   course_offering_id: z.string().uuid(),
 });
+
 export type ApplicationCreateValues = z.infer<typeof applicationCreateSchema>;
 
+// Export all schemas for zod validation
 export {
   additionalServicesSchema,
   enrollmentSchema,
@@ -73,9 +73,9 @@ export {
   surveySchema,
   usiSchema,
   threadCreateSchema,
-
 };
 
+// Export all types for react-hook-form
 export type {
   AdditionalServicesValues,
   EnrollmentValues,
@@ -92,10 +92,9 @@ export type {
   SurveyValues,
   USIValues,
   ThreadCreateValues,
-
 };
 
-// Legacy aliases used across services/hooks
+// Legacy aliases for backward compatibility
 export {
   disabilitySchema as disabilitySupportSchema,
   emergencyContactsSchema as emergencyContactSchema,

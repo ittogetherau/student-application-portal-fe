@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Controller, useFormContext, useFormState } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -39,8 +39,10 @@ export function FormSearchableSelect({
     options,
     emptyMessage = "No option found.",
 }: FormSearchableSelectProps) {
-    const { control } = useFormContext();
-    const { errors } = useFormState({ control, name });
+    const {
+        control,
+        formState: { errors },
+    } = useFormContext();
     const error = getFieldError(errors, name)?.message as string | undefined;
 
     return (
@@ -52,6 +54,10 @@ export function FormSearchableSelect({
                 render={({ field: { onChange, value } }) => {
                     const [open, setOpen] = React.useState(false);
 
+                    // Ensure the value exists in the options list (case-insensitive for robustness)
+                    const isValidValue = options.some(opt => opt.toLowerCase() === (value as string)?.toLowerCase());
+                    const displayValue = isValidValue ? (value as string) : "";
+
                     return (
                         <Popover open={open} onOpenChange={setOpen}>
                             <PopoverTrigger asChild>
@@ -60,12 +66,13 @@ export function FormSearchableSelect({
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={open}
+                                    aria-invalid={!!error}
                                     className={cn(
                                         "w-full justify-between font-normal",
-                                        !value && "text-muted-foreground"
+                                        !displayValue && "text-muted-foreground"
                                     )}
                                 >
-                                    {value || placeholder}
+                                    {displayValue || placeholder}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>

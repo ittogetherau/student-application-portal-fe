@@ -1,4 +1,4 @@
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,21 +17,30 @@ export function FormArrayInput({
   onRemove,
 }: FormArrayInputProps) {
   const {
-    register,
+    control,
     formState: { errors },
   } = useFormContext<Record<string, unknown[]>>();
 
   const fieldName = `${name}.${index}` as const;
-  const fieldError =
-    (errors[name]?.[index] as { message?: string } | undefined)?.message;
+  // Use indexed error check explicitly
+  const fieldError = (errors[name] as any)?.[index]?.message;
 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
-        <Input
-          placeholder={placeholder}
-          {...register(fieldName)}
-          className="flex-1"
+        <Controller
+          name={fieldName}
+          control={control}
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <Input
+              ref={ref}
+              placeholder={placeholder}
+              value={(value as string) ?? ""}
+              onChange={onChange}
+              onBlur={onBlur}
+              className="flex-1"
+            />
+          )}
         />
 
         <Button type="button" variant="ghost" size="icon" onClick={onRemove}>

@@ -42,26 +42,28 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
     name: "has_disability",
   });
 
-  // Reset disability checkboxes when "No" is selected
-  useEffect(() => {
-    if (hasDisability === "No") {
-      methods.setValue("disability_hearing", false);
-      methods.setValue("disability_physical", false);
-      methods.setValue("disability_intellectual", false);
-      methods.setValue("disability_learning", false);
-      methods.setValue("disability_mental_illness", false);
-      methods.setValue("disability_acquired_brain", false);
-      methods.setValue("disability_vision", false);
-      methods.setValue("disability_medical_condition", false);
-      methods.setValue("disability_other", false);
-    }
-  }, [hasDisability, methods]);
-
   const onSubmit = (values: DisabilityFormValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
+    // Create a copy of values to modify
+    const cleanedValues = { ...values };
+
+    // If "No" is selected, ensure all specific disability flags are false
+    // This cleans up data for both persistence and API submission
+    if (cleanedValues.has_disability === "No") {
+      cleanedValues.disability_hearing = false;
+      cleanedValues.disability_physical = false;
+      cleanedValues.disability_intellectual = false;
+      cleanedValues.disability_learning = false;
+      cleanedValues.disability_mental_illness = false;
+      cleanedValues.disability_acquired_brain = false;
+      cleanedValues.disability_vision = false;
+      cleanedValues.disability_medical_condition = false;
+      cleanedValues.disability_other = false;
     }
-    const payload: DisabilityValues = disabilitySchema.parse(values);
+
+    if (applicationId) {
+      saveOnSubmit(cleanedValues);
+    }
+    const payload: DisabilityValues = disabilitySchema.parse(cleanedValues);
     disabilityMutation.mutate(payload);
   };
 
@@ -83,9 +85,24 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
             </div>
 
             {hasDisability === "Yes" && (
-              <div className="space-y-3 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <p className="text-sm">If Yes, select the below list.</p>
-                <div className="space-y-3 pl-1">
+              <div className="space-y-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-muted-foreground italic">
+                    If Yes, select the below list.
+                  </p>
+                  {methods.formState.isSubmitted && methods.formState.errors.disability_type && (
+                    <p className="text-sm text-red-500 font-medium">
+                      {methods.formState.errors.disability_type.message}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1 p-3 rounded-md transition-colors ${methods.formState.isSubmitted && methods.formState.errors.disability_type
+                    ? "bg-red-50/50 border border-red-200"
+                    : "border border-transparent"
+                    }`}
+                >
                   <FormCheckbox
                     name="disability_hearing"
                     label="Hearing/deaf"

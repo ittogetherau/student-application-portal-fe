@@ -10,7 +10,7 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
@@ -34,6 +34,7 @@ const NewForm = ({
     initializeStep,
     isStepCompleted,
     resetNavigation,
+    completedSteps,
   } = useApplicationStepStore();
 
   const storedApplicationId = useApplicationFormDataStore(
@@ -47,11 +48,7 @@ const NewForm = ({
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
 
-  // // Fetch step data for the current step
-  // const { isLoading: isStepLoading } = useApplicationStepQuery(
-  //   applicationId || null,
-  //   currentStep
-  // );
+
 
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
@@ -69,7 +66,12 @@ const NewForm = ({
   const isCreateMode = !applicationId;
 
   const { canNavigateToStep } = useStepNavigation(isEditMode);
-  const hasStoredStepData = Object.keys(stepData).length > 0;
+  const hasStoredStepData = useMemo(
+    () => Object.keys(stepData).length > 0,
+    [stepData]
+  );
+  const hasCompletedSteps = completedSteps.length > 0;
+
   const shouldFetchEditData =
     isEditMode &&
     (!storedApplicationId ||
@@ -80,57 +82,58 @@ const NewForm = ({
   useEffect(() => {
     if (!isHydrated) return;
 
-    (() => {
-      setIsInitialized(false);
+    setIsInitialized(false);
 
-      if (isCreateMode) {
-        if (storedApplicationId || !hasStoredStepData) {
-          clearAllData();
-          resetNavigation();
-          goToStep(0);
-        }
-        setIsInitialized(true);
-      } else if (isEditMode) {
-        // --- EDIT / CONTINUE MODE ---
-        if (shouldFetchEditData) {
-          // Load fresh data from API
-          getApplication(undefined, {
-            onSuccess: (res) => {
-              if (res?.data) {
-                // Initialize step navigation with loaded data
-                const stepData =
-                  useApplicationFormDataStore.getState().stepData;
-                initializeStep(applicationId, stepData);
-              }
-              setIsInitialized(true);
-            },
-            onError: () => {
-              setIsInitialized(true);
-            },
-          });
-        } else {
-          // Data already loaded, just initialize navigation
-          const stepData = useApplicationFormDataStore.getState().stepData;
-          initializeStep(applicationId, stepData);
-          setIsInitialized(true);
-        }
+    if (isCreateMode) {
+      // If we are in create mode but have stale data from a previous session, clear it
+      if (storedApplicationId || hasStoredStepData || hasCompletedSteps) {
+        console.log("[NewForm] 🧹 Clearing stale application data for new session");
+        clearAllData();
+        resetNavigation();
+        goToStep(0);
+      }
+      setIsInitialized(true);
+    } else if (isEditMode) {
+      // --- EDIT / CONTINUE MODE ---
+      if (shouldFetchEditData) {
+        // Load fresh data from API
+        getApplication(undefined, {
+          onSuccess: (res) => {
+            if (res?.data) {
+              // Initialize step navigation with loaded data
+              const stepData = useApplicationFormDataStore.getState().stepData;
+              initializeStep(applicationId, stepData);
+            }
+            setIsInitialized(true);
+          },
+          onError: () => {
+            setIsInitialized(true);
+          },
+        });
       } else {
-        // applicationId exists but edit=true is not in params
-        // This means we're in view mode, not form mode
+        // Data already loaded, just initialize navigation
+        const stepData = useApplicationFormDataStore.getState().stepData;
+        initializeStep(applicationId, stepData);
         setIsInitialized(true);
       }
-    })();
+    } else {
+      // applicationId exists but edit=true is not in params
+      // This means we're in view mode, not form mode
+      setIsInitialized(true);
+    }
   }, [
     applicationId,
     isEditMode,
+    isCreateMode,
     clearAllData,
     resetNavigation,
     goToStep,
     getApplication,
     initializeStep,
-    isCreateMode,
     shouldFetchEditData,
     isHydrated,
+    storedApplicationId,
+    hasStoredStepData,
   ]);
 
   // Loading State
@@ -193,8 +196,8 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                        ? "hover:bg-muted"
-                        : "cursor-not-allowed",
+                          ? "hover:bg-muted"
+                          : "cursor-not-allowed",
                       !canNavigate && "pointer-events-none"
                     )}
                     title={
@@ -209,10 +212,10 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                          ? "bg-emerald-100 text-emerald-700"
-                          : canNavigate
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-muted/50 text-muted-foreground/50"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : canNavigate
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-muted/50 text-muted-foreground/50"
                       )}
                     >
                       {isCompleted && !isCurrent ? (
