@@ -63,15 +63,6 @@ export function ApplicationCard({
               </p>
             </div>
 
-            <div className="flex items-center justify-between gap-1.5 sm:gap-2 text-[10px] sm:text-xs min-w-0">
-              <span
-                className="text-muted-foreground truncate flex-1 min-w-0"
-                title={app.destination}
-              >
-                {app.destination}
-              </span>
-            </div>
-
             {app.assignedStaffName && (
               <p
                 className="text-[10px] sm:text-xs text-muted-foreground truncate"

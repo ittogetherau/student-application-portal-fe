@@ -288,9 +288,6 @@ export function ApplicationKanban({
                   </p>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {activeApplication.destination}
-                  </span>
                   <Badge variant="outline" className="text-xs h-5">
                     {activeApplication.referenceNumber}
                   </Badge>

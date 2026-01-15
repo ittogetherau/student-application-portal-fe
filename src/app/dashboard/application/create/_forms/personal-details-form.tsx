@@ -8,6 +8,7 @@ import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
 import { FormSearchableSelect } from "@/components/ui/forms/form-searchable-select";
 import { FormSelect } from "@/components/ui/forms/form-select";
+import { getFieldError } from "@/components/ui/forms/form-errors";
 import {
   Tooltip,
   TooltipContent,
@@ -15,10 +16,13 @@ import {
 } from "@/components/ui/tooltip";
 import { getCountriesList, getNationalitiesList } from "@/data/country-list";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
+import usePlacesAutocomplete from "@/hooks/usePlacesAutocomplete.hook";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
 import documentService from "@/service/document.service";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   defaultPersonalDetailsValues,
   personalDetailsSchema,
@@ -35,12 +39,28 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 import HealthCoverAutoSubmit from "../_components/health-cover-auto-submit";
+import { FormTextarea } from "@/components/ui/forms/form-textarea";
 
 const stepId = 1;
+
+type PlacePrediction = {
+  description: string;
+  place_id?: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+};
+
+type AddressComponent = {
+  long_name: string;
+  short_name: string;
+  types: string[];
+};
 
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
@@ -60,6 +80,18 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     form: methods,
     enabled: !!applicationId,
   });
+
+  const {
+    query: addressQuery,
+    setQuery: setAddressQuery,
+    data: placePredictions,
+    isLoading: isPlacesLoading,
+    error: placesError,
+  } = usePlacesAutocomplete("", {
+    debounceMs: 350,
+    minLength: 3,
+  });
+  const [isPlacesOpen, setIsPlacesOpen] = useState(false);
 
   // Passport upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -332,6 +364,125 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     }
     personalDetailsMutation.mutate(values);
   };
+
+  const getComponentByType = (
+    components: AddressComponent[],
+    type: string
+  ) => components.find((component) => component.types.includes(type));
+
+  const getComponentByPriority = (
+    components: AddressComponent[],
+    types: string[]
+  ) => {
+    for (const type of types) {
+      const match = getComponentByType(components, type);
+      if (match) return match;
+    }
+    return undefined;
+  };
+
+  const handlePlaceSelect = useCallback(
+    async (prediction: PlacePrediction) => {
+      const description = prediction.description;
+      methods.setValue("search_address", description, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setAddressQuery(description);
+      setIsPlacesOpen(false);
+
+      if (!prediction.place_id) return;
+
+      try {
+        const response = await fetch(
+          `/api/google-places/details?placeId=${encodeURIComponent(
+            prediction.place_id
+          )}`
+        );
+
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || "Failed to fetch address details.");
+        }
+
+        const payload = (await response.json()) as {
+          address_components?: AddressComponent[];
+          error?: string;
+        };
+
+        if (payload.error) {
+          throw new Error(payload.error);
+        }
+
+        const components = payload.address_components ?? [];
+        const country = getComponentByType(components, "country")?.long_name;
+        const streetNumber = getComponentByType(
+          components,
+          "street_number"
+        )?.long_name;
+        const streetName = getComponentByType(components, "route")?.long_name;
+        const suburb = getComponentByPriority(components, [
+          "locality",
+          "postal_town",
+          "sublocality",
+          "sublocality_level_1",
+        ])?.long_name;
+        const state = getComponentByPriority(components, [
+          "administrative_area_level_1",
+          "administrative_area_level_2",
+        ])?.long_name;
+        const postcode = getComponentByType(
+          components,
+          "postal_code"
+        )?.long_name;
+
+        if (country)
+          methods.setValue("country", country, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (streetNumber)
+          methods.setValue("street_number", streetNumber, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (streetName)
+          methods.setValue("street_name", streetName, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (suburb)
+          methods.setValue("suburb", suburb, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (state)
+          methods.setValue("state", state, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (postcode)
+          methods.setValue("postcode", postcode, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch address details."
+        );
+      }
+    },
+    [methods, setAddressQuery]
+  );
+
+  const {
+    formState: { errors },
+  } = methods;
+  const searchAddressError = getFieldError(errors, "search_address")?.message as
+    | string
+    | undefined;
 
   return (
     <FormProvider {...methods}>
@@ -658,11 +809,95 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           </div>
 
           <div className="space-y-4">
-            <FormInput
-              name="search_address"
-              label="Search Address"
-              placeholder="Enter address or search"
-            />
+            <div className="space-y-1">
+              <Label htmlFor="search_address">Search Address</Label>
+              <Controller
+                name="search_address"
+                control={methods.control}
+                render={({ field: { value, onChange, onBlur, ref } }) => (
+                  <div className="relative">
+                    <Input
+                      id="search_address"
+                      ref={ref}
+                      placeholder="Enter address or search"
+                      aria-invalid={!!searchAddressError}
+                      value={value ?? ""}
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        onChange(nextValue);
+                        setAddressQuery(nextValue);
+                        setIsPlacesOpen(true);
+                      }}
+                      onFocus={() => setIsPlacesOpen(true)}
+                      onBlur={(event) => {
+                        onBlur();
+                        const inputEl = event.currentTarget;
+                        setTimeout(() => {
+                          if (!inputEl.contains(document.activeElement)) {
+                            setIsPlacesOpen(false);
+                          }
+                        }, 150);
+                      }}
+                      autoComplete="off"
+                    />
+
+                    {isPlacesOpen &&
+                    (isPlacesLoading ||
+                      placesError ||
+                      placePredictions.length > 0) ? (
+                      <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow">
+                        {isPlacesLoading ? (
+                          <p className="px-3 py-2 text-xs text-muted-foreground">
+                            Loading suggestions...
+                          </p>
+                        ) : placesError ? (
+                          <p className="px-3 py-2 text-xs text-destructive">
+                            {placesError}
+                          </p>
+                        ) : (
+                          <ul className="max-h-56 overflow-auto py-1 text-sm">
+                            {placePredictions.map((prediction) => (
+                              <li
+                                key={
+                                  prediction.place_id ?? prediction.description
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 hover:bg-muted"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() =>
+                                    handlePlaceSelect(prediction)
+                                  }
+                                >
+                                  <span className="font-medium">
+                                    {prediction.structured_formatting?.main_text ??
+                                      prediction.description}
+                                  </span>
+                                  {prediction.structured_formatting
+                                    ?.secondary_text ? (
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      {
+                                        prediction.structured_formatting
+                                          .secondary_text
+                                      }
+                                    </span>
+                                  ) : null}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              />
+              {searchAddressError ? (
+                <p className="text-sm text-red-500">{searchAddressError}</p>
+              ) : null}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormSearchableSelect
@@ -793,12 +1028,12 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               emptyMessage="No country found."
             />
 
-            {/* <FormTextarea
+            <FormTextarea
               name="overseas_address"
-              label="Overseas Address(Optional)"
+              label="Overseas Address"
               placeholder="Enter overseas address"
               rows={5}
-            /> */}
+            />
           </div>
         </section>
 

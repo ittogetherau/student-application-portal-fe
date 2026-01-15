@@ -111,7 +111,20 @@ export const personalDetailsSchema = z.object({
   postal_postcode: z.string().nullish(),
 
   // Overseas/Permanent Address
-  overseas_country: z.string().nullish().refine((val) => !!val && val.trim().length > 0, "Overseas country is required"),
+  overseas_country: z
+    .string()
+    .nullish()
+    .refine(
+      (val) => !!val && val.trim().length > 0,
+      "Overseas country is required"
+    ),
+  overseas_address: z
+    .string()
+    .nullish()
+    .refine(
+      (val) => !!val && val.trim().length > 0,
+      "Overseas address is required"
+    ),
 
 }).superRefine((data, ctx) => {
   // Visa details are only required if student_origin is "Overseas Student in Australia (Onshore)"
@@ -240,4 +253,5 @@ export const defaultPersonalDetailsValues: PersonalDetailsValues = {
   postal_state: "",
   postal_postcode: "",
   overseas_country: "",
+  overseas_address: "",
 };

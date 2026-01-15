@@ -104,22 +104,17 @@ export default function AgentApplicationDetail() {
             />
 
             {/* Edit */}
-            {ROLE === "agent" &&
-              application.current_stage === APPLICATION_STAGE.DRAFT && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 h-8"
+            {(application.current_stage === APPLICATION_STAGE.DRAFT ||
+              application.current_stage === APPLICATION_STAGE.STAFF_REVIEW) && (
+              <Button asChild variant="outline" size="sm" className="gap-2 h-8">
+                <Link
+                  href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
                 >
-                  <Link
-                    href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
-                  >
-                    <SquarePen className="h-3.5 w-3.5" />
-                    Edit
-                  </Link>
-                </Button>
-              )}
+                  <SquarePen className="h-3.5 w-3.5" />
+                  Edit
+                </Link>
+              </Button>
+            )}
           </div>
         </section>
       </ContainerLayout>

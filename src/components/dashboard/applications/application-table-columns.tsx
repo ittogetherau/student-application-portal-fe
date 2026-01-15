@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 
+import { StaffAssignmentSelect } from "@/app/dashboard/application/[id]/_components/StaffAssignmentSelect";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import {
 import { siteRoutes } from "@/constants/site-routes";
 import { ApplicationTableRow, USER_ROLE } from "@/constants/types";
 import { Archive, Edit, Trash2 } from "lucide-react";
-import { StaffAssignmentSelect } from "@/app/dashboard/application/[id]/_components/StaffAssignmentSelect";
 import { toast } from "react-hot-toast";
 
 const formatDate = (value?: string | null) => {
@@ -137,24 +137,6 @@ export const getApplicationColumns = (
           title={(row.getValue("course") as string) || "N/A"}
         >
           {(row.getValue("course") as string) || "N/A"}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "destination",
-      meta: { columnTitle: "Destination" },
-      size: 120,
-      minSize: 100,
-      maxSize: 150,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Destination" />
-      ),
-      cell: ({ row }) => (
-        <div
-          className="text-sm text-start truncate whitespace-normal"
-          title={(row.getValue("destination") as string) || "N/A"}
-        >
-          {(row.getValue("destination") as string) || "N/A"}
         </div>
       ),
     },
@@ -297,10 +279,7 @@ export const getApplicationColumns = (
           ) : (
             <Dialog>
               <DialogTrigger asChild>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                >
+                <Button size="icon-sm" variant="ghost">
                   <Archive size={16} className="text-muted-foreground" />
                 </Button>
               </DialogTrigger>
@@ -331,10 +310,7 @@ export const getApplicationColumns = (
           <Link
             href={`${siteRoutes.dashboard.application.create}/?id=${row.original.id}&edit=true`}
           >
-            <Button
-              size="icon-sm"
-              variant="ghost"
-            >
+            <Button size="icon-sm" variant="ghost">
               <Edit size={16} className="text-muted-foreground" />
             </Button>
           </Link>

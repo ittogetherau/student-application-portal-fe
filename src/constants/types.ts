@@ -8,8 +8,8 @@ export enum APPLICATION_STAGE {
   DRAFT = "draft",
   SUBMITTED = "submitted",
   STAFF_REVIEW = "staff_review",
-  AWAITING_DOCUMENTS = "awaiting_documents",
   OFFER_GENERATED = "offer_generated",
+  AWAITING_DOCUMENTS = "awaiting_documents",
   OFFER_ACCEPTED = "offer_accepted",
   GS_ASSESSMENT = "gs_assessment",
   ENROLLED = "enrolled",
@@ -60,7 +60,6 @@ export interface ApplicationTableRow {
   studentName: string;
   studentEmail: string;
   course: string;
-  destination: string;
   stage: APPLICATION_STAGE;
   assignedStaffId?: string | null;
   assignedStaffName?: string;

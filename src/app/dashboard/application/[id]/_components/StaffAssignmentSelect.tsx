@@ -87,7 +87,7 @@ export function StaffAssignmentSelect({
           ) : isStaffLoading ? (
             "Loading..."
           ) : (
-            <span className="text-foreground">Unassigned</span>
+            <span className="text-foreground">Assign To</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -107,7 +107,7 @@ export function StaffAssignmentSelect({
                     !currentStaffId ? "opacity-100" : "opacity-0"
                   }`}
                 />
-                <span className="text-foreground">Unassigned</span>
+                <span className="text-foreground">Assign To</span>
               </CommandItem>
               {staffMembers.map((staff) => {
                 const assignId = staff.staff_profile?.id || staff.id;

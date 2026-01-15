@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -20,8 +19,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { UserRole } from "@/lib/auth";
 import { siteRoutes } from "@/constants/site-routes";
+import type { UserRole } from "@/lib/auth";
 import {
   FileText,
   Inbox,
@@ -31,6 +30,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 

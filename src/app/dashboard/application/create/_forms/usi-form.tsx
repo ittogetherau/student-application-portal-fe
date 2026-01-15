@@ -13,6 +13,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import ApplicationStepHeader from "../_components/application-step-header";
+import Link from "next/link";
 
 const stepId = 9;
 
@@ -49,19 +50,24 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
     <FormProvider {...methods}>
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <section className="border rounded-lg p-4 space-y-6">
-          <div className="bg-muted/50 p-4 rounded-lg">
+          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <p className="text-sm">
-              If you already completed nationally recognised training (RSA,
-              White Card, First Aid, TAFE, etc.) you may already have a USI.
-              Please check before creating a new one:{" "}
-              <a
+              You may already have a USI if you have done any nationally
+              recognised training, which could include training at work,
+              completing a first aid course or RSA (Responsible Service of
+              Alcohol) course, getting a white card, or studying at a TAFE or
+              training organisation. It is important that you try to find out
+              whether you already have a USI before attempting to create a new
+              one. You should not have more than one USI. To check if you
+              already have a USI, use the ‘Forgotten USI’ link on the USI
+              website at{" "}
+              <Link
                 href="https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/"
                 target="_blank"
-                rel="noopener noreferrer"
                 className="text-primary underline"
               >
                 https://www.usi.gov.au/faqs/i-have-forgotten-my-usi/
-              </a>
+              </Link>
             </p>
           </div>
 
@@ -73,8 +79,16 @@ const UsiForm = ({ applicationId }: { applicationId: string }) => {
 
           <FormCheckbox
             name="consent_to_verify"
-            label="I authorize my provider to verify or create a USI on my behalf"
+            label="I have read and I consent to the collection, use and disclosure of my personal information (which may include sensitive information) pursuant to the information detailed at below link"
           />
+
+          <Link
+            target="_blank"
+            className="text-primary underline"
+            href="https://www.usi.gov.au/about-us/privacy/provider-privacy-obligations"
+          >
+            https://www.usi.gov.au/about-us/privacy/provider-privacy-obligations
+          </Link>
         </section>
 
         <ApplicationStepHeader className="mt-4">

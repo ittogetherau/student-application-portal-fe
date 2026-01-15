@@ -103,7 +103,7 @@ const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
             <CommandGroup>
               <CommandItem value="unassigned" onSelect={handleUnassign}>
                 <Check className="mr-2 h-4 w-4 opacity-0" />
-                <span className="text-foreground">Unassigned</span>
+                <span className="text-foreground">Assign To</span>
               </CommandItem>
               {staffMembers.map((staff) => {
                 if (!staff.staff_profile) return null;
@@ -201,9 +201,8 @@ export const ApplicationTable = ({
         "studentName",
         "studentEmail",
         "course",
-        "destination",
       ]}
-      searchPlaceholder="Search by student, course, destination, or reference..."
+      searchPlaceholder="Search by student, course, email, or reference..."
       emptyState={{
         title: "No applications found",
         description: "Try a different search term or filter combination.",
@@ -303,25 +302,11 @@ export const ApplicationTable = ({
               </span>
             ) : null}
 
-            {ROLE === USER_ROLE.AGENT && (
-              <Link href={siteRoutes.dashboard.application.create}>
-                <Button size="sm">
-                  <Plus /> New Application
-                </Button>
-              </Link>
-            )}
+            {/* {ROLE === USER_ROLE.AGENT && ( )} */}
 
-            <Link
-              href={
-                isArchived
-                  ? siteRoutes.dashboard.application.root
-                  : siteRoutes.dashboard.application.archived
-              }
-            >
-              <Button variant="ghost" size="sm">
-                {isArchived ? <ArchiveRestore /> : <Archive />}
-
-                {isArchived ? "View Applications" : "View archived"}
+            <Link href={siteRoutes.dashboard.application.create}>
+              <Button size="sm">
+                <Plus /> New Application
               </Button>
             </Link>
 

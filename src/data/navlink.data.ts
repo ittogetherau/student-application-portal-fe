@@ -1,6 +1,6 @@
+import type { SidebarIconName } from "@/components/dashboard/sidebar-nav";
 import { siteRoutes } from "@/constants/site-routes";
 import type { UserRole } from "@/lib/auth";
-import type { SidebarIconName } from "@/components/dashboard/sidebar-nav";
 
 type NavItem = { label: string; href: string; icon: SidebarIconName };
 
@@ -19,6 +19,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       icon: "applications",
     },
     {
+      label: "Archived Applications",
+      href: siteRoutes.dashboard.application.archived,
+      icon: "queue",
+    },
+    {
       label: "Tasks",
       href: siteRoutes.dashboard.tasks,
       icon: "tasks",
@@ -29,6 +34,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
     {
       label: "Application Queue",
       href: siteRoutes.dashboard.application.root,
+      icon: "queue",
+    },
+    {
+      label: "Archived Applications",
+      href: siteRoutes.dashboard.application.archived,
       icon: "queue",
     },
     {

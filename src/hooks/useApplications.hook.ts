@@ -56,7 +56,6 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
         ((
           item.assigned_staff as { email?: string } | null | undefined
         )?.email ?? undefined),
-      destination: (item.destination as string) || "N/A",
       course: (item.course_name as string) || (item.course as string) || "N/A",
       intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",

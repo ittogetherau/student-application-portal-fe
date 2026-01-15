@@ -135,12 +135,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const selectedCampus = useMemo(
     () =>
-      selectedCourse?.campuses?.find((c) => String(c.id) === formData.campusId),
-    [selectedCourse, formData.campusId]
+      selectedIntake?.campuses?.find((c) => String(c.id) === formData.campusId),
+    [selectedIntake, formData.campusId]
   );
 
   const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedCourse?.campuses ?? [];
+  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
@@ -220,68 +220,70 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   }
 
   return (
-    <div className="space-y-8 p-4 border rounded-lg">
-      <div className="grid-cols-3 grid gap-4">
-        {/* Course */}
-        <div className="space-y-2">
-          <Label>Course *</Label>
-          <Select
-            value={formData.courseId}
-            onValueChange={(v) => handleFieldChange("courseId", v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.course_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-8 p-4 border rounded-lg">
+        <div className="grid-cols-3 grid gap-4">
+          {/* Course */}
+          <div className="space-y-2">
+            <Label>Course *</Label>
+            <Select
+              value={formData.courseId}
+              onValueChange={(v) => handleFieldChange("courseId", v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.course_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Intake */}
-        <div className="space-y-2">
-          <Label>Intake *</Label>
-          <Select
-            value={formData.intakeId}
-            onValueChange={(v) => handleFieldChange("intakeId", v)}
-            disabled={!formData.courseId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select intake" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableIntakes.map((i) => (
-                <SelectItem key={i.id} value={String(i.id)}>
-                  {i.intake_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Intake */}
+          <div className="space-y-2">
+            <Label>Intake *</Label>
+            <Select
+              value={formData.intakeId}
+              onValueChange={(v) => handleFieldChange("intakeId", v)}
+              disabled={!formData.courseId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select intake" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableIntakes.map((i) => (
+                  <SelectItem key={i.id} value={String(i.id)}>
+                    {i.intake_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Campus */}
-        <div className="space-y-2">
-          <Label>Campus *</Label>
-          <Select
-            value={formData.campusId}
-            onValueChange={(v) => handleFieldChange("campusId", v)}
-            disabled={!formData.intakeId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select campus" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableCampuses.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Campus */}
+          <div className="space-y-2">
+            <Label>Campus *</Label>
+            <Select
+              value={formData.campusId}
+              onValueChange={(v) => handleFieldChange("campusId", v)}
+              disabled={!formData.intakeId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select campus" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCampuses.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
