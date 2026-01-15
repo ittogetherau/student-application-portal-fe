@@ -1,6 +1,7 @@
 "use client";
 
 import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
+import GuidedTooltip from "@/components/shared/guided-tooltip";
 import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
-import ApplicationSidebar from "./_components/ApplicationSidebar";
 import ApplicationStage from "./_components/ApplicationStage";
 import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
@@ -101,11 +101,15 @@ export default function AgentApplicationDetail() {
             {/* Badge */}
             <ApplicationStagePill
               stage={application.current_stage || application.stage || ""}
+              role={ROLE}
             />
 
             {/* Edit */}
-            {(application.current_stage === APPLICATION_STAGE.DRAFT ||
-              application.current_stage === APPLICATION_STAGE.STAFF_REVIEW) && (
+            {[
+              APPLICATION_STAGE.IN_REVIEW,
+              APPLICATION_STAGE.DRAFT,
+              APPLICATION_STAGE.SUBMITTED,
+            ].includes(application.current_stage) && (
               <Button asChild variant="outline" size="sm" className="gap-2 h-8">
                 <Link
                   href={`${siteRoutes.dashboard.application.create}?id=${application.id}&edit=true`}
@@ -155,12 +159,18 @@ export default function AgentApplicationDetail() {
 
             <div className="flex items-center justify-end gap-2">
               {ROLE === "staff" && IS_ADMIN_STAFF && (
-                <div className="max-w-86">
-                  <StaffAssignmentSelect
-                    applicationId={application.id}
-                    assignedStaffId={application.assigned_staff_id}
-                  />
-                </div>
+                <GuidedTooltip
+                  storageKey="staff:application-detail:staff-assignment"
+                  text="Assign this application to a staff member here."
+                  enabled={ROLE === "staff" && IS_ADMIN_STAFF}
+                >
+                  <div className="max-w-86">
+                    <StaffAssignmentSelect
+                      applicationId={application.id}
+                      assignedStaffId={application.assigned_staff_id}
+                    />
+                  </div>
+                </GuidedTooltip>
               )}
 
               <Button
@@ -175,7 +185,11 @@ export default function AgentApplicationDetail() {
           </div>
 
           <TabsContent value="details" className="space-y-3">
-            <ReviewForm applicationId={application.id} showDetails={false} />
+            <ReviewForm
+              applicationId={application.id}
+              showDetails={false}
+              showSync={true}
+            />
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-3">

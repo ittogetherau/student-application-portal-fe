@@ -9,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Download, Eye, FileText, Loader2 } from "lucide-react";
+import { Download, Eye, FileText, Loader, Loader2 } from "lucide-react";
 import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
+import { useApplicationRequestSignaturesQuery } from "@/hooks/useApplication.hook";
 
 //
 export interface Document {
@@ -43,6 +44,10 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
   const { data: documentsResponse, isLoading } =
     useApplicationDocumentsQuery(applicationId);
   const documents = (documentsResponse?.data || []) as Document[];
+  const { data: signaturesResponse } =
+    useApplicationRequestSignaturesQuery(applicationId);
+
+  const offerLetter = signaturesResponse?.items?.[0];
 
   return (
     <Card>
@@ -53,6 +58,32 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4 pb-4">
+        {offerLetter?.status === "pending" &&
+        offerLetter?.student?.signed_at &&
+        offerLetter?.agent?.signed_at ? (
+          <div className="mb-3 rounded-lg border bg-muted/20 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">
+                    Offer Letter
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {offerLetter.document_title}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-medium rounded-full bg-fuchsia-700 px-1.5 flex items-center gap-1 py-0.5 text-white">
+                <Loader size={12} className="animate-spin" />
+                processing
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

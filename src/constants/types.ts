@@ -7,14 +7,13 @@ export enum USER_ROLE {
 export enum APPLICATION_STAGE {
   DRAFT = "draft",
   SUBMITTED = "submitted",
-  STAFF_REVIEW = "staff_review",
-  OFFER_GENERATED = "offer_generated",
-  AWAITING_DOCUMENTS = "awaiting_documents",
-  OFFER_ACCEPTED = "offer_accepted",
+  IN_REVIEW = "staff_review",
+  OFFER_LETTER = "offer_generated",
+  // AWAITING_DOCUMENTS = "awaiting_documents",
   GS_ASSESSMENT = "gs_assessment",
-  ENROLLED = "enrolled",
+  COE_ISSUED = "coe_issued",
+  ACCEPTED = "accepted",
   REJECTED = "rejected",
-  WITHDRAWN = "withdrawn",
 }
 
 export interface User {
@@ -61,6 +60,7 @@ export interface ApplicationTableRow {
   studentEmail: string;
   course: string;
   stage: APPLICATION_STAGE;
+  stageRaw?: string | null;
   assignedStaffId?: string | null;
   assignedStaffName?: string;
   submittedAt: string;

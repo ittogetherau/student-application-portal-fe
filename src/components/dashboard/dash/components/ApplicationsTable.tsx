@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { siteRoutes } from "@/constants/site-routes";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export interface Application {
   id: string;
@@ -39,7 +40,7 @@ export interface Application {
   submittedDate: string;
 }
 
-export const columns: ColumnDef<Application>[] = [
+const getColumns = (role?: string): ColumnDef<Application>[] => [
   {
     accessorKey: "id",
     header: ({ column }) => (
@@ -89,6 +90,7 @@ export const columns: ColumnDef<Application>[] = [
       <ApplicationStagePill
         stage={row.getValue("status") as string}
         className="text-[10px] font-medium uppercase tracking-wider"
+        role={role}
       />
     ),
   },
@@ -99,10 +101,13 @@ interface ApplicationsTableProps {
 }
 
 export function ApplicationsTable({ data }: ApplicationsTableProps) {
+  const { data: session } = useSession();
+  const role = session?.user.role;
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+  const columns = React.useMemo(() => getColumns(role), [role]);
 
   const table = useReactTable({
     data,

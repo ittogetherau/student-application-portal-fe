@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import applicationStepsService from "@/service/application-steps.service";
 import type {
   AdditionalServicesValues,
@@ -49,9 +50,11 @@ const HealthCoverAutoSubmit = ({
   applicationId?: string;
 }) => {
   const hasTriggered = useRef(false);
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
 
   useEffect(() => {
-    if (!applicationId || hasTriggered.current) return;
+    if (!applicationId || hasTriggered.current || isEditMode) return;
 
     hasTriggered.current = true;
     Promise.all([

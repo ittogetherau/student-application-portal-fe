@@ -9,6 +9,7 @@ import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
+  GalaxySyncResponse,
   TimelineResponse,
 } from "@/service/application.service";
 import applicationService from "@/service/application.service";
@@ -365,6 +366,42 @@ export const useApplicationEnrollGalaxyCourseMutation = (
     },
     onError: (error) => {
       console.error("[Application] enrollGalaxyCourse failed", error);
+    },
+  });
+};
+
+// Staff - Sync application in Galaxy
+export const useApplicationGalaxySyncMutation = (
+  applicationId: string | null
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<GalaxySyncResponse, Error, void>({
+    mutationKey: ["application-galaxy-sync", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.syncGalaxyApplication(
+        applicationId
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] galaxySync success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] galaxySync failed", error);
     },
   });
 };

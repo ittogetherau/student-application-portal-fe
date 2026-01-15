@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
   useApplicationRequestSignaturesMutation,
@@ -29,7 +28,6 @@ import {
   User,
 } from "lucide-react";
 import { memo, useEffect, useState } from "react";
-import toast from "react-hot-toast";
 
 const formatDateTime = (value: string | null) => {
   if (!value) return "N/A";
@@ -50,40 +48,38 @@ interface SignerRowProps {
   signedAt?: string | null;
 }
 
-const SignerRow = memo(
-  ({ name, email, url, icon, signedAt }: SignerRowProps) => (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
-    >
-      <div className="flex items-center justify-between w-full gap-3 min-w-0">
-        <div className="space-y-0.5 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium leading-none truncate">{name}</p>
-            {signedAt ? (
-              <Badge variant="default" className="text-[10px] px-1.5">
-                Signed
-              </Badge>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Mail className="h-3 w-3" />
-            <span className="truncate max-w-[16ch] block">{email}</span>
-          </div>
+const SignerRow = memo(({ name, email, url, signedAt }: SignerRowProps) => (
+  <a
+    href={url}
+    target="_blank"
+    rel="noreferrer"
+    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
+  >
+    <div className="flex items-center justify-between w-full gap-3 min-w-0">
+      <div className="space-y-0.5 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium leading-none truncate">{name}</p>
+          {signedAt ? (
+            <Badge variant="default" className="text-[10px] px-1.5">
+              Signed
+            </Badge>
+          ) : null}
         </div>
 
-        <div className="s">
-          <Button variant={"ghost"} size={"icon-sm"}>
-            <ExternalLink />
-          </Button>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Mail className="h-3 w-3" />
+          <span className="truncate max-w-[16ch] block">{email}</span>
         </div>
       </div>
-    </a>
-  )
-);
+
+      <div className="s">
+        <Button variant={"ghost"} size={"icon-sm"}>
+          <ExternalLink />
+        </Button>
+      </div>
+    </div>
+  </a>
+));
 
 SignerRow.displayName = "SignerRow";
 
@@ -92,6 +88,7 @@ interface ApplicationSignDisplayProps {
   currentRole?: string;
   studentEmail?: string | null;
   cardBorderClass?: string;
+  handleStageChange: (val: APPLICATION_STAGE) => void;
 }
 
 const ApplicationSignDisplay = ({
@@ -99,6 +96,7 @@ const ApplicationSignDisplay = ({
   currentRole,
   studentEmail,
   cardBorderClass,
+  handleStageChange,
 }: ApplicationSignDisplayProps) => {
   const {
     data,
@@ -118,7 +116,7 @@ const ApplicationSignDisplay = ({
 
   const handleResend = async () => {
     if (!studentEmail) return;
-    await sendOfferLetter({ student_email: studentEmail });
+    await sendOfferLetter({ student_email: studentEmail, student_name: "" });
     await requestSignatures();
     setConfirmOpen(false);
   };
@@ -157,9 +155,11 @@ const ApplicationSignDisplay = ({
             if (i === 0)
               return (
                 <div key={item.id} className="space-y-1">
-                  <h4 className="text-sm font-semibold flex items-center gap-2">
-                    {item.document_title}
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      {item.document_title}
+                    </h4>
+                  </div>
 
                   <div>
                     <SignerRow
@@ -242,18 +242,28 @@ const ApplicationSignDisplay = ({
         </div>
       )}
 
-      {/* <Separator className="mb-2" /> */}
-
-      {currentRole === USER_ROLE.STAFF &&
-        data?.items[0].student.signed_at &&
-        data?.items[0].agent.signed_at && (
-          <div className="px-2">
-            <Button className="w-full">
-              Start GS Documentation
-              <ArrowRight />
-            </Button>
-          </div>
-        )}
+      {currentRole === USER_ROLE.STAFF && (
+        <>
+          {data && data.items.length > 0 && (
+            <>
+              {data?.items[0].student.signed_at &&
+                data?.items[0].agent.signed_at && (
+                  <div className="px-2">
+                    <Button
+                      onClick={() =>
+                        handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)
+                      }
+                      className="w-full"
+                    >
+                      Start GS Documentation
+                      <ArrowRight />
+                    </Button>
+                  </div>
+                )}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 };

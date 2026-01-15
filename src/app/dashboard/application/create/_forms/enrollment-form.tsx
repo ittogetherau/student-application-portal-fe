@@ -82,12 +82,22 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const intakeId = (saved as { intakeId?: number }).intakeId ?? saved.intake;
     const campusId = (saved as { campusId?: number }).campusId ?? saved.campus;
 
-    setFormData({
+    const nextFormData = {
       courseId: courseId?.toString() ?? "",
       intakeId: intakeId?.toString() ?? "",
       campusId: campusId?.toString() ?? "",
-    });
-  }, [storedStepData, _hasHydrated]);
+    };
+
+    if (
+      nextFormData.courseId === formData.courseId &&
+      nextFormData.intakeId === formData.intakeId &&
+      nextFormData.campusId === formData.campusId
+    ) {
+      return;
+    }
+
+    setFormData(nextFormData);
+  }, [storedStepData, _hasHydrated, formData.courseId, formData.intakeId, formData.campusId]);
 
   /* ---------- auto-save to store ---------- */
   useEffect(() => {

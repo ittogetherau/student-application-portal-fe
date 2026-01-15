@@ -10,7 +10,7 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
@@ -70,11 +70,7 @@ const NewForm = ({
   );
   const hasCompletedSteps = completedSteps.length > 0;
 
-  const shouldFetchEditData =
-    isEditMode &&
-    (!storedApplicationId ||
-      storedApplicationId !== applicationId ||
-      !hasStoredStepData);
+  const fetchedEditApplicationRef = useRef<string | null>(null);
 
   // Initialize form
   useEffect(() => {
@@ -95,7 +91,10 @@ const NewForm = ({
       setIsInitialized(true);
     } else if (isEditMode) {
       // --- EDIT / CONTINUE MODE ---
-      if (shouldFetchEditData) {
+      const hasFetchedThisSession =
+        fetchedEditApplicationRef.current === applicationId;
+
+      if (applicationId && !hasFetchedThisSession) {
         // Load fresh data from API
         getApplication(undefined, {
           onSuccess: (res) => {
@@ -103,10 +102,13 @@ const NewForm = ({
               // Initialize step navigation with loaded data
               const stepData = useApplicationFormDataStore.getState().stepData;
               initializeStep(applicationId, stepData);
+              setAutoFillKey((prev) => prev + 1);
             }
+            fetchedEditApplicationRef.current = applicationId;
             setIsInitialized(true);
           },
           onError: () => {
+            fetchedEditApplicationRef.current = applicationId;
             setIsInitialized(true);
           },
         });
@@ -130,7 +132,6 @@ const NewForm = ({
     goToStep,
     getApplication,
     initializeStep,
-    shouldFetchEditData,
     isHydrated,
     storedApplicationId,
     hasStoredStepData,
@@ -147,6 +148,7 @@ const NewForm = ({
       </div>
     );
   }
+
   return (
     <>
       <ContainerLayout className="mb-4">

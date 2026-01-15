@@ -92,6 +92,14 @@ export interface TimelineResponse {
   event_payload: Record<string, unknown>;
 }
 
+export interface GalaxySyncResponse {
+  application_id?: string;
+  current_stage?: string;
+  message?: string;
+  synced_at?: string;
+  [key: string]: unknown;
+}
+
 class ApplicationService extends ApiService {
   private readonly basePath = "applications";
 
@@ -427,6 +435,27 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to enroll course in Galaxy");
+    }
+  };
+
+  // Staff - Sync application data with Galaxy
+  syncGalaxyApplication = async (
+    applicationId: string
+  ): Promise<ServiceResponse<GalaxySyncResponse>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<GalaxySyncResponse>(
+        `staff/applications/${applicationId}/galaxy-sync`,
+        {},
+        true
+      );
+      return {
+        success: true,
+        message: "Galaxy sync completed successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to sync application with Galaxy");
     }
   };
 

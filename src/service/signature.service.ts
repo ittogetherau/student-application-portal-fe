@@ -11,6 +11,7 @@ export interface SendOfferLetterResponse {
 
 export interface SendOfferLetterPayload {
   student_email: string;
+  student_name: string;
 }
 
 export interface SignatureParticipant {

@@ -8,12 +8,15 @@ import useApplications from "@/hooks/useApplications.hook";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 type props = {
   isArchived?: boolean;
 };
 
 const ApplicationListPage = ({ isArchived = false }: props) => {
+  const { data: session } = useSession();
+  const role = session?.user.role;
   const {
     applications,
     total,
@@ -80,7 +83,7 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
                 Filtered by:
               </span>
               {selectedStages.map((stage) => (
-                <ApplicationStagePill key={stage} stage={stage} />
+                <ApplicationStagePill key={stage} stage={stage} role={role} />
               ))}
             </div>
           )}

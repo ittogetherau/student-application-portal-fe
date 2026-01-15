@@ -59,6 +59,7 @@ export const useFormPersistence = <T extends FieldValues>({
       if (serialized === lastLoadedDataRef.current) return;
 
       try {
+        console.log("[FormPersistence] reload", { stepId, mergedData });
         form.reset(mergedData as T);
         lastLoadedDataRef.current = serialized;
         if (onDataLoaded) {
@@ -78,6 +79,10 @@ export const useFormPersistence = <T extends FieldValues>({
       const mergedData = getMergedStepData<T>(stepId);
       if (mergedData) {
         try {
+          console.log("[FormPersistence] initial load", {
+            stepId,
+            mergedData,
+          });
           // Reset form with merged data (OCR + user data)
           form.reset(mergedData as T);
           hasLoadedPersistedDataRef.current = true;
@@ -100,6 +105,10 @@ export const useFormPersistence = <T extends FieldValues>({
           const retryData = getMergedStepData<T>(stepId);
           if (retryData) {
             try {
+              console.log("[FormPersistence] retry load", {
+                stepId,
+                retryData,
+              });
               form.reset(retryData as T);
               hasLoadedPersistedDataRef.current = true;
               lastLoadedDataRef.current = JSON.stringify(retryData);

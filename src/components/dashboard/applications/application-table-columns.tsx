@@ -149,7 +149,12 @@ export const getApplicationColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Status" />
       ),
-      cell: ({ row }) => <ApplicationStagePill stage={row.original.stage} />,
+      cell: ({ row }) => (
+        <ApplicationStagePill
+          stage={row.original.stageRaw ?? row.original.stage}
+          role={role}
+        />
+      ),
       filterFn: (row, columnId, filterValues) => {
         if (
           !filterValues ||

@@ -21,9 +21,10 @@ type UseApplicationsOptions = {
 const normalizeStage = (value?: string): APPLICATION_STAGE => {
   if (!value) return APPLICATION_STAGE.DRAFT;
   const stage = value as APPLICATION_STAGE;
-  return Object.values(APPLICATION_STAGE).includes(stage)
-    ? stage
-    : APPLICATION_STAGE.DRAFT;
+  if (Object.values(APPLICATION_STAGE).includes(stage)) {
+    return stage;
+  }
+  return APPLICATION_STAGE.DRAFT;
 };
 
 const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
@@ -47,15 +48,15 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       studentName: (item.student_name as string) ?? "Unknown student",
       studentEmail: (item.student_email as string) ?? "",
       stage: normalizedStage,
+      stageRaw: rawStage ?? null,
       assignedStaffId:
         (item.assigned_staff_id as string) ??
-        ((item.assigned_staff as { id?: string } | null | undefined)?.id ??
-          null),
+        (item.assigned_staff as { id?: string } | null | undefined)?.id ??
+        null,
       assignedStaffName:
         (item.assigned_staff_name as string) ??
-        ((
-          item.assigned_staff as { email?: string } | null | undefined
-        )?.email ?? undefined),
+        (item.assigned_staff as { email?: string } | null | undefined)?.email ??
+        undefined,
       course: (item.course_name as string) || (item.course as string) || "N/A",
       intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",

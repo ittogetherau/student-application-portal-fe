@@ -76,6 +76,7 @@ export function StaffAssignmentSelect({
           role="combobox"
           aria-expanded={open}
           disabled={assignMutation.isPending}
+          id="1-sre"
           className="w-full h-8 justify-between text-sm"
         >
           {assignMutation.isPending ? (

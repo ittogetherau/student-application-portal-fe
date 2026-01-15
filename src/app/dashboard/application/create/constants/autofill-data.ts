@@ -57,7 +57,7 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     // alternate_email: "j.smith.alt@example.com",
     phone: "1234567890",
     home_phone: "0987654321",
-    country_of_birth: "United States",
+    country_of_birth: "australia",
     nationality: "American",
     passport_number: "A12345678",
     passport_expiry: "2030-12-31",
@@ -153,17 +153,12 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     still_attending: "No",
     entries: [
       {
-
         country: "Australia",
 
         institution: "St. Mary's High School",
         start_year: 2012,
         qualification_level: "12 - Completed year 12",
         currently_attending: false,
-
-
-
-
       },
     ],
     secondary_school_type: "Government",

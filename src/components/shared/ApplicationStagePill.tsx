@@ -1,5 +1,5 @@
 import type { DataTableFacetedFilterOption } from "@/components/data-table/data-table";
-import { APPLICATION_STAGE } from "@/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import { cn } from "@/lib/utils";
 
 const STAGE_PILL_CONFIG: Record<
@@ -16,13 +16,13 @@ const STAGE_PILL_CONFIG: Record<
     className:
       "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
   },
-  [APPLICATION_STAGE.STAFF_REVIEW]: {
-    label: "Staff Review",
+  [APPLICATION_STAGE.IN_REVIEW]: {
+    label: "In Review",
     className:
       "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
   },
-  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: {
-    label: "Awaiting Documents",
+  [APPLICATION_STAGE.OFFER_LETTER]: {
+    label: "Offer Letter",
     className:
       "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
   },
@@ -31,113 +31,57 @@ const STAGE_PILL_CONFIG: Record<
     className:
       "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
   },
-  [APPLICATION_STAGE.OFFER_GENERATED]: {
-    label: "Offer Generated",
+  [APPLICATION_STAGE.COE_ISSUED]: {
+    label: "COE Issued",
     className:
-      "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200",
+      "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
   },
-  [APPLICATION_STAGE.OFFER_ACCEPTED]: {
-    label: "Offer Accepted",
+  [APPLICATION_STAGE.ACCEPTED]: {
+    label: "Accepted",
     className:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
-  },
-  [APPLICATION_STAGE.ENROLLED]: {
-    label: "Enrolled",
-    className:
-      "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200",
   },
   [APPLICATION_STAGE.REJECTED]: {
     label: "Rejected",
     className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
   },
-  [APPLICATION_STAGE.WITHDRAWN]: {
-    label: "Withdrawn",
-    className:
-      "bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200",
-  },
 };
 
-const STAGE_ALIAS_MAP: Record<string, APPLICATION_STAGE> = {
-  draft: APPLICATION_STAGE.DRAFT,
-  submitted: APPLICATION_STAGE.SUBMITTED,
-  under_review: APPLICATION_STAGE.STAFF_REVIEW,
-  "under review": APPLICATION_STAGE.STAFF_REVIEW,
-  staff_review: APPLICATION_STAGE.STAFF_REVIEW,
-  initial_review: APPLICATION_STAGE.STAFF_REVIEW,
-  document_verification: APPLICATION_STAGE.AWAITING_DOCUMENTS,
-  awaiting_documents: APPLICATION_STAGE.AWAITING_DOCUMENTS,
-  "awaiting documents": APPLICATION_STAGE.AWAITING_DOCUMENTS,
-  gs_documents_pending: APPLICATION_STAGE.AWAITING_DOCUMENTS,
-  gs_assessment: APPLICATION_STAGE.GS_ASSESSMENT,
-  "gs assessment": APPLICATION_STAGE.GS_ASSESSMENT,
-  gs_interview_scheduled: APPLICATION_STAGE.GS_ASSESSMENT,
-  gs_approved: APPLICATION_STAGE.GS_ASSESSMENT,
-  offer_sent: APPLICATION_STAGE.OFFER_GENERATED,
-  offer_generated: APPLICATION_STAGE.OFFER_GENERATED,
-  "offer generated": APPLICATION_STAGE.OFFER_GENERATED,
-  "offer issued": APPLICATION_STAGE.OFFER_GENERATED,
-  offer_generation: APPLICATION_STAGE.OFFER_GENERATED,
-  offer_acceptance: APPLICATION_STAGE.OFFER_ACCEPTED,
-  offer_accepted: APPLICATION_STAGE.OFFER_ACCEPTED,
-  "offer accepted": APPLICATION_STAGE.OFFER_ACCEPTED,
-  accepted: APPLICATION_STAGE.OFFER_ACCEPTED,
-  fee_payment: APPLICATION_STAGE.OFFER_ACCEPTED,
-  fee_payment_pending: APPLICATION_STAGE.OFFER_ACCEPTED,
-  coe_generation: APPLICATION_STAGE.ENROLLED,
-  coe_issued: APPLICATION_STAGE.ENROLLED,
-  enrolled: APPLICATION_STAGE.ENROLLED,
-  completed: APPLICATION_STAGE.ENROLLED,
-  rejected: APPLICATION_STAGE.REJECTED,
-  withdrawn: APPLICATION_STAGE.WITHDRAWN,
-};
-
-const STATUS_ALIAS_CONFIG: Record<
-  string,
-  { stage: APPLICATION_STAGE; label: string }
+const ROLE_STATUS_LABELS: Record<
+  APPLICATION_STAGE,
+  { agent: string; staff: string }
 > = {
-  "under review": {
-    stage: APPLICATION_STAGE.STAFF_REVIEW,
-    label: "Under Review",
+  [APPLICATION_STAGE.DRAFT]: {
+    agent: "Draft",
+    staff: "Draft",
   },
-  "pending decision": {
-    stage: APPLICATION_STAGE.STAFF_REVIEW,
-    label: "Pending Decision",
+  [APPLICATION_STAGE.SUBMITTED]: {
+    agent: "Submitted",
+    staff: "Received",
   },
-  approved: {
-    stage: APPLICATION_STAGE.ENROLLED,
-    label: "Approved",
+  [APPLICATION_STAGE.IN_REVIEW]: {
+    agent: "Application Under Review",
+    staff: "Application Under Review",
   },
-  "offer issued": {
-    stage: APPLICATION_STAGE.OFFER_GENERATED,
-    label: "Offer Issued",
+  [APPLICATION_STAGE.OFFER_LETTER]: {
+    agent: "Sign Offer Letter",
+    staff: "Awaiting Signatures",
   },
-  "offer generated": {
-    stage: APPLICATION_STAGE.OFFER_GENERATED,
-    label: "Offer Generated",
+  [APPLICATION_STAGE.GS_ASSESSMENT]: {
+    agent: "GS Process",
+    staff: "GS Process",
   },
-  accepted: {
-    stage: APPLICATION_STAGE.OFFER_ACCEPTED,
-    label: "Accepted",
+  [APPLICATION_STAGE.COE_ISSUED]: {
+    agent: "COE Issued",
+    staff: "COE Issued",
   },
-  rejected: {
-    stage: APPLICATION_STAGE.REJECTED,
-    label: "Rejected",
+  [APPLICATION_STAGE.ACCEPTED]: {
+    agent: "Accepted",
+    staff: "Accepted",
   },
-  waitlisted: {
-    stage: APPLICATION_STAGE.GS_ASSESSMENT,
-    label: "Waitlisted",
-  },
-  withdrawn: {
-    stage: APPLICATION_STAGE.WITHDRAWN,
-    label: "Withdrawn",
-  },
-  submitted: {
-    stage: APPLICATION_STAGE.SUBMITTED,
-    label: "Submitted",
-  },
-  draft: {
-    stage: APPLICATION_STAGE.DRAFT,
-    label: "Draft",
+  [APPLICATION_STAGE.REJECTED]: {
+    agent: "Rejected",
+    staff: "Rejected",
   },
 };
 
@@ -148,8 +92,7 @@ const normalizeStage = (
   if (Object.values(APPLICATION_STAGE).includes(value as APPLICATION_STAGE)) {
     return value as APPLICATION_STAGE;
   }
-  const key = String(value).toLowerCase();
-  return STAGE_ALIAS_MAP[key] ?? null;
+  return null;
 };
 
 export const applicationStageFilterOptions: DataTableFacetedFilterOption[] =
@@ -161,24 +104,46 @@ export const applicationStageFilterOptions: DataTableFacetedFilterOption[] =
 interface ApplicationStagePillProps {
   stage?: APPLICATION_STAGE | string | null;
   className?: string;
+  role?: USER_ROLE | string;
 }
 
 export function ApplicationStagePill({
   stage,
   className,
+  role,
 }: ApplicationStagePillProps) {
-  const key = stage ? String(stage).toLowerCase() : "";
-  const alias = key ? STATUS_ALIAS_CONFIG[key] : undefined;
-  const normalizedStage = alias?.stage ?? normalizeStage(stage);
+  const roleKey = role ? String(role).toLowerCase() : "";
+  const roleVariant =
+    roleKey === USER_ROLE.STAFF
+      ? "staff"
+      : roleKey === USER_ROLE.AGENT
+      ? "agent"
+      : null;
+  const normalizedStage = normalizeStage(stage);
+  const roleLabel =
+    normalizedStage && roleVariant
+      ? ROLE_STATUS_LABELS[normalizedStage]?.[roleVariant]
+      : undefined;
   const config = normalizedStage ? STAGE_PILL_CONFIG[normalizedStage] : null;
+  const formattedStage =
+    stage && String(stage)
+      ? String(stage)
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      : undefined;
+  const isLegacyStage = !normalizedStage && !!formattedStage;
   const label =
-    alias?.label ?? config?.label ?? (stage ? String(stage) : "N/A");
+    roleLabel ??
+    config?.label ??
+    (isLegacyStage ? `Old Status: ${formattedStage}` : "N/A");
+  const legacyClassName =
+    "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        config?.className,
+        config?.className ?? (isLegacyStage ? legacyClassName : undefined),
         className
       )}
     >
