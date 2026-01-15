@@ -135,12 +135,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const selectedCampus = useMemo(
     () =>
-      selectedIntake?.campuses?.find((c) => String(c.id) === formData.campusId),
-    [selectedIntake, formData.campusId]
+      selectedCourse?.campuses?.find((c) => String(c.id) === formData.campusId),
+    [selectedCourse, formData.campusId]
   );
 
   const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
+  const availableCampuses: Campus[] = selectedCourse?.campuses ?? [];
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
