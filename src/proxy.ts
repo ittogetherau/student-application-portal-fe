@@ -19,6 +19,7 @@ const AUTH_PAGES = [
   siteRoutes.auth.register,
   siteRoutes.auth.signUp,
   siteRoutes.auth.signUpAlt,
+  "/auth/callback", // OAuth callback route
 ] as const;
 
 const normalizePath = (pathname: string): string =>
@@ -56,6 +57,12 @@ const getDefaultRedirect = (role: string): string => {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Always allow OAuth callback route without token validation
+  if (pathname.startsWith("/auth/callback")) {
+    return NextResponse.next();
+  }
+  
   const token = await getToken({
     req: request,
     secret: AUTH_SECRET,
@@ -101,5 +108,12 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register", "/sign-up", "/signup"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/register",
+    "/sign-up",
+    "/signup",
+    "/auth/callback",
+  ],
 };
