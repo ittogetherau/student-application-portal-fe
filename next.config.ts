@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
         destination: "/dashboard",
         permanent: false,
       },
+      {
+        source: "/api/v1/auth/microsoft/callback",
+        destination: "/login",
+        permanent: false,
+      },
     ];
   },
   async rewrites() {
