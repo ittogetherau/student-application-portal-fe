@@ -19,6 +19,7 @@ import {
   useGalaxySyncEmergencyContactMutation,
   useGalaxySyncEmploymentMutation,
   useGalaxySyncLanguageMutation,
+  useGalaxySyncOshcMutation,
   useGalaxySyncPersonalDetailsMutation,
   useGalaxySyncQualificationsMutation,
   useGalaxySyncSchoolingMutation,
@@ -189,7 +190,7 @@ function Section({
       value={value}
       className="rounded-md border border-b-0 bg-card"
     >
-      <AccordionPrimitive.Header className="flex items-center gap-2">
+      <AccordionPrimitive.Header className="flex items-center gap-0">
         <AccordionPrimitive.Trigger className="focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md px-3 py-2 text-left text-sm font-medium transition-all outline-none hover:no-underline focus-visible:ring-[3px] [&[data-state=open]>svg]:rotate-180">
           <div className="flex items-center gap-2">
             {Icon ? (
@@ -266,16 +267,18 @@ export function EnrollmentSection({
   if (!enrollmentData) return null;
   const enrollments = enrollmentData?.enrollments || [];
   const action = (
-    <SyncActionButton
-      showSync={showSync}
-      isStaffOrAdmin={isStaffOrAdmin}
-      onClick={() =>
-        toast("Enrollment sync is not available yet.", {
-          icon: "ℹ️",
-        })
-      }
-      isPending={false}
-    />
+    <>
+      {/* <SyncActionButton
+        showSync={showSync}
+        isStaffOrAdmin={isStaffOrAdmin}
+        onClick={() =>
+          toast("Enrollment sync is not available yet.", {
+            icon: "ℹ️",
+          })
+        }
+        isPending={false}
+      /> */}
+    </>
   );
 
   return (
@@ -483,17 +486,15 @@ export function HealthCoverSection({
   showSync: boolean;
   isStaffOrAdmin: boolean;
 }) {
+  const syncOshc = useGalaxySyncOshcMutation(applicationId);
   if (!policy) return null;
+
   const action = (
     <SyncActionButton
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
-      onClick={() =>
-        toast("Health cover sync is not available yet.", {
-          icon: "",
-        })
-      }
-      isPending={false}
+      onClick={() => syncOshc.mutate()}
+      isPending={syncOshc.isPending}
     />
   );
 
@@ -711,8 +712,8 @@ export function SchoolingSection({
     schoolingData?.entries && Array.isArray(schoolingData.entries)
       ? schoolingData.entries
       : Array.isArray(schoolingData)
-      ? schoolingData
-      : null;
+        ? schoolingData
+        : null;
 
   return (
     <Section
@@ -981,7 +982,7 @@ export function AdditionalServicesSection({
         !!toText(s?.name) ||
         !!toText(s?.service_id) ||
         !!toText(s?.description) ||
-        s?.fee != null
+        s?.fee != null,
     );
 
   const additionalTotal =

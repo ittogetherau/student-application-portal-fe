@@ -40,9 +40,13 @@ export const personalDetailsSchema = z.object({
 
   phone: z
     .string()
+    .max(15, "Phone number must be at most 15 characters")
     .nullish()
     .refine((val) => !!val && val.trim().length > 0, "Phone number is required"),
-  home_phone: z.string().nullish(),
+  home_phone: z
+    .string()
+    .max(15, "Home phone must be at most 15 characters")
+    .nullish(),
 
   // Passport Details
   country_of_birth: z

@@ -76,9 +76,9 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] font-medium rounded-full bg-fuchsia-700 px-1.5 flex items-center gap-1 py-0.5 text-white">
+              <span className="text-[10px] font-medium rounded-full bg-primary px-1.5 flex items-center gap-1 py-0.5 text-white">
                 <Loader size={12} className="animate-spin" />
-                processing
+                Processing
               </span>
             </div>
           </div>
@@ -128,8 +128,8 @@ const DocumentCard = ({ doc }: DocumentCardProps) => (
               doc.status === "approved"
                 ? "default"
                 : doc.status === "rejected"
-                ? "destructive"
-                : "secondary"
+                  ? "destructive"
+                  : "secondary"
             }
             className="h-4 text-[9px] px-1 font-medium uppercase"
           >

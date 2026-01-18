@@ -10,7 +10,7 @@ type GalaxySyncStatusResponse = string;
 
 const invalidateApplicationQueries = (
   queryClient: ReturnType<typeof useQueryClient>,
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   if (!applicationId) return;
   queryClient.invalidateQueries({
@@ -20,7 +20,7 @@ const invalidateApplicationQueries = (
 };
 
 export const useGalaxySyncApplicationMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -30,7 +30,7 @@ export const useGalaxySyncApplicationMutation = (
       if (!applicationId) throw new Error("Missing application reference.");
       const response = await galaxySyncService.syncApplication(
         applicationId,
-        background
+        background,
       );
       if (!response.success) throw new Error(response.message);
       if (!response.data) throw new Error("Response data is missing.");
@@ -50,7 +50,7 @@ export const useGalaxySyncApplicationMutation = (
 };
 
 export const useGalaxySyncPersonalDetailsMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -58,9 +58,8 @@ export const useGalaxySyncPersonalDetailsMutation = (
     mutationKey: ["galaxy-sync-personal-details", applicationId],
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await galaxySyncService.syncPersonalDetails(
-        applicationId
-      );
+      const response =
+        await galaxySyncService.syncPersonalDetails(applicationId);
       if (!response.success) throw new Error(response.message);
       if (response.data === null || response.data === undefined) {
         throw new Error("Response data is missing.");
@@ -81,7 +80,7 @@ export const useGalaxySyncPersonalDetailsMutation = (
 };
 
 export const useGalaxySyncDocumentsMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -110,7 +109,7 @@ export const useGalaxySyncDocumentsMutation = (
 };
 
 export const useGalaxySyncEmergencyContactMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -118,9 +117,8 @@ export const useGalaxySyncEmergencyContactMutation = (
     mutationKey: ["galaxy-sync-emergency-contact", applicationId],
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await galaxySyncService.syncEmergencyContact(
-        applicationId
-      );
+      const response =
+        await galaxySyncService.syncEmergencyContact(applicationId);
       if (!response.success) throw new Error(response.message);
       if (response.data === null || response.data === undefined) {
         throw new Error("Response data is missing.");
@@ -168,7 +166,7 @@ export const useGalaxySyncLanguageMutation = (applicationId: string | null) => {
 };
 
 export const useGalaxySyncDisabilityMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -197,7 +195,7 @@ export const useGalaxySyncDisabilityMutation = (
 };
 
 export const useGalaxySyncSchoolingMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -226,7 +224,7 @@ export const useGalaxySyncSchoolingMutation = (
 };
 
 export const useGalaxySyncQualificationsMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -234,9 +232,8 @@ export const useGalaxySyncQualificationsMutation = (
     mutationKey: ["galaxy-sync-qualifications", applicationId],
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await galaxySyncService.syncQualifications(
-        applicationId
-      );
+      const response =
+        await galaxySyncService.syncQualifications(applicationId);
       if (!response.success) throw new Error(response.message);
       if (response.data === null || response.data === undefined) {
         throw new Error("Response data is missing.");
@@ -257,7 +254,7 @@ export const useGalaxySyncQualificationsMutation = (
 };
 
 export const useGalaxySyncEmploymentMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -313,7 +310,7 @@ export const useGalaxySyncUsiMutation = (applicationId: string | null) => {
 };
 
 export const useGalaxySyncDeclarationMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -337,6 +334,33 @@ export const useGalaxySyncDeclarationMutation = (
     },
     onError: (error) => {
       console.error("[GalaxySync] syncDeclaration failed", error);
+    },
+  });
+};
+
+export const useGalaxySyncOshcMutation = (applicationId: string | null) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<GalaxySyncStatusResponse, Error, void>({
+    mutationKey: ["galaxy-sync-oshc", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      const response = await galaxySyncService.syncOshc(applicationId);
+      if (!response.success) throw new Error(response.message);
+      if (response.data === null || response.data === undefined) {
+        throw new Error("Response data is missing.");
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[GalaxySync] syncOshc success", {
+        applicationId,
+        response: data,
+      });
+      invalidateApplicationQueries(queryClient, applicationId);
+    },
+    onError: (error) => {
+      console.error("[GalaxySync] syncOshc failed", error);
     },
   });
 };

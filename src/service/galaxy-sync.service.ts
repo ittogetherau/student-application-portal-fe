@@ -253,6 +253,26 @@ class GalaxySyncService extends ApiService {
       return handleApiError(error, "Failed to sync declaration with Galaxy");
     }
   };
+
+  syncOshc = async (
+    applicationId: string
+  ): Promise<ServiceResponse<GalaxySyncStatusResponse>> => {
+    this.requireApplicationId(applicationId);
+    try {
+      const data = await this.post<GalaxySyncStatusResponse>(
+        `${this.basePath}/${applicationId}/galaxy-sync/oshc`,
+        {},
+        true
+      );
+      return {
+        success: true,
+        message: "Health cover synced successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to sync health cover with Galaxy");
+    }
+  };
 }
 
 const galaxySyncService = new GalaxySyncService();

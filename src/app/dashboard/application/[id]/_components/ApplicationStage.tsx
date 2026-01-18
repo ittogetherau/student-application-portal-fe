@@ -3,6 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
+  STAGE_PILL_CONFIG,
+  formatStageLabel,
+  getRoleStageLabel,
+} from "@/components/shared/applicationStageConfig";
+import {
   useApplicationChangeStageMutation,
   useApplicationEnrollGalaxyCourseMutation,
   useApplicationGalaxySyncMutation,
@@ -66,7 +71,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         onError: (error) => {
           toast.error(error.message || "Failed to change stage");
         },
-      }
+      },
     );
   };
 
@@ -78,10 +83,10 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
     enrollGalaxyCourse.mutate(undefined, {
       onSuccess: (data) => {
         toast.success(
-          data?.message || "Course enrollment in Galaxy completed."
+          data?.message || "Course enrollment in Galaxy completed.",
         );
         handleSendOfferLetter();
-        handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
+        // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
       },
       onError: (error) => {
         toast.error(error.message || "Failed to enroll course in Galaxy");
@@ -120,12 +125,12 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       {
         onSuccess: (data) => {
           toast.success(data?.message || "Offer letter sent successfully!");
-          // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
+          handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
         },
         onError: (error) => {
           toast.error(error.message || "Failed to send offer letter");
         },
-      }
+      },
     );
   };
 
@@ -146,7 +151,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const renderStageAction = (
     stage: APPLICATION_STAGE,
     isCurrent: boolean,
-    cardBorderClass: string
+    cardBorderClass: string,
   ) => {
     if (!isCurrent) return null;
 
@@ -233,6 +238,10 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
 
         const Icon = IconMap[el];
         const isCurrent = i === currentIndex;
+        const stageLabel =
+          getRoleStageLabel(el, current_role) ??
+          STAGE_PILL_CONFIG[el]?.label ??
+          formatStageLabel(el);
         // const isPrevious = i === currentIndex - 1;
         // const isNext = i === currentIndex + 1;
         // const isCompleted = i < currentIndex;
@@ -254,7 +263,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
                 <div className="p-1.5 bg-primary/10 outline-2 outline-primary/30 text-primary rounded-sm dark:text-white">
                   <Icon size={17} className="" />
                 </div>
-                {el.replace("_", " ")}
+                {stageLabel}
               </div>
 
               {i < currentIndex && (

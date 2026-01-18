@@ -63,8 +63,8 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
         ? "Loading archived applications..."
         : "Loading applications..."
       : isArchived
-      ? `Archived Applications (${total ?? 0})`
-      : `Applications (${total ?? 0})`;
+        ? `Archived Applications (${total ?? 0})`
+        : `Applications (${total ?? 0})`;
 
   const selectedStages = columnFilters.find((f) => f.id === "stage")?.value as
     | string[]

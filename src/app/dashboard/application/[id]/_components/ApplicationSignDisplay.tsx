@@ -253,7 +253,7 @@ const ApplicationSignDisplay = ({
                       onClick={() =>
                         handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)
                       }
-                      className="w-full"
+                      className="w-full text-xs"
                     >
                       Start GS Documentation
                       <ArrowRight />
