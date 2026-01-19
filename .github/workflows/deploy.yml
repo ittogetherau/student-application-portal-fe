@@ -3,7 +3,7 @@ name: Deploy Frontend to Production
 on:
   push:
     branches:
-      - main
+      - prod
 
 jobs:
   deploy-aws:
@@ -20,8 +20,10 @@ jobs:
           script: |
             cd /opt/churchill-portal/application-portal-fe
             
-            # Pull latest code
-            git pull origin main
+            # Checkout prod branch
+            git fetch origin
+            git checkout prod
+            git pull origin prod
             
             # Build and restart containers
             docker compose down
