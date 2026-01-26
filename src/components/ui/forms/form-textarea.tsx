@@ -9,6 +9,7 @@ interface FormTextareaProps {
     placeholder?: string;
     description?: string;
     rows?: number;
+    disabled?: boolean;
 }
 
 export function FormTextarea({
@@ -17,6 +18,7 @@ export function FormTextarea({
     placeholder,
     description,
     rows = 4,
+    disabled = false,
 }: FormTextareaProps) {
     const {
         control,
@@ -42,6 +44,7 @@ export function FormTextarea({
                         value={value ?? ""}
                         onChange={onChange}
                         onBlur={onBlur}
+                        disabled={disabled}
                     />
                 )}
             />

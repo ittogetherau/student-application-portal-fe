@@ -44,7 +44,7 @@ export function ApplicationStagePill({
   const label =
     roleLabel ??
     config?.label ??
-    (isLegacyStage ? `Old Status: ${formattedStage}` : "N/A");
+    (isLegacyStage ? `Old: ${formattedStage}` : "N/A");
   const legacyClassName =
     "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 

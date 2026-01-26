@@ -345,6 +345,7 @@ export default function DocumentsUploadForm() {
       documentTypeId: string,
       file: File,
       fileKey: string,
+      process_ocr?: boolean,
     ): Promise<void> => {
       console.log("check", applicationId);
       if (!applicationId) return;
@@ -356,6 +357,7 @@ export default function DocumentsUploadForm() {
           application_id: applicationId,
           document_type_id: documentTypeId,
           file,
+          process_ocr,
         });
 
         console.log("Upload response", response);
@@ -524,7 +526,7 @@ export default function DocumentsUploadForm() {
 
       for (const entry of uniqueNewEntries) {
         if (entry.uploading) {
-          await uploadSingleFile(documentTypeId, entry.file, entry.key);
+          await uploadSingleFile(documentTypeId, entry.file, entry.key ,false);
         }
       }
 

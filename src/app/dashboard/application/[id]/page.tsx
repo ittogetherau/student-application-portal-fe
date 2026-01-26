@@ -20,21 +20,26 @@ import { ArrowLeft, Plus, SquarePen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useQueryState } from "nuqs";
+import { useEffect, useRef, useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
 import ApplicationStage from "./_components/ApplicationStage";
-import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
-import {
-  EmptyTab,
-  ErrorState,
-  LoadingState,
-  NotFoundState,
-} from "./_components/states";
+import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
+import { ErrorState, LoadingState, NotFoundState } from "./_components/states";
 import CommunicationTab from "./_components/tabs/CommunicationTab";
 import DocumentsTab from "./_components/tabs/DocumentsTab";
+import GSTab from "./_components/tabs/gs-tab";
 import Timeline from "./_components/tabs/TimelineTab";
+
+const validTabs = [
+  "details",
+  "documents",
+  "timeline",
+  "gs-documents",
+  "communication",
+];
 
 export default function AgentApplicationDetail() {
   const params = useParams();
@@ -42,12 +47,8 @@ export default function AgentApplicationDetail() {
   const router = useRouter();
 
   const [isCreateThreadOpen, setIsCreateThreadOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
-
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
-  const IS_ADMIN_STAFF = session?.user.staff_admin;
-  const isStaffOrAdmin = ROLE === "staff" || !!IS_ADMIN_STAFF;
+  const [tabParam, setTabParam] = useQueryState("tab");
+  const hasSetInitialTab = useRef(false);
 
   const {
     data: response,
@@ -57,6 +58,32 @@ export default function AgentApplicationDetail() {
   } = useApplicationGetQuery(id);
 
   const application = response?.data;
+  const isGSAssessment = application?.current_stage === APPLICATION_STAGE.GS_ASSESSMENT;
+
+  useEffect(() => {
+    if (hasSetInitialTab.current || !application) return;
+
+    if (!tabParam) {
+      const defaultTab = isGSAssessment ? "gs-documents" : "details";
+      setTabParam(defaultTab);
+    }
+    hasSetInitialTab.current = true;
+  }, [application, tabParam, setTabParam, isGSAssessment]);
+
+  const activeTab = tabParam && validTabs.includes(tabParam)
+    ? tabParam
+    : (isGSAssessment ? "gs-documents" : "details");
+
+  useEffect(() => {
+    if (tabParam && !validTabs.includes(tabParam)) {
+      setTabParam(null);
+    }
+  }, [tabParam, setTabParam]);
+
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
+  const IS_ADMIN_STAFF = session?.user.staff_admin;
+  const isStaffOrAdmin = ROLE === "staff" || !!IS_ADMIN_STAFF;
 
   const handleBackNavigation = () =>
     router.push(siteRoutes.dashboard.application.root);
@@ -140,7 +167,7 @@ export default function AgentApplicationDetail() {
       >
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={setTabParam}
           className="space-y-3"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -180,7 +207,7 @@ export default function AgentApplicationDetail() {
 
               <Button
                 size="sm"
-                className="h-9 w-full sm:w-auto gap-2"
+                className="w-full sm:w-auto gap-2"
                 onClick={() => setIsCreateThreadOpen(true)}
               >
                 <Plus className="h-4 w-4" />
@@ -194,7 +221,7 @@ export default function AgentApplicationDetail() {
               applicationId={application.id}
               showDetails={false}
               showSync={true}
-              onNavigateToDocuments={() => setActiveTab("documents")}
+              onNavigateToDocuments={() => setTabParam("documents")}
             />
           </TabsContent>
 
@@ -221,9 +248,10 @@ export default function AgentApplicationDetail() {
           </TabsContent>
 
           <TabsContent value="gs-documents" className="space-y-3">
-            <EmptyTab
-              title="GS Documents"
-              message="No GS documents uploaded yet"
+            <GSTab
+              trackingCode={application?.tracking_code}
+              applicationId={application.id}
+              isStaff={isStaffOrAdmin}
             />
           </TabsContent>
 

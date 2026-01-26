@@ -9,6 +9,7 @@ interface FormInputProps {
   placeholder?: string;
   type?: string;
   description?: string;
+  disabled?: boolean;
 }
 
 export function FormInput({
@@ -17,6 +18,7 @@ export function FormInput({
   placeholder,
   type = "text",
   description,
+  disabled = false,
 }: FormInputProps) {
   const {
     control,
@@ -45,6 +47,7 @@ export function FormInput({
               onChange(val);
             }}
             onBlur={onBlur}
+            disabled={disabled}
           />
         )}
       />

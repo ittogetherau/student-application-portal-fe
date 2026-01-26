@@ -11,6 +11,7 @@ type UploadDocumentParams = {
   application_id: string;
   document_type_id: string;
   file: File;
+  process_ocr?: boolean;
 };
 
 type VerifyDocumentParams = Record<string, unknown>;
@@ -82,11 +83,12 @@ export const useUploadDocument = () => {
     Error,
     UploadDocumentParams
   >({
-    mutationFn: async ({ application_id, document_type_id, file }) => {
+    mutationFn: async ({ application_id, document_type_id, file, process_ocr }) => {
       const response = await documentService.uploadDocument(
         application_id,
         document_type_id,
-        file
+        file,
+        process_ocr
       );
       if (!response.success) {
         throw new Error(response.message || "Failed to upload document");

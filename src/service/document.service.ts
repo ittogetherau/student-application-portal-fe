@@ -102,7 +102,8 @@ class DocumentService extends ApiService {
   uploadDocument(
     application_id: string,
     document_type_id: string,
-    file: File
+    file: File,
+    process_ocr?: boolean,
   ): Promise<ServiceResponse<{ process_ocr: boolean }>> {
     try {
       if (!application_id) throw new Error("Application id is required");
@@ -113,6 +114,7 @@ class DocumentService extends ApiService {
       formData.append("application_id", application_id);
       formData.append("document_type_id", document_type_id);
       formData.append("file", file);
+      // formData.append("process_ocr", process_ocr?.toString() || "true");
 
       return resolveServiceCall<{ process_ocr: boolean }>(
         () =>

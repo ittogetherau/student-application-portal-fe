@@ -22,6 +22,10 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationCreateValues } from "@/validation/application.validation";
 
+export type ServiceMutationError = Error & {
+  response?: ServiceResponse<unknown>;
+};
+
 // --- Queries ---
 
 export const useApplicationListQuery = (params: ApplicationListParams = {}) => {
@@ -62,7 +66,11 @@ export const useApplicationRequestSignaturesQuery = (
 
       const response = await signatureService.requestSignatures(applicationId);
 
-      if (!response.success) throw new Error(response.message);
+      if (!response.success) {
+        const error = new Error(response.message) as ServiceMutationError;
+        error.response = response;
+        throw error;
+      }
       if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
@@ -104,7 +112,11 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
       const response =
         await applicationService.submitApplication(applicationId);
 
-      if (!response.success) throw new Error(response.message);
+      if (!response.success) {
+        const error = new Error(response.message) as ServiceMutationError;
+        error.response = response;
+        throw error;
+      }
       if (!response.data)
         throw new Error("Application data is missing from response.");
 
@@ -601,42 +613,6 @@ export const useApplicationRequestSignaturesMutation = (
     },
     onError: (error) => {
       console.error("[Application] requestSignatures failed", error);
-    },
-  });
-};
-
-// Archive application
-export const useArchiveApplicationMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
-    mutationFn: async (applicationId: string) => {
-      return await applicationService.archiveApplication(applicationId);
-    },
-    onSuccess: (_, applicationId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["application-get", applicationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["application-list"] });
-      queryClient.invalidateQueries({ queryKey: ["applications"] });
-    },
-  });
-};
-
-// Unarchive (restore) application
-export const useUnarchiveApplicationMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
-    mutationFn: async (applicationId: string) => {
-      return await applicationService.unarchiveApplication(applicationId);
-    },
-    onSuccess: (_, applicationId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["application-get", applicationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["application-list"] });
-      queryClient.invalidateQueries({ queryKey: ["applications"] });
     },
   });
 };

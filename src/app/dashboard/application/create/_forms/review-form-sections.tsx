@@ -249,6 +249,7 @@ function SyncMetadataNote({
 }) {
   if (!showSync || !isStaffOrAdmin || !syncMeta) return null;
 
+  console.log(syncMeta);
   const statusLabel = syncMeta.last_error
     ? "Error"
     : syncMeta.uptodate
@@ -272,6 +273,11 @@ function SyncMetadataNote({
           </span>
         ) : null}
       </div>
+      {syncMeta.last_error ? (
+        <p className="mt-1 text-[11px] text-destructive">
+          {syncMeta.last_error}
+        </p>
+      ) : null}
     </div>
   );
 }
