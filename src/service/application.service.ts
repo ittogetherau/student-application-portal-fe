@@ -98,6 +98,8 @@ export interface ApplicationListParams {
   search?: string;
   limit?: number;
   offset?: number;
+  includeArchived?: boolean;
+  archivedOnly?: boolean;
 }
 
 export interface ApplicationResponse {
@@ -144,12 +146,14 @@ class ApplicationService extends ApiService {
     if (typeof params.offset === "number") {
       searchParams.set("offset", params.offset.toString());
     }
+    if (params.includeArchived) searchParams.set("include_archived", "true");
+    if (params.archivedOnly) searchParams.set("archived_only", "true");
     const query = searchParams.toString();
     return query ? `?${query}` : "";
   }
 
   listApplications = async (
-    params: ApplicationListParams = {}
+    params: ApplicationListParams = {},
   ): Promise<ServiceResponse<Application[]>> => {
     try {
       const path = `${this.basePath}${this.buildQuery(params)}`;
@@ -165,7 +169,7 @@ class ApplicationService extends ApiService {
   };
 
   createApplication = async (
-    input: ApplicationCreateValues
+    input: ApplicationCreateValues,
   ): Promise<ServiceResponse<ApplicationResponse>> => {
     try {
       const body = applicationCreateSchema.parse(input);
@@ -173,7 +177,7 @@ class ApplicationService extends ApiService {
       const data = await this.post<ApplicationResponse>(
         this.basePath,
         {},
-        true
+        true,
       );
       console.log("[API] createApplication success", data);
       return {
@@ -185,19 +189,19 @@ class ApplicationService extends ApiService {
       console.error("[API] createApplication error", error);
       return handleApiError<ApplicationResponse>(
         error,
-        "Failed to create application"
+        "Failed to create application",
       );
     }
   };
 
   getApplication = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.get<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}`,
-        true
+        true,
       );
       return {
         success: true,
@@ -207,19 +211,19 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetailResponse>(
         error,
-        "Failed to fetch application"
+        "Failed to fetch application",
       );
     }
   };
 
   getApplicationTimeline = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<ServiceResponse<TimelineResponse[]>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.get<TimelineResponse[]>(
         `${this.basePath}/${applicationId}/timeline`,
-        true
+        true,
       );
       return {
         success: true,
@@ -229,21 +233,21 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<TimelineResponse[]>(
         error,
-        "Failed to fetch application"
+        "Failed to fetch application",
       );
     }
   };
 
   updateApplication = async (
     applicationId: string,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
   ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.patch<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}`,
         payload,
-        true
+        true,
       );
       return {
         success: true,
@@ -253,13 +257,13 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetailResponse>(
         error,
-        "Failed to update application"
+        "Failed to update application",
       );
     }
   };
 
   submitApplication = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
@@ -270,7 +274,7 @@ class ApplicationService extends ApiService {
       const data = await this.post<ApplicationDetailResponse>(
         `${this.basePath}/${applicationId}/submit`,
         payload,
-        true
+        true,
       );
       return {
         success: true,
@@ -280,7 +284,7 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetailResponse>(
         error,
-        "Failed to submit application"
+        "Failed to submit application",
       );
     }
   };
@@ -288,7 +292,7 @@ class ApplicationService extends ApiService {
   // Staff and Admin - Assign application to staff member
   assignApplication = async (
     applicationId: string,
-    staffId: string | null
+    staffId: string | null,
   ): Promise<ServiceResponse<ApplicationDetailResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
@@ -296,7 +300,7 @@ class ApplicationService extends ApiService {
       const data = await this.post<ApplicationDetailResponse>(
         `/applications/${applicationId}/assign`,
         payload,
-        true
+        true,
       );
       return {
         success: true,
@@ -308,7 +312,7 @@ class ApplicationService extends ApiService {
     } catch (error) {
       return handleApiError<ApplicationDetailResponse>(
         error,
-        "Failed to assign application"
+        "Failed to assign application",
       );
     }
   };
@@ -316,14 +320,14 @@ class ApplicationService extends ApiService {
   //staff and admin
   changeStage = async (
     applicationId: string,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
   ): Promise<ServiceResponse<unknown>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<unknown>(
         `${this.basePath}/${applicationId}/change-stage`,
         payload,
-        true
+        true,
       );
       return {
         success: true,
@@ -341,7 +345,7 @@ class ApplicationService extends ApiService {
     payload: {
       offer_details: Record<string, unknown>;
       notes?: string;
-    }
+    },
   ): Promise<
     ServiceResponse<{
       application_id: string;
@@ -371,14 +375,14 @@ class ApplicationService extends ApiService {
   // Staff - Approve application and generate offer
   startApplicationReview = async (
     applicationId: string,
-    payload: any
+    payload: any,
   ): Promise<ServiceResponse<any>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<any>(
         `staff/applications/${applicationId}/start-review`,
         payload,
-        true
+        true,
       );
 
       return {
@@ -397,7 +401,7 @@ class ApplicationService extends ApiService {
     payload: {
       rejection_reason: string;
       is_appealable: boolean;
-    }
+    },
   ): Promise<
     ServiceResponse<{
       application_id: string;
@@ -439,7 +443,7 @@ class ApplicationService extends ApiService {
 
   // Staff - Enroll course in Galaxy
   enrollGalaxyCourse = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<
     ServiceResponse<{
       application_id?: string;
@@ -466,14 +470,14 @@ class ApplicationService extends ApiService {
 
   // Staff - Sync application data with Galaxy
   syncGalaxyApplication = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<ServiceResponse<GalaxySyncResponse>> => {
     if (!applicationId) throw new Error("Application id is required");
     try {
       const data = await this.post<GalaxySyncResponse>(
         `staff/applications/${applicationId}/galaxy-sync`,
         {},
-        true
+        true,
       );
       return {
         success: true,
@@ -487,7 +491,7 @@ class ApplicationService extends ApiService {
 
   // Staff - Generate offer letter PDF
   generateOfferLetter = async (
-    applicationId: string
+    applicationId: string,
   ): Promise<
     ServiceResponse<{
       offer_letter_url: string;
@@ -512,6 +516,48 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to generate offer letter");
+    }
+  };
+
+  // Archive application (soft delete)
+  archiveApplication = async (
+    applicationId: string,
+  ): Promise<ServiceResponse<ApplicationResponse>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<ApplicationResponse>(
+        `${this.basePath}/${applicationId}/archive`,
+        {},
+        true,
+      );
+      return {
+        success: true,
+        message: "Application archived successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to archive application");
+    }
+  };
+
+  // Restore archived application
+  unarchiveApplication = async (
+    applicationId: string,
+  ): Promise<ServiceResponse<ApplicationResponse>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<ApplicationResponse>(
+        `${this.basePath}/${applicationId}/unarchive`,
+        {},
+        true,
+      );
+      return {
+        success: true,
+        message: "Application restored successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to restore application");
     }
   };
 }

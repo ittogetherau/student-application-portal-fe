@@ -33,7 +33,9 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
     extraFilters,
     isSearchingOrFiltering,
     resetFilters,
-  } = useApplications();
+  } = useApplications({
+    filters: isArchived ? { archivedOnly: true } : {},
+  });
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const yesNoEnum = z.enum(["yes", "no"]);
 const approvalStatusEnum = z.enum(["approved", "not-approved", "not-applicable"]);
+const riskLevelEnum = z.enum(["low", "medium", "high"]);
 
 const optionalEmail = z
   .string()
@@ -46,8 +47,10 @@ export const gsAssessmentStaffSchema = z.object({
     )
     .optional(),
 
-  gsStatus: z.enum(["approved", "not-approved"]).optional(),
+  gsStatus: z.enum(["approved", "not_approved", "conditional_approval"]).optional(),
   notes: z.string().optional(),
+  conditions: z.string().optional(),
+  riskLevel: riskLevelEnum.optional(),
 });
 
 export type GSAssessmentStaffFormValues = z.infer<typeof gsAssessmentStaffSchema>;

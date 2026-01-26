@@ -34,6 +34,8 @@ import {
 import {
   useGSStudentDeclarationSaveWithTokenMutation,
   useGSStudentDeclarationSubmitWithTokenMutation,
+  useGSStudentDeclarationSaveMutation,
+  useGSStudentDeclarationSubmitMutation,
   useGSAgentDeclarationSaveMutation,
   useGSAgentDeclarationSubmitMutation,
 } from "@/hooks/useGSAssessment.hook";
@@ -185,12 +187,21 @@ export function GSScreeningForm({
 
   const [onshoreGuidance, setOnshoreGuidance] = useState<"yes" | "no">("no");
 
-  const saveStudentDeclarationMutation = useGSStudentDeclarationSaveWithTokenMutation();
-  const submitStudentDeclarationMutation = useGSStudentDeclarationSubmitWithTokenMutation();
+  // Token-based mutations (for student filling via email link)
+  const saveStudentDeclarationWithTokenMutation = useGSStudentDeclarationSaveWithTokenMutation();
+  const submitStudentDeclarationWithTokenMutation = useGSStudentDeclarationSubmitWithTokenMutation();
+
+  // Authenticated mutations (for staff filling on behalf of student)
+  const saveStudentDeclarationMutation = useGSStudentDeclarationSaveMutation(applicationId ?? null);
+  const submitStudentDeclarationMutation = useGSStudentDeclarationSubmitMutation(applicationId ?? null);
+
+  // Agent mutations
   const saveAgentDeclarationMutation = useGSAgentDeclarationSaveMutation(applicationId ?? null);
   const submitAgentDeclarationMutation = useGSAgentDeclarationSubmitMutation(applicationId ?? null);
 
   const isSubmitting =
+    saveStudentDeclarationWithTokenMutation.isPending ||
+    submitStudentDeclarationWithTokenMutation.isPending ||
     saveStudentDeclarationMutation.isPending ||
     submitStudentDeclarationMutation.isPending ||
     saveAgentDeclarationMutation.isPending ||
@@ -201,22 +212,30 @@ export function GSScreeningForm({
 
     try {
       if (currentView === "student") {
-        if (!trackingId || !token) {
-          toast.error("Authentication token is missing. Please use the link provided in your email.");
+        // Check if using token-based auth (student via email) or authenticated (staff on behalf)
+        if (trackingId && token) {
+          // Student filling via email link with token
+          await saveStudentDeclarationWithTokenMutation.mutateAsync({
+            applicationId: trackingId,
+            token,
+            payload,
+          });
+
+          await submitStudentDeclarationWithTokenMutation.mutateAsync({
+            applicationId: trackingId,
+            token,
+            payload,
+          });
+          // Toast is shown by the hook
+        } else if (applicationId) {
+          // Staff filling on behalf of student with next-auth
+          await saveStudentDeclarationMutation.mutateAsync(payload);
+          await submitStudentDeclarationMutation.mutateAsync(payload);
+          toast.success("Student declaration submitted successfully!");
+        } else {
+          toast.error("Application ID or authentication token is missing.");
           return;
         }
-
-        await saveStudentDeclarationMutation.mutateAsync({
-          applicationId: trackingId,
-          token,
-          payload,
-        });
-
-        await submitStudentDeclarationMutation.mutateAsync({
-          applicationId: trackingId,
-          token,
-          payload,
-        });
       } else if (currentView === "agent") {
         if (!applicationId) {
           toast.error("Application ID is missing.");
@@ -225,6 +244,7 @@ export function GSScreeningForm({
 
         await saveAgentDeclarationMutation.mutateAsync(payload);
         await submitAgentDeclarationMutation.mutateAsync(payload);
+        // Toast is shown by the hook
       }
     } catch (error) {
       console.error("Declaration submission error:", error);

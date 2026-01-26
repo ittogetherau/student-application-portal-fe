@@ -9,6 +9,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGSAssessmentQuery,
   useGSAssessmentProgress,
+  useGSStageCompleteMutation,
 } from "@/hooks/useGSAssessment.hook";
 import { transformGSAssessmentData } from "@/constants/gs-assessment";
 import GSAssessmentTab from "./gs-tabs/assessment-tab";
@@ -42,16 +43,16 @@ export default function GSTab({
 
   // Fetch GS assessment from dedicated endpoint: /api/v1/gs-assessment/{application_id}
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(
-    applicationId ?? null
+    applicationId ?? null,
   );
 
   // Transform the API response to frontend format
   const gsAssessmentData = useMemo(
     () =>
       transformGSAssessmentData(
-        gsAssessmentResponse?.data as Record<string, unknown> | null
+        gsAssessmentResponse?.data as Record<string, unknown> | null,
       ),
-    [gsAssessmentResponse?.data]
+    [gsAssessmentResponse?.data],
   );
 
   const { stepsProgress } = useGSAssessmentProgress(gsAssessmentData);
@@ -62,12 +63,11 @@ export default function GSTab({
     if (userSelectedTab !== null) {
       return userSelectedTab;
     }
-    
+
     const targetStepIndex = Math.min(currentApiStage, STEPS.length - 1);
     return STEPS[targetStepIndex]?.id ?? "documents";
   }, [userSelectedTab, currentApiStage]);
 
-  
   const getStageStatus = (index: number) => {
     const progress = stepsProgress[index];
     if (!progress) return "locked";
@@ -87,9 +87,15 @@ export default function GSTab({
     setUserSelectedTab(tabId);
   };
 
-  const handleStageComplete = (completedStageIndex: number) => {
-    // Move to next stage
-    const nextStageIndex = Math.min(completedStageIndex + 1, STEPS.length - 1);
+  const stageCompleteMutation = useGSStageCompleteMutation(
+    applicationId ?? null,
+  );
+
+  // Centralized stage completion handler - calls API and updates UI
+  const handleStageComplete = async (stageToComplete: number) => {
+    await stageCompleteMutation.mutateAsync({ stageToComplete });
+    // Move to next stage after successful API call
+    const nextStageIndex = Math.min(stageToComplete, STEPS.length - 1);
     const nextStep = STEPS[nextStageIndex];
     if (nextStep) {
       setUserSelectedTab(nextStep.id);
@@ -208,7 +214,7 @@ export default function GSTab({
           applicationId={applicationId}
           isStaff={isStaff}
           isStageCompleted={isStageCompleted(0)}
-          onStageComplete={() => handleStageComplete(0)}
+          onStageComplete={() => handleStageComplete(1)}
         />
       </TabsContent>
       <TabsContent value="declarations" className="mt-0">
@@ -216,17 +222,34 @@ export default function GSTab({
           applicationId={applicationId}
           isStaff={isStaff}
           isStageCompleted={isStageCompleted(1)}
-          onStageComplete={() => handleStageComplete(1)}
+          onStageComplete={() => handleStageComplete(2)}
         />
       </TabsContent>
       <TabsContent value="schedule" className="mt-0">
-        <GSScheduleTab />
+        <GSScheduleTab
+          applicationId={applicationId}
+          isStaff={isStaff}
+          isStageCompleted={isStageCompleted(2)}
+          onStageComplete={() => handleStageComplete(3)}
+          // onSkipToAssessment={() => handleStageComplete(5)}
+        />
       </TabsContent>
       <TabsContent value="interview" className="mt-0">
-        <GSInterviewTab />
+        <GSInterviewTab
+          applicationId={applicationId}
+          isStaff={isStaff}
+          isStageCompleted={isStageCompleted(3)}
+          onStageComplete={() => handleStageComplete(4)}
+        />
       </TabsContent>
       <TabsContent value="assessment" className="mt-0">
-        <GSAssessmentTab trackingCode={trackingCode} />
+        <GSAssessmentTab
+          trackingCode={trackingCode}
+          applicationId={applicationId}
+          isStaff={isStaff}
+          isStageCompleted={isStageCompleted(4)}
+          onStageComplete={() => handleStageComplete(5)}
+        />
       </TabsContent>
     </Tabs>
   );

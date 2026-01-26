@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Send, FileText, Loader2, Eye, CheckCircle2, CircleCheck } from "lucide-react";
+import { ArrowLeft, Send, FileText, Loader2, Eye, CheckCircle2, CircleCheck, Clock } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components
 import {
   useGSStudentDeclarationQuery,
   useGSAgentDeclarationQuery,
-  useGSStageCompleteMutation,
   useGSStudentDeclarationResendMutation,
   useGSDeclarationReviewMutation,
 } from "@/hooks/useGSAssessment.hook";
@@ -28,7 +27,7 @@ interface GSDeclarationsTabProps {
   applicationId?: string;
   isStaff?: boolean;
   isStageCompleted?: boolean;
-  onStageComplete?: () => void;
+  onStageComplete?: () => Promise<void>;
 }
 
 export default function GSDeclarationsTab({
@@ -43,7 +42,6 @@ export default function GSDeclarationsTab({
 
   const { data: studentDeclaration } = useGSStudentDeclarationQuery(applicationId ?? null);
   const { data: agentDeclaration } = useGSAgentDeclarationQuery(applicationId ?? null);
-  const stageCompleteMutation = useGSStageCompleteMutation(applicationId ?? null);
   const resendMutation = useGSStudentDeclarationResendMutation(applicationId ?? null);
   const reviewMutation = useGSDeclarationReviewMutation(applicationId ?? null);
 
@@ -66,6 +64,35 @@ export default function GSDeclarationsTab({
   const canProceed = isStudentVerified && isAgentVerified;
 
   const handleBack = () => setViewState("cards");
+
+  // Get status badge based on declaration status
+  const getStatusBadge = (status: string | undefined) => {
+    switch (status) {
+      case "approved":
+        return (
+          <Badge variant="outline" className="border-emerald-500 text-emerald-600 gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Verified
+          </Badge>
+        );
+      case "submitted":
+        return (
+          <Badge variant="outline" className="border-amber-500 text-amber-600 gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            Pending Review
+          </Badge>
+        );
+      case "draft":
+        return (
+          <Badge variant="outline" className="border-blue-400 text-blue-500 gap-1">
+            <Send className="h-3.5 w-3.5" />
+            Sent
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   const handleVerify = async (actor: "student" | "agent") => {
     try {
@@ -101,10 +128,8 @@ export default function GSDeclarationsTab({
         });
       }
 
-      // Complete the stage
-      await stageCompleteMutation.mutateAsync({ stageToComplete: 2 });
-      toast.success("Declarations verified! Proceeding to scheduling phase.");
-      onStageComplete?.();
+      // Call parent's stage completion handler
+      await onStageComplete?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to verify declarations");
     } finally {
@@ -125,29 +150,26 @@ export default function GSDeclarationsTab({
                     Student must complete their section
                   </p>
                 </div>
-                {isStudentVerified && (
-                  <Badge variant="outline" className="border-blue-500 text-blue-600 gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Verified
-                  </Badge>
-                )}
+                {getStatusBadge(studentStatus)}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => resendMutation.mutate({ rotate_token: true })}
-                  disabled={resendMutation.isPending}
-                >
-                  {resendMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Resend Form
-                </Button>
+                {studentStatus === "submitted" && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => resendMutation.mutate({ rotate_token: true })}
+                    disabled={resendMutation.isPending}
+                  >
+                    {resendMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Resend Form
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="w-full gap-2"
@@ -190,12 +212,7 @@ export default function GSDeclarationsTab({
                     Agent/staff must complete this section
                   </p>
                 </div>
-                {isAgentVerified && (
-                  <Badge variant="outline" className="border-blue-500 text-blue-600 gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Verified
-                  </Badge>
-                )}
+                {getStatusBadge(agentStatus)}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -251,7 +268,6 @@ export default function GSDeclarationsTab({
           </Button>
         )}
 
-        {/* Stage completed message */}
         {isStageCompleted && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5" />
@@ -260,15 +276,25 @@ export default function GSDeclarationsTab({
             </span>
           </div>
         )}
+
       </div>
     );
   }
 
   const isReadOnly = viewState.mode === "view";
   const declarationType = viewState.declarationType;
-  const initialData = declarationType === "student"
-    ? studentDeclaration?.data?.data
-    : agentDeclaration?.data?.data;
+
+  // For agent form, merge student data with agent data so student details are pre-filled
+  const getInitialData = () => {
+    if (declarationType === "student") {
+      return studentDeclaration?.data?.data;
+    }
+    // For agent form, include student data as base
+    const studentData = studentDeclaration?.data?.data;
+    const agentData = agentDeclaration?.data?.data;
+    return { ...studentData, ...agentData };
+  };
+  const initialData = getInitialData();
 
   const breadcrumbLabel = declarationType === "student"
     ? (isReadOnly ? "View Student Declaration" : "Fill Student Declaration")

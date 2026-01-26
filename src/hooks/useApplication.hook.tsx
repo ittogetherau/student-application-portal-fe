@@ -616,3 +616,39 @@ export const useApplicationRequestSignaturesMutation = (
     },
   });
 };
+
+// Archive application
+export const useArchiveApplicationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
+    mutationFn: async (applicationId: string) => {
+      return await applicationService.archiveApplication(applicationId);
+    },
+    onSuccess: (_, applicationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Unarchive (restore) application
+export const useUnarchiveApplicationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
+    mutationFn: async (applicationId: string) => {
+      return await applicationService.unarchiveApplication(applicationId);
+    },
+    onSuccess: (_, applicationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};

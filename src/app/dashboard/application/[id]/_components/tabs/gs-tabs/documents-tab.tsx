@@ -10,9 +10,9 @@ import {
   Loader2,
   Search,
   Upload,
-  XCircle,
   ExternalLink,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -36,14 +36,13 @@ import {
   useGSDocumentUploadMutation,
   useGSDocumentStatusMutation,
   useGSDocumentAutoCompleteMutation,
-  useGSStageCompleteMutation,
 } from "@/hooks/useGSAssessment.hook";
 
 interface GSDocumentsTabProps {
   applicationId?: string;
   isStaff?: boolean;
   isStageCompleted?: boolean;
-  onStageComplete?: () => void;
+  onStageComplete?: () => Promise<void>;
 }
 
 function getStatusBadge(status: GSDocumentBackendStatus) {
@@ -68,8 +67,8 @@ function getStatusBadge(status: GSDocumentBackendStatus) {
       );
     case "rejected":
       return (
-        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-          Rejected
+        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+          Changes Requested
         </Badge>
       );
     case "not_started":
@@ -115,7 +114,7 @@ export default function GSDocumentsTab({
   const uploadMutation = useGSDocumentUploadMutation(applicationId ?? null);
   const statusMutation = useGSDocumentStatusMutation(applicationId ?? null);
   const autoCompleteMutation = useGSDocumentAutoCompleteMutation(applicationId ?? null);
-  const stageCompleteMutation = useGSStageCompleteMutation(applicationId ?? null);
+  const [isCompletingStage, setIsCompletingStage] = useState(false);
 
   // Transform API data to frontend format
   const documents: GSDocumentData[] = useMemo(() => {
@@ -160,8 +159,9 @@ export default function GSDocumentsTab({
 
   // Handle completing the stage
   const handleCompleteStage = async () => {
-    if (isStageCompleted) return;
+    if (isStageCompleted || isCompletingStage) return;
 
+    setIsCompletingStage(true);
     try {
       // Refetch documents to ensure we have the latest data
       const { data: freshData } = await refetchDocuments();
@@ -186,13 +186,14 @@ export default function GSDocumentsTab({
         return;
       }
 
-      await stageCompleteMutation.mutateAsync({ stageToComplete: 1 });
-      toast.success("Documents stage completed! Moving to Declarations.");
-      onStageComplete?.();
+      // Call parent's stage completion handler
+      await onStageComplete?.();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to complete stage"
       );
+    } finally {
+      setIsCompletingStage(false);
     }
   };
 
@@ -231,7 +232,7 @@ export default function GSDocumentsTab({
   ) => {
     try {
       await statusMutation.mutateAsync({ documentNumber, status });
-      toast.success(`Document ${status === "approved" ? "approved" : "rejected"}`);
+      toast.success(`Document ${status === "approved" ? "approved" : "change requested"}`);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to update status"
@@ -298,10 +299,10 @@ export default function GSDocumentsTab({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <XCircle className="h-5 w-5 text-red-600" />
+            <RefreshCw className="h-5 w-5 text-amber-600" />
             <div>
               <p className="text-sm font-semibold">{rejectedCount}</p>
-              <p className="text-xs text-muted-foreground">Rejected</p>
+              <p className="text-xs text-muted-foreground">Changes Requested</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -356,7 +357,7 @@ export default function GSDocumentsTab({
                 <option value="approved">Approved</option>
                 <option value="uploaded">Uploaded</option>
                 <option value="in_review">Under Review</option>
-                <option value="rejected">Rejected</option>
+                <option value="rejected">Changes Requested</option>
                 <option value="not_started">Not Started</option>
               </select>
             </div>
@@ -463,13 +464,13 @@ export default function GSDocumentsTab({
                       </label>
                     </div>
 
-                    {/* Review notes if rejected */}
+                    {/* Review notes if change requested */}
                     {doc.status === "rejected" && doc.reviewNotes && (
-                      <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                        <p className="text-xs font-medium text-red-700 dark:text-red-400">
-                          Rejection reason:
+                      <div className="p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                          Requested changes:
                         </p>
-                        <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                        <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
                           {doc.reviewNotes}
                         </p>
                       </div>
@@ -503,7 +504,7 @@ export default function GSDocumentsTab({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            className="h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
                             onClick={() =>
                               handleStatusChange(doc.documentNumber, "rejected")
                             }
@@ -512,9 +513,9 @@ export default function GSDocumentsTab({
                             {isUpdatingStatus ? (
                               <Loader2 className="h-3 w-3 animate-spin mr-1" />
                             ) : (
-                              <XCircle className="h-3 w-3 mr-1" />
+                              <RefreshCw className="h-3 w-3 mr-1" />
                             )}
-                            Reject
+                            Request Change
                           </Button>
                         )}
                       </div>
@@ -535,10 +536,10 @@ export default function GSDocumentsTab({
             <div className="pt-4 border-t">
               <Button
                 onClick={handleCompleteStage}
-                disabled={stageCompleteMutation.isPending}
+                disabled={isCompletingStage}
                 className="w-full"
               >
-                {stageCompleteMutation.isPending ? (
+                {isCompletingStage ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <CheckCircle2 className="h-4 w-4 mr-2" />

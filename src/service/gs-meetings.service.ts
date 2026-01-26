@@ -27,8 +27,8 @@ export interface GsMeetingResponse {
 
 export interface ScheduleGsMeetingRequest {
   application_id: string;
-  scheduled_at: string;
-  duration_minutes?: number;
+  scheduled_start: string;
+  scheduled_end: string;
   timezone?: string;
   participants?: GsMeetingParticipant[];
   notes?: string;

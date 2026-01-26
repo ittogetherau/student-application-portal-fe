@@ -1,11 +1,40 @@
 "use client";
 
-import { Clock, ExternalLink, Video } from "lucide-react";
+import { useState } from "react";
+import { Clock, ExternalLink, Video, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function GSInterviewTab() {
+interface GSInterviewTabProps {
+  applicationId?: string;
+  isStaff?: boolean;
+  isStageCompleted?: boolean;
+  onStageComplete?: () => Promise<void>;
+}
+
+export default function GSInterviewTab({
+  applicationId,
+  isStaff = false,
+  isStageCompleted = false,
+  onStageComplete,
+}: GSInterviewTabProps) {
+  const [isSkipping, setIsSkipping] = useState(false);
+
+  const handleSkipStage = async () => {
+    if (isStageCompleted || isSkipping) return;
+
+    setIsSkipping(true);
+    try {
+      // Call parent's stage completion handler
+      await onStageComplete?.();
+    } catch {
+      // Error toast is shown by the parent hook
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -42,6 +71,32 @@ export default function GSInterviewTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Continue Button - staff only, stage not completed */}
+      {isStaff && !isStageCompleted && (
+        <Button
+          className="w-full gap-2"
+          onClick={handleSkipStage}
+          disabled={isSkipping}
+        >
+          {isSkipping ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowRight className="h-4 w-4" />
+          )}
+          Continue to Assessment
+        </Button>
+      )}
+
+      {/* Stage completed message */}
+      {isStageCompleted && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+          <CheckCircle2 className="h-5 w-5" />
+          <span className="text-sm font-medium">
+            Interview stage completed. Proceed to Assessment.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
