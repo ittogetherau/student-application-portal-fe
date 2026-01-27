@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, FileText, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGSStaffAssessmentQuery } from "@/hooks/useGSAssessment.hook";
 import { GSAssessmentStaffForm } from "../../forms/gs-assessment-staff-form";
+import { useApplicationChangeStageMutation } from "@/hooks/useApplication.hook";
+import { APPLICATION_STAGE } from "@/constants/types";
 
 type ViewState = "cards" | { mode: "view" | "edit" };
 
@@ -31,6 +33,7 @@ export default function GSAssessmentTab({
   const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
     applicationId ?? null
   );
+  const changeStage = useApplicationChangeStageMutation(applicationId ?? "");
 
   const assessmentStatus = staffAssessment?.data?.status;
   const isSubmitted = assessmentStatus === "submitted" || assessmentStatus === "completed";
@@ -40,6 +43,7 @@ export default function GSAssessmentTab({
   const handleFormSuccess = async () => {
     await onStageComplete?.();
     setViewState("cards");
+    await changeStage.mutateAsync({ to_stage: APPLICATION_STAGE.COE_ISSUED });
   };
 
   if (isLoading) {
@@ -53,8 +57,6 @@ export default function GSAssessmentTab({
   }
 
   if (viewState !== "cards") {
-    const isReadOnly = viewState.mode === "view";
-
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -64,14 +66,13 @@ export default function GSAssessmentTab({
           </Button>
           <span className="text-muted-foreground">/</span>
           <span className="text-sm font-medium">
-            {isReadOnly ? "View Staff Assessment" : "Edit Staff Assessment"}
+             Staff Assessment
           </span>
         </div>
 
         <GSAssessmentStaffForm
           applicationId={applicationId}
-          readOnly={isReadOnly}
-          onSuccess={isReadOnly ? handleBack : handleFormSuccess}
+          onSuccess={handleFormSuccess}
         />
       </div>
     );
@@ -109,17 +110,6 @@ export default function GSAssessmentTab({
             >
               <FileText className="h-4 w-4" />
               Open Staff Assessment Form
-            </Button>
-          )}
-
-          {isStaff && !isSubmitted && (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setViewState({ mode: "edit" })}
-            >
-              <Pencil className="h-4 w-4" />
-              Edit Form
             </Button>
           )}
 

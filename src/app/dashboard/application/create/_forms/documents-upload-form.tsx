@@ -55,25 +55,9 @@ type DocumentsFormData = {
 
 const STEP_ID = 12;
 
-const ALLOWED_FILE_EXTENSIONS = [
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".png",
-  ".tiff",
-  ".tif",
-  ".bmp",
-  ".pdf",
-];
+const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
 
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/gif",
-  "image/png",
-  "image/tiff",
-  "image/bmp",
-  "application/pdf",
-];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 
 const isAllowedFileType = (file: File) => {
   const fileName = file.name.toLowerCase();

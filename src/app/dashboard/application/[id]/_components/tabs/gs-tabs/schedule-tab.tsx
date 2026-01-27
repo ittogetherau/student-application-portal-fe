@@ -17,6 +17,15 @@ interface GSScheduleTabProps {
   onStageComplete?: () => Promise<void>;
 }
 
+// Helper to get default date (7 days from now) in datetime-local format
+const getDefaultScheduledDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  date.setHours(10, 30, 0, 0);
+  // Format: YYYY-MM-DDTHH:MM
+  return date.toISOString().slice(0, 16);
+};
+
 export default function GSScheduleTab({
   applicationId,
   isStaff = false,
@@ -24,6 +33,8 @@ export default function GSScheduleTab({
   onStageComplete,
 }: GSScheduleTabProps) {
   const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledDateTime, setScheduledDateTime] = useState(getDefaultScheduledDate);
+  const [meetingTitle, setMeetingTitle] = useState("GS Assessment Interview");
   const { data: session } = useSession();
 
   const handleScheduleInterview = async () => {
@@ -31,9 +42,8 @@ export default function GSScheduleTab({
 
     setIsScheduling(true);
     try {
-      // Schedule a meeting
-      const scheduledStart = new Date();
-      scheduledStart.setDate(scheduledStart.getDate() + 7); // Default to 7 days from now
+      // Schedule a meeting using the selected date/time
+      const scheduledStart = new Date(scheduledDateTime);
 
       const scheduledEnd = new Date(scheduledStart);
       scheduledEnd.setMinutes(scheduledEnd.getMinutes() + 30); // 30 minute duration
@@ -41,6 +51,7 @@ export default function GSScheduleTab({
       try {
         const meetingPayload: Record<string, unknown> = {
           application_id: applicationId,
+          title: meetingTitle,
           scheduled_start: scheduledStart.toISOString(),
           scheduled_end: scheduledEnd.toISOString(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -97,14 +108,21 @@ export default function GSScheduleTab({
             <div className="space-y-2">
               <label className="text-xs font-medium">Meeting title</label>
               <Input
-                value="GS Assessment Interview"
-                readOnly
+                value={meetingTitle}
+                onChange={(e) => setMeetingTitle(e.target.value)}
+                disabled={isStageCompleted || isScheduling}
                 className="text-sm"
               />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium">Date and time</label>
-              <Input value="2026-02-10 10:30" readOnly className="text-sm" />
+              <Input
+                type="datetime-local"
+                value={scheduledDateTime}
+                onChange={(e) => setScheduledDateTime(e.target.value)}
+                disabled={isStageCompleted || isScheduling}
+                className="text-sm"
+              />
             </div>
           </div>
           {isStaff && !isStageCompleted && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback, memo } from "react";
 import { toast } from "react-hot-toast";
 import { CheckCircle2, Loader2, Save } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import {
   Controller,
   FormProvider,
   useForm,
+  useFormContext,
   type Control,
   type Resolver,
 } from "react-hook-form";
@@ -18,90 +19,84 @@ import { FormInput } from "@/components/ui/forms/form-input";
 import { FormTextarea } from "@/components/ui/forms/form-textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getFieldError } from "@/components/ui/forms/form-errors";
 import {
   useGSStaffAssessmentQuery,
   useGSStaffAssessmentSaveMutation,
   useGSStaffAssessmentSubmitMutation,
   useGSFinalizeDecisionMutation,
 } from "@/hooks/useGSAssessment.hook";
+import { gsAssessmentStaffSchema } from "../../_utils/gs-assessment-staff.validation";
 import {
-  gsAssessmentStaffSchema,
-  type GSAssessmentStaffFormValues,
-} from "../../_utils/gs-assessment-staff.validation";
+  STAGE_1_QUESTIONS,
+  STAGE_2_QUESTIONS,
+  type StageQuestion,
+} from "../../_constants/gs-assessment-questions";
 
-interface StageQuestion {
-  id: string;
-  question: string;
+// Form input type (allows undefined for initial state, Zod validates on submit)
+type GSAssessmentStaffFormInput = {
+  applicantDetails: {
+    givenName: string;
+    familyName: string;
+    dob: string;
+    refNo: string;
+    passportNo: string;
+    email: string;
+  };
+  stage1: Array<{
+    answer?: "yes" | "no";
+    evidenceVerified: boolean;
+  }>;
+  stage2: Array<{
+    answer?: "yes" | "no";
+    evidenceVerified: boolean;
+    approvalStatus?: "approved" | "not-approved" | "not-applicable";
+  }>;
+  gsStatus?: "approved" | "not_approved" | "conditional_approval";
+  notes: string;
+  conditions: string;
+  riskLevel?: "low" | "medium" | "high";
+};
+
+// Default form values
+const DEFAULT_VALUES: GSAssessmentStaffFormInput = {
+  applicantDetails: {
+    givenName: "",
+    familyName: "",
+    dob: "",
+    refNo: "",
+    passportNo: "",
+    email: "",
+  },
+  stage1: STAGE_1_QUESTIONS.map(() => ({
+    answer: undefined,
+    evidenceVerified: false,
+  })),
+  stage2: STAGE_2_QUESTIONS.map(() => ({
+    answer: undefined,
+    evidenceVerified: false,
+    approvalStatus: undefined,
+  })),
+  gsStatus: undefined,
+  notes: "",
+  conditions: "",
+  riskLevel: undefined,
+};
+
+// Error display component using Controller for proper reactivity
+function ErrorMessage({ name }: { name: string }) {
+  const { control } = useFormContext();
+
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ fieldState: { error } }) =>
+        error ? <p className="text-sm text-red-500 mt-1">{error.message}</p> : <></>
+      }
+    />
+  );
 }
-
-const STAGE_1_QUESTIONS: StageQuestion[] = [
-  {
-    id: "q1",
-    question:
-      "Have you explained the academic entry requirements of the applied program/package programs to the applicant?",
-  },
-  {
-    id: "q2",
-    question:
-      "Does the applicant meet the English Language Proficiency (ELP) requirements?",
-  },
-  {
-    id: "q3",
-    question:
-      "Has the applicant been advised of the study details, including content, duration, tuition fees, campus location, and career opportunities on completion of the program(s)?",
-  },
-  {
-    id: "q4",
-    question:
-      "If the applicant is seeking credit/recognition of previous learning (RPL), have the relevant course outlines been provided?",
-  },
-  {
-    id: "q5",
-    question:
-      "Are you satisfied that the program the applicant has selected is linked to their previous educational background and/or future career aspirations? Has evidence been sighted to support this?",
-  },
-  {
-    id: "q6",
-    question:
-      "Are there any gaps in the applicant's study or employment history? If yes, provide details with supporting documentation.",
-  },
-  {
-    id: "q7",
-    question:
-      "Has the applicant ever been excluded from another institution? If yes, provide details with supporting documentation.",
-  },
-];
-
-const STAGE_2_QUESTIONS: StageQuestion[] = [
-  {
-    id: "s2q1",
-    question:
-      "Has the student provided a signed letter of offer issued by the provider?",
-  },
-  {
-    id: "s2q2",
-    question: "Did the student submit other supporting documents?",
-  },
-  {
-    id: "s2q3",
-    question:
-      "Do the financial documents submitted by the student, including all supporting documents, meet the CIHE GS requirement?",
-  },
-  {
-    id: "s2q4",
-    question:
-      "Has the student provided proof of relationship for all financial sponsors?",
-  },
-  {
-    id: "s2q5",
-    question:
-      "Has the student been interviewed by the admission team of Churchill Institute of Higher Education?",
-  },
-  {
-    id: "s2q6",
-    question: "Student fee payment has been verified",
-  },
-];
 
 interface GSAssessmentStaffFormProps {
   applicationId?: string;
@@ -119,35 +114,100 @@ export function GSAssessmentStaffForm({
   );
 
   const saveMutation = useGSStaffAssessmentSaveMutation(applicationId ?? null);
-  const submitMutation = useGSStaffAssessmentSubmitMutation(applicationId ?? null);
+  const submitMutation = useGSStaffAssessmentSubmitMutation(
+    applicationId ?? null
+  );
   const decisionMutation = useGSFinalizeDecisionMutation(applicationId ?? null);
 
-  const resolver = zodResolver(
-    gsAssessmentStaffSchema
-  ) as Resolver<GSAssessmentStaffFormValues>;
-
-  const methods = useForm<GSAssessmentStaffFormValues>({
-    resolver,
-    mode: "onSubmit",
+  const methods = useForm<GSAssessmentStaffFormInput>({
+    resolver: zodResolver(
+      gsAssessmentStaffSchema
+    ) as Resolver<GSAssessmentStaffFormInput>,
+    defaultValues: DEFAULT_VALUES,
+    mode: "onTouched",
     reValidateMode: "onChange",
   });
 
-  const { handleSubmit, watch, control, reset, getValues } = methods;
-  const gsStatus = watch("gsStatus") ?? "";
+  const { handleSubmit, control, reset, getValues, setValue, clearErrors } =
+    methods;
 
+  const isSubmitting =
+    saveMutation.isPending ||
+    submitMutation.isPending ||
+    decisionMutation.isPending;
+
+  // Transform form values to API payload
+  const transformToPayload = useCallback(
+    (values: GSAssessmentStaffFormInput) => ({
+      applicant_details: {
+        given_name: values.applicantDetails?.givenName ?? "",
+        family_name: values.applicantDetails?.familyName ?? "",
+        dob: values.applicantDetails?.dob ?? "",
+        ref_no: values.applicantDetails?.refNo ?? "",
+        passport_no: values.applicantDetails?.passportNo ?? "",
+        email: values.applicantDetails?.email ?? "",
+      },
+      stage1_questions: STAGE_1_QUESTIONS.map((q, i) => ({
+        id: q.id,
+        question: q.question,
+        answer: values.stage1?.[i]?.answer ?? "",
+        evidence_verified: values.stage1?.[i]?.evidenceVerified ?? false,
+      })),
+      stage2_questions: STAGE_2_QUESTIONS.map((q, i) => ({
+        id: q.id,
+        question: q.question,
+        answer: values.stage2?.[i]?.answer ?? "",
+        evidence_verified: values.stage2?.[i]?.evidenceVerified ?? false,
+        approval_status: values.stage2?.[i]?.approvalStatus ?? "",
+      })),
+      ...(values.gsStatus && { recommendation: values.gsStatus }),
+      ...(values.notes && { additional_comments: values.notes }),
+      ...(values.conditions && { conditions: values.conditions }),
+      ...(values.riskLevel && { risk_level: values.riskLevel }),
+    }),
+    []
+  );
+
+  // Handle "Select All Yes" checkbox
+  const handleSelectAllYes = useCallback(
+    (isChecked: boolean, stage: "stage1" | "stage2") => {
+      const questions = stage === "stage1" ? STAGE_1_QUESTIONS : STAGE_2_QUESTIONS;
+      const fieldsToClear: Array<`stage1.${number}.answer` | `stage2.${number}.answer`> = [];
+
+      questions.forEach((_, index) => {
+        const fieldName = `${stage}.${index}.answer` as const;
+        setValue(fieldName, isChecked ? "yes" : undefined);
+        if (isChecked) {
+          fieldsToClear.push(fieldName);
+        }
+      });
+
+      // Clear errors for all fields when selecting all yes
+      if (isChecked && fieldsToClear.length > 0) {
+        clearErrors(fieldsToClear);
+      }
+    },
+    [setValue, clearErrors]
+  );
+
+  // Populate form with API data
   useEffect(() => {
     const staffData = staffAssessment?.data;
+    if (!staffData) return;
 
-    const applicantDetails = staffData?.applicant_details as Record<string, string> | undefined;
-    const stage1Questions = staffData?.stage1_questions as Array<{
-      answer?: string;
-      evidence_verified?: boolean;
-    }> | undefined;
-    const stage2Questions = staffData?.stage2_questions as Array<{
-      answer?: string;
-      evidence_verified?: boolean;
-      approval_status?: string;
-    }> | undefined;
+    const applicantDetails = staffData?.applicant_details as
+      | Record<string, string>
+      | undefined;
+    const stage1Questions = staffData?.stage1_questions as
+      | Array<{ answer?: string; evidence_verified?: boolean }>
+      | undefined;
+    const stage2Questions = staffData?.stage2_questions as
+      | Array<{
+          answer?: string;
+          evidence_verified?: boolean;
+          approval_status?: string;
+        }>
+      | undefined;
 
     reset({
       applicantDetails: {
@@ -158,49 +218,31 @@ export function GSAssessmentStaffForm({
         passportNo: applicantDetails?.passport_no || "",
         email: applicantDetails?.email || "",
       },
-      stage1: stage1Questions?.map((q) => ({
-        answer: q.answer as "yes" | "no" | undefined,
-        evidenceVerified: q.evidence_verified,
-      })) ?? [],
-      stage2: stage2Questions?.map((q) => ({
-        answer: q.answer as "yes" | "no" | undefined,
-        evidenceVerified: q.evidence_verified,
-        approvalStatus: q.approval_status as "approved" | "not-approved" | "not-applicable" | undefined,
-      })) ?? [],
-      gsStatus: staffData?.recommendation as "approved" | "not_approved" | "conditional_approval" | undefined,
-      notes: staffData?.additional_comments ?? "",
-      conditions: staffData?.conditions ?? "",
+      stage1:
+        stage1Questions?.map((q) => ({
+          answer: q.answer as "yes" | "no" | undefined,
+          evidenceVerified: q.evidence_verified ?? false,
+        })) ?? DEFAULT_VALUES.stage1,
+      stage2:
+        stage2Questions?.map((q) => ({
+          answer: q.answer as "yes" | "no" | undefined,
+          evidenceVerified: q.evidence_verified ?? false,
+          approvalStatus: q.approval_status as
+            | "approved"
+            | "not-approved"
+            | "not-applicable"
+            | undefined,
+        })) ?? DEFAULT_VALUES.stage2,
+      gsStatus: staffData?.recommendation as
+        | "approved"
+        | "not_approved"
+        | "conditional_approval"
+        | undefined,
+      notes: (staffData?.additional_comments as string) ?? "",
+      conditions: (staffData?.conditions as string) ?? "",
       riskLevel: staffData?.risk_level as "low" | "medium" | "high" | undefined,
     });
   }, [staffAssessment, reset]);
-
-  const transformToPayload = (values: GSAssessmentStaffFormValues) => ({
-    applicant_details: {
-      given_name: values.applicantDetails?.givenName ?? "",
-      family_name: values.applicantDetails?.familyName ?? "",
-      dob: values.applicantDetails?.dob ?? "",
-      ref_no: values.applicantDetails?.refNo ?? "",
-      passport_no: values.applicantDetails?.passportNo ?? "",
-      email: values.applicantDetails?.email ?? "",
-    },
-    stage1_questions: STAGE_1_QUESTIONS.map((q, i) => ({
-      id: q.id,
-      question: q.question,
-      answer: values.stage1?.[i]?.answer ?? "",
-      evidence_verified: values.stage1?.[i]?.evidenceVerified ?? false,
-    })),
-    stage2_questions: STAGE_2_QUESTIONS.map((q, i) => ({
-      id: q.id,
-      question: q.question,
-      answer: values.stage2?.[i]?.answer ?? "",
-      evidence_verified: values.stage2?.[i]?.evidenceVerified ?? false,
-      approval_status: values.stage2?.[i]?.approvalStatus ?? "",
-    })),
-    ...(values.gsStatus && { recommendation: values.gsStatus }),
-    ...(values.notes && { additional_comments: values.notes }),
-    ...(values.conditions && { conditions: values.conditions }),
-    ...(values.riskLevel && { risk_level: values.riskLevel }),
-  });
 
   const handleSave = async () => {
     const values = getValues();
@@ -212,16 +254,17 @@ export function GSAssessmentStaffForm({
     }
   };
 
-  const handleFormSubmit = async (values: GSAssessmentStaffFormValues) => {
+  const handleFormSubmit = async (values: GSAssessmentStaffFormInput) => {
+    // Validation is handled by Zod schema - if we reach here, form is valid
+    if (!values.gsStatus) return;
+
     try {
       await submitMutation.mutateAsync(transformToPayload(values));
 
-      if (values.gsStatus) {
-        await decisionMutation.mutateAsync({
-          final_decision: values.gsStatus,
-          decision_rationale: values.notes || "",
-        });
-      }
+      await decisionMutation.mutateAsync({
+        final_decision: values.gsStatus,
+        decision_rationale: values.notes || "",
+      });
 
       toast.success("Assessment submitted");
       onSuccess?.();
@@ -240,7 +283,8 @@ export function GSAssessmentStaffForm({
 
   return (
     <FormProvider {...methods}>
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit(handleFormSubmit)}>
+        {/* Header */}
         <div className="border-b pb-4">
           <h2 className="text-xl font-semibold">
             Genuine Student (GS) Assessment
@@ -252,6 +296,7 @@ export function GSAssessmentStaffForm({
           </p>
         </div>
 
+        {/* Applicant Details */}
         <div className="space-y-4">
           <h3 className="font-semibold">Applicant Detail</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -290,170 +335,61 @@ export function GSAssessmentStaffForm({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-semibold">Stage 1 - Application</h3>
-          <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium min-w-[300px]">
-                      Question
-                    </th>
-                    <th className="text-center p-3 font-medium w-[80px]">
-                      YES
-                    </th>
-                    <th className="text-center p-3 font-medium w-[80px]">
-                      NO
-                    </th>
-                    <th className="text-center p-3 font-medium w-[150px]">
-                      Evidence Verified
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {STAGE_1_QUESTIONS.map((q, index) => (
-                    <tr
-                      key={q.id}
-                      className={
-                        index % 2 === 0 ? "bg-background" : "bg-muted/20"
-                      }
-                    >
-                      <td className="p-3 text-sm">{q.question}</td>
-                      <td className="p-3 text-center">
-                        <YesNoCheckboxCell
-                          control={control}
-                          name={`stage1.${index}.answer`}
-                          checkedValue="yes"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <YesNoCheckboxCell
-                          control={control}
-                          name={`stage1.${index}.answer`}
-                          checkedValue="no"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <BooleanCheckboxCell
-                          control={control}
-                          name={`stage1.${index}.evidenceVerified`}
-                          disabled={readOnly}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        {/* Stage 1 Questions */}
+        <StageQuestionsTable
+          title="Stage 1 - Application"
+          stage="stage1"
+          questions={STAGE_1_QUESTIONS}
+          control={control}
+          readOnly={readOnly}
+          onSelectAllYes={handleSelectAllYes}
+          showApprovalStatus={false}
+        />
 
-        <div className="space-y-4">
-          <h3 className="font-semibold">Stage 2 - GTE Document</h3>
-          <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium min-w-[300px]">
-                      Question
-                    </th>
-                    <th className="text-center p-3 font-medium w-[80px]">
-                      YES
-                    </th>
-                    <th className="text-center p-3 font-medium w-[80px]">
-                      NO
-                    </th>
-                    <th className="text-center p-3 font-medium w-[150px]">
-                      Evidence Verified
-                    </th>
-                    <th className="text-center p-3 font-medium w-[180px]">
-                      Approval Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {STAGE_2_QUESTIONS.map((q, index) => (
-                    <tr
-                      key={q.id}
-                      className={
-                        index % 2 === 0 ? "bg-background" : "bg-muted/20"
-                      }
-                    >
-                      <td className="p-3 text-sm">{q.question}</td>
-                      <td className="p-3 text-center">
-                        <YesNoCheckboxCell
-                          control={control}
-                          name={`stage2.${index}.answer`}
-                          checkedValue="yes"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <YesNoCheckboxCell
-                          control={control}
-                          name={`stage2.${index}.answer`}
-                          checkedValue="no"
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <BooleanCheckboxCell
-                          control={control}
-                          name={`stage2.${index}.evidenceVerified`}
-                          disabled={readOnly}
-                        />
-                      </td>
-                      <td className="p-3">
-                        <ApprovalStatusSelectCell
-                          control={control}
-                          name={`stage2.${index}.approvalStatus`}
-                          disabled={readOnly}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        {/* Stage 2 Questions */}
+        <StageQuestionsTable
+          title="Stage 2 - GTE Document"
+          stage="stage2"
+          questions={STAGE_2_QUESTIONS}
+          control={control}
+          readOnly={readOnly}
+          onSelectAllYes={handleSelectAllYes}
+          showApprovalStatus={true}
+        />
 
+        {/* GS Status */}
         <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
           <h3 className="font-semibold">Student GS Status</h3>
-          <GSStatusRadio control={control} name="gsStatus" disabled={readOnly} />
+          <GSStatusRadio control={control} disabled={readOnly} />
         </div>
 
+        {/* Risk Level */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Risk Level</Label>
-            <RiskLevelSelect control={control} name="riskLevel" disabled={readOnly} />
+            <RiskLevelSelect control={control} disabled={readOnly} />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <FormTextarea
-            name="conditions"
-            label="Conditions:"
-            placeholder="Enter any conditions for approval..."
-            rows={3}
-            disabled={readOnly}
-          />
-        </div>
+        {/* Conditions */}
+        <FormTextarea
+          name="conditions"
+          label="Conditions:"
+          placeholder="Enter any conditions for approval..."
+          rows={3}
+          disabled={readOnly}
+        />
 
-        <div className="space-y-2">
-          <FormTextarea
-            name="notes"
-            label="Additional Comments:"
-            placeholder="Enter any additional notes or remarks..."
-            rows={5}
-            disabled={readOnly}
-          />
-        </div>
+        {/* Notes */}
+        <FormTextarea
+          name="notes"
+          label="Additional Comments:"
+          placeholder="Enter any additional notes or remarks..."
+          rows={5}
+          disabled={readOnly}
+        />
 
+        {/* Action Buttons */}
         {!readOnly && (
           <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-background py-4">
             <Button
@@ -470,12 +406,11 @@ export function GSAssessmentStaffForm({
               Save Assessment
             </Button>
             <Button
-              type="button"
-              onClick={handleSubmit(handleFormSubmit)}
+              type="submit"
               className="gap-2 bg-green-600 hover:bg-green-700"
-              disabled={!gsStatus || submitMutation.isPending || decisionMutation.isPending}
+              disabled={isSubmitting}
             >
-              {(submitMutation.isPending || decisionMutation.isPending) ? (
+              {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
@@ -489,41 +424,165 @@ export function GSAssessmentStaffForm({
   );
 }
 
-function YesNoCheckboxCell({
+// ============================================================================
+// Stage Questions Table Component
+// ============================================================================
+
+interface StageQuestionsTableProps {
+  title: string;
+  stage: "stage1" | "stage2";
+  questions: StageQuestion[];
+  control: Control<GSAssessmentStaffFormInput>;
+  readOnly: boolean;
+  onSelectAllYes: (isChecked: boolean, stage: "stage1" | "stage2") => void;
+  showApprovalStatus: boolean;
+}
+
+const StageQuestionsTable = memo(function StageQuestionsTable({
+  title,
+  stage,
+  questions,
+  control,
+  readOnly,
+  onSelectAllYes,
+  showApprovalStatus,
+}: StageQuestionsTableProps) {
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold">{title}</h3>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 font-medium min-w-[300px]">
+                  Question
+                </th>
+                <th className="text-center p-3 font-medium w-[80px]">
+                  <div className="flex items-center justify-center gap-2">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        onChange={(e) => onSelectAllYes(e.target.checked, stage)}
+                        disabled={readOnly}
+                      />
+                    </label>
+                    YES
+                  </div>
+                </th>
+                <th className="text-center p-3 font-medium w-[80px]">NO</th>
+                <th className="text-center p-3 font-medium w-[150px]">
+                  Evidence Verified
+                </th>
+                {showApprovalStatus && (
+                  <th className="text-center p-3 font-medium w-[180px]">
+                    Approval Status
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {questions.map((q, index) => (
+                <tr
+                  key={q.id}
+                  className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}
+                >
+                  <td className="p-3 text-sm">
+                    {q.question}
+                    <ErrorMessage name={`${stage}.${index}.answer`} />
+                  </td>
+                  <td className="p-3 text-center">
+                    <YesNoCheckbox
+                      control={control}
+                      name={`${stage}.${index}.answer`}
+                      checkedValue="yes"
+                      disabled={readOnly}
+                    />
+                  </td>
+                  <td className="p-3 text-center">
+                    <YesNoCheckbox
+                      control={control}
+                      name={`${stage}.${index}.answer`}
+                      checkedValue="no"
+                      disabled={readOnly}
+                    />
+                  </td>
+                  <td className="p-3 text-center">
+                    <EvidenceCheckbox
+                      control={control}
+                      name={`${stage}.${index}.evidenceVerified`}
+                      disabled={readOnly}
+                    />
+                  </td>
+                  {showApprovalStatus && (
+                    <td className="p-3">
+                      <ApprovalStatusSelect
+                        control={control}
+                        name={`stage2.${index}.approvalStatus`}
+                        disabled={readOnly}
+                      />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============================================================================
+// Form Field Components
+// ============================================================================
+
+const YesNoCheckbox = memo(function YesNoCheckbox({
   control,
   name,
   checkedValue,
   disabled,
 }: {
-  control: Control<GSAssessmentStaffFormValues>;
+  control: Control<GSAssessmentStaffFormInput>;
   name: `stage1.${number}.answer` | `stage2.${number}.answer`;
   checkedValue: "yes" | "no";
   disabled?: boolean;
 }) {
+  const { clearErrors } = useFormContext<GSAssessmentStaffFormInput>();
+
   return (
     <Controller
       name={name}
       control={control}
-      render={({ field: { value, onChange, ref } }) => (
+      render={({ field: { value, onChange, ref }, fieldState: { invalid } }) => (
         <Checkbox
           ref={ref}
           checked={value === checkedValue}
-          onCheckedChange={(checked) =>
-            onChange(checked === true ? checkedValue : undefined)
-          }
+          onCheckedChange={(checked) => {
+            if (checked) {
+              onChange(checkedValue);
+              clearErrors(name);
+            }
+          }}
           disabled={disabled}
+          className={
+            invalid
+              ? "border-red-500 border-2 data-[state=unchecked]:border-red-500"
+              : ""
+          }
         />
       )}
     />
   );
-}
+});
 
-function BooleanCheckboxCell({
+const EvidenceCheckbox = memo(function EvidenceCheckbox({
   control,
   name,
   disabled,
 }: {
-  control: Control<GSAssessmentStaffFormValues>;
+  control: Control<GSAssessmentStaffFormInput>;
   name:
     | `stage1.${number}.evidenceVerified`
     | `stage2.${number}.evidenceVerified`;
@@ -533,129 +592,188 @@ function BooleanCheckboxCell({
     <Controller
       name={name}
       control={control}
-      render={({ field: { value, onChange, ref } }) => (
-        <Checkbox
-          ref={ref}
-          checked={Boolean(value)}
-          onCheckedChange={(checked) => onChange(checked === true)}
-          disabled={disabled}
-        />
+      render={({ field: { value, onChange, ref }, fieldState: { invalid } }) => (
+        <>
+          <Checkbox
+            ref={ref}
+            checked={Boolean(value)}
+            onCheckedChange={(checked) => onChange(checked === true)}
+            disabled={disabled}
+            className={invalid ? "border-red-500" : ""}
+          />
+        </>
       )}
     />
   );
-}
+});
 
-function ApprovalStatusSelectCell({
+const ApprovalStatusSelect = memo(function ApprovalStatusSelect({
   control,
   name,
   disabled,
 }: {
-  control: Control<GSAssessmentStaffFormValues>;
+  control: Control<GSAssessmentStaffFormInput>;
   name: `stage2.${number}.approvalStatus`;
   disabled?: boolean;
 }) {
+  const { clearErrors } = useFormContext<GSAssessmentStaffFormInput>();
+
   return (
     <Controller
       name={name}
       control={control}
-      render={({ field: { value, onChange, ref } }) => (
-        <select
-          ref={ref}
-          className="w-full px-2 py-1.5 text-xs border rounded-md bg-background disabled:opacity-50 disabled:cursor-not-allowed"
-          value={(value ?? "") as string}
-          onChange={(e) => onChange(e.target.value || undefined)}
-          disabled={disabled}
-        >
-          <option value="">Select...</option>
-          <option value="approved">Approved</option>
-          <option value="not-approved">Not Approved</option>
-          <option value="not-applicable">Not Applicable</option>
-        </select>
+      render={({
+        field: { value, onChange, ref },
+        fieldState: { invalid, error },
+      }) => (
+        <div>
+          <select
+            ref={ref}
+            className={`w-full px-2 py-1.5 text-xs border rounded-md bg-background disabled:opacity-50 disabled:cursor-not-allowed ${
+              invalid ? "border-red-500" : ""
+            }`}
+            value={value || ""}
+            onChange={(e) => {
+              const newValue = e.target.value || undefined;
+              onChange(newValue);
+              if (newValue) {
+                clearErrors(name);
+              }
+            }}
+            disabled={disabled}
+          >
+            <option value="">Select...</option>
+            <option value="approved">Approved</option>
+            <option value="not-approved">Not Approved</option>
+            <option value="not-applicable">Not Applicable</option>
+          </select>
+          {error && (
+            <p className="text-xs text-red-500 mt-1">{error.message}</p>
+          )}
+        </div>
       )}
     />
   );
-}
+});
 
-function GSStatusRadio({
+const GSStatusRadio = memo(function GSStatusRadio({
   control,
-  name,
   disabled,
 }: {
-  control: Control<GSAssessmentStaffFormValues>;
-  name: "gsStatus";
+  control: Control<GSAssessmentStaffFormInput>;
   disabled?: boolean;
 }) {
   return (
     <Controller
-      name={name}
+      name="gsStatus"
       control={control}
-      render={({ field: { value, onChange } }) => (
-        <RadioGroup
-          value={(value ?? "") as string}
-          onValueChange={onChange}
-          className="flex flex-wrap gap-6"
-          disabled={disabled}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="approved" id="status-approved" disabled={disabled} />
-            <Label
-              htmlFor="status-approved"
-              className={`cursor-pointer font-normal ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+      render={({
+        field: { value, onChange },
+        formState: { errors },
+        fieldState: { invalid },
+      }) => {
+        const error = getFieldError(errors, "gsStatus")?.message;
+        return (
+          <>
+            <RadioGroup
+              value={value || ""}
+              onValueChange={onChange}
+              className={`flex flex-wrap gap-6 ${
+                invalid ? "border border-red-500 p-2 rounded" : ""
+              }`}
+              disabled={disabled}
             >
-              ✓ Approved
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="not_approved" id="status-not-approved" disabled={disabled} />
-            <Label
-              htmlFor="status-not-approved"
-              className={`cursor-pointer font-normal ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              ✗ Not Approved
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="conditional_approval" id="status-conditional" disabled={disabled} />
-            <Label
-              htmlFor="status-conditional"
-              className={`cursor-pointer font-normal ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              ⚠ Conditional Approval
-            </Label>
-          </div>
-        </RadioGroup>
-      )}
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value="approved"
+                  id="status-approved"
+                  disabled={disabled}
+                />
+                <Label
+                  htmlFor="status-approved"
+                  className={`cursor-pointer font-normal ${
+                    disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  ✓ Approved
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value="not_approved"
+                  id="status-not-approved"
+                  disabled={disabled}
+                />
+                <Label
+                  htmlFor="status-not-approved"
+                  className={`cursor-pointer font-normal ${
+                    disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  ✗ Not Approved
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value="conditional_approval"
+                  id="status-conditional"
+                  disabled={disabled}
+                />
+                <Label
+                  htmlFor="status-conditional"
+                  className={`cursor-pointer font-normal ${
+                    disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  ⚠ Conditional Approval
+                </Label>
+              </div>
+            </RadioGroup>
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+          </>
+        );
+      }}
     />
   );
-}
+});
 
-function RiskLevelSelect({
+const RiskLevelSelect = memo(function RiskLevelSelect({
   control,
-  name,
   disabled,
 }: {
-  control: Control<GSAssessmentStaffFormValues>;
-  name: "riskLevel";
+  control: Control<GSAssessmentStaffFormInput>;
   disabled?: boolean;
 }) {
   return (
     <Controller
-      name={name}
+      name="riskLevel"
       control={control}
-      render={({ field: { value, onChange, ref } }) => (
-        <select
-          ref={ref}
-          className="w-full px-3 py-2 text-sm border rounded-md bg-background disabled:opacity-50 disabled:cursor-not-allowed"
-          value={(value ?? "") as string}
-          onChange={(e) => onChange(e.target.value || undefined)}
-          disabled={disabled}
-        >
-          <option value="">Select risk level...</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-      )}
+      render={({
+        field: { value, onChange, ref },
+        formState: { errors },
+        fieldState: { invalid },
+      }) => {
+        const error = getFieldError(errors, "riskLevel")?.message;
+        return (
+          <>
+            <select
+              ref={ref}
+              className={`w-full px-3 py-2 text-sm border rounded-md bg-background disabled:opacity-50 disabled:cursor-not-allowed ${
+                invalid ? "border-red-500" : ""
+              }`}
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value || undefined)}
+              disabled={disabled}
+            >
+              <option value="">Select risk level...</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+          </>
+        );
+      }}
     />
   );
-}
+});

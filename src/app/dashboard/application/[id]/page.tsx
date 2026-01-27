@@ -37,7 +37,7 @@ const validTabs = [
   "details",
   "documents",
   "timeline",
-  "gs-documents",
+  "gs-progress",
   "communication",
 ];
 
@@ -64,7 +64,7 @@ export default function AgentApplicationDetail() {
     if (hasSetInitialTab.current || !application) return;
 
     if (!tabParam) {
-      const defaultTab = isGSAssessment ? "gs-documents" : "details";
+      const defaultTab = isGSAssessment ? "gs-progress" : "details";
       setTabParam(defaultTab);
     }
     hasSetInitialTab.current = true;
@@ -72,7 +72,7 @@ export default function AgentApplicationDetail() {
 
   const activeTab = tabParam && validTabs.includes(tabParam)
     ? tabParam
-    : (isGSAssessment ? "gs-documents" : "details");
+    : (isGSAssessment ? "gs-progress" : "details");
 
   useEffect(() => {
     if (tabParam && !validTabs.includes(tabParam)) {
@@ -181,8 +181,8 @@ export default function AgentApplicationDetail() {
               <TabsTrigger value="timeline" className="text-xs px-3">
                 Timeline
               </TabsTrigger>
-              <TabsTrigger value="gs-documents" className="text-xs px-3">
-                GS Documents
+              <TabsTrigger value="gs-progress" className="text-xs px-3">
+                GS Process
               </TabsTrigger>
               <TabsTrigger value="communication" className="text-xs px-3">
                 Communication
@@ -247,7 +247,7 @@ export default function AgentApplicationDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="gs-documents" className="space-y-3">
+          <TabsContent value="gs-progress" className="space-y-3">
             <GSTab
               trackingCode={application?.tracking_code}
               applicationId={application.id}

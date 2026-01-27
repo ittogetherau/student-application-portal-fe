@@ -16,6 +16,7 @@ import {
   useGSStudentDeclarationResendMutation,
   useGSDeclarationReviewMutation,
 } from "@/hooks/useGSAssessment.hook";
+import { cn } from "@/lib/utils";
 
 type DeclarationType = "student" | "agent";
 
@@ -171,7 +172,6 @@ export default function GSDeclarationsTab({
                   </Button>
                 )}
                 <Button
-                  variant="outline"
                   className="w-full gap-2"
                   onClick={() => setViewState({ mode: "edit", declarationType: "student" })}
                 >
@@ -189,15 +189,30 @@ export default function GSDeclarationsTab({
               </div>
               {isStaff && showStudentCheckbox && (
                 <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
+                  <Button
                     id="verify-student"
-                    checked={isStudentVerified}
-                    onCheckedChange={() => handleVerify("student")}
+                    onClick={() => handleVerify("student")}
                     disabled={isStudentVerified || reviewMutation.isPending}
-                  />
-                  <Label htmlFor="verify-student" className="text-sm font-normal">
-                    I have verified this declaration
-                  </Label>
+                    variant={isStudentVerified ? "default" : "outline"}
+                    className={cn(
+                      "w-full gap-2",
+                      isStudentVerified
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
+                        : "border-emerald-500 text-emerald-600"
+                    )}
+                  >
+                    {isStudentVerified ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Student Verified
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Verify Student Declaration
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -218,7 +233,6 @@ export default function GSDeclarationsTab({
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
                 <Button
-                  variant="outline"
                   className="w-full gap-2"
                   onClick={() => setViewState({ mode: "edit", declarationType: "agent" })}
                 >
@@ -236,15 +250,30 @@ export default function GSDeclarationsTab({
               </div>
               {isStaff && showAgentCheckbox && (
                 <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
+                  <Button
                     id="verify-agent"
-                    checked={isAgentVerified}
-                    onCheckedChange={() => handleVerify("agent")}
+                    onClick={() => handleVerify("agent")}
                     disabled={isAgentVerified || reviewMutation.isPending}
-                  />
-                  <Label htmlFor="verify-agent" className="text-sm font-normal">
-                    I have verified this declaration
-                  </Label>
+                    variant={isAgentVerified ? "default" : "outline"}
+                    className={cn(
+                      "w-full gap-2",
+                      isAgentVerified
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
+                        : "border-emerald-500 text-emerald-600"
+                    )}
+                  >
+                    {isAgentVerified ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Agent Verified
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Verify Agent Declaration
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -316,6 +345,7 @@ export default function GSDeclarationsTab({
         readOnly={isReadOnly}
         initialData={initialData}
         applicationId={applicationId}
+        handleBack={handleBack}
       />
     </div>
   );

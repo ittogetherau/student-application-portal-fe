@@ -115,6 +115,7 @@ interface GSScreeningFormProps {
   applicationId?: string;
   readOnly?: boolean;
   initialData?: Partial<GSScreeningFormValues>;
+  handleBack ?: () => void;
 }
 
 export function GSScreeningForm({
@@ -124,6 +125,7 @@ export function GSScreeningForm({
   applicationId,
   readOnly = false,
   initialData,
+  handleBack,
 }: GSScreeningFormProps) {
   const resolver = zodResolver(
     createGSScreeningSchema(currentView),
@@ -232,6 +234,7 @@ export function GSScreeningForm({
           await saveStudentDeclarationMutation.mutateAsync(payload);
           await submitStudentDeclarationMutation.mutateAsync(payload);
           toast.success("Student declaration submitted successfully!");
+          handleBack?.();
         } else {
           toast.error("Application ID or authentication token is missing.");
           return;
@@ -244,7 +247,7 @@ export function GSScreeningForm({
 
         await saveAgentDeclarationMutation.mutateAsync(payload);
         await submitAgentDeclarationMutation.mutateAsync(payload);
-        // Toast is shown by the hook
+        handleBack?.()
       }
     } catch (error) {
       console.error("Declaration submission error:", error);
@@ -278,7 +281,7 @@ export function GSScreeningForm({
             </div>
           )}
 
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+         <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900 dark:text-blue-100 space-y-2">
@@ -317,6 +320,7 @@ export function GSScreeningForm({
           </div>
         </div>
 
+        {currentView === "student" && <>
         <div className="space-y-6">
           <h2 className="text-xl font-bold">SECTION A</h2>
 
@@ -844,11 +848,12 @@ export function GSScreeningForm({
             </CardContent>
           </Card>
         </div>
+        </>}
 
         <div className="space-y-6">
           <h2 className="text-xl font-bold">DECLARATION</h2>
 
-          {(currentView === "student" || currentView === "agent") && (
+          {(currentView === "student") && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">APPLICANT DECLARATION</CardTitle>

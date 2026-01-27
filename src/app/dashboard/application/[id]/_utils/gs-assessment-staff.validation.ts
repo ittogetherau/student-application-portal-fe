@@ -1,57 +1,75 @@
 import { z } from "zod";
 
-const yesNoEnum = z.enum(["yes", "no"]);
-const approvalStatusEnum = z.enum(["approved", "not-approved", "not-applicable"]);
-const riskLevelEnum = z.enum(["low", "medium", "high"]);
-
-const optionalEmail = z
-  .string()
-  .optional()
-  .refine(
-    (value) => {
-      const trimmed = value?.trim() ?? "";
-      if (trimmed === "") return true;
-      return z.string().email().safeParse(trimmed).success;
-    },
-    { message: "Email must be a valid email address" },
-  );
-
-export const gsAssessmentStaffSchema = z.object({
-  applicantDetails: z
-    .object({
-      givenName: z.string().optional(),
-      familyName: z.string().optional(),
-      dob: z.string().optional(),
-      refNo: z.string().optional(),
-      passportNo: z.string().optional(),
-      email: optionalEmail,
-    })
-    .optional(),
-
-  stage1: z
-    .array(
-      z.object({
-        answer: yesNoEnum.optional(),
-        evidenceVerified: z.boolean().optional(),
-      }),
-    )
-    .optional(),
-
-  stage2: z
-    .array(
-      z.object({
-        answer: yesNoEnum.optional(),
-        evidenceVerified: z.boolean().optional(),
-        approvalStatus: approvalStatusEnum.optional(),
-      }),
-    )
-    .optional(),
-
-  gsStatus: z.enum(["approved", "not_approved", "conditional_approval"]).optional(),
-  notes: z.string().optional(),
-  conditions: z.string().optional(),
-  riskLevel: riskLevelEnum.optional(),
+// Define custom schemas with error messages using z.enum for proper error handling
+const yesNoSchema = z.enum(["yes", "no"], {
+  message: "Select Yes or No",
 });
 
-export type GSAssessmentStaffFormValues = z.infer<typeof gsAssessmentStaffSchema>;
+const approvalStatusSchema = z.enum(["approved", "not-approved", "not-applicable"], {
+  message: "Select status",
+});
+
+const riskLevelSchema = z.enum(["low", "medium", "high"], {
+  message: "Select level",
+});
+
+const gsStatusSchema = z.enum(["approved", "not_approved", "conditional_approval"], {
+  message: "Select status",
+});
+
+export const gsAssessmentStaffSchema = z.object({
+  applicantDetails: z.object({
+    givenName: z.string().min(1, { message: "Required" }),
+    familyName: z.string().min(1, { message: "Required" }),
+    dob: z.string().min(1, { message: "Required" }),
+    refNo: z.string().min(1, { message: "Required" }),
+    passportNo: z.string().min(1, { message: "Required" }),
+    email: z.string().min(1, { message: "Required" }).email({ message: "Invalid email" }),
+  }),
+
+  stage1: z.array(
+    z.object({
+      answer: yesNoSchema,
+      evidenceVerified: z.boolean(),
+    })
+  ),
+
+  stage2: z.array(
+    z.object({
+      answer: yesNoSchema,
+      evidenceVerified: z.boolean(),
+      approvalStatus: approvalStatusSchema,
+    })
+  ),
+
+  gsStatus: gsStatusSchema,
+  notes: z.string().min(1, { message: "Required" }),
+  conditions: z.string().min(1, { message: "Required" }),
+  riskLevel: riskLevelSchema,
+});
+
+// Define the types explicitly to maintain compatibility
+export type GSAssessmentStaffFormValues = {
+  applicantDetails: {
+    givenName: string;
+    familyName: string;
+    dob: string;
+    refNo: string;
+    passportNo: string;
+    email: string;
+  };
+  stage1: Array<{
+    answer: "yes" | "no";
+    evidenceVerified: boolean;
+  }>;
+  stage2: Array<{
+    answer: "yes" | "no";
+    evidenceVerified: boolean;
+    approvalStatus: "approved" | "not-approved" | "not-applicable";
+  }>;
+  gsStatus: "approved" | "not_approved" | "conditional_approval";
+  notes: string;
+  conditions: string;
+  riskLevel: "low" | "medium" | "high";
+};
 

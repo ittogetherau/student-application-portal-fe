@@ -38,6 +38,19 @@ import {
   useGSDocumentAutoCompleteMutation,
 } from "@/hooks/useGSAssessment.hook";
 
+const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+
+const isAllowedFileType = (file: File): boolean => {
+  const fileName = file.name.toLowerCase();
+  const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some((ext) =>
+    fileName.endsWith(ext)
+  );
+  const hasAllowedMime =
+    !file.type || ALLOWED_MIME_TYPES.includes(file.type.toLowerCase());
+  return hasAllowedExtension && hasAllowedMime;
+};
+
 interface GSDocumentsTabProps {
   applicationId?: string;
   isStaff?: boolean;
@@ -204,6 +217,16 @@ export default function GSDocumentsTab({
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validate file type
+    if (!isAllowedFileType(file)) {
+      toast.error("Invalid file type. Only PDF, JPG, and PNG files are allowed.");
+      // Reset the file input
+      if (fileInputRefs.current[documentNumber]) {
+        fileInputRefs.current[documentNumber]!.value = "";
+      }
+      return;
+    }
 
     setUploadingDocNumber(documentNumber);
     const formData = new FormData();
