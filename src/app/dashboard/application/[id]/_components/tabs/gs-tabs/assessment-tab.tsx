@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, CheckCircle2, FileText, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { APPLICATION_STAGE } from "@/constants/types";
+import { useApplicationChangeStageMutation } from "@/hooks/useApplication.hook";
 import { useGSStaffAssessmentQuery } from "@/hooks/useGSAssessment.hook";
 import { GSAssessmentStaffForm } from "../../forms/gs-assessment-staff-form";
-import { useApplicationChangeStageMutation } from "@/hooks/useApplication.hook";
-import { APPLICATION_STAGE } from "@/constants/types";
 
-type ViewState = "cards" | { mode: "view" | "edit" };
+// type ViewState = "cards" | { mode: "view" | "edit" };
 
 type GSAssessmentTabProps = {
   trackingCode?: string | null;
@@ -22,29 +19,32 @@ type GSAssessmentTabProps = {
 };
 
 export default function GSAssessmentTab({
-  trackingCode,
+  // trackingCode,
   applicationId,
-  isStaff = false,
-  isStageCompleted = false,
+  // isStaff = false,
+  // isStageCompleted = false,
   onStageComplete,
 }: GSAssessmentTabProps) {
-  const [viewState, setViewState] = useState<ViewState>("cards");
+  // const [viewState, setViewState] = useState<ViewState>("cards");
 
   const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
-    applicationId ?? null
+    applicationId ?? null,
   );
   const changeStage = useApplicationChangeStageMutation(applicationId ?? "");
 
-  const assessmentStatus = staffAssessment?.data?.status;
-  const isSubmitted = assessmentStatus === "submitted" || assessmentStatus === "completed";
+  // const assessmentStatus = staffAssessment?.data?.status;
+  // const isSubmitted =
+  //   assessmentStatus === "submitted" || assessmentStatus === "completed";
 
-  const isCompleted = staffAssessment?.data?.completed_at !== null && staffAssessment?.data?.completed_at !== undefined;
+  // const isCompleted =
+  //   staffAssessment?.data?.completed_at !== null &&
+  //   staffAssessment?.data?.completed_at !== undefined;
 
-  const handleBack = () => setViewState("cards");
+  // const handleBack = () => setViewState("cards");
 
   const handleFormSuccess = async () => {
     await onStageComplete?.();
-    setViewState("cards");
+    // setViewState("cards");
     await changeStage.mutateAsync({ to_stage: APPLICATION_STAGE.COE_ISSUED });
   };
 
@@ -58,89 +58,97 @@ export default function GSAssessmentTab({
     );
   }
 
-  if (viewState !== "cards") {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Assessment
-          </Button>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-sm font-medium">
-            Staff Assessment
-          </span>
-        </div>
-
-        <GSAssessmentStaffForm
-          applicationId={applicationId}
-          onSuccess={handleFormSuccess}
-        />
-      </div>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Final Staff Assessment</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2 text-sm">
-          <p className="font-medium">Checklist</p>
-          <ul className="space-y-2 text-xs text-muted-foreground">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              All documents verified
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              Declarations reviewed
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              Interview notes captured
-            </li>
-          </ul>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {isStaff && (
-            <Button
-              className="gap-2"
-              onClick={() => setViewState({ mode: "view" })}
-            >
-              <FileText className="h-4 w-4" />
-              Open Staff Assessment Form
-            </Button>
-          )}
-
-          {trackingCode && (
-            <Button asChild variant="outline" className="gap-2">
-              <Link href={`/track/gs-form/${trackingCode}?id=${applicationId}`}>
-                <FileText className="h-4 w-4" />
-                View Declaration
-              </Link>
-            </Button>
-          )}
-
-          {isCompleted && !isStageCompleted && !isSubmitted && (
-            <Button variant="outline" className="gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Submit and continue
-            </Button>
-          )}
-        </div>
-
-        {isStageCompleted && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
-            <CheckCircle2 className="h-5 w-5" />
-            <span className="text-sm font-medium">
-              Assessment stage completed. GS Assessment finished.
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="px-6 pt-8">
+      <GSAssessmentStaffForm
+        applicationId={applicationId}
+        onSuccess={handleFormSuccess}
+      />
+    </div>
   );
+
+  // if (viewState === "cards") {
+  //   return (
+  //     <div className="space-y-4">
+  //       <div className="flex items-center gap-2">
+  //         <Button
+  //           variant="ghost"
+  //           size="sm"
+  //           onClick={handleBack}
+  //           className="gap-2"
+  //         >
+  //           <ArrowLeft className="h-4 w-4" />
+  //           Back to Assessment
+  //         </Button>
+  //         <span className="text-muted-foreground">/</span>
+  //         <span className="text-sm font-medium">Staff Assessment</span>
+  //       </div>
+
+  //     </div>
+  //   );
+  // }
+
+  // return (
+  //   <Card>
+  //     <CardHeader className="pb-3">
+  //       <CardTitle className="text-base">Final Staff Assessment</CardTitle>
+  //     </CardHeader>
+  //     <CardContent className="space-y-4">
+  //       <div className="space-y-2 text-sm">
+  //         <p className="font-medium">Checklist</p>
+  //         <ul className="space-y-2 text-xs text-muted-foreground">
+  //           <li className="flex items-center gap-2">
+  //             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+  //             All documents verified
+  //           </li>
+  //           <li className="flex items-center gap-2">
+  //             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+  //             Declarations reviewed
+  //           </li>
+  //           <li className="flex items-center gap-2">
+  //             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+  //             Interview notes captured
+  //           </li>
+  //         </ul>
+  //       </div>
+
+  //       <div className="flex flex-wrap items-center gap-2">
+  //         {isStaff && (
+  //           <Button
+  //             className="gap-2"
+  //             onClick={() => setViewState({ mode: "view" })}
+  //           >
+  //             <FileText className="h-4 w-4" />
+  //             Open Staff Assessment Form
+  //           </Button>
+  //         )}
+
+  //         {/* {trackingCode && (
+  //           <Button asChild variant="outline" className="gap-2">
+  //             <Link href={`/track/gs-form/${trackingCode}?id=${applicationId}`}>
+  //               <FileText className="h-4 w-4" />
+  //               View Declaration
+  //             </Link>
+  //           </Button>
+  //         )} */}
+
+  //         {isCompleted && !isStageCompleted && !isSubmitted && (
+  //           <Button variant="outline" className="gap-2">
+  //             <CheckCircle2 className="h-4 w-4" />
+  //             Submit and continue
+  //           </Button>
+  //         )}
+  //       </div>
+
+  //       {isStageCompleted && (
+  //         <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+  //           <CheckCircle2 className="h-5 w-5" />
+  //           <span className="text-sm font-medium">
+  //             Assessment stage completed. GS Assessment finished.
+  //           </span>
+  //         </div>
+  //       )}
+  //     </CardContent>
+  //   </Card>
+  // );
 }

@@ -246,6 +246,46 @@ export function useGSDocumentUploadMutation(applicationId: string | null) {
 }
 
 /**
+ * Mutation to delete a specific uploaded file for a GS document
+ */
+export function useGSDocumentFileDeleteMutation(applicationId: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    GsDocumentsResponse,
+    Error,
+    { documentNumber: number; fileId: string }
+  >({
+    mutationKey: ["gs-document-file-delete", applicationId],
+    mutationFn: async ({ documentNumber, fileId }) => {
+      if (!applicationId) throw new Error("Application ID is required");
+      const response = await gsAssessmentService.deleteDocumentFile(
+        applicationId,
+        documentNumber,
+        fileId
+      );
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing");
+      return response.data;
+    },
+    onSuccess: () => {
+      if (applicationId) {
+        queryClient.invalidateQueries({
+          queryKey: gsAssessmentKeys.documents(applicationId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: gsAssessmentKeys.detail(applicationId),
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to delete GS document file:", error);
+      toast.error(error.message || "Failed to delete file");
+    },
+  });
+}
+
+/**
  * Mutation to update document status (approve/reject)
  */
 export function useGSDocumentStatusMutation(applicationId: string | null) {

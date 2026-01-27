@@ -9,6 +9,7 @@ import {
   Filter,
   Loader2,
   Search,
+  Trash2,
   Upload,
   ExternalLink,
   ArrowRight,
@@ -18,6 +19,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent as ShadDialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader as ShadDialogHeader,
+  DialogTitle as ShadDialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Accordion,
@@ -36,6 +46,7 @@ import {
   useGSDocumentUploadMutation,
   useGSDocumentStatusMutation,
   useGSDocumentAutoCompleteMutation,
+  useGSDocumentFileDeleteMutation,
 } from "@/hooks/useGSAssessment.hook";
 
 const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
@@ -44,7 +55,7 @@ const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const isAllowedFileType = (file: File): boolean => {
   const fileName = file.name.toLowerCase();
   const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some((ext) =>
-    fileName.endsWith(ext)
+    fileName.endsWith(ext),
   );
   const hasAllowedMime =
     !file.type || ALLOWED_MIME_TYPES.includes(file.type.toLowerCase());
@@ -104,6 +115,14 @@ function formatDate(dateString: string | null): string {
   }
 }
 
+function formatFileSize(bytes: number | null | undefined): string {
+  if (!bytes || bytes <= 0) return "";
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
 export default function GSDocumentsTab({
   applicationId,
   isStaff = false,
@@ -112,7 +131,14 @@ export default function GSDocumentsTab({
 }: GSDocumentsTabProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [uploadingDocNumber, setUploadingDocNumber] = useState<number | null>(null);
+  const [uploadingDocNumber, setUploadingDocNumber] = useState<number | null>(
+    null,
+  );
+  const [pendingDelete, setPendingDelete] = useState<{
+    documentNumber: number;
+    fileId: string;
+    fileName: string;
+  } | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Queries
@@ -126,7 +152,12 @@ export default function GSDocumentsTab({
   // Mutations
   const uploadMutation = useGSDocumentUploadMutation(applicationId ?? null);
   const statusMutation = useGSDocumentStatusMutation(applicationId ?? null);
-  const autoCompleteMutation = useGSDocumentAutoCompleteMutation(applicationId ?? null);
+  const autoCompleteMutation = useGSDocumentAutoCompleteMutation(
+    applicationId ?? null,
+  );
+  const deleteFileMutation = useGSDocumentFileDeleteMutation(
+    applicationId ?? null,
+  );
   const [isCompletingStage, setIsCompletingStage] = useState(false);
 
   // Transform API data to frontend format
@@ -157,7 +188,7 @@ export default function GSDocumentsTab({
         acc[doc.status] = (acc[doc.status] || 0) + 1;
         return acc;
       },
-      {} as Record<GSDocumentBackendStatus, number>
+      {} as Record<GSDocumentBackendStatus, number>,
     );
   }, [documents]);
 
@@ -168,7 +199,8 @@ export default function GSDocumentsTab({
   const rejectedCount = statusCounts.rejected || 0;
 
   // Check if all documents are approved
-  const allDocumentsApproved = documents.length === 9 && approvedCount === 9;
+  const allDocumentsApproved =
+    documents.length === documents.length && approvedCount === documents.length;
 
   // Handle completing the stage
   const handleCompleteStage = async () => {
@@ -187,14 +219,14 @@ export default function GSDocumentsTab({
 
       // Check if all documents are approved on the server (handle case-insensitive)
       // Cast to unknown[] first since the API returns different shape than GSDocument type
-      const approvedDocs = (freshDocs as unknown as Array<{ status?: string }>).filter(
-        (doc) => doc.status?.toLowerCase() === "approved"
-      );
+      const approvedDocs = (
+        freshDocs as unknown as Array<{ status?: string }>
+      ).filter((doc) => doc.status?.toLowerCase() === "approved");
 
-      if (approvedDocs.length !== 9) {
-        const remaining = 9 - approvedDocs.length;
+      if (approvedDocs.length !== 10) {
+        const remaining = 10 - approvedDocs.length;
         toast.error(
-          `Cannot complete stage: ${remaining} document${remaining > 1 ? "s" : ""} still need${remaining === 1 ? "s" : ""} approval.`
+          `Cannot complete stage: ${remaining} document${remaining > 1 ? "s" : ""} still need${remaining === 1 ? "s" : ""} approval.`,
         );
         return;
       }
@@ -203,7 +235,7 @@ export default function GSDocumentsTab({
       await onStageComplete?.();
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to complete stage"
+        error instanceof Error ? error.message : "Failed to complete stage",
       );
     } finally {
       setIsCompletingStage(false);
@@ -213,14 +245,16 @@ export default function GSDocumentsTab({
   // Handle file upload
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    documentNumber: number
+    documentNumber: number,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
     if (!isAllowedFileType(file)) {
-      toast.error("Invalid file type. Only PDF, JPG, and PNG files are allowed.");
+      toast.error(
+        "Invalid file type. Only PDF, JPG, and PNG files are allowed.",
+      );
       // Reset the file input
       if (fileInputRefs.current[documentNumber]) {
         fileInputRefs.current[documentNumber]!.value = "";
@@ -237,7 +271,7 @@ export default function GSDocumentsTab({
       toast.success("Document uploaded successfully");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload document"
+        error instanceof Error ? error.message : "Failed to upload document",
       );
     } finally {
       setUploadingDocNumber(null);
@@ -251,14 +285,16 @@ export default function GSDocumentsTab({
   // Handle status change (staff only)
   const handleStatusChange = async (
     documentNumber: number,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
   ) => {
     try {
       await statusMutation.mutateAsync({ documentNumber, status });
-      toast.success(`Document ${status === "approved" ? "approved" : "change requested"}`);
+      toast.success(
+        `Document ${status === "approved" ? "approved" : "change requested"}`,
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update status"
+        error instanceof Error ? error.message : "Failed to update status",
       );
     }
   };
@@ -270,7 +306,7 @@ export default function GSDocumentsTab({
       toast.success("All documents auto-approved");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to auto-complete"
+        error instanceof Error ? error.message : "Failed to auto-complete",
       );
     }
   };
@@ -358,6 +394,57 @@ export default function GSDocumentsTab({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          <Dialog
+            open={pendingDelete !== null}
+            onOpenChange={(open) => {
+              if (!open) setPendingDelete(null);
+            }}
+          >
+            <ShadDialogContent>
+              <ShadDialogHeader>
+                <ShadDialogTitle>Delete file?</ShadDialogTitle>
+                <DialogDescription>
+                  This will remove{" "}
+                  <span className="font-medium text-foreground">
+                    {pendingDelete?.fileName ?? "this file"}
+                  </span>
+                  . This action can’t be undone.
+                </DialogDescription>
+              </ShadDialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteFileMutation.isPending || pendingDelete === null}
+                  onClick={async () => {
+                    if (!pendingDelete) return;
+                    try {
+                      await deleteFileMutation.mutateAsync({
+                        documentNumber: pendingDelete.documentNumber,
+                        fileId: pendingDelete.fileId,
+                      });
+                      toast.success("File deleted");
+                      setPendingDelete(null);
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to delete file",
+                      );
+                    }
+                  }}
+                >
+                  {deleteFileMutation.isPending ? "Deleting..." : "Delete"}
+                </Button>
+              </DialogFooter>
+            </ShadDialogContent>
+          </Dialog>
+
           {/* Search and Filter */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
@@ -390,10 +477,15 @@ export default function GSDocumentsTab({
           <Accordion type="single" collapsible className="space-y-2">
             {visibleDocuments.map((doc) => {
               const config = GS_DOCUMENT_CONFIGS.find(
-                (c) => c.number === doc.documentNumber
+                (c) => c.number === doc.documentNumber,
               );
               const isUploading = uploadingDocNumber === doc.documentNumber;
               const isUpdatingStatus = statusMutation.isPending;
+              const visibleFiles = doc.files.filter((file) => !file.deletedAt);
+              const hasFiles = visibleFiles.length > 0;
+              const latestFile = hasFiles
+                ? visibleFiles[visibleFiles.length - 1]
+                : null;
 
               return (
                 <AccordionItem
@@ -412,9 +504,9 @@ export default function GSDocumentsTab({
                             {doc.title}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {doc.fileName
-                              ? `${doc.fileName} - ${formatDate(doc.uploadedAt)}`
-                              : config?.description ?? "No file uploaded"}
+                            {latestFile
+                              ? `${latestFile.fileName} - ${formatDate(latestFile.uploadedAt)}`
+                              : (config?.description ?? "No file uploaded")}
                           </p>
                         </div>
                       </div>
@@ -431,21 +523,63 @@ export default function GSDocumentsTab({
                       </p>
                     )}
 
-                    {/* File preview if uploaded */}
-                    {doc.fileUrl && (
-                      <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm truncate flex-1">
-                          {doc.fileName ?? "Uploaded file"}
-                        </span>
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-xs flex items-center gap-1"
-                        >
-                          View <ExternalLink className="h-3 w-3" />
-                        </a>
+                    {/* Uploaded files */}
+                    {hasFiles && (
+                      <div className="space-y-2">
+                        {visibleFiles.map((file) => {
+                          const href = file.signedUrl ?? file.fileUrl;
+                          return (
+                            <div
+                              key={file.id}
+                              className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                            >
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm truncate">
+                                  {file.fileName || "Uploaded file"}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {formatFileSize(file.fileSize)}
+                                  {file.uploadedAt
+                                    ? ` • ${formatDate(file.uploadedAt)}`
+                                    : ""}
+                                </p>
+                              </div>
+
+                              {href ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline text-xs flex items-center gap-1"
+                                  >
+                                    View <ExternalLink className="h-3 w-3" />
+                                  </a>
+
+                                  {isStaff && (
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      disabled={deleteFileMutation.isPending}
+                                      onClick={() =>
+                                        setPendingDelete({
+                                          documentNumber: doc.documentNumber,
+                                          fileId: file.id,
+                                          fileName: file.fileName || "this file",
+                                        })
+                                      }
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -459,7 +593,9 @@ export default function GSDocumentsTab({
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
                         className="hidden"
-                        onChange={(e) => handleFileChange(e, doc.documentNumber)}
+                        onChange={(e) =>
+                          handleFileChange(e, doc.documentNumber)
+                        }
                         disabled={isUploading}
                       />
                       <label
@@ -476,13 +612,13 @@ export default function GSDocumentsTab({
                         <span className="text-sm font-medium text-foreground">
                           {isUploading
                             ? "Uploading..."
-                            : doc.fileUrl
+                            : hasFiles
                               ? "Replace file"
                               : "Drop file here or click to upload"}
                         </span>
                         <span>
-                          Accepted: {config?.acceptedFormats ?? "PDF, JPG, PNG"}.
-                          Max 10MB.
+                          Accepted: {config?.acceptedFormats ?? "PDF, JPG, PNG"}
+                          . Max 10MB.
                         </span>
                       </label>
                     </div>

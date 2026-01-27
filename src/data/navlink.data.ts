@@ -28,6 +28,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       href: siteRoutes.dashboard.tasks,
       icon: "tasks",
     },
+    {
+      label: "GS Interviews",
+      href: siteRoutes.dashboard.gsInterviews,
+      icon: "calendar",
+    },
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
@@ -45,6 +50,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       label: "Tasks",
       href: siteRoutes.dashboard.tasks,
       icon: "tasks",
+    },
+    {
+      label: "GS Interviews",
+      href: siteRoutes.dashboard.gsInterviews,
+      icon: "calendar",
     },
   ],
 };

@@ -1,20 +1,26 @@
 "use client";
 
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CircleCheck,
+  Clock,
+  Eye,
+  FileText,
+  Loader2,
+  Send,
+} from "lucide-react";
 import { useState } from "react";
-import { ArrowLeft, Send, FileText, Loader2, Eye, CheckCircle2, CircleCheck, Clock } from "lucide-react";
 import { toast } from "react-hot-toast";
-
+import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components/gs-screening-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components/gs-screening-form";
 import {
-  useGSStudentDeclarationQuery,
   useGSAgentDeclarationQuery,
-  useGSStudentDeclarationResendMutation,
   useGSDeclarationReviewMutation,
+  useGSStudentDeclarationQuery,
+  useGSStudentDeclarationResendMutation,
 } from "@/hooks/useGSAssessment.hook";
 import { cn } from "@/lib/utils";
 
@@ -31,19 +37,62 @@ interface GSDeclarationsTabProps {
   onStageComplete?: () => Promise<void>;
 }
 
+// Get status badge based on declaration status
+const getStatusBadge = (status: string | undefined) => {
+  switch (status) {
+    case "approved":
+      return (
+        <Badge
+          variant="outline"
+          className="border-emerald-500 text-emerald-600 gap-1"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Verified
+        </Badge>
+      );
+    case "submitted":
+      return (
+        <Badge
+          variant="outline"
+          className="border-amber-500 text-amber-600 gap-1"
+        >
+          <Clock className="h-3.5 w-3.5" />
+          Pending Review
+        </Badge>
+      );
+    case "draft":
+      return (
+        <Badge
+          variant="outline"
+          className="border-blue-400 text-blue-500 gap-1"
+        >
+          <Send className="h-3.5 w-3.5" />
+          Sent
+        </Badge>
+      );
+    default:
+      return null;
+  }
+};
+
 export default function GSDeclarationsTab({
   applicationId,
   isStaff = false,
   isStageCompleted = false,
   onStageComplete,
 }: GSDeclarationsTabProps) {
-
   const [viewState, setViewState] = useState<ViewState>("cards");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { data: studentDeclaration } = useGSStudentDeclarationQuery(applicationId ?? null);
-  const { data: agentDeclaration } = useGSAgentDeclarationQuery(applicationId ?? null);
-  const resendMutation = useGSStudentDeclarationResendMutation(applicationId ?? null);
+  const { data: studentDeclaration } = useGSStudentDeclarationQuery(
+    applicationId ?? null,
+  );
+  const { data: agentDeclaration } = useGSAgentDeclarationQuery(
+    applicationId ?? null,
+  );
+  const resendMutation = useGSStudentDeclarationResendMutation(
+    applicationId ?? null,
+  );
   const reviewMutation = useGSDeclarationReviewMutation(applicationId ?? null);
 
   const studentDeclarationData = studentDeclaration?.data;
@@ -54,8 +103,10 @@ export default function GSDeclarationsTab({
   const agentStatus = agentDeclarationData?.status;
 
   // Determine checkbox visibility (show when submitted or approved)
-  const showStudentCheckbox = studentStatus === "submitted" || studentStatus === "approved";
-  const showAgentCheckbox = agentStatus === "submitted" || agentStatus === "approved";
+  const showStudentCheckbox =
+    studentStatus === "submitted" || studentStatus === "approved";
+  const showAgentCheckbox =
+    agentStatus === "submitted" || agentStatus === "approved";
 
   // Determine verification state (approved = verified)
   const isStudentVerified = studentStatus === "approved";
@@ -66,42 +117,15 @@ export default function GSDeclarationsTab({
 
   const handleBack = () => setViewState("cards");
 
-  // Get status badge based on declaration status
-  const getStatusBadge = (status: string | undefined) => {
-    switch (status) {
-      case "approved":
-        return (
-          <Badge variant="outline" className="border-emerald-500 text-emerald-600 gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Verified
-          </Badge>
-        );
-      case "submitted":
-        return (
-          <Badge variant="outline" className="border-amber-500 text-amber-600 gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            Pending Review
-          </Badge>
-        );
-      case "draft":
-        return (
-          <Badge variant="outline" className="border-blue-400 text-blue-500 gap-1">
-            <Send className="h-3.5 w-3.5" />
-            Sent
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
-
   const handleVerify = async (actor: "student" | "agent") => {
     try {
       await reviewMutation.mutateAsync({
         actor,
-        payload: { status: "approved" }
+        payload: { status: "approved" },
       });
-      toast.success(`${actor === "student" ? "Student" : "Agent"} declaration verified`);
+      toast.success(
+        `${actor === "student" ? "Student" : "Agent"} declaration verified`,
+      );
     } catch {
       // Error toast is shown by the hook
     }
@@ -117,7 +141,7 @@ export default function GSDeclarationsTab({
       if (!isStudentVerified) {
         await reviewMutation.mutateAsync({
           actor: "student",
-          payload: { status: "approved" }
+          payload: { status: "approved" },
         });
       }
 
@@ -125,14 +149,18 @@ export default function GSDeclarationsTab({
       if (!isAgentVerified) {
         await reviewMutation.mutateAsync({
           actor: "agent",
-          payload: { status: "approved" }
+          payload: { status: "approved" },
         });
       }
 
       // Call parent's stage completion handler
       await onStageComplete?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to verify declarations");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to verify declarations",
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -146,7 +174,9 @@ export default function GSDeclarationsTab({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold">Student Declaration Form</CardTitle>
+                  <CardTitle className="text-base font-semibold">
+                    Student Declaration Form
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     Student must complete their section
                   </p>
@@ -156,11 +186,13 @@ export default function GSDeclarationsTab({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                {studentStatus === "submitted" && (
+                {/* {studentStatus === "submitted" && (
                   <Button
                     variant="outline"
                     className="w-full gap-2"
-                    onClick={() => resendMutation.mutate({ rotate_token: true })}
+                    onClick={() =>
+                      resendMutation.mutate({ rotate_token: true })
+                    }
                     disabled={resendMutation.isPending}
                   >
                     {resendMutation.isPending ? (
@@ -170,23 +202,30 @@ export default function GSDeclarationsTab({
                     )}
                     Resend Form
                   </Button>
+                )} */}
+                {!isStaff && (
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() =>
+                      setViewState({ mode: "edit", declarationType: "student" })
+                    }
+                  >
+                    <FileText className="h-4 w-4" />
+                    Fill on Behalf of Student
+                  </Button>
                 )}
-                <Button
-                  className="w-full gap-2"
-                  onClick={() => setViewState({ mode: "edit", declarationType: "student" })}
-                >
-                  <FileText className="h-4 w-4" />
-                  Fill on Behalf of Student
-                </Button>
                 <Button
                   variant="outline"
                   className="w-full gap-2"
-                  onClick={() => setViewState({ mode: "view", declarationType: "student" })}
+                  onClick={() =>
+                    setViewState({ mode: "view", declarationType: "student" })
+                  }
                 >
                   <Eye className="h-4 w-4" />
                   View Form
                 </Button>
               </div>
+
               {isStaff && showStudentCheckbox && (
                 <div className="flex items-center space-x-2 pt-2">
                   <Button
@@ -194,12 +233,7 @@ export default function GSDeclarationsTab({
                     onClick={() => handleVerify("student")}
                     disabled={isStudentVerified || reviewMutation.isPending}
                     variant={isStudentVerified ? "default" : "outline"}
-                    className={cn(
-                      "w-full gap-2",
-                      isStudentVerified
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
-                        : "border-emerald-500 text-emerald-600"
-                    )}
+                    className={cn("w-full gap-2")}
                   >
                     {isStudentVerified ? (
                       <>
@@ -222,7 +256,9 @@ export default function GSDeclarationsTab({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold">Agent Declaration Form</CardTitle>
+                  <CardTitle className="text-base font-semibold">
+                    Agent Declaration Form
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     Agent/staff must complete this section
                   </p>
@@ -232,17 +268,24 @@ export default function GSDeclarationsTab({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                <Button
-                  className="w-full gap-2"
-                  onClick={() => setViewState({ mode: "edit", declarationType: "agent" })}
-                >
-                  <FileText className="h-4 w-4" />
-                  Edit Form
-                </Button>
+                {!isStaff && (
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() =>
+                      setViewState({ mode: "edit", declarationType: "agent" })
+                    }
+                  >
+                    <FileText className="h-4 w-4" />
+                    Edit Form
+                  </Button>
+                )}
+
                 <Button
                   variant="outline"
                   className="w-full gap-2"
-                  onClick={() => setViewState({ mode: "view", declarationType: "agent" })}
+                  onClick={() =>
+                    setViewState({ mode: "view", declarationType: "agent" })
+                  }
                 >
                   <Eye className="h-4 w-4" />
                   View Form
@@ -255,12 +298,7 @@ export default function GSDeclarationsTab({
                     onClick={() => handleVerify("agent")}
                     disabled={isAgentVerified || reviewMutation.isPending}
                     variant={isAgentVerified ? "default" : "outline"}
-                    className={cn(
-                      "w-full gap-2",
-                      isAgentVerified
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
-                        : "border-emerald-500 text-emerald-600"
-                    )}
+                    className={cn("w-full gap-2")}
                   >
                     {isAgentVerified ? (
                       <>
@@ -305,7 +343,6 @@ export default function GSDeclarationsTab({
             </span>
           </div>
         )}
-
       </div>
     );
   }
@@ -325,14 +362,22 @@ export default function GSDeclarationsTab({
   };
   const initialData = getInitialData();
 
-  const breadcrumbLabel = declarationType === "student"
-    ? (isReadOnly ? "View Student Declaration" : "Fill Student Declaration")
-    : "View Agent Declaration";
+  const breadcrumbLabel =
+    declarationType === "student"
+      ? isReadOnly
+        ? "View Student Declaration"
+        : "Fill Student Declaration"
+      : "View Agent Declaration";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="gap-2"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Declarations
         </Button>

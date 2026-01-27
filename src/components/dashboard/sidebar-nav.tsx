@@ -22,6 +22,7 @@ import {
 import { siteRoutes } from "@/constants/site-routes";
 import type { UserRole } from "@/lib/auth";
 import {
+  Calendar,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -40,6 +41,7 @@ const ICONS = {
   agents: Users,
   queue: Inbox,
   tasks: ListTodo,
+  calendar: Calendar,
 };
 
 export type SidebarIconName = keyof typeof ICONS;

@@ -33,7 +33,9 @@ export default function GSScheduleTab({
   onStageComplete,
 }: GSScheduleTabProps) {
   const [isScheduling, setIsScheduling] = useState(false);
-  const [scheduledDateTime, setScheduledDateTime] = useState(getDefaultScheduledDate);
+  const [scheduledDateTime, setScheduledDateTime] = useState(
+    getDefaultScheduledDate,
+  );
   const [meetingTitle, setMeetingTitle] = useState("GS Assessment Interview");
   const { data: session } = useSession();
 
@@ -155,7 +157,7 @@ export default function GSScheduleTab({
           ) : (
             <SkipForward className="h-4 w-4" />
           )}
-          Skip to Assessment
+          Proceed to Assessment
         </Button>
       )}
 

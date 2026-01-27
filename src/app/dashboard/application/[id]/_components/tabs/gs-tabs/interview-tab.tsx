@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, ExternalLink, Video, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  Clock,
+  ExternalLink,
+  Video,
+  Loader2,
+  ArrowRight,
+  CheckCircle2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,12 +86,12 @@ export default function GSInterviewTab({
           onClick={handleSkipStage}
           disabled={isSkipping}
         >
+          Proceed to Assessment
           {isSkipping ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <ArrowRight className="h-4 w-4" />
           )}
-          Continue to Assessment
         </Button>
       )}
 

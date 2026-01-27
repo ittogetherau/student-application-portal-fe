@@ -42,6 +42,7 @@ import {
   useGSAssessmentQuery,
 } from "@/hooks/useGSAssessment.hook";
 import ApplicationSignDisplay from "./ApplicationSignDisplay";
+import { useQueryState } from "nuqs";
 
 interface ApplicationStageProps {
   currentStatus: APPLICATION_STAGE;
@@ -61,6 +62,7 @@ const IconMap: Record<APPLICATION_STAGE, LucideIcon> = {
 };
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
+  const [_, setTabNavigation] = useQueryState("tab");
   // Queries & Mutations
   const { data: response, isLoading } = useApplicationGetQuery(id);
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(id);
@@ -76,9 +78,9 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const gsAssessmentData = useMemo(
     () =>
       transformGSAssessmentData(
-        gsAssessmentResponse?.data as Record<string, unknown> | null
+        gsAssessmentResponse?.data as Record<string, unknown> | null,
       ),
-    [gsAssessmentResponse?.data]
+    [gsAssessmentResponse?.data],
   );
 
   // Derive GS step progress from API data
@@ -118,17 +120,17 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
     });
   };
 
-  const handleSyncGalaxyApplication = () => {
-    syncGalaxyApplication.mutate(undefined, {
-      onSuccess: (data) => {
-        toast.success(data?.message || "Galaxy sync completed.");
-        // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to sync application in Galaxy");
-      },
-    });
-  };
+  // const handleSyncGalaxyApplication = () => {
+  //   syncGalaxyApplication.mutate(undefined, {
+  //     onSuccess: (data) => {
+  //       toast.success(data?.message || "Galaxy sync completed.");
+  //       // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
+  //     },
+  //     onError: (error) => {
+  //       toast.error(error.message || "Failed to sync application in Galaxy");
+  //     },
+  //   });
+  // };
 
   const handleSendOfferLetter = () => {
     const studentEmail = application?.personal_details?.email;
@@ -264,10 +266,10 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       });
 
       // Calculate current active stage index (1-indexed for display)
-      const activeStageIndex =
-        gsAssessmentData?.currentStage !== undefined
-          ? gsAssessmentData.currentStage + 1
-          : 1;
+      // const activeStageIndex =
+      //   gsAssessmentData?.currentStage !== undefined
+      //     ? gsAssessmentData.currentStage + 1
+      //     : 1;
 
       return (
         <div className={cardBorderClass}>
@@ -276,7 +278,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             Track the 5-stage GS assessment workflow
           </p>
 
-          <div className="flex items-center gap-1 mb-4 relative">
+          {/* <div className="flex items-center gap-1 mb-4 relative">
             {activeStageIndex > 1 && (
               <div
                 className="absolute left-0 right-0 top-4 h-0.5 flex items-center"
@@ -338,7 +340,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
 
           <div className="space-y-2 mb-4">
             {gsStages.map((stageItem) => (
@@ -377,12 +379,23 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             ))}
           </div>
 
-          <Button variant="outline" className="w-full gap-2">
+          <Button
+            onClick={() => setTabNavigation("gs-process")}
+            variant="outline"
+            className="w-full gap-2"
+          >
             <Eye className="h-4 w-4" />
-            View GS Documents Tab for Actions
+            Open GS Documents Tab
           </Button>
         </div>
       );
+    }
+
+    if (stage === APPLICATION_STAGE.COE_ISSUED) {
+      <div className={cardBorderClass}>
+        <h3 className="text-base font-semibold">COE Proceess</h3>
+        <p className="text-xs text-muted-foreground mt-1 mb-4">in sad</p>
+      </div>;
     }
 
     return null;

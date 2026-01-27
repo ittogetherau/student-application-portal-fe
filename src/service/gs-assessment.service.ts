@@ -340,6 +340,29 @@ class GsAssessmentService extends ApiService {
     }
   };
 
+  deleteDocumentFile = async (
+    applicationId: string,
+    documentNumber: number,
+    fileId: string
+  ): Promise<ServiceResponse<GsDocumentsResponse>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    if (!fileId) throw new Error("File id is required");
+
+    try {
+      const data = await this.delete<GsDocumentsResponse>(
+        `${this.basePath}/${applicationId}/documents/${documentNumber}/files/${fileId}`,
+        true
+      );
+      return {
+        success: true,
+        message: "GS document file deleted.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to delete GS document file");
+    }
+  };
+
   getStudentDeclaration = async (
     applicationId: string
   ): Promise<ServiceResponse<GsDeclarationResponse>> => {

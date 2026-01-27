@@ -314,11 +314,13 @@ export function getDocumentStatusLabel(status: GSDocumentBackendStatus): string 
 export interface GSDocumentFile {
   id: string;
   fileUrl: string;
+  signedUrl: string | null;
   fileName: string;
   fileSize: number;
   fileType: string;
   uploadedBy: string | null;
   uploadedAt: string | null;
+  deletedAt: string | null;
 }
 
 /**
@@ -368,11 +370,13 @@ function transformGSDocumentFile(raw: Record<string, unknown>): GSDocumentFile {
   return {
     id: (raw.id as string) ?? "",
     fileUrl: (raw.file_url as string) ?? "",
+    signedUrl: (raw.signed_url as string | null) ?? null,
     fileName: (raw.file_name as string) ?? "",
     fileSize: typeof raw.file_size === "number" ? raw.file_size : 0,
     fileType: (raw.file_type as string) ?? "",
     uploadedBy: (raw.uploaded_by as string | null) ?? null,
     uploadedAt: (raw.uploaded_at as string | null) ?? null,
+    deletedAt: (raw.deleted_at as string | null) ?? null,
   };
 }
 

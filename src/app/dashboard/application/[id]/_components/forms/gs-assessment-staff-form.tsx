@@ -1,37 +1,39 @@
 "use client";
 
-import { useEffect, useCallback, memo } from "react";
-import { toast } from "react-hot-toast";
-import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getFieldError } from "@/components/ui/forms/form-errors";
+import { FormInput } from "@/components/ui/forms/form-input";
+import { FormTextarea } from "@/components/ui/forms/form-textarea";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  useGSFinalizeDecisionMutation,
+  useGSStaffAssessmentQuery,
+  useGSStaffAssessmentSaveMutation,
+  useGSStaffAssessmentSubmitMutation,
+} from "@/hooks/useGSAssessment.hook";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { memo, useCallback, useEffect } from "react";
 import {
   Controller,
   FormProvider,
   useForm,
   useFormContext,
+  useWatch,
   type Control,
   type Resolver,
 } from "react-hook-form";
-
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FormInput } from "@/components/ui/forms/form-input";
-import { FormTextarea } from "@/components/ui/forms/form-textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { getFieldError } from "@/components/ui/forms/form-errors";
-import {
-  useGSStaffAssessmentQuery,
-  useGSStaffAssessmentSaveMutation,
-  useGSStaffAssessmentSubmitMutation,
-  useGSFinalizeDecisionMutation,
-} from "@/hooks/useGSAssessment.hook";
-import { gsAssessmentStaffSchema } from "../../_utils/gs-assessment-staff.validation";
+import { toast } from "react-hot-toast";
+import { GSAssessmentStaffPdfDownloadButton } from "./gs-assessment-staff-pdf-download-button";
 import {
   STAGE_1_QUESTIONS,
   STAGE_2_QUESTIONS,
   type StageQuestion,
 } from "../../_constants/gs-assessment-questions";
+import { gsAssessmentStaffSchema } from "../../_utils/gs-assessment-staff.validation";
+import { useQueryState } from "nuqs";
 
 // Form input type (allows undefined for initial state, Zod validates on submit)
 type GSAssessmentStaffFormInput = {
@@ -92,7 +94,11 @@ function ErrorMessage({ name }: { name: string }) {
       name={name}
       control={control}
       render={({ fieldState: { error } }) =>
-        error ? <p className="text-sm text-red-500 mt-1">{error.message}</p> : <></>
+        error ? (
+          <p className="text-sm text-red-500 mt-1">{error.message}</p>
+        ) : (
+          <></>
+        )
       }
     />
   );
@@ -100,28 +106,30 @@ function ErrorMessage({ name }: { name: string }) {
 
 interface GSAssessmentStaffFormProps {
   applicationId?: string;
-  readOnly?: boolean;
+  readonly?: boolean;
   onSuccess?: () => void;
 }
 
 export function GSAssessmentStaffForm({
   applicationId,
-  readOnly = false,
+  readonly = false,
   onSuccess,
 }: GSAssessmentStaffFormProps) {
+  const [_, setTabNavigation] = useQueryState("tab");
+
   const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
-    applicationId ?? null
+    applicationId ?? null,
   );
 
   const saveMutation = useGSStaffAssessmentSaveMutation(applicationId ?? null);
   const submitMutation = useGSStaffAssessmentSubmitMutation(
-    applicationId ?? null
+    applicationId ?? null,
   );
   const decisionMutation = useGSFinalizeDecisionMutation(applicationId ?? null);
 
   const methods = useForm<GSAssessmentStaffFormInput>({
     resolver: zodResolver(
-      gsAssessmentStaffSchema
+      gsAssessmentStaffSchema,
     ) as Resolver<GSAssessmentStaffFormInput>,
     defaultValues: DEFAULT_VALUES,
     mode: "onTouched",
@@ -135,6 +143,8 @@ export function GSAssessmentStaffForm({
     saveMutation.isPending ||
     submitMutation.isPending ||
     decisionMutation.isPending;
+
+  const staffAssessmentData = staffAssessment?.data;
 
   // Transform form values to API payload
   const transformToPayload = useCallback(
@@ -165,29 +175,55 @@ export function GSAssessmentStaffForm({
       ...(values.conditions && { conditions: values.conditions }),
       ...(values.riskLevel && { risk_level: values.riskLevel }),
     }),
-    []
+    [],
   );
 
-  // Handle "Select All Yes" checkbox
-  const handleSelectAllYes = useCallback(
-    (isChecked: boolean, stage: "stage1" | "stage2") => {
-      const questions = stage === "stage1" ? STAGE_1_QUESTIONS : STAGE_2_QUESTIONS;
-      const fieldsToClear: Array<`stage1.${number}.answer` | `stage2.${number}.answer`> = [];
+  type AnswerFieldName = `stage1.${number}.answer` | `stage2.${number}.answer`;
+  type EvidenceFieldName =
+    | `stage1.${number}.evidenceVerified`
+    | `stage2.${number}.evidenceVerified`;
+
+  const handleSelectAllAnswer = useCallback(
+    (isChecked: boolean, stage: "stage1" | "stage2", value: "yes" | "no") => {
+      const questions =
+        stage === "stage1" ? STAGE_1_QUESTIONS : STAGE_2_QUESTIONS;
+      const fieldsToClear: AnswerFieldName[] = [];
 
       questions.forEach((_, index) => {
-        const fieldName = `${stage}.${index}.answer` as const;
-        setValue(fieldName, isChecked ? "yes" : undefined);
-        if (isChecked) {
-          fieldsToClear.push(fieldName);
-        }
+        const fieldName = `${stage}.${index}.answer` as AnswerFieldName;
+        setValue(fieldName, isChecked ? value : undefined);
+        if (isChecked) fieldsToClear.push(fieldName);
       });
 
-      // Clear errors for all fields when selecting all yes
-      if (isChecked && fieldsToClear.length > 0) {
-        clearErrors(fieldsToClear);
-      }
+      if (isChecked && fieldsToClear.length > 0) clearErrors(fieldsToClear);
     },
-    [setValue, clearErrors]
+    [setValue, clearErrors],
+  );
+
+  const handleSelectAllYes = useCallback(
+    (isChecked: boolean, stage: "stage1" | "stage2") =>
+      handleSelectAllAnswer(isChecked, stage, "yes"),
+    [handleSelectAllAnswer],
+  );
+
+  const handleSelectAllNo = useCallback(
+    (isChecked: boolean, stage: "stage1" | "stage2") =>
+      handleSelectAllAnswer(isChecked, stage, "no"),
+    [handleSelectAllAnswer],
+  );
+
+  const handleSelectAllEvidenceVerified = useCallback(
+    (isChecked: boolean, stage: "stage1" | "stage2") => {
+      const questions =
+        stage === "stage1" ? STAGE_1_QUESTIONS : STAGE_2_QUESTIONS;
+
+      questions.forEach((_, index) => {
+        const fieldName =
+          `${stage}.${index}.evidenceVerified` as EvidenceFieldName;
+        setValue(fieldName, isChecked);
+      });
+    },
+    [setValue],
   );
 
   // Populate form with API data
@@ -267,6 +303,7 @@ export function GSAssessmentStaffForm({
       });
 
       toast.success("Assessment submitted");
+      setTabNavigation("gs-process");
       onSuccess?.();
     } catch {
       // Error handled by mutation
@@ -281,6 +318,9 @@ export function GSAssessmentStaffForm({
     );
   }
 
+  const isReadonlyMode =
+    readonly || staffAssessment?.data?.status === "submitted";
+
   return (
     <FormProvider {...methods}>
       <form className="space-y-6" onSubmit={handleSubmit(handleFormSubmit)}>
@@ -290,7 +330,7 @@ export function GSAssessmentStaffForm({
             Genuine Student (GS) Assessment
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {readOnly
+            {isReadonlyMode
               ? "View the assessment form for the applicant"
               : "Complete the assessment form for the applicant"}
           </p>
@@ -303,34 +343,34 @@ export function GSAssessmentStaffForm({
             <FormInput
               name="applicantDetails.givenName"
               label="Given Name(s)"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
             <FormInput
               name="applicantDetails.familyName"
               label="Family Name"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
             <FormInput
               name="applicantDetails.dob"
               label="DOB"
               type="date"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
             <FormInput
               name="applicantDetails.refNo"
               label="Student ID / Ref no"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
             <FormInput
               name="applicantDetails.passportNo"
               label="Passport No"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
             <FormInput
               name="applicantDetails.email"
               label="Email"
               type="email"
-              disabled={readOnly}
+              disabled={isReadonlyMode}
             />
           </div>
         </div>
@@ -341,8 +381,10 @@ export function GSAssessmentStaffForm({
           stage="stage1"
           questions={STAGE_1_QUESTIONS}
           control={control}
-          readOnly={readOnly}
+          isReadonlyMode={isReadonlyMode}
           onSelectAllYes={handleSelectAllYes}
+          onSelectAllNo={handleSelectAllNo}
+          onSelectAllEvidenceVerified={handleSelectAllEvidenceVerified}
           showApprovalStatus={false}
         />
 
@@ -352,22 +394,24 @@ export function GSAssessmentStaffForm({
           stage="stage2"
           questions={STAGE_2_QUESTIONS}
           control={control}
-          readOnly={readOnly}
+          isReadonlyMode={isReadonlyMode}
           onSelectAllYes={handleSelectAllYes}
+          onSelectAllNo={handleSelectAllNo}
+          onSelectAllEvidenceVerified={handleSelectAllEvidenceVerified}
           showApprovalStatus={true}
         />
 
         {/* GS Status */}
         <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
           <h3 className="font-semibold">Student GS Status</h3>
-          <GSStatusRadio control={control} disabled={readOnly} />
+          <GSStatusRadio control={control} disabled={isReadonlyMode} />
         </div>
 
         {/* Risk Level */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Risk Level</Label>
-            <RiskLevelSelect control={control} disabled={readOnly} />
+            <RiskLevelSelect control={control} disabled={isReadonlyMode} />
           </div>
         </div>
 
@@ -377,7 +421,7 @@ export function GSAssessmentStaffForm({
           label="Conditions:"
           placeholder="Enter any conditions for approval..."
           rows={3}
-          disabled={readOnly}
+          disabled={isReadonlyMode}
         />
 
         {/* Notes */}
@@ -386,39 +430,46 @@ export function GSAssessmentStaffForm({
           label="Additional Comments:"
           placeholder="Enter any additional notes or remarks..."
           rows={5}
-          disabled={readOnly}
+          disabled={isReadonlyMode}
         />
 
         {/* Action Buttons */}
-        {!readOnly && (
-          <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-background py-4">
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-              className="gap-2"
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save Assessment
-            </Button>
-            <Button
-              type="submit"
-              className="gap-2 bg-green-600 hover:bg-green-700"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              Submit & Complete
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-background py-4">
+          <GSAssessmentStaffPdfDownloadButton
+            data={staffAssessmentData}
+            applicationId={applicationId}
+            variant="secondary"
+            className="gap-2"
+          />
+
+          {!isReadonlyMode && (
+            <>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Submit Assessment
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                className="gap-2"
+                variant={"secondary"}
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Draft
+              </Button>
+            </>
+          )}
+        </div>
       </form>
     </FormProvider>
   );
@@ -433,8 +484,13 @@ interface StageQuestionsTableProps {
   stage: "stage1" | "stage2";
   questions: StageQuestion[];
   control: Control<GSAssessmentStaffFormInput>;
-  readOnly: boolean;
+  isReadonlyMode: boolean;
   onSelectAllYes: (isChecked: boolean, stage: "stage1" | "stage2") => void;
+  onSelectAllNo: (isChecked: boolean, stage: "stage1" | "stage2") => void;
+  onSelectAllEvidenceVerified: (
+    isChecked: boolean,
+    stage: "stage1" | "stage2",
+  ) => void;
   showApprovalStatus: boolean;
 }
 
@@ -443,10 +499,40 @@ const StageQuestionsTable = memo(function StageQuestionsTable({
   stage,
   questions,
   control,
-  readOnly,
+  isReadonlyMode,
   onSelectAllYes,
+  onSelectAllNo,
+  onSelectAllEvidenceVerified,
   showApprovalStatus,
 }: StageQuestionsTableProps) {
+  const stageValues = useWatch({ control, name: stage });
+
+  const answers = (stageValues ?? []).map((q) => q?.answer);
+  const allYes = answers.length > 0 && answers.every((a) => a === "yes");
+  const someYes = answers.some((a) => a === "yes");
+  const yesChecked: boolean | "indeterminate" = allYes
+    ? true
+    : someYes
+      ? "indeterminate"
+      : false;
+
+  const allNo = answers.length > 0 && answers.every((a) => a === "no");
+  const someNo = answers.some((a) => a === "no");
+  const noChecked: boolean | "indeterminate" = allNo
+    ? true
+    : someNo
+      ? "indeterminate"
+      : false;
+
+  const evidence = (stageValues ?? []).map((q) => Boolean(q?.evidenceVerified));
+  const allEvidence = evidence.length > 0 && evidence.every(Boolean);
+  const someEvidence = evidence.some(Boolean);
+  const evidenceChecked: boolean | "indeterminate" = allEvidence
+    ? true
+    : someEvidence
+      ? "indeterminate"
+      : false;
+
   return (
     <div className="space-y-4">
       <h3 className="font-semibold">{title}</h3>
@@ -460,20 +546,42 @@ const StageQuestionsTable = memo(function StageQuestionsTable({
                 </th>
                 <th className="text-center p-3 font-medium w-[80px]">
                   <div className="flex items-center justify-center gap-2">
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        onChange={(e) => onSelectAllYes(e.target.checked, stage)}
-                        disabled={readOnly}
-                      />
-                    </label>
+                    <Checkbox
+                      checked={yesChecked}
+                      onCheckedChange={(checked) =>
+                        onSelectAllYes(checked === true, stage)
+                      }
+                      disabled={isReadonlyMode}
+                      aria-label="Select all YES"
+                    />
                     YES
                   </div>
                 </th>
-                <th className="text-center p-3 font-medium w-[80px]">NO</th>
+                <th className="text-center p-3 font-medium w-[80px]">
+                  <div className="flex items-center justify-center gap-2">
+                    <Checkbox
+                      checked={noChecked}
+                      onCheckedChange={(checked) =>
+                        onSelectAllNo(checked === true, stage)
+                      }
+                      disabled={isReadonlyMode}
+                      aria-label="Select all NO"
+                    />
+                    NO
+                  </div>
+                </th>
                 <th className="text-center p-3 font-medium w-[150px]">
-                  Evidence Verified
+                  <div className="flex items-center justify-center gap-2">
+                    <Checkbox
+                      checked={evidenceChecked}
+                      onCheckedChange={(checked) =>
+                        onSelectAllEvidenceVerified(checked === true, stage)
+                      }
+                      disabled={isReadonlyMode}
+                      aria-label="Select all evidence verified"
+                    />
+                    Evidence Verified
+                  </div>
                 </th>
                 {showApprovalStatus && (
                   <th className="text-center p-3 font-medium w-[180px]">
@@ -497,7 +605,7 @@ const StageQuestionsTable = memo(function StageQuestionsTable({
                       control={control}
                       name={`${stage}.${index}.answer`}
                       checkedValue="yes"
-                      disabled={readOnly}
+                      disabled={isReadonlyMode}
                     />
                   </td>
                   <td className="p-3 text-center">
@@ -505,14 +613,14 @@ const StageQuestionsTable = memo(function StageQuestionsTable({
                       control={control}
                       name={`${stage}.${index}.answer`}
                       checkedValue="no"
-                      disabled={readOnly}
+                      disabled={isReadonlyMode}
                     />
                   </td>
                   <td className="p-3 text-center">
                     <EvidenceCheckbox
                       control={control}
                       name={`${stage}.${index}.evidenceVerified`}
-                      disabled={readOnly}
+                      disabled={isReadonlyMode}
                     />
                   </td>
                   {showApprovalStatus && (
@@ -520,7 +628,7 @@ const StageQuestionsTable = memo(function StageQuestionsTable({
                       <ApprovalStatusSelect
                         control={control}
                         name={`stage2.${index}.approvalStatus`}
-                        disabled={readOnly}
+                        disabled={isReadonlyMode}
                       />
                     </td>
                   )}
@@ -555,7 +663,10 @@ const YesNoCheckbox = memo(function YesNoCheckbox({
     <Controller
       name={name}
       control={control}
-      render={({ field: { value, onChange, ref }, fieldState: { invalid } }) => (
+      render={({
+        field: { value, onChange, ref },
+        fieldState: { invalid },
+      }) => (
         <Checkbox
           ref={ref}
           checked={value === checkedValue}
@@ -592,7 +703,10 @@ const EvidenceCheckbox = memo(function EvidenceCheckbox({
     <Controller
       name={name}
       control={control}
-      render={({ field: { value, onChange, ref }, fieldState: { invalid } }) => (
+      render={({
+        field: { value, onChange, ref },
+        fieldState: { invalid },
+      }) => (
         <>
           <Checkbox
             ref={ref}

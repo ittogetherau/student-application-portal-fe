@@ -37,7 +37,7 @@ const validTabs = [
   "details",
   "documents",
   "timeline",
-  "gs-progress",
+  "gs-process",
   "communication",
 ];
 
@@ -58,21 +58,25 @@ export default function AgentApplicationDetail() {
   } = useApplicationGetQuery(id);
 
   const application = response?.data;
-  const isGSAssessment = application?.current_stage === APPLICATION_STAGE.GS_ASSESSMENT;
+  const isGSAssessment =
+    application?.current_stage === APPLICATION_STAGE.GS_ASSESSMENT;
 
   useEffect(() => {
     if (hasSetInitialTab.current || !application) return;
 
     if (!tabParam) {
-      const defaultTab = isGSAssessment ? "gs-progress" : "details";
+      const defaultTab = isGSAssessment ? "gs-process" : "details";
       setTabParam(defaultTab);
     }
     hasSetInitialTab.current = true;
   }, [application, tabParam, setTabParam, isGSAssessment]);
 
-  const activeTab = tabParam && validTabs.includes(tabParam)
-    ? tabParam
-    : (isGSAssessment ? "gs-progress" : "details");
+  const activeTab =
+    tabParam && validTabs.includes(tabParam)
+      ? tabParam
+      : isGSAssessment
+        ? "gs-process"
+        : "details";
 
   useEffect(() => {
     if (tabParam && !validTabs.includes(tabParam)) {
@@ -181,7 +185,7 @@ export default function AgentApplicationDetail() {
               <TabsTrigger value="timeline" className="text-xs px-3">
                 Timeline
               </TabsTrigger>
-              <TabsTrigger value="gs-progress" className="text-xs px-3">
+              <TabsTrigger value="gs-process" className="text-xs px-3">
                 GS Process
               </TabsTrigger>
               <TabsTrigger value="communication" className="text-xs px-3">
@@ -249,7 +253,7 @@ export default function AgentApplicationDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="gs-progress" className="space-y-3">
+          <TabsContent value="gs-process" className="space-y-3">
             <GSTab
               trackingCode={application?.tracking_code}
               applicationId={application.id}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { parseAsStringEnum, useQueryState } from "nuqs";
 import { CheckCircle2, FileText, Lock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,14 @@ export default function GSTab({
   applicationId,
   isStaff = false,
 }: GSTabProps) {
-  const [userSelectedTab, setUserSelectedTab] = useState<StepId | null>(null);
+  const [userSelectedTab, setUserSelectedTab] = useQueryState(
+    "gs_process_tab",
+    parseAsStringEnum<StepId>(
+      STEPS.map((step) => step.id) as StepId[],
+    ).withOptions({
+      clearOnDefault: true,
+    }),
+  );
 
   // Fetch GS assessment from dedicated endpoint: /api/v1/gs-assessment/{application_id}
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(
@@ -210,46 +218,56 @@ export default function GSTab({
       </Card>
 
       <TabsContent value="documents" className="mt-0">
-        <GSDocumentsTab
-          applicationId={applicationId}
-          isStaff={isStaff}
-          isStageCompleted={isStageCompleted(0)}
-          onStageComplete={() => handleStageComplete(1)}
-        />
+        {isStageCompleted(0) && (
+          <GSDocumentsTab
+            applicationId={applicationId}
+            isStaff={isStaff}
+            isStageCompleted={isStageCompleted(0)}
+            onStageComplete={() => handleStageComplete(1)}
+          />
+        )}
       </TabsContent>
       <TabsContent value="declarations" className="mt-0">
-        <GSDeclarationsTab
-          applicationId={applicationId}
-          isStaff={isStaff}
-          isStageCompleted={isStageCompleted(1)}
-          onStageComplete={() => handleStageComplete(2)}
-        />
+        {isStageCompleted(1) && (
+          <GSDeclarationsTab
+            applicationId={applicationId}
+            isStaff={isStaff}
+            isStageCompleted={isStageCompleted(1)}
+            onStageComplete={() => handleStageComplete(2)}
+          />
+        )}
       </TabsContent>
       <TabsContent value="schedule" className="mt-0">
-        <GSScheduleTab
-          applicationId={applicationId}
-          isStaff={isStaff}
-          isStageCompleted={isStageCompleted(2)}
-          onStageComplete={() => handleStageComplete(3)}
-          // onSkipToAssessment={() => handleStageComplete(5)}
-        />
+        {isStageCompleted(2) && (
+          <GSScheduleTab
+            applicationId={applicationId}
+            isStaff={isStaff}
+            isStageCompleted={isStageCompleted(2)}
+            onStageComplete={() => handleStageComplete(3)}
+            // onSkipToAssessment={() => handleStageComplete(5)}
+          />
+        )}
       </TabsContent>
       <TabsContent value="interview" className="mt-0">
-        <GSInterviewTab
-          applicationId={applicationId}
-          isStaff={isStaff}
-          isStageCompleted={isStageCompleted(3)}
-          onStageComplete={() => handleStageComplete(4)}
-        />
+        {isStageCompleted(3) && (
+          <GSInterviewTab
+            applicationId={applicationId}
+            isStaff={isStaff}
+            isStageCompleted={isStageCompleted(3)}
+            onStageComplete={() => handleStageComplete(4)}
+          />
+        )}
       </TabsContent>
       <TabsContent value="assessment" className="mt-0">
-        <GSAssessmentTab
-          trackingCode={trackingCode}
-          applicationId={applicationId}
-          isStaff={isStaff}
-          isStageCompleted={isStageCompleted(4)}
-          onStageComplete={() => handleStageComplete(5)}
-        />
+        {isStageCompleted(4) && (
+          <GSAssessmentTab
+            trackingCode={trackingCode}
+            applicationId={applicationId}
+            isStaff={isStaff}
+            isStageCompleted={isStageCompleted(4)}
+            onStageComplete={() => handleStageComplete(5)}
+          />
+        )}
       </TabsContent>
     </Tabs>
   );
