@@ -43,6 +43,8 @@ export const gsAssessmentKeys = {
     [...gsAssessmentKeys.all, "progress", applicationId] as const,
   studentDeclaration: (applicationId: string) =>
     [...gsAssessmentKeys.all, "student-declaration", applicationId] as const,
+  studentDeclarationByToken: (token: string) =>
+    [...gsAssessmentKeys.all, "student-declaration-by-token", token] as const,
   agentDeclaration: (applicationId: string) =>
     [...gsAssessmentKeys.all, "agent-declaration", applicationId] as const,
   stageTwoStatus: (applicationId: string) =>
@@ -110,7 +112,7 @@ export function useGSProgressQuery(applicationId: string | null) {
 }
 
 /**
- * Query to fetch student declaration
+ * Query to fetch student declaration (authenticated – use applicationId).
  */
 export function useGSStudentDeclarationQuery(applicationId: string | null) {
   return useQuery<ServiceResponse<GsDeclarationResponse>, Error>({
@@ -124,6 +126,24 @@ export function useGSStudentDeclarationQuery(applicationId: string | null) {
       return response;
     },
     enabled: !!applicationId,
+  });
+}
+
+/**
+ * Query to fetch student declaration by public token (public link – GET /api/v1/public/gs-declarations/{token}).
+ */
+export function useGSStudentDeclarationByTokenQuery(token: string | null | undefined) {
+  return useQuery<ServiceResponse<GsDeclarationResponse>, Error>({
+    queryKey: gsAssessmentKeys.studentDeclarationByToken(token ?? ""),
+    queryFn: async () => {
+      if (!token) throw new Error("Token is required");
+      const response = await gsAssessmentService.getStudentDeclarationByToken(token);
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    enabled: !!token,
   });
 }
 
@@ -732,6 +752,68 @@ export function useGSStudentDeclarationSubmitWithTokenMutation() {
     },
     onError: (error) => {
       console.error("Failed to submit student declaration:", error);
+      toast.error(error.message || "Failed to submit declaration");
+    },
+  });
+}
+
+// ============================================================================
+// Public GS Declarations by token (GET/POST /api/v1/public/gs-declarations/{token})
+// ============================================================================
+
+interface PublicByTokenMutationParams {
+  token: string;
+  payload: GsDeclarationSaveRequest | GsDeclarationSubmitRequest;
+}
+
+/**
+ * Save student declaration via public link (POST public/gs-declarations/{token}/save).
+ */
+export function useGSStudentDeclarationSaveByTokenMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<GsDeclarationResponse, Error, PublicByTokenMutationParams>({
+    mutationFn: async ({ token, payload }) => {
+      const response = await gsAssessmentService.saveStudentDeclarationByToken(
+        token,
+        payload as GsDeclarationSaveRequest
+      );
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing");
+      return response.data;
+    },
+    onSuccess: (_, { token }) => {
+      queryClient.invalidateQueries({
+        queryKey: gsAssessmentKeys.studentDeclarationByToken(token),
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to save declaration");
+    },
+  });
+}
+
+/**
+ * Submit student declaration via public link (POST public/gs-declarations/{token}/submit).
+ */
+export function useGSStudentDeclarationSubmitByTokenMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<GsDeclarationResponse, Error, PublicByTokenMutationParams>({
+    mutationFn: async ({ token, payload }) => {
+      const response = await gsAssessmentService.submitStudentDeclarationByToken(
+        token,
+        payload as GsDeclarationSubmitRequest
+      );
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing");
+      return response.data;
+    },
+    onSuccess: (_, { token }) => {
+      queryClient.invalidateQueries({
+        queryKey: gsAssessmentKeys.studentDeclarationByToken(token),
+      });
+      toast.success("Declaration submitted successfully");
+    },
+    onError: (error) => {
       toast.error(error.message || "Failed to submit declaration");
     },
   });

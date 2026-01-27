@@ -60,5 +60,7 @@ class StudentService extends ApiService {
   }
 }
 
+
+
 const studentService = new StudentService();
 export default studentService;

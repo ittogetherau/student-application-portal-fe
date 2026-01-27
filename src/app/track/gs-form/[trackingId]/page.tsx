@@ -3,16 +3,19 @@ import { ArrowLeft } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components/gs-screening-form";
+import { GSFormClient } from "./gs-form-client";
 
 type GSFormPageProps = {
   params: Promise<{ trackingId: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; id?: string }>;
 };
 
-export default async function GSFormPage({ params, searchParams }: GSFormPageProps) {
+export default async function GSFormPage({
+  params,
+  searchParams,
+}: GSFormPageProps) {
   const { trackingId } = await params;
-  const { token } = await searchParams;
+  const { token, id } = await searchParams;
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -49,7 +52,11 @@ export default async function GSFormPage({ params, searchParams }: GSFormPagePro
           </CardContent>
         </Card>
 
-        <GSScreeningForm currentView="student" trackingId={trackingId} token={token} />
+        <GSFormClient
+          trackingId={trackingId}
+          token={token}
+          applicationId={id}
+        />
       </div>
     </main>
   );

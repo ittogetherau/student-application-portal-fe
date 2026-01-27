@@ -38,6 +38,8 @@ export default function GSAssessmentTab({
   const assessmentStatus = staffAssessment?.data?.status;
   const isSubmitted = assessmentStatus === "submitted" || assessmentStatus === "completed";
 
+  const isCompleted = staffAssessment?.data?.completed_at !== null && staffAssessment?.data?.completed_at !== undefined;
+
   const handleBack = () => setViewState("cards");
 
   const handleFormSuccess = async () => {
@@ -66,7 +68,7 @@ export default function GSAssessmentTab({
           </Button>
           <span className="text-muted-foreground">/</span>
           <span className="text-sm font-medium">
-             Staff Assessment
+            Staff Assessment
           </span>
         </div>
 
@@ -115,10 +117,17 @@ export default function GSAssessmentTab({
 
           {trackingCode && (
             <Button asChild variant="outline" className="gap-2">
-              <Link href={`/track/gs-form/${trackingCode}`}>
+              <Link href={`/track/gs-form/${trackingCode}?id=${applicationId}`}>
                 <FileText className="h-4 w-4" />
                 View Declaration
               </Link>
+            </Button>
+          )}
+
+          {isCompleted && !isStageCompleted && !isSubmitted && (
+            <Button variant="outline" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Submit and continue
             </Button>
           )}
         </div>

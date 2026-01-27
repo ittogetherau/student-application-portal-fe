@@ -26,7 +26,7 @@ import ReviewForm from "../create/_forms/review-form";
 import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
-import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
+import { ApplicationActionsMenu } from "./_components/ApplicationActionsMenu";
 import { ErrorState, LoadingState, NotFoundState } from "./_components/states";
 import CommunicationTab from "./_components/tabs/CommunicationTab";
 import DocumentsTab from "./_components/tabs/DocumentsTab";
@@ -192,16 +192,18 @@ export default function AgentApplicationDetail() {
             <div className="flex items-center justify-end gap-2">
               {ROLE === "staff" && IS_ADMIN_STAFF && (
                 <GuidedTooltip
-                  storageKey="staff:application-detail:staff-assignment"
-                  text="Assign this application to a staff member here."
+                  storageKey="staff:application-detail:actions"
+                  text="Assign, accept, reject, or archive this application."
                   enabled={ROLE === "staff" && IS_ADMIN_STAFF}
                 >
-                  <div className="max-w-86">
-                    <StaffAssignmentSelect
-                      applicationId={application.id}
-                      assignedStaffId={application.assigned_staff_id}
-                    />
-                  </div>
+                  <ApplicationActionsMenu
+                    applicationId={application.id}
+                    assignedStaffId={application.assigned_staff_id}
+                    assignedStaffEmail={
+                      (application as { assigned_staff_email?: string | null })
+                        .assigned_staff_email
+                    }
+                  />
                 </GuidedTooltip>
               )}
 

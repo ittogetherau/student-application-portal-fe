@@ -56,8 +56,8 @@ const IconMap: Record<APPLICATION_STAGE, LucideIcon> = {
   [APPLICATION_STAGE.OFFER_LETTER]: Signature,
   [APPLICATION_STAGE.GS_ASSESSMENT]: ListTodo,
   [APPLICATION_STAGE.COE_ISSUED]: CircleQuestionMark,
-  [APPLICATION_STAGE.ACCEPTED]: Check,
-  [APPLICATION_STAGE.REJECTED]: X,
+  // [APPLICATION_STAGE.ACCEPTED]: Check,
+  // [APPLICATION_STAGE.REJECTED]: X,
 };
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {

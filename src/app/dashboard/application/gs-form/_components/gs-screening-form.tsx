@@ -32,8 +32,8 @@ import {
   GSScreeningFormValues,
 } from "../_utils/gs-screening.validation";
 import {
-  useGSStudentDeclarationSaveWithTokenMutation,
-  useGSStudentDeclarationSubmitWithTokenMutation,
+  useGSStudentDeclarationSaveByTokenMutation,
+  useGSStudentDeclarationSubmitByTokenMutation,
   useGSStudentDeclarationSaveMutation,
   useGSStudentDeclarationSubmitMutation,
   useGSAgentDeclarationSaveMutation,
@@ -131,9 +131,11 @@ export function GSScreeningForm({
     createGSScreeningSchema(currentView),
   ) as Resolver<GSScreeningFormValues>;
 
+  const mergedDefaults = { ...defaultValues, ...(initialData ?? {}) };
+
   const methods = useForm<GSScreeningFormValues>({
     resolver,
-    defaultValues,
+    defaultValues: mergedDefaults,
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
@@ -141,7 +143,7 @@ export function GSScreeningForm({
   const { handleSubmit, watch, reset } = methods;
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData != null) {
       reset({ ...defaultValues, ...initialData });
     }
   }, [initialData, reset]);
@@ -189,11 +191,11 @@ export function GSScreeningForm({
 
   const [onshoreGuidance, setOnshoreGuidance] = useState<"yes" | "no">("no");
 
-  // Token-based mutations (for student filling via email link)
-  const saveStudentDeclarationWithTokenMutation = useGSStudentDeclarationSaveWithTokenMutation();
-  const submitStudentDeclarationWithTokenMutation = useGSStudentDeclarationSubmitWithTokenMutation();
+  // Public-by-token mutations (GET/POST /api/v1/public/gs-declarations/{token}) – student via email link
+  const saveByTokenMutation = useGSStudentDeclarationSaveByTokenMutation();
+  const submitByTokenMutation = useGSStudentDeclarationSubmitByTokenMutation();
 
-  // Authenticated mutations (for staff filling on behalf of student)
+  // Authenticated mutations (staff filling on behalf of student – use applicationId)
   const saveStudentDeclarationMutation = useGSStudentDeclarationSaveMutation(applicationId ?? null);
   const submitStudentDeclarationMutation = useGSStudentDeclarationSubmitMutation(applicationId ?? null);
 
@@ -202,8 +204,8 @@ export function GSScreeningForm({
   const submitAgentDeclarationMutation = useGSAgentDeclarationSubmitMutation(applicationId ?? null);
 
   const isSubmitting =
-    saveStudentDeclarationWithTokenMutation.isPending ||
-    submitStudentDeclarationWithTokenMutation.isPending ||
+    saveByTokenMutation.isPending ||
+    submitByTokenMutation.isPending ||
     saveStudentDeclarationMutation.isPending ||
     submitStudentDeclarationMutation.isPending ||
     saveAgentDeclarationMutation.isPending ||
@@ -214,23 +216,13 @@ export function GSScreeningForm({
 
     try {
       if (currentView === "student") {
-        // Check if using token-based auth (student via email) or authenticated (staff on behalf)
-        if (trackingId && token) {
-          // Student filling via email link with token
-          await saveStudentDeclarationWithTokenMutation.mutateAsync({
-            applicationId: trackingId,
-            token,
-            payload,
-          });
-
-          await submitStudentDeclarationWithTokenMutation.mutateAsync({
-            applicationId: trackingId,
-            token,
-            payload,
-          });
-          // Toast is shown by the hook
+        // Public link: token in URL – use GET/POST /api/v1/public/gs-declarations/{token}
+        if (token) {
+          await saveByTokenMutation.mutateAsync({ token, payload });
+          await submitByTokenMutation.mutateAsync({ token, payload });
+          handleBack?.();
         } else if (applicationId) {
-          // Staff filling on behalf of student with next-auth
+          // Staff filling on behalf of student (authenticated – use applicationId)
           await saveStudentDeclarationMutation.mutateAsync(payload);
           await submitStudentDeclarationMutation.mutateAsync(payload);
           toast.success("Student declaration submitted successfully!");

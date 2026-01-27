@@ -739,6 +739,74 @@ class GsAssessmentService extends ApiService {
       return handleApiError(error, "Failed to submit student declaration");
     }
   };
+
+  // Public GS Declarations (token in path – for student via email link)
+  // GET /api/v1/public/gs-declarations/{token}
+  getStudentDeclarationByToken = async (
+    token: string
+  ): Promise<ServiceResponse<GsDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.get<GsDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}`,
+        false
+      );
+      return {
+        success: true,
+        message: "Student declaration fetched.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to fetch student declaration"
+      );
+    }
+  };
+
+  // POST /api/v1/public/gs-declarations/{token}/save
+  saveStudentDeclarationByToken = async (
+    token: string,
+    payload: GsDeclarationSaveRequest
+  ): Promise<ServiceResponse<GsDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.post<GsDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}/save`,
+        payload,
+        false
+      );
+      return {
+        success: true,
+        message: "Student declaration saved.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to save student declaration");
+    }
+  };
+
+  // POST /api/v1/public/gs-declarations/{token}/submit
+  submitStudentDeclarationByToken = async (
+    token: string,
+    payload: GsDeclarationSubmitRequest
+  ): Promise<ServiceResponse<GsDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.post<GsDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}/submit`,
+        payload,
+        false
+      );
+      return {
+        success: true,
+        message: "Student declaration submitted.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to submit student declaration");
+    }
+  };
 }
 
 const gsAssessmentService = new GsAssessmentService();

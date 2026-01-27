@@ -435,7 +435,7 @@ export const useApplicationApproveMutation = (applicationId: string | null) => {
     mutationFn: async (payload) => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.startApplicationReview(
+      const response = await applicationService.approveApplication(
         applicationId,
         payload,
       );
