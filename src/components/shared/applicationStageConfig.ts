@@ -34,15 +34,15 @@ export const STAGE_PILL_CONFIG: Record<
     className:
       "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
   },
-  [APPLICATION_STAGE.ACCEPTED]: {
-    label: "Accepted",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
-  },
-  [APPLICATION_STAGE.REJECTED]: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
-  },
+  // [APPLICATION_STAGE.ACCEPTED]: {
+  //   label: "Accepted",
+  //   className:
+  //     "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
+  // },
+  // [APPLICATION_STAGE.REJECTED]: {
+  //   label: "Rejected",
+  //   className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
+  // },
 };
 
 export const ROLE_STATUS_LABELS: Record<
@@ -73,14 +73,14 @@ export const ROLE_STATUS_LABELS: Record<
     agent: "COE Issued",
     staff: "COE Issued",
   },
-  [APPLICATION_STAGE.ACCEPTED]: {
-    agent: "Accepted",
-    staff: "Accepted",
-  },
-  [APPLICATION_STAGE.REJECTED]: {
-    agent: "Rejected",
-    staff: "Rejected",
-  },
+  // [APPLICATION_STAGE.ACCEPTED]: {
+  //   agent: "Accepted",
+  //   staff: "Accepted",
+  // },
+  // [APPLICATION_STAGE.REJECTED]: {
+  //   agent: "Rejected",
+  //   staff: "Rejected",
+  // },
 };
 
 export const normalizeStage = (

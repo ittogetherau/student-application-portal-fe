@@ -1,17 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
-import {
-  Archive,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  UserPlus,
-  XCircle,
-} from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -45,10 +33,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { siteRoutes } from "@/constants/site-routes";
 import {
   useApplicationApproveMutation,
+  useApplicationAssignMutation,
   useApplicationRejectMutation,
   useArchiveApplicationMutation,
-  useApplicationAssignMutation,
 } from "@/hooks/useApplication.hook";
+import {
+  Archive,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import useStaffMembersQuery from "../_hooks/useStaffMembers.hook";
 
 interface ApplicationActionsMenuProps {
@@ -95,8 +94,7 @@ export function ApplicationActionsMenu({
     if (!assignedStaffEmail) return null;
     const staffMatch = staffMembers.find(
       (s) =>
-        s.email &&
-        s.email.toLowerCase() === assignedStaffEmail.toLowerCase()
+        s.email && s.email.toLowerCase() === assignedStaffEmail.toLowerCase(),
     );
     return staffMatch?.staff_profile?.id || staffMatch?.id || null;
   }, [assignedStaffEmail, assignedStaffId, staffMembers]);
@@ -137,7 +135,7 @@ export function ApplicationActionsMenu({
         onError: (e) => {
           toast.error(e.message || "Failed to accept");
         },
-      }
+      },
     );
   };
 
@@ -164,7 +162,7 @@ export function ApplicationActionsMenu({
         onError: (e) => {
           toast.error(e.message || "Failed to reject");
         },
-      }
+      },
     );
   };
 
@@ -214,7 +212,9 @@ export function ApplicationActionsMenu({
             Assign
           </DropdownMenuLabel>
           <DropdownMenuSub open={assignSubOpen} onOpenChange={setAssignSubOpen}>
-            <DropdownMenuSubTrigger disabled={isStaffLoading || assignMutation.isPending}>
+            <DropdownMenuSubTrigger
+              disabled={isStaffLoading || assignMutation.isPending}
+            >
               <UserPlus className="mr-2 h-4 w-4" />
               <span className="truncate">
                 {currentStaff
@@ -226,8 +226,8 @@ export function ApplicationActionsMenu({
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent
               className="w-72 p-0"
-              align="start"
-              onCloseAutoFocus={(e) => e.preventDefault()}
+              // align="start"
+              // onCloseAutoFocus={(e) => e.preventDefault()}
             >
               <Command
                 className="rounded-lg border-0 bg-transparent"
@@ -370,8 +370,7 @@ export function ApplicationActionsMenu({
               variant="destructive"
               onClick={handleRejectSubmit}
               disabled={
-                rejectMutation.isPending ||
-                rejectionReason.trim().length < 10
+                rejectMutation.isPending || rejectionReason.trim().length < 10
               }
             >
               {rejectMutation.isPending ? "Rejecting…" : "Reject application"}
