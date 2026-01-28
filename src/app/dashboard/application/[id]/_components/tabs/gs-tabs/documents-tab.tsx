@@ -613,7 +613,7 @@ export default function GSDocumentsTab({
                           {isUploading
                             ? "Uploading..."
                             : hasFiles
-                              ? "Replace file"
+                              ? "Add file"
                               : "Drop file here or click to upload"}
                         </span>
                         <span>

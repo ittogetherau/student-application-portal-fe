@@ -218,7 +218,7 @@ export default function GSTab({
       </Card>
 
       <TabsContent value="documents" className="mt-0">
-        {isStageCompleted(0) && (
+        {currentApiStage >= 0 && (
           <GSDocumentsTab
             applicationId={applicationId}
             isStaff={isStaff}
@@ -228,7 +228,7 @@ export default function GSTab({
         )}
       </TabsContent>
       <TabsContent value="declarations" className="mt-0">
-        {isStageCompleted(1) && (
+        {currentApiStage >= 1 && (
           <GSDeclarationsTab
             applicationId={applicationId}
             isStaff={isStaff}
@@ -238,7 +238,7 @@ export default function GSTab({
         )}
       </TabsContent>
       <TabsContent value="schedule" className="mt-0">
-        {isStageCompleted(2) && (
+        {currentApiStage >= 2 && (
           <GSScheduleTab
             applicationId={applicationId}
             isStaff={isStaff}
@@ -249,7 +249,7 @@ export default function GSTab({
         )}
       </TabsContent>
       <TabsContent value="interview" className="mt-0">
-        {isStageCompleted(3) && (
+        {currentApiStage >= 3 && (
           <GSInterviewTab
             applicationId={applicationId}
             isStaff={isStaff}
@@ -259,7 +259,7 @@ export default function GSTab({
         )}
       </TabsContent>
       <TabsContent value="assessment" className="mt-0">
-        {isStageCompleted(4) && (
+        {currentApiStage >= 4 && (
           <GSAssessmentTab
             trackingCode={trackingCode}
             applicationId={applicationId}

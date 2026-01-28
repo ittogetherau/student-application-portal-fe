@@ -223,67 +223,73 @@ export interface GSDocumentConfig {
 }
 
 /**
- * The 9 required GS Assessment documents
+ * The 10 required GS Assessment documents
  */
 export const GS_DOCUMENT_CONFIGS: readonly GSDocumentConfig[] = [
   {
     number: 1,
-    title: "Passport All Page Color Scanned or Certified Copy",
-    description: "All pages of passport including blank pages, color scanned or certified",
+    title: "Passport Copy",
+    description: "All pages of passport including blank pages, color scanned or certified copy",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 2,
-    title: "Academic Color Scanned Or Certified Copy",
-    description: "Academic transcripts, certificates, and mark sheets - color scanned or certified",
+    title: "Academic Transcripts",
+    description: "Academic transcripts, certificates, and mark sheets - color scanned or certified copy",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 3,
-    title: "Student Gap Evidence If Any",
-    description: "Documentation explaining any gaps in education or employment history",
+    title: "English Proficiency Test Results",
+    description: "IELTS, PTE, or other English language test results",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 4,
-    title: "Financial / Banking Documents",
-    description: "Bank statements, fixed deposits, or other financial evidence",
+    title: "Certificate of Qualification",
+    description: "Degree certificates, diplomas, or other qualification documents",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 5,
-    title: "Relationship Documents / Family Register",
-    description: "Documents proving relationship with sponsor - family register, birth certificate",
+    title: "Financial Documents",
+    description: "Bank statements, fixed deposits, loan letters, or other financial evidence",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 6,
-    title: "Income Proof / Source of Income",
-    description: "Salary slips, employment letter, business income proof, or other income evidence",
+    title: "Health Insurance (OSHC)",
+    description: "Overseas Student Health Cover policy or confirmation letter",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 7,
-    title: "Tax Payment Documents If Applicable",
-    description: "Tax returns, income tax certificates, or tax clearance documents",
+    title: "Previous Visa History",
+    description: "Previous visa grants, refusals, or travel history documents if applicable",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 8,
     title: "Statement of Purpose",
-    description: "Written statement explaining study goals and career plans",
+    description: "Written statement explaining study goals, career plans, and reasons for choosing this course",
     acceptedFormats: "PDF",
   },
   {
     number: 9,
+    title: "CV/Resume",
+    description: "Current curriculum vitae or resume with education and work experience",
+    acceptedFormats: "PDF",
+  },
+  {
+    number: 10,
     title: "Other Documents",
-    description: "Any additional supporting documents",
+    description: "Any additional supporting documents required for the assessment",
     acceptedFormats: "PDF, JPG, PNG",
   },
 ] as const;
 
 /**
- * Get document config by number (1-9)
+ * Get document config by number (1-10)
  */
 export function getDocumentConfig(documentNumber: number): GSDocumentConfig | undefined {
   return GS_DOCUMENT_CONFIGS.find((d) => d.number === documentNumber);
@@ -420,7 +426,7 @@ export function transformGSDocument(
 
 /**
  * Transform array of raw API documents
- * Always returns documents sorted by documentNumber (1-9)
+ * Always returns documents sorted by documentNumber (1-10)
  */
 export function transformGSDocuments(
   raw: unknown[] | null | undefined
@@ -447,7 +453,7 @@ export function transformGSDocuments(
     }));
   }
 
-  // Transform and sort by documentNumber to ensure correct order (1-9)
+  // Transform and sort by documentNumber to ensure correct order (1-10)
   const transformed = raw.map((doc) => transformGSDocument(doc as Record<string, unknown>));
   return transformed.sort((a, b) => a.documentNumber - b.documentNumber);
 }
