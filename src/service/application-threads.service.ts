@@ -14,6 +14,8 @@ export interface ThreadMessage {
 
 export interface CommunicationThread {
   id: string;
+  agent?: ThreadParticipant | null;
+  assigned_staff?: ThreadParticipant | null;
   subject: string;
   issue_type: string;
   target_section: string;
@@ -28,6 +30,12 @@ export interface CommunicationThread {
   created_by_name: string;
   messages: ThreadMessage[];
   application_id?: string;
+}
+
+export interface ThreadParticipant {
+  id: string;
+  email: string;
+  name: string | null;
 }
 
 export interface CreateThreadPayload {
@@ -86,7 +94,12 @@ class ApplicationThreadsService extends ApiService {
     }
 
     return resolveServiceCall<CommunicationThread[]>(
-      () => this.get(`${this.basePath}/${applicationId}/threads`, true),
+      async () => {
+        const data = await this.get<
+          CommunicationThread[] | Record<string, CommunicationThread>
+        >(`${this.basePath}/${applicationId}/threads`, true);
+        return Array.isArray(data) ? data : Object.values(data ?? {});
+      },
       "Communication threads fetched successfully.",
       "Failed to fetch communication threads",
       []

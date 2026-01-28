@@ -1,40 +1,40 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import {
+  ArrowRight,
   CheckCircle2,
   Clock,
+  ExternalLink,
   FileText,
   Filter,
   Loader2,
+  RefreshCw,
   Search,
   Trash2,
   Upload,
-  ExternalLink,
-  ArrowRight,
-  RefreshCw,
 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent as ShadDialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader as ShadDialogHeader,
-  DialogTitle as ShadDialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogDescription,
+  DialogFooter,
+  DialogContent as ShadDialogContent,
+  DialogHeader as ShadDialogHeader,
+  DialogTitle as ShadDialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   GS_DOCUMENT_CONFIGS,
   transformGSDocuments,
@@ -42,11 +42,11 @@ import {
   type GSDocumentData,
 } from "@/constants/gs-assessment";
 import {
-  useGSDocumentsQuery,
-  useGSDocumentUploadMutation,
-  useGSDocumentStatusMutation,
   useGSDocumentAutoCompleteMutation,
   useGSDocumentFileDeleteMutation,
+  useGSDocumentsQuery,
+  useGSDocumentStatusMutation,
+  useGSDocumentUploadMutation,
 } from "@/hooks/useGSAssessment.hook";
 
 const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
@@ -420,7 +420,9 @@ export default function GSDocumentsTab({
                 <Button
                   type="button"
                   variant="destructive"
-                  disabled={deleteFileMutation.isPending || pendingDelete === null}
+                  disabled={
+                    deleteFileMutation.isPending || pendingDelete === null
+                  }
                   onClick={async () => {
                     if (!pendingDelete) return;
                     try {
@@ -568,7 +570,8 @@ export default function GSDocumentsTab({
                                         setPendingDelete({
                                           documentNumber: doc.documentNumber,
                                           fileId: file.id,
-                                          fileName: file.fileName || "this file",
+                                          fileName:
+                                            file.fileName || "this file",
                                         })
                                       }
                                     >

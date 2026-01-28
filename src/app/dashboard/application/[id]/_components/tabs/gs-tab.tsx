@@ -15,7 +15,7 @@ import {
 import { transformGSAssessmentData } from "@/constants/gs-assessment";
 import GSAssessmentTab from "./gs-tabs/assessment-tab";
 import GSDeclarationsTab from "./gs-tabs/declarations-tab";
-import GSDocumentsTab from "./gs-tabs/documents-tab";
+import GSDocumentsTab from "./gs-tabs/gs-documents-tab";
 import GSInterviewTab from "./gs-tabs/interview-tab";
 import GSScheduleTab from "./gs-tabs/schedule-tab";
 

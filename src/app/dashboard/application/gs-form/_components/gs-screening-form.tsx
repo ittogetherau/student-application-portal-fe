@@ -45,6 +45,7 @@ import {
   useGSAgentDeclarationSaveMutation,
   useGSAgentDeclarationSubmitMutation,
 } from "@/hooks/useGSAssessment.hook";
+import { DeclarationDocumentUpload } from "./DeclarationDocumentUpload";
 
 const defaultValues: GSScreeningFormValues = {
   firstName: "",
@@ -112,6 +113,7 @@ const yesNoOptions = [
   { value: "no", label: "No" },
 ];
 
+
 type DeclarationView = "student" | "agent";
 
 interface GSScreeningFormProps {
@@ -146,7 +148,12 @@ export function GSScreeningForm({
     reValidateMode: "onChange",
   });
 
-  const { handleSubmit, watch, reset } = methods;
+  const { handleSubmit, watch, reset, setValue } = methods;
+  const [currentVisaFile, setCurrentVisaFile] = useState<File | null>(null);
+  const [visaRefusalFile, setVisaRefusalFile] = useState<File | null>(null);
+  const [familyVisaRefusalFile, setFamilyVisaRefusalFile] = useState<File | null>(null);
+  const [marriageCertFile, setMarriageCertFile] = useState<File | null>(null);
+  const [childrenBirthCertsFile, setChildrenBirthCertsFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialData != null) {
@@ -160,6 +167,41 @@ export function GSScreeningForm({
   const isMarried = watch("isMarried");
   const hasChildren = watch("hasChildren");
   const hasRelativesInAustralia = watch("hasRelativesInAustralia");
+
+  useEffect(() => {
+    if (currentlyInAustralia !== "yes") {
+      setCurrentVisaFile(null);
+      setValue("currentVisaDocument", "", { shouldValidate: false });
+    }
+  }, [currentlyInAustralia, setValue]);
+
+  useEffect(() => {
+    if (visaRefusedOrCancelled !== "yes") {
+      setVisaRefusalFile(null);
+      setValue("visaRefusalDocument", "", { shouldValidate: false });
+    }
+  }, [visaRefusedOrCancelled, setValue]);
+
+  useEffect(() => {
+    if (familyVisaRefusedOrCancelled !== "yes") {
+      setFamilyVisaRefusalFile(null);
+      setValue("familyVisaRefusalDocument", "", { shouldValidate: false });
+    }
+  }, [familyVisaRefusedOrCancelled, setValue]);
+
+  useEffect(() => {
+    if (isMarried !== "yes") {
+      setMarriageCertFile(null);
+      setValue("marriageCertificate", "", { shouldValidate: false });
+    }
+  }, [isMarried, setValue]);
+
+  useEffect(() => {
+    if (hasChildren !== "yes") {
+      setChildrenBirthCertsFile(null);
+      setValue("childrenBirthCertificates", "", { shouldValidate: false });
+    }
+  }, [hasChildren, setValue]);
 
   const travelApplicant = watch("travelApplicant");
   const travelFamily = watch("travelFamily");
@@ -225,19 +267,46 @@ export function GSScreeningForm({
     submitAgentDeclarationMutation.isPending;
 
   const onSubmit = async (values: GSScreeningFormValues) => {
-    const payload = { data: values as Record<string, unknown> };
+    const data = { ...values } as Record<string, unknown>;
+    if (currentVisaFile) data.currentVisaDocument = "";
+    if (visaRefusalFile) data.visaRefusalDocument = "";
+    if (familyVisaRefusalFile) data.familyVisaRefusalDocument = "";
+    if (marriageCertFile) data.marriageCertificate = "";
+    if (childrenBirthCertsFile) data.childrenBirthCertificates = "";
+    const payload = { data };
+
+    const files: Record<string, File> = {
+      ...(currentVisaFile && { currentVisaDocument: currentVisaFile }),
+      ...(visaRefusalFile && { visaRefusalDocument: visaRefusalFile }),
+      ...(familyVisaRefusalFile && { familyVisaRefusalDocument: familyVisaRefusalFile }),
+      ...(marriageCertFile && { marriageCertificate: marriageCertFile }),
+      ...(childrenBirthCertsFile && { childrenBirthCertificates: childrenBirthCertsFile }),
+    };
+    const hasFiles = Object.keys(files).length > 0;
 
     try {
       if (currentView === "student") {
-        // Public link: token in URL – use GET/POST /api/v1/public/gs-declarations/{token}
         if (token) {
-          await saveByTokenMutation.mutateAsync({ token, payload });
-          await submitByTokenMutation.mutateAsync({ token, payload });
+          await saveByTokenMutation.mutateAsync({
+            token,
+            payload,
+            ...(hasFiles && { files }),
+          });
+          await submitByTokenMutation.mutateAsync({
+            token,
+            payload,
+            ...(hasFiles && { files }),
+          });
           handleBack?.();
         } else if (applicationId) {
-          // Staff filling on behalf of student (authenticated – use applicationId)
-          await saveStudentDeclarationMutation.mutateAsync(payload);
-          await submitStudentDeclarationMutation.mutateAsync(payload);
+          await saveStudentDeclarationMutation.mutateAsync({
+            ...payload,
+            ...(hasFiles && { files }),
+          });
+          await submitStudentDeclarationMutation.mutateAsync({
+            ...payload,
+            ...(hasFiles && { files }),
+          });
           toast.success("Student declaration submitted successfully!");
           handleBack?.();
         } else {
@@ -249,7 +318,6 @@ export function GSScreeningForm({
           toast.error("Application ID is missing.");
           return;
         }
-
         await saveAgentDeclarationMutation.mutateAsync(payload);
         await submitAgentDeclarationMutation.mutateAsync(payload);
         handleBack?.();
@@ -268,7 +336,7 @@ export function GSScreeningForm({
               Genuine Student (GS) Screening Form
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              CRICOS: 04082E • February 2026
+              Genuine Student (GS) Form - Student to Complete
             </p>
           </div>
 
@@ -292,581 +360,586 @@ export function GSScreeningForm({
               <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900 dark:text-blue-100 space-y-2">
                 <p>
-                  All applicants for a student visa must be a genuine applicant
-                  for entry and must stay as a student and be able to
-                  demonstrate that they meet the{" "}
+                  The Australian government has replaced the Genuine Temporary Entrant (GTE) requirement for student visas with a Genuine Student (GS) requirement. This is effective for student visa applications lodged on and after 23 March 2024. <br />
+
+                  All applicants for a student visa must be a genuine applicant for entry to Australia for the purpose of studying and obtaining a qualification. They must be able to demonstrate that studying in Australia is the primary reason of their student visa. To be granted a student visa, all applicants must demonstrate they satisfy the genuine student criterion or the genuine student dependent criterion. More information regarding the Genuine Student requirement is available on the  {" "}
                   <a
                     href="https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500/genuine-student-requirement"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-700 dark:text-blue-300 underline hover:no-underline"
                   >
-                    Genuine Student (GS)
+                    Department of Home Affairs website.
                   </a>{" "}
-                  requirement.
+                  <br />
+                  International students applying to Churchill Institute of Higher Education (PRV14305 | CRICOS Provider: 04082E) must be genuine in their intention to study, must comply with student visa requirements, enrol into their degree at Churchill Institute and must successfully complete their course at Churchill Institute of Higher Education.Please complete the below questions to demonstrate you meet the GS criteria. You must complete this form; and limit your response to each question below to a maximum of 150 words and provide evidence to support your statements. Please refer to the {" "}
+                  <a
+                    href="https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500/genuine-student-requirement"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-700 dark:text-blue-300 underline hover:no-underline"
+                  >
+                    Genuine Student criteria provided by the Department of Home Affairs {" "}
+                  </a>{" "}
+                  and {" "}
+                  <a
+                    href="https://immi.homeaffairs.gov.au/Visa-subsite/files/direction-no-106.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-700 dark:text-blue-300 underline hover:no-underline"
+                  >
+                    Ministerial Direction Nr 106
+                  </a>{" "}
+
+                  when responding to the above questions.
                 </p>
-                <p>
-                  To assist with this assessment, provide detailed and
-                  personalised responses to the questions in this form. You
-                  should also attach any relevant documents that support your
-                  statements.
-                </p>
-                <p>
-                  Ensure your answers are written by you and accurately reflect
-                  your individual circumstances, motivations and study goals.
-                  Avoid using generic or template responses.
-                </p>
-                <p className="font-medium">
+                <br />
+            
+                <blockquote className="font-medium">
                   Note: The Churchill Institute of Higher Education Genuine
                   Student (GS) Checklist form must be attached along with this
                   form as part of the application documents.
-                </p>
+                </blockquote>
               </div>
             </div>
           </div>
         </div>
 
-        {currentView === "student" && (
-          <>
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold">SECTION A</h2>
+        {currentView === "student" && <>
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold">SECTION A</h2>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    1. APPLICANT{`'`}S DETAILS
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormInput
-                      name="firstName"
-                      label="Given Name(s)"
-                      placeholder="Enter given name(s)"
-                      disabled={readOnly}
-                    />
-                    <FormInput
-                      name="lastName"
-                      label="Family Name"
-                      placeholder="Enter family name"
-                      disabled={readOnly}
-                    />
-                    <FormInput
-                      name="dateOfBirth"
-                      label="Date of Birth (DOB)"
-                      type="date"
-                      disabled={readOnly}
-                    />
-                    <FormInput
-                      name="studentId"
-                      label="Student ID / Reference Number"
-                      placeholder="Enter student ID/reference"
-                      disabled={readOnly}
-                    />
-                    <FormInput
-                      name="passportNumber"
-                      label="Passport Number"
-                      placeholder="Enter passport number"
-                      disabled={readOnly}
-                    />
-                    <FormInput
-                      name="email"
-                      label="Email"
-                      placeholder="Enter email address"
-                      type="email"
-                      disabled={readOnly}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    2. CURRENT LOCATION (IN AUSTRALIA OR OVERSEAS)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <FormRadio
-                    name="currentlyInAustralia"
-                    label="A. Are you currently onshore/living in Australia?"
-                    options={yesNoOptions}
-                    disabled={readOnly}
-                  />
-                  {currentlyInAustralia === "yes" && (
-                    <div className="space-y-3 pl-4 border-l-2 border-primary/30">
-                      <p className="text-sm text-muted-foreground">
-                        If yes, attach a copy of your current visa and any
-                        previous visas you held prior to your existing visa.
-                        Provide details of any bridging visas if applicable.
-                      </p>
-                      <FormInput
-                        name="currentVisaDocument"
-                        label="Current visa or bridging visa details"
-                        placeholder="Document reference / notes"
-                        disabled={readOnly}
-                      />
-                    </div>
-                  )}
-                  {currentlyInAustralia === "yes" && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">
-                        Are you living in Australia (onshore)?
-                      </Label>
-                      <RadioGroup
-                        value={onshoreGuidance}
-                        onValueChange={(value) =>
-                          setOnshoreGuidance(value as "yes" | "no")
-                        }
-                        className="flex gap-4"
-                      >
-                        <Label
-                          htmlFor="onshore-guidance-yes"
-                          className="flex items-center gap-2 cursor-pointer font-normal"
-                        >
-                          <RadioGroupItem
-                            id="onshore-guidance-yes"
-                            value="yes"
-                          />
-                          Yes
-                        </Label>
-                        <Label
-                          htmlFor="onshore-guidance-no"
-                          className="flex items-center gap-2 cursor-pointer font-normal"
-                        >
-                          <RadioGroupItem id="onshore-guidance-no" value="no" />
-                          No
-                        </Label>
-                      </RadioGroup>
-                    </div>
-                  )}
-                  <FormRadio
-                    name="intendToApplyStudentVisa"
-                    label="B. Do you intend to apply for a student visa to study this course?"
-                    options={yesNoOptions}
-                    disabled={readOnly}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    3. IMMIGRATION HISTORY
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <FormRadio
-                      name="visaRefusedOrCancelled"
-                      label="A. Have you ever had a visa refused or cancelled in any country including Australia?"
-                      options={yesNoOptions}
-                      disabled={readOnly}
-                    />
-                    {visaRefusedOrCancelled === "yes" && (
-                      <div className="space-y-4 pl-4 border-l-2 border-destructive/30">
-                        <FormTextarea
-                          name="visaRefusalExplanation"
-                          label="Explain the reason for the refusal or cancellation and how your situation has changed"
-                          placeholder="Provide detailed explanation..."
-                          rows={4}
-                          disabled={readOnly}
-                        />
-                        <FormInput
-                          name="visaRefusalDocument"
-                          label="Document reference (visa refusal or cancellation notice)"
-                          placeholder="Document name or reference"
-                          disabled={readOnly}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <FormRadio
-                      name="familyVisaRefusedOrCancelled"
-                      label="B. Have any of your immediate family members ever had a visa refused or cancelled in any country including Australia?"
-                      options={yesNoOptions}
-                      disabled={readOnly}
-                    />
-                    {familyVisaRefusedOrCancelled === "yes" && (
-                      <div className="space-y-3 pl-4 border-l-2 border-destructive/30">
-                        <FormInput
-                          name="familyVisaRefusalDocument"
-                          label="Family visa refusal document"
-                          placeholder="Document reference or details"
-                          disabled={readOnly}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    COURSE INFORMATION AND PERSONAL CIRCUMSTANCES
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormTextarea
-                    name="currentSituation"
-                    label="Provide details about your current situation, including family, community, work and economic circumstances"
-                    placeholder="Describe your situation..."
-                    rows={4}
-                    disabled={readOnly}
-                  />
-                  <FormTextarea
-                    name="reasonsForCourse"
-                    label="Briefly outline your reasons for choosing the course(s) at Churchill Institute of Higher Education and your understanding of the course"
-                    placeholder="Explain why you selected this course..."
-                    rows={3}
-                    disabled={readOnly}
-                  />
-                  <FormTextarea
-                    name="careerBenefits"
-                    label="Explain how completing this course will benefit your future career prospects"
-                    placeholder="Describe career prospects (jobs, employers, remuneration) you expect after the course"
-                    rows={3}
-                    disabled={readOnly}
-                  />
-                  <FormTextarea
-                    name="otherInformation"
-                    label="Provide any other relevant information"
-                    placeholder="Anything else to support your assessment"
-                    rows={3}
-                    disabled={readOnly}
-                  />
-                  {onshoreGuidance === "yes" && (
-                    <>
-                      <FormTextarea
-                        name="studyHistoryInAustralia"
-                        label="E. Provide details of your study history in Australia (courses, institutions, dates, previous visas). Attach supporting documents."
-                        placeholder="List previous Australian studies..."
-                        rows={4}
-                        disabled={readOnly}
-                      />
-                      <FormTextarea
-                        name="reasonForStudentVisa"
-                        label="F. If holding a visa other than a student visa, explain why you are applying for a student visa and include your Australia study history"
-                        placeholder="Describe your reasons..."
-                        rows={4}
-                        disabled={readOnly}
-                      />
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">5. FAMILY DETAILS</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormRadio
-                      name="isMarried"
-                      label="A. Are you married or in a de facto relationship?"
-                      options={yesNoOptions}
-                      disabled={readOnly}
-                    />
-                    <FormRadio
-                      name="hasChildren"
-                      label="B. Do you have dependent children?"
-                      options={yesNoOptions}
-                      disabled={readOnly}
-                    />
-                  </div>
-
-                  {isMarried === "yes" && (
-                    <FormInput
-                      name="marriageCertificate"
-                      label="Marriage certificate or partner details"
-                      placeholder="Provide document reference or details"
-                      disabled={readOnly}
-                    />
-                  )}
-
-                  {hasChildren === "yes" && (
-                    <FormInput
-                      name="childrenBirthCertificates"
-                      label="Children birth certificates or supporting documents"
-                      placeholder="Document reference or details"
-                      disabled={readOnly}
-                    />
-                  )}
-
-                  <FormRadio
-                    name="hasRelativesInAustralia"
-                    label="C. Do you have any relatives (parents, brothers, sisters, aunties, uncles, cousins or in-laws) living in Australia?"
-                    options={yesNoOptions}
-                    disabled={readOnly}
-                  />
-
-                  {hasRelativesInAustralia === "yes" && (
-                    <div className="space-y-4 pl-4 border-l-2 border-primary/30">
-                      <FormRadio
-                        name="relativesAreCitizens"
-                        label="Are your relatives Australian citizens or permanent residents?"
-                        options={yesNoOptions}
-                        disabled={readOnly}
-                      />
-                      <FormInput
-                        name="relativesRelationshipType"
-                        label="Relationship to the relatives in Australia"
-                        placeholder="e.g. Sister, Aunt, Cousin"
-                        disabled={readOnly}
-                      />
-                      {relativesAreCitizens === "no" && (
-                        <FormInput
-                          name="relativesVisaType"
-                          label="If No – what visa type and subclass are they on? (e.g. Temporary Resident - subclass 485)"
-                          placeholder="Document visa type and subclass"
-                          disabled={readOnly}
-                        />
-                      )}
-                      <FormRadio
-                        name="intendToLiveWithRelatives"
-                        label="E. Do you intend to live with relatives while you study?"
-                        options={yesNoOptions}
-                        disabled={readOnly}
-                      />
-                    </div>
-                  )}
-
-                  <FormTextarea
-                    name="relationshipDetails"
-                    label="Relationship details and living arrangements"
-                    placeholder="Summarise any living or supporting arrangements"
-                    rows={4}
-                    disabled={readOnly}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    6. LIVING IN AUSTRALIA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  1. APPLICANT{`'`}S DETAILS
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormInput
-                    name="campusLocation"
-                    label="A. At which Churchill Institute campus will you study?"
-                    placeholder="Enter campus location"
+                    name="firstName"
+                    label="Given Name(s)"
+                    placeholder="Enter given name(s)"
                     disabled={readOnly}
                   />
                   <FormInput
-                    name="intendedSuburb"
-                    label="B. Intended suburb/city of residence"
-                    placeholder="Describe where you plan to live"
+                    name="lastName"
+                    label="Family Name"
+                    placeholder="Enter family name"
                     disabled={readOnly}
                   />
-                  <FormTextarea
-                    name="knowledgeAboutAustralia"
-                    label="C. Knowledge about living in Australia"
-                    placeholder="Share what you know about accommodation, cost of living or commuting"
-                    rows={4}
+                  <FormInput
+                    name="dateOfBirth"
+                    label="Date of Birth (DOB)"
+                    type="date"
                     disabled={readOnly}
                   />
-                </CardContent>
-              </Card>
-            </div>
+                  <FormInput
+                    name="studentId"
+                    label="Student ID / Reference Number"
+                    placeholder="Enter student ID/reference"
+                    disabled={readOnly}
+                  />
+                  <FormInput
+                    name="passportNumber"
+                    label="Passport Number"
+                    placeholder="Enter passport number"
+                    disabled={readOnly}
+                  />
+                  <FormInput
+                    name="email"
+                    label="Email"
+                    placeholder="Enter email address"
+                    type="email"
+                    disabled={readOnly}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold">
-                  SECTION B - FINANCIAL CAPACITY ASSESSMENT
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Check the Department of Home Affairs website{" "}
-                  <a
-                    href="https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500#HowTo"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary underline hover:no-underline inline-flex items-center gap-1"
-                  >
-                    (Subclass 500 Student visa)
-                    <ExternalLink className="h-3 w-3" />
-                  </a>{" "}
-                  for the most updated information about the financial capacity
-                  requirements.
-                </p>
-              </div>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40%]"></TableHead>
-                          <TableHead className="text-center">
-                            Applicant
-                          </TableHead>
-                          <TableHead className="text-center">
-                            Family Members
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            Travel (return Airfares)
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="travelApplicant"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="travelFamily"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            Tuition for first year of study
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="tuitionApplicant"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="tuitionFamily"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            Overseas Health Cover (OSHC)
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="oshcApplicant"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="oshcFamily"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            Living Expenses
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="livingExpensesApplicant"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground">$</span>
-                              <FormInput
-                                name="livingExpensesFamily"
-                                label=" "
-                                placeholder="0.00"
-                                type="number"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow className="bg-muted/30 font-semibold">
-                          <TableCell>
-                            TOTAL funding (Applicant + Family Members)
-                          </TableCell>
-                          <TableCell colSpan={2} className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <span>$</span>
-                              <span>{totalFunding}</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-xs text-blue-900 dark:text-blue-100">
-                      <strong>
-                        Applicants must refer to the Churchill Institute of
-                        Higher Education Genuine Student (GS) Checklist
-                        (Appendix A) for prescribed supporting documentation
-                        required to evidence financial capacity, sponsorship
-                        arrangements, and family circumstances, as mandated
-                        under the Department of Home Affairs student visa
-                        requirements.
-                      </strong>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  2. CURRENT LOCATION (IN AUSTRALIA OR OVERSEAS)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormRadio
+                  name="currentlyInAustralia"
+                  label="A. Are you currently onshore/living in Australia?"
+                  options={yesNoOptions}
+                  disabled={readOnly}
+                />
+                {currentlyInAustralia === "yes" && (
+                  <div className="space-y-3 pl-4 border-l-2 border-primary/30">
+                    <p className="text-sm text-muted-foreground">
+                      If yes, attach a copy of your current visa and any previous
+                      visas you held prior to your existing visa. Provide details
+                      of any bridging visas if applicable.
                     </p>
+                    <DeclarationDocumentUpload
+                      name="currentVisaDocument"
+                      label="Current visa or bridging visa details"
+                      file={currentVisaFile}
+                      onFileChange={setCurrentVisaFile}
+                      disabled={readOnly}
+                    />
                   </div>
-                </CardContent>
-              </Card>
+                )}
+                {currentlyInAustralia === "yes" && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">
+                      Are you living in Australia (onshore)?
+                    </Label>
+                    <RadioGroup
+                      value={onshoreGuidance}
+                      onValueChange={(value) =>
+                        setOnshoreGuidance(value as "yes" | "no")
+                      }
+                      className="flex gap-4"
+                    >
+                      <Label
+                        htmlFor="onshore-guidance-yes"
+                        className="flex items-center gap-2 cursor-pointer font-normal"
+                      >
+                        <RadioGroupItem id="onshore-guidance-yes" value="yes" />
+                        Yes
+                      </Label>
+                      <Label
+                        htmlFor="onshore-guidance-no"
+                        className="flex items-center gap-2 cursor-pointer font-normal"
+                      >
+                        <RadioGroupItem id="onshore-guidance-no" value="no" />
+                        No
+                      </Label>
+                    </RadioGroup>
+                  </div>
+                )}
+                <FormRadio
+                  name="intendToApplyStudentVisa"
+                  label="B. Do you intend to apply for a student visa to study this course?"
+                  options={yesNoOptions}
+                  disabled={readOnly}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">3. IMMIGRATION HISTORY</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <FormRadio
+                    name="visaRefusedOrCancelled"
+                    label="A. Have you ever had a visa refused or cancelled in any country including Australia?"
+                    options={yesNoOptions}
+                    disabled={readOnly}
+                  />
+                  {visaRefusedOrCancelled === "yes" && (
+                    <div className="space-y-4 pl-4 border-l-2 border-destructive/30">
+                      <FormTextarea
+                        name="visaRefusalExplanation"
+                        label="Explain the reason for the refusal or cancellation and how your situation has changed"
+                        placeholder="Provide detailed explanation..."
+                        rows={4}
+                        disabled={readOnly}
+                      />
+                      <DeclarationDocumentUpload
+                        name="visaRefusalDocument"
+                        label="Document (visa refusal or cancellation notice)"
+                        description="Upload PDF, JPG or PNG"
+                        file={visaRefusalFile}
+                        onFileChange={setVisaRefusalFile}
+                        disabled={readOnly}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <FormRadio
+                    name="familyVisaRefusedOrCancelled"
+                    label="B. Have any of your immediate family members ever had a visa refused or cancelled in any country including Australia?"
+                    options={yesNoOptions}
+                    disabled={readOnly}
+                  />
+                  {familyVisaRefusedOrCancelled === "yes" && (
+                    <div className="space-y-3 pl-4 border-l-2 border-destructive/30">
+                      <DeclarationDocumentUpload
+                        name="familyVisaRefusalDocument"
+                        label="Family visa refusal document"
+                        file={familyVisaRefusalFile}
+                        onFileChange={setFamilyVisaRefusalFile}
+                        disabled={readOnly}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  COURSE INFORMATION AND PERSONAL CIRCUMSTANCES
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormTextarea
+                  name="currentSituation"
+                  label="Provide details about your current situation, including family, community, work and economic circumstances"
+                  placeholder="Describe your situation..."
+                  rows={4}
+                  disabled={readOnly}
+                />
+                <FormTextarea
+                  name="reasonsForCourse"
+                  label="Briefly outline your reasons for choosing the course(s) at Churchill Institute of Higher Education and your understanding of the course"
+                  placeholder="Explain why you selected this course..."
+                  rows={3}
+                  disabled={readOnly}
+                />
+                <FormTextarea
+                  name="careerBenefits"
+                  label="Explain how completing this course will benefit your future career prospects"
+                  placeholder="Describe career prospects (jobs, employers, remuneration) you expect after the course"
+                  rows={3}
+                  disabled={readOnly}
+                />
+                <FormTextarea
+                  name="otherInformation"
+                  label="Provide any other relevant information"
+                  placeholder="Anything else to support your assessment"
+                  rows={3}
+                  disabled={readOnly}
+                />
+                {onshoreGuidance === "yes" && (
+                  <>
+                    <FormTextarea
+                      name="studyHistoryInAustralia"
+                      label="E. Provide details of your study history in Australia (courses, institutions, dates, previous visas). Attach supporting documents."
+                      placeholder="List previous Australian studies..."
+                      rows={4}
+                      disabled={readOnly}
+                    />
+                    <FormTextarea
+                      name="reasonForStudentVisa"
+                      label="F. If holding a visa other than a student visa, explain why you are applying for a student visa and include your Australia study history"
+                      placeholder="Describe your reasons..."
+                      rows={4}
+                      disabled={readOnly}
+                    />
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">5. FAMILY DETAILS</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormRadio
+                    name="isMarried"
+                    label="A. Are you married or in a de facto relationship?"
+                    options={yesNoOptions}
+                    disabled={readOnly}
+                  />
+                  <FormRadio
+                    name="hasChildren"
+                    label="B. Do you have dependent children?"
+                    options={yesNoOptions}
+                    disabled={readOnly}
+                  />
+                </div>
+
+                {isMarried === "yes" && (
+                  <DeclarationDocumentUpload
+                    name="marriageCertificate"
+                    label="Marriage certificate or partner details"
+                    file={marriageCertFile}
+                    onFileChange={setMarriageCertFile}
+                    disabled={readOnly}
+                  />
+                )}
+
+                {hasChildren === "yes" && (
+                  <DeclarationDocumentUpload
+                    name="childrenBirthCertificates"
+                    label="Children birth certificates or supporting documents"
+                    file={childrenBirthCertsFile}
+                    onFileChange={setChildrenBirthCertsFile}
+                    disabled={readOnly}
+                  />
+                )}
+
+                <FormRadio
+                  name="hasRelativesInAustralia"
+                  label="C. Do you have any relatives (parents, brothers, sisters, aunties, uncles, cousins or in-laws) living in Australia?"
+                  options={yesNoOptions}
+                  disabled={readOnly}
+                />
+
+                {hasRelativesInAustralia === "yes" && (
+                  <div className="space-y-4 pl-4 border-l-2 border-primary/30">
+                    <FormRadio
+                      name="relativesAreCitizens"
+                      label="Are your relatives Australian citizens or permanent residents?"
+                      options={yesNoOptions}
+                      disabled={readOnly}
+                    />
+                    <FormInput
+                      name="relativesRelationshipType"
+                      label="Relationship to the relatives in Australia"
+                      placeholder="e.g. Sister, Aunt, Cousin"
+                      disabled={readOnly}
+                    />
+                    {relativesAreCitizens === "no" && (
+                      <FormInput
+                        name="relativesVisaType"
+                        label="If No – what visa type and subclass are they on? (e.g. Temporary Resident - subclass 485)"
+                        placeholder="Document visa type and subclass"
+                        disabled={readOnly}
+                      />
+                    )}
+                    <FormRadio
+                      name="intendToLiveWithRelatives"
+                      label="E. Do you intend to live with relatives while you study?"
+                      options={yesNoOptions}
+                      disabled={readOnly}
+                    />
+                  </div>
+                )}
+
+                <FormTextarea
+                  name="relationshipDetails"
+                  label="Relationship details and living arrangements"
+                  placeholder="Summarise any living or supporting arrangements"
+                  rows={4}
+                  disabled={readOnly}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">6. LIVING IN AUSTRALIA</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormInput
+                  name="campusLocation"
+                  label="A. At which Churchill Institute campus will you study?"
+                  placeholder="Enter campus location"
+                  disabled={readOnly}
+                />
+                <FormInput
+                  name="intendedSuburb"
+                  label="B. Intended suburb/city of residence"
+                  placeholder="Describe where you plan to live"
+                  disabled={readOnly}
+                />
+                <FormTextarea
+                  name="knowledgeAboutAustralia"
+                  label="C. Knowledge about living in Australia"
+                  placeholder="Share what you know about accommodation, cost of living or commuting"
+                  rows={4}
+                  disabled={readOnly}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold">
+                SECTION B - FINANCIAL CAPACITY ASSESSMENT
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Check the Department of Home Affairs website{" "}
+                <a
+                  href="https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500#HowTo"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline hover:no-underline inline-flex items-center gap-1"
+                >
+                  (Subclass 500 Student visa)
+                  <ExternalLink className="h-3 w-3" />
+                </a>{" "}
+                for the most updated information about the financial capacity
+                requirements.
+              </p>
             </div>
-          </>
-        )}
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40%]"></TableHead>
+                        <TableHead className="text-center">Applicant</TableHead>
+                        <TableHead className="text-center">
+                          Family Members
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          Travel (return Airfares)
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="travelApplicant"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="travelFamily"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          Tuition for first year of study
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="tuitionApplicant"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="tuitionFamily"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          Overseas Health Cover (OSHC)
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="oshcApplicant"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="oshcFamily"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          Living Expenses
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="livingExpensesApplicant"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">$</span>
+                            <FormInput
+                              name="livingExpensesFamily"
+                              label=" "
+                              placeholder="0.00"
+                              type="number"
+                              disabled={readOnly}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow className="bg-muted/30 font-semibold">
+                        <TableCell>
+                          TOTAL funding (Applicant + Family Members)
+                        </TableCell>
+                        <TableCell colSpan={2} className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span>$</span>
+                            <span>{totalFunding}</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                    <strong>
+                      Applicants must refer to the Churchill Institute of Higher
+                      Education Genuine Student (GS) Checklist (Appendix A) for
+                      prescribed supporting documentation required to evidence
+                      financial capacity, sponsorship arrangements, and family
+                      circumstances, as mandated under the Department of Home
+                      Affairs student visa requirements.
+                    </strong>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>}
 
         <div className="space-y-6">
           <h2 className="text-xl font-bold">DECLARATION</h2>

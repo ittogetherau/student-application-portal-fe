@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,22 +9,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Download,
-  Eye,
-  FileText,
-  Loader,
-  Loader2,
-  OctagonAlert,
-  RefreshCw,
-} from "lucide-react";
-import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
-import { useApplicationRequestSignaturesQuery } from "@/hooks/useApplication.hook";
-import { useGalaxySyncDocumentsMutation } from "@/hooks/galaxy-sync.hook";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
+import { useGalaxySyncDocumentsMutation } from "@/hooks/galaxy-sync.hook";
+import {
+  Download,
+  Eye,
+  FileText,
+  Loader2,
+  OctagonAlert,
+  RefreshCw,
+} from "lucide-react";
 
 //
 export interface Document {
@@ -71,13 +68,12 @@ const DocumentsTab = ({
   const { data: documentsResponse, isLoading } =
     useApplicationDocumentsQuery(applicationId);
   const documents = (documentsResponse?.data || []) as Document[];
-  const { data: signaturesResponse } =
-    useApplicationRequestSignaturesQuery(applicationId);
   const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
   const isUpToDate = syncMeta?.uptodate === true;
   const showWarning = syncMeta ? !isUpToDate : false;
 
-  const offerLetter = signaturesResponse?.items?.[0];
+  // const { data: signaturesResponse } = useApplicationRequestSignaturesQuery(applicationId);
+  // const offerLetter = signaturesResponse?.items?.[0];
 
   return (
     <Card>
@@ -128,7 +124,7 @@ const DocumentsTab = ({
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        {offerLetter?.status === "pending" &&
+        {/* {offerLetter?.status === "pending" &&
         offerLetter?.student?.signed_at &&
         offerLetter?.agent?.signed_at ? (
           <div className="mb-3 rounded-lg border bg-muted/20 p-2">
@@ -152,7 +148,7 @@ const DocumentsTab = ({
               </span>
             </div>
           </div>
-        ) : null}
+        ) : null} */}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
@@ -192,7 +188,7 @@ const DocumentCard = ({ doc }: DocumentCardProps) => (
         </p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <span>{formatBytes(doc.file_size_bytes)}</span>
-          <span>•</span>
+          {/* <span>•</span>
           <Badge
             variant={
               doc.status === "approved"
@@ -204,7 +200,7 @@ const DocumentCard = ({ doc }: DocumentCardProps) => (
             className="h-4 text-[9px] px-1 font-medium uppercase"
           >
             {doc.status}
-          </Badge>
+          </Badge> */}
         </div>
       </div>
     </div>

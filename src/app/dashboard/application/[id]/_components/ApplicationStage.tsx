@@ -6,7 +6,6 @@ import { toast } from "react-hot-toast";
 import {
   ArrowRight,
   BadgeCheck,
-  Check,
   CheckCircle2,
   CircleQuestionMark,
   ClipboardCheck,
@@ -18,7 +17,6 @@ import {
   ScanSearch,
   Signature,
   User,
-  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,26 +48,24 @@ interface ApplicationStageProps {
   current_role?: string;
 }
 
-const IconMap: Record<APPLICATION_STAGE, LucideIcon> = {
+const IconMap: Record<string, LucideIcon> = {
   [APPLICATION_STAGE.DRAFT]: User,
   [APPLICATION_STAGE.SUBMITTED]: ClipboardCheck,
   [APPLICATION_STAGE.IN_REVIEW]: ScanSearch,
   [APPLICATION_STAGE.OFFER_LETTER]: Signature,
   [APPLICATION_STAGE.GS_ASSESSMENT]: ListTodo,
   [APPLICATION_STAGE.COE_ISSUED]: CircleQuestionMark,
-  // [APPLICATION_STAGE.ACCEPTED]: Check,
-  // [APPLICATION_STAGE.REJECTED]: X,
 };
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
-  const [_, setTabNavigation] = useQueryState("tab");
+  const [_, setTabNavigation] = useQueryState("application_tab");
   // Queries & Mutations
   const { data: response, isLoading } = useApplicationGetQuery(id);
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(id);
   const changeStage = useApplicationChangeStageMutation(id);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(id);
   const enrollGalaxyCourse = useApplicationEnrollGalaxyCourseMutation(id);
-  const syncGalaxyApplication = useApplicationGalaxySyncMutation(id);
+  // const syncGalaxyApplication = useApplicationGalaxySyncMutation(id);
 
   const application = response?.data;
   const isStaff = current_role === USER_ROLE.STAFF;
@@ -170,7 +166,10 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
 
   if (!application) return null;
 
-  const stages = Object.values(APPLICATION_STAGE);
+  const allStages = Object.values(APPLICATION_STAGE) as APPLICATION_STAGE[];
+  const stages: APPLICATION_STAGE[] = allStages.filter(
+    (s) => s !== APPLICATION_STAGE.ACCEPTED && s !== APPLICATION_STAGE.REJECTED,
+  );
   const currentStage = application.current_stage;
   const currentIndex = stages.indexOf(currentStage);
 
@@ -406,7 +405,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       {stages.map((el, i) => {
         if (i < 1) return null;
 
-        const Icon = IconMap[el];
+        const Icon = IconMap[el] ?? User;
         const isCurrent = i === currentIndex;
         const stageLabel =
           getRoleStageLabel(el, current_role) ??

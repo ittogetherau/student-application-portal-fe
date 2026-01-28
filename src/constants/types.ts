@@ -12,8 +12,8 @@ export enum APPLICATION_STAGE {
   // AWAITING_DOCUMENTS = "awaiting_documents",
   GS_ASSESSMENT = "gs_assessment",
   COE_ISSUED = "enrolled",
-  // ACCEPTED = "accepted",
-  // REJECTED = "rejected",
+  ACCEPTED = "accepted",
+  REJECTED = "rejected",
 }
 
 export interface User {

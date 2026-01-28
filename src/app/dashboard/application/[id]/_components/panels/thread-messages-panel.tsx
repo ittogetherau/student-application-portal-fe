@@ -35,6 +35,14 @@ const formatDateTime = (dateString?: string | null) => {
   });
 };
 
+const formatContactName = (name?: string | null, email?: string | null) => {
+  if (name) return name;
+  if (email) return email.split("@")[0];
+  return "N/A";
+};
+
+const formatContactEmail = (email?: string | null) => email || "N/A";
+
 export const ThreadStatus = {
   pending: "pending",
   under_review: "under_review",
@@ -78,6 +86,8 @@ const ThreadMessagesPanel = () => {
 
   const thread = data?.data?.find((t) => t.id === threadId);
   const messages = thread?.messages || [];
+  const agentContact = thread?.agent;
+  const staffContact = thread?.assigned_staff;
   const userEmail = session?.user?.email;
   const userRole = session?.user?.role;
 
@@ -167,9 +177,35 @@ const ThreadMessagesPanel = () => {
       clearKeysOnClose={["view", "applicationId", "threadId"]}
       title={thread.subject}
       header={
-        <p className="text-xs text-muted-foreground">
-          {thread.issue_type} - {thread.target_section} - {thread.status}
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {thread.issue_type} - {thread.target_section} - {thread.status}
+          </p>
+          <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+            <div>
+              <p className="text-[11px] uppercase text-muted-foreground">
+                Agent
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                {formatContactName(agentContact?.name, agentContact?.email)}
+              </p>
+              <p className="break-all">
+                {formatContactEmail(agentContact?.email)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase text-muted-foreground">
+                Staff
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                {formatContactName(staffContact?.name, staffContact?.email)}
+              </p>
+              <p className="break-all">
+                {formatContactEmail(staffContact?.email)}
+              </p>
+            </div>
+          </div>
+        </div>
       }
       footer={
         <section className="space-y-2">

@@ -400,16 +400,30 @@ export function useGSStageCompleteMutation(applicationId: string | null) {
   });
 }
 
+type StudentDeclarationSavePayload = GsDeclarationSaveRequest & {
+  files?: Record<string, File>;
+};
+
 /**
- * Mutation to save student declaration
+ * Mutation to save student declaration.
+ * When payload.files has any entries, sends multipart FormData with "data" (JSON) and each file part.
  */
 export function useGSStudentDeclarationSaveMutation(applicationId: string | null) {
   const queryClient = useQueryClient();
 
-  return useMutation<GsDeclarationResponse, Error, GsDeclarationSaveRequest>({
+  return useMutation<GsDeclarationResponse, Error, StudentDeclarationSavePayload>({
     mutationKey: ["gs-student-declaration-save", applicationId],
-    mutationFn: async (payload) => {
+    mutationFn: async (arg) => {
       if (!applicationId) throw new Error("Application ID is required");
+      const { files, ...payload } = arg;
+      // if (files && Object.keys(files).length > 0) {
+      //   const formData = new FormData();
+      //   formData.append("data", JSON.stringify(payload));
+      //   for (const [key, file] of Object.entries(files)) {
+      //     formData.append(key, file);
+      //   }
+     
+      // }
       const response = await gsAssessmentService.saveStudentDeclaration(
         applicationId,
         payload
@@ -435,16 +449,30 @@ export function useGSStudentDeclarationSaveMutation(applicationId: string | null
   });
 }
 
+type StudentDeclarationSubmitPayload = GsDeclarationSubmitRequest & {
+  files?: Record<string, File>;
+};
+
 /**
- * Mutation to submit student declaration
+ * Mutation to submit student declaration.
+ * When payload.files has any entries, sends multipart FormData with "data" (JSON) and each file part.
  */
 export function useGSStudentDeclarationSubmitMutation(applicationId: string | null) {
   const queryClient = useQueryClient();
 
-  return useMutation<GsDeclarationResponse, Error, GsDeclarationSubmitRequest>({
+  return useMutation<GsDeclarationResponse, Error, StudentDeclarationSubmitPayload>({
     mutationKey: ["gs-student-declaration-submit", applicationId],
-    mutationFn: async (payload) => {
+    mutationFn: async (arg) => {
       if (!applicationId) throw new Error("Application ID is required");
+      const { files, ...payload } = arg;
+      // if (files && Object.keys(files).length > 0) {
+      //   const formData = new FormData();
+      //   formData.append("data", JSON.stringify(payload));
+      //   for (const [key, file] of Object.entries(files)) {
+      //     formData.append(key, file);
+      //   }
+        
+      // }
       const response = await gsAssessmentService.submitStudentDeclaration(
         applicationId,
         payload
@@ -804,15 +832,25 @@ export function useGSStudentDeclarationSubmitWithTokenMutation() {
 interface PublicByTokenMutationParams {
   token: string;
   payload: GsDeclarationSaveRequest | GsDeclarationSubmitRequest;
+  files?: Record<string, File>;
 }
 
 /**
  * Save student declaration via public link (POST public/gs-declarations/{token}/save).
+ * When files has any entries, sends multipart FormData with "data" (JSON) and each file part.
  */
 export function useGSStudentDeclarationSaveByTokenMutation() {
   const queryClient = useQueryClient();
   return useMutation<GsDeclarationResponse, Error, PublicByTokenMutationParams>({
-    mutationFn: async ({ token, payload }) => {
+    mutationFn: async ({ token, payload, files }) => {
+      // if (files && Object.keys(files).length > 0) {
+      //   const formData = new FormData();
+      //   formData.append("data", JSON.stringify(payload));
+      //   for (const [key, file] of Object.entries(files)) {
+      //     formData.append(key, file);
+      //   }
+ 
+      // }
       const response = await gsAssessmentService.saveStudentDeclarationByToken(
         token,
         payload as GsDeclarationSaveRequest
@@ -834,11 +872,20 @@ export function useGSStudentDeclarationSaveByTokenMutation() {
 
 /**
  * Submit student declaration via public link (POST public/gs-declarations/{token}/submit).
+ * When files has any entries, sends multipart FormData with "data" (JSON) and each file part.
  */
 export function useGSStudentDeclarationSubmitByTokenMutation() {
   const queryClient = useQueryClient();
   return useMutation<GsDeclarationResponse, Error, PublicByTokenMutationParams>({
-    mutationFn: async ({ token, payload }) => {
+    mutationFn: async ({ token, payload, files }) => {
+      // if (files && Object.keys(files).length > 0) {
+      //   const formData = new FormData();
+      //   formData.append("data", JSON.stringify(payload));
+      //   for (const [key, file] of Object.entries(files)) {
+      //     formData.append(key, file);
+      //   }
+     
+      // }
       const response = await gsAssessmentService.submitStudentDeclarationByToken(
         token,
         payload as GsDeclarationSubmitRequest

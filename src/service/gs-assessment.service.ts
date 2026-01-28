@@ -1,7 +1,7 @@
-import { ApiService } from "@/service/base.service";
-import { handleApiError } from "@/utils/handle-api-error";
 import type { GSDocument } from "@/constants/types";
+import { ApiService } from "@/service/base.service";
 import type { ServiceResponse } from "@/types/service";
+import { handleApiError } from "@/utils/handle-api-error";
 
 
 export interface GsAssessmentSummary {
@@ -433,6 +433,8 @@ class GsAssessmentService extends ApiService {
     }
   };
 
+ 
+
   resendStudentDeclaration = async (
     applicationId: string,
     payload: GsResendDeclarationRequest = { rotate_token: false }
@@ -830,6 +832,7 @@ class GsAssessmentService extends ApiService {
       return handleApiError(error, "Failed to submit student declaration");
     }
   };
+ 
 }
 
 const gsAssessmentService = new GsAssessmentService();

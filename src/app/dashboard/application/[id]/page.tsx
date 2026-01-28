@@ -47,7 +47,7 @@ export default function AgentApplicationDetail() {
   const router = useRouter();
 
   const [isCreateThreadOpen, setIsCreateThreadOpen] = useState(false);
-  const [tabParam, setTabParam] = useQueryState("tab");
+  const [tabParam, setTabParam] = useQueryState("application_tab");
   const hasSetInitialTab = useRef(false);
 
   const {
@@ -56,7 +56,6 @@ export default function AgentApplicationDetail() {
     isError,
     error,
   } = useApplicationGetQuery(id);
-
   const application = response?.data;
   const isGSAssessment =
     application?.current_stage === APPLICATION_STAGE.GS_ASSESSMENT;

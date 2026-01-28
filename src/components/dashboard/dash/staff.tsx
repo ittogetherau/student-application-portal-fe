@@ -54,7 +54,7 @@ export default function StaffDashboard() {
     <div className="min-h-screen p-4 bg-background">
       <div className="wrapper py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
               <Building2 className="w-6 h-6 text-primary shrink-0" />
             </div>
@@ -66,7 +66,7 @@ export default function StaffDashboard() {
                 Application Management Dashboard
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* <div className="flex-1 max-w-md w-full md:ml-auto">
             <div className="relative group">

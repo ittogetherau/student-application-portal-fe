@@ -115,7 +115,7 @@ export function GSAssessmentStaffForm({
   readonly = false,
   onSuccess,
 }: GSAssessmentStaffFormProps) {
-  const [_, setTabNavigation] = useQueryState("tab");
+  const [_, setTabNavigation] = useQueryState("application_tab");
 
   const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
     applicationId ?? null,
