@@ -3,15 +3,21 @@
 import ApplicationStepHeader from "@/app/dashboard/application/create/_components/application-step-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
 import { FormSearchableSelect } from "@/components/ui/forms/form-searchable-select";
 import { FormSelect } from "@/components/ui/forms/form-select";
-import { Separator } from "@/components/ui/separator";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
+import {
+  DROPZONE_ACCEPT,
+  MAX_FILE_SIZE_BYTES,
+  getDropzoneHelperText,
+  isAllowedFileType,
+} from "@/lib/document-file-helpers";
 import documentService from "@/service/document.service";
 import {
   defaultLanguageAndCultureValues,
@@ -25,14 +31,13 @@ import {
   ChevronRight,
   FileCheck2,
   Loader2,
-  Pencil,
   Upload,
   X,
 } from "lucide-react";
-import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 import { useCallback, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 
 const languageOptions = [
   "Afrikaans",
@@ -110,8 +115,8 @@ const testTypeOptions = [
   { value: "other", label: "OTHER" },
 ];
 
+const stepId = 4; // Language & Culture is step 4
 const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
-  const stepId = 4; // Language & Culture is step 4
   const languageMutation = useApplicationStepMutations(applicationId)[stepId];
 
   const methods = useForm<LanguageAndCultureFormValues>({
@@ -133,7 +138,6 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [extractedSummary, setExtractedSummary] = useState<Record<
     string,
     any
@@ -145,7 +149,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
 
   // Get English test document type ID
   const englishTestDocType = documentTypesResponse?.data?.find(
-    (dt) => dt.code === "ENGLISH_TEST"
+    (dt) => dt.code === "ENGLISH_TEST",
   );
 
   // Handle file upload
@@ -156,18 +160,12 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
         return;
       }
 
-      const validTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/pdf",
-      ];
-      if (!validTypes.includes(file.type)) {
+      if (!isAllowedFileType(file)) {
         toast.error("Please upload a valid image (JPG, PNG) or PDF file");
         return;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error("File size must be less than 5MB");
         return;
       }
@@ -175,13 +173,14 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
       setUploadedFile(file);
       setIsUploading(true);
       setUploadSuccess(false);
-      setExtractedSummary(null); // Clear previous summary
+      setExtractedSummary(null);
 
       try {
         await uploadDocument.mutateAsync({
           application_id: applicationId,
           document_type_id: englishTestDocType.id,
           file,
+          process_ocr: true,
         });
 
         toast.success("Test report uploaded! Extracting data...");
@@ -193,9 +192,8 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
           attempts++;
 
           try {
-            const ocrResponse = await documentService.getOcrResults(
-              applicationId
-            );
+            const ocrResponse =
+              await documentService.getOcrResults(applicationId);
 
             if (ocrResponse.success && ocrResponse.data) {
               const data = ocrResponse.data as any;
@@ -210,7 +208,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                 // Helper to set form value if not already set
                 const setIfEmpty = (
                   key: keyof LanguageAndCultureFormValues,
-                  value: any
+                  value: any,
                 ) => {
                   const currentValue = methods.getValues(key);
                   if (
@@ -235,7 +233,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                   const matchedOption = testTypeOptions.find(
                     (opt) =>
                       opt.value.toUpperCase() === testTypeStr ||
-                      opt.label.toUpperCase().includes(testTypeStr)
+                      opt.label.toUpperCase().includes(testTypeStr),
                   );
                   if (matchedOption) {
                     setIfEmpty("english_test_type", matchedOption.value);
@@ -247,7 +245,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                 if (languageData.overall_score) {
                   setIfEmpty(
                     "english_test_overall",
-                    String(languageData.overall_score)
+                    String(languageData.overall_score),
                   );
                 }
 
@@ -266,7 +264,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                   if (scores.listening)
                     setIfEmpty(
                       "english_test_listening",
-                      String(scores.listening)
+                      String(scores.listening),
                     );
                   if (scores.reading)
                     setIfEmpty("english_test_reading", String(scores.reading));
@@ -275,7 +273,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                   if (scores.speaking)
                     setIfEmpty(
                       "english_test_speaking",
-                      String(scores.speaking)
+                      String(scores.speaking),
                     );
                 }
 
@@ -294,7 +292,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
 
                 if (fieldsPopulated > 0) {
                   toast.success(
-                    `Test data extracted! ${fieldsPopulated} fields populated.`
+                    `Test data extracted! ${fieldsPopulated} fields populated.`,
                   );
                 } else {
                   toast.success("Test report uploaded successfully!");
@@ -337,30 +335,8 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
         setIsUploading(false);
       }
     },
-    [applicationId, englishTestDocType, uploadDocument, methods]
+    [applicationId, englishTestDocType, uploadDocument, methods],
   );
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileUpload(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFileUpload(file);
-  };
 
   const handleRemoveFile = () => {
     setUploadedFile(null);
@@ -396,40 +372,39 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
               </div>
 
               {!uploadedFile ? (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
+                <Dropzone
+                  onDrop={(acceptedFiles) => {
+                    const file = acceptedFiles?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  onError={(error) => {
+                    if (error?.message) {
+                      toast.error(error.message);
+                    }
+                  }}
+                  accept={DROPZONE_ACCEPT}
+                  maxFiles={1}
+                  maxSize={MAX_FILE_SIZE_BYTES}
+                  disabled={isUploading || !applicationId}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                    isDragging
-                      ? "border-primary bg-primary/10"
-                      : "border-muted hover:border-primary/50 hover:bg-accent"
+                    "border-muted hover:border-primary/50 hover:bg-accent",
                   )}
                 >
-                  <input
-                    type="file"
-                    id="test-upload"
-                    className="hidden"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={handleFileChange}
-                    disabled={isUploading || !applicationId}
-                  />
-                  <label
-                    htmlFor="test-upload"
-                    className="cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Upload className="h-4 w-4 text-primary" />
-                    <div className="text-left">
-                      <p className="text-sm font-medium">
-                        Upload test report to auto-fill
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        IELTS, TOEFL, PTE - JPG, PNG or PDF (max 5MB)
-                      </p>
+                  <DropzoneEmptyState>
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium">
+                          Upload test report to auto-fill
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {getDropzoneHelperText(MAX_FILE_SIZE_BYTES)}
+                        </p>
+                      </div>
                     </div>
-                  </label>
-                </div>
+                  </DropzoneEmptyState>
+                </Dropzone>
               ) : (
                 <div className="border rounded-lg p-3 bg-background">
                   <div className="flex items-center justify-between">

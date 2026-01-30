@@ -65,4 +65,11 @@ This document captures the high-level structure and runtime concerns for the Chu
 - When adding new API calls, wrap them in `src/service/*` and expose a React Query hook under `src/hooks`.
 - Keep form steps in sync between `FORM_STEPS/form-step-components` and `FORM_STEPS` data used by the sidebar + review form.
 - Use `siteRoutes` and `NAV_LINKS` constants for navigation to avoid hard-coded URLs.
-- Before shipping, run `npm run lint` and consider `npm run knip` to check for unused exports introduced by new modules.
+
+
+# Agent Instructions
+
+Use shared helpers from `src/lib/document-file-helpers.ts` for file-related
+constants and utilities (file size limits, allowed types, file keys, etc.)
+instead of redefining them in individual components.
+Use the `Dropzone` component for file uploads when feasible.

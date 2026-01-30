@@ -23,23 +23,61 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
+import { ApplicationActionsMenu } from "./_components/ApplicationActionsMenu";
 import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
-import { ApplicationActionsMenu } from "./_components/ApplicationActionsMenu";
 import { ErrorState, LoadingState, NotFoundState } from "./_components/states";
-import CommunicationTab from "./_components/tabs/CommunicationTab";
+import CommunicationTab from "./_components/tabs/communication-tab";
 import DocumentsTab from "./_components/tabs/DocumentsTab";
+import CoeTab from "./_components/tabs/coe-tab";
 import GSTab from "./_components/tabs/gs-tab";
 import Timeline from "./_components/tabs/TimelineTab";
 
-const validTabs = [
+const BASE_TABS = [
   "details",
   "documents",
   "timeline",
-  "gs-process",
   "communication",
+] as const;
+type TabValue = (typeof BASE_TABS)[number] | "gs-process" | "coe";
+
+const STAGE_ORDER: APPLICATION_STAGE[] = [
+  APPLICATION_STAGE.DRAFT,
+  APPLICATION_STAGE.SUBMITTED,
+  APPLICATION_STAGE.IN_REVIEW,
+  APPLICATION_STAGE.OFFER_LETTER,
+  APPLICATION_STAGE.GS_ASSESSMENT,
+  APPLICATION_STAGE.COE_ISSUED,
+  APPLICATION_STAGE.ACCEPTED,
 ];
+
+const isStageAtLeast = (
+  current: APPLICATION_STAGE | null | undefined,
+  target: APPLICATION_STAGE,
+) => {
+  if (!current || current === APPLICATION_STAGE.REJECTED) return false;
+  const currentIndex = STAGE_ORDER.indexOf(current);
+  const targetIndex = STAGE_ORDER.indexOf(target);
+  return currentIndex >= targetIndex && targetIndex !== -1;
+};
+
+const getAvailableTabs = (stage?: APPLICATION_STAGE | null) => {
+  const tabs: TabValue[] = [...BASE_TABS];
+  const showGs = isStageAtLeast(stage, APPLICATION_STAGE.GS_ASSESSMENT);
+  const showCoe = isStageAtLeast(stage, APPLICATION_STAGE.COE_ISSUED);
+
+  if (showGs) {
+    tabs.splice(3, 0, "gs-process");
+  }
+
+  if (showCoe) {
+    const insertIndex = tabs.includes("gs-process") ? 4 : 3;
+    tabs.splice(insertIndex, 0, "coe");
+  }
+
+  return tabs;
+};
 
 export default function AgentApplicationDetail() {
   const params = useParams();
@@ -70,18 +108,22 @@ export default function AgentApplicationDetail() {
     hasSetInitialTab.current = true;
   }, [application, tabParam, setTabParam, isGSAssessment]);
 
+  const availableTabs = getAvailableTabs(application?.current_stage);
+  const showGsTab = availableTabs.includes("gs-process");
+  const showCoeTab = availableTabs.includes("coe");
+
   const activeTab =
-    tabParam && validTabs.includes(tabParam)
+    tabParam && availableTabs.includes(tabParam as TabValue)
       ? tabParam
-      : isGSAssessment
+      : isGSAssessment && showGsTab
         ? "gs-process"
         : "details";
 
   useEffect(() => {
-    if (tabParam && !validTabs.includes(tabParam)) {
+    if (tabParam && !availableTabs.includes(tabParam as TabValue)) {
       setTabParam(null);
     }
-  }, [tabParam, setTabParam]);
+  }, [tabParam, setTabParam, availableTabs]);
 
   const { data: session } = useSession();
   const ROLE = session?.user.role;
@@ -101,6 +143,37 @@ export default function AgentApplicationDetail() {
     const family = application.personal_details?.family_name;
     return given && family ? `${given} ${family}` : "N/A";
   };
+
+  const enrollmentData = application.enrollment_data as {
+    course_name?: string;
+    course?: string | number;
+    campus_name?: string;
+    campus?: string | number;
+  } | null;
+
+  const courseLabel =
+    enrollmentData?.course_name ?? enrollmentData?.course ?? "N/A";
+  const campusLabel =
+    enrollmentData?.campus_name ?? enrollmentData?.campus ?? "N/A";
+
+  const agentInfo = application as {
+    agent?: { name?: string | null; email?: string | null };
+    agent_name?: string | null;
+    agent_email?: string | null;
+  };
+
+  const agentName = agentInfo.agent?.name ?? agentInfo.agent_name ?? "N/A";
+  const agentEmail = agentInfo.agent?.email ?? agentInfo.agent_email ?? "N/A";
+
+  const submittedAt =
+    application.submitted_at ?? application.created_at ?? null;
+  const submittedLabel = submittedAt
+    ? new Date(submittedAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "N/A";
 
   return (
     <main className="p-6 space-y-4">
@@ -152,6 +225,32 @@ export default function AgentApplicationDetail() {
                 </Link>
               </Button>
             )}
+
+            {ROLE === "staff" && IS_ADMIN_STAFF && (
+              <GuidedTooltip
+                storageKey="staff:application-detail:actions"
+                text="Assign, accept, reject, or archive this application."
+                enabled={ROLE === "staff" && IS_ADMIN_STAFF}
+              >
+                <ApplicationActionsMenu
+                  applicationId={application.id}
+                  assignedStaffId={application.assigned_staff_id}
+                  assignedStaffEmail={
+                    (application as { assigned_staff_email?: string | null })
+                      .assigned_staff_email
+                  }
+                />
+              </GuidedTooltip>
+            )}
+
+            <Button
+              size="sm"
+              className="w-full sm:w-auto gap-2"
+              onClick={() => setIsCreateThreadOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Create Thread
+            </Button>
           </div>
         </section>
       </ContainerLayout>
@@ -165,6 +264,41 @@ export default function AgentApplicationDetail() {
               current_role={ROLE}
               id={id}
             />
+
+            <Card>
+              <CardHeader className="py-2 px-3">
+                <CardTitle className="text-sm sr-only">Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Course</span>
+                  <span className="text-foreground font-medium text-right">
+                    {courseLabel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Campus</span>
+                  <span className="text-foreground font-medium text-right">
+                    {campusLabel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Submitted</span>
+                  <span className="text-foreground font-medium text-right">
+                    {submittedLabel}
+                  </span>
+                </div>
+                <div className="pt-1 border-t">
+                  <div className="text-muted-foreground">Agent</div>
+                  <div className="text-foreground font-medium truncate">
+                    {agentName}
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    {agentEmail}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         }
       >
@@ -173,8 +307,10 @@ export default function AgentApplicationDetail() {
           onValueChange={setTabParam}
           className="space-y-3"
         >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList className="w-full sm:w-auto flex flex-wrap justify-start">
+          <section className="flex flex-col gap-2">
+            {/* <div className="flex items-center justify-end gap-2"></div> */}
+
+            <TabsList className="w-fit">
               <TabsTrigger value="details" className="text-xs px-3">
                 Details
               </TabsTrigger>
@@ -184,42 +320,21 @@ export default function AgentApplicationDetail() {
               <TabsTrigger value="timeline" className="text-xs px-3">
                 Timeline
               </TabsTrigger>
-              <TabsTrigger value="gs-process" className="text-xs px-3">
-                GS Process
-              </TabsTrigger>
+              {showGsTab && (
+                <TabsTrigger value="gs-process" className="text-xs px-3">
+                  GS Process
+                </TabsTrigger>
+              )}
+              {showCoeTab && (
+                <TabsTrigger value="coe" className="text-xs px-3">
+                  Confirmation of Enrollment
+                </TabsTrigger>
+              )}
               <TabsTrigger value="communication" className="text-xs px-3">
                 Communication
               </TabsTrigger>
             </TabsList>
-
-            <div className="flex items-center justify-end gap-2">
-              {ROLE === "staff" && IS_ADMIN_STAFF && (
-                <GuidedTooltip
-                  storageKey="staff:application-detail:actions"
-                  text="Assign, accept, reject, or archive this application."
-                  enabled={ROLE === "staff" && IS_ADMIN_STAFF}
-                >
-                  <ApplicationActionsMenu
-                    applicationId={application.id}
-                    assignedStaffId={application.assigned_staff_id}
-                    assignedStaffEmail={
-                      (application as { assigned_staff_email?: string | null })
-                        .assigned_staff_email
-                    }
-                  />
-                </GuidedTooltip>
-              )}
-
-              <Button
-                size="sm"
-                className="w-full sm:w-auto gap-2"
-                onClick={() => setIsCreateThreadOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Create Thread
-              </Button>
-            </div>
-          </div>
+          </section>
 
           <TabsContent value="details" className="space-y-3">
             <ReviewForm
@@ -252,13 +367,22 @@ export default function AgentApplicationDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="gs-process" className="space-y-3">
-            <GSTab
-              trackingCode={application?.tracking_code}
-              applicationId={application.id}
-              isStaff={isStaffOrAdmin}
-            />
-          </TabsContent>
+          {showGsTab && (
+            <TabsContent value="gs-process" className="space-y-3">
+              <GSTab
+                trackingCode={application?.tracking_code}
+                applicationId={application.id}
+                isStaff={isStaffOrAdmin}
+              />
+            </TabsContent>
+          )}
+          {showCoeTab && (
+            <TabsContent value="coe" className="space-y-3">
+              <CoeTab applicationId={application.id} />
+              {/* <hr className="my-80" /> */}
+              {/* <COETab applicationId={application.id} /> */}
+            </TabsContent>
+          )}
 
           <TabsContent value="communication" className="space-y-3">
             <CommunicationTab applicationId={application.id} />

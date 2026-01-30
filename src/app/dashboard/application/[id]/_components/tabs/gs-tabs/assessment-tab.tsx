@@ -1,12 +1,9 @@
 "use client";
-
-import { Loader2 } from "lucide-react";
-
-import { Card, CardContent } from "@/components/ui/card";
-import { APPLICATION_STAGE } from "@/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import { useApplicationChangeStageMutation } from "@/hooks/useApplication.hook";
-import { useGSStaffAssessmentQuery } from "@/hooks/useGSAssessment.hook";
+import { useSession } from "next-auth/react";
 import { GSAssessmentStaffForm } from "../../forms/gs-assessment-staff-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // type ViewState = "cards" | { mode: "view" | "edit" };
 
@@ -25,11 +22,14 @@ export default function GSAssessmentTab({
   // isStageCompleted = false,
   onStageComplete,
 }: GSAssessmentTabProps) {
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
+
   // const [viewState, setViewState] = useState<ViewState>("cards");
 
-  const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
-    applicationId ?? null,
-  );
+  // const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
+  //   applicationId ?? null,
+  // );
   const changeStage = useApplicationChangeStageMutation(applicationId ?? "");
 
   // const assessmentStatus = staffAssessment?.data?.status;
@@ -48,23 +48,42 @@ export default function GSAssessmentTab({
     await changeStage.mutateAsync({ to_stage: APPLICATION_STAGE.COE_ISSUED });
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <Card>
+  //       <CardContent className="flex items-center justify-center py-12">
+  //         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // }
 
+  if (ROLE === USER_ROLE.STAFF)
+    return (
+      <div className="px-6 pt-8">
+        <GSAssessmentStaffForm
+          applicationId={applicationId}
+          onSuccess={handleFormSuccess}
+        />
+      </div>
+    );
   return (
-    <div className="px-6 pt-8">
-      <GSAssessmentStaffForm
-        applicationId={applicationId}
-        onSuccess={handleFormSuccess}
-      />
-    </div>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                Awaiting Staff GS Submission
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">...</p>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4"></CardContent>
+      </Card>
+    </>
   );
 
   // if (viewState === "cards") {

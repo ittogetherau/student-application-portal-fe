@@ -42,9 +42,7 @@ export function ApplicationStagePill({
     stage && String(stage) ? formatStageLabel(String(stage)) : undefined;
   const isLegacyStage = !normalizedStage && !!formattedStage;
   const label =
-    roleLabel ??
-    config?.label ??
-    (isLegacyStage ? `Old: ${formattedStage}` : "N/A");
+    roleLabel ?? config?.label ?? (isLegacyStage ? `${formattedStage}` : "N/A");
   const legacyClassName =
     "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 

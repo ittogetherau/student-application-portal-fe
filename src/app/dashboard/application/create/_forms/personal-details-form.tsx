@@ -4,6 +4,7 @@
 import ApplicationStepHeader from "@/app/dashboard/application/create/_components/application-step-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
 import { FormSearchableSelect } from "@/components/ui/forms/form-searchable-select";
@@ -20,6 +21,12 @@ import usePlacesAutocomplete from "@/hooks/usePlacesAutocomplete.hook";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
+import {
+  DROPZONE_ACCEPT,
+  MAX_FILE_SIZE_BYTES,
+  getDropzoneHelperText,
+  isAllowedFileType,
+} from "@/lib/document-file-helpers";
 import documentService from "@/service/document.service";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,7 +104,6 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [extractedSummary, setExtractedSummary] = useState<Record<
     string,
     any
@@ -120,19 +126,13 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
       }
 
       // Validate file type
-      const validTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/pdf",
-      ];
-      if (!validTypes.includes(file.type)) {
+      if (!isAllowedFileType(file)) {
         toast.error("Please upload a valid image (JPG, PNG) or PDF file");
         return;
       }
 
       // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error("File size must be less than 5MB");
         return;
       }
@@ -147,6 +147,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           application_id: applicationId,
           document_type_id: passportDocType.id,
           file,
+          process_ocr: true,
         });
 
         toast.success("Passport uploaded! Extracting data...");
@@ -321,35 +322,6 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     [applicationId, passportDocType, uploadDocument, methods]
   );
 
-  // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
-  // Handle drag and drop
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
   // Remove uploaded file
   const handleRemoveFile = () => {
     setUploadedFile(null);
@@ -501,40 +473,39 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               </div>
 
               {!uploadedFile ? (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
+                <Dropzone
+                  onDrop={(acceptedFiles) => {
+                    const file = acceptedFiles?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  onError={(error) => {
+                    if (error?.message) {
+                      toast.error(error.message);
+                    }
+                  }}
+                  accept={DROPZONE_ACCEPT}
+                  maxFiles={1}
+                  maxSize={MAX_FILE_SIZE_BYTES}
+                  disabled={isUploading || !applicationId}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                    isDragging
-                      ? "border-primary bg-primary/10"
-                      : "border-muted hover:border-primary/50 hover:bg-accent"
+                    "border-muted hover:border-primary/50 hover:bg-accent",
                   )}
                 >
-                  <input
-                    type="file"
-                    id="passport-upload"
-                    className="hidden"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={handleFileChange}
-                    disabled={isUploading || !applicationId}
-                  />
-                  <label
-                    htmlFor="passport-upload"
-                    className="cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Upload className="h-4 w-4 text-primary" />
-                    <div className="text-left">
-                      <p className="text-sm font-medium">
-                        Upload passport to auto-fill
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, PNG or PDF (max 5MB)
-                      </p>
+                  <DropzoneEmptyState>
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium">
+                          Upload passport to auto-fill
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {getDropzoneHelperText(MAX_FILE_SIZE_BYTES)}
+                        </p>
+                      </div>
                     </div>
-                  </label>
-                </div>
+                  </DropzoneEmptyState>
+                </Dropzone>
               ) : (
                 <div className="border rounded-lg p-3 bg-background">
                   <div className="flex items-center justify-between">

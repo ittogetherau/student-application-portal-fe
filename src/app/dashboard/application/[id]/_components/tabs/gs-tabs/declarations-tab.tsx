@@ -1,17 +1,5 @@
 "use client";
 
-import {
-  ArrowLeft,
-  CheckCircle2,
-  CircleCheck,
-  Clock,
-  Eye,
-  FileText,
-  Loader2,
-  Send,
-} from "lucide-react";
-import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components/gs-screening-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +11,21 @@ import {
   useGSStudentDeclarationResendMutation,
 } from "@/hooks/useGSAssessment.hook";
 import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CircleCheck,
+  Clock,
+  Edit2,
+  Eye,
+  FileText,
+  GraduationCap,
+  Loader2,
+  Send,
+  UserStar,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
 
 type DeclarationType = "student" | "agent";
 
@@ -173,17 +176,23 @@ export default function GSDeclarationsTab({
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold">
-                    Student Declaration Form
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Student must complete their section
+                <div className="flex items-center gap-2">
+                  <p className="p-2 bg-primary/5 border border-primary/50 text-primary rounded-lg ">
+                    <GraduationCap />
                   </p>
+                  <div>
+                    <CardTitle className="text-base font-semibold">
+                      Student Declaration Form
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Student must complete their section
+                    </p>
+                  </div>
                 </div>
                 {getStatusBadge(studentStatus)}
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
                 {/* {studentStatus === "submitted" && (
@@ -235,17 +244,10 @@ export default function GSDeclarationsTab({
                     variant={isStudentVerified ? "default" : "outline"}
                     className={cn("w-full gap-2")}
                   >
-                    {isStudentVerified ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Student Verified
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Verify Student Declaration
-                      </>
-                    )}
+                    <CheckCircle2 className="h-4 w-4" />
+                    {isStudentVerified
+                      ? "Student Verified"
+                      : "Verify Student Declaration"}
                   </Button>
                 </div>
               )}
@@ -255,17 +257,23 @@ export default function GSDeclarationsTab({
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold">
-                    Agent Declaration Form
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Agent/staff must complete this section
+                <div className="flex items-center gap-2">
+                  <p className="p-2 bg-primary/5 border border-primary/50 text-primary rounded-lg ">
+                    <UserStar className="" />
                   </p>
+                  <div>
+                    <CardTitle className="text-base font-semibold">
+                      Agent Declaration Form
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Agent/staff must complete this section
+                    </p>
+                  </div>
                 </div>
                 {getStatusBadge(agentStatus)}
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
                 {!isStaff && (
@@ -275,8 +283,8 @@ export default function GSDeclarationsTab({
                       setViewState({ mode: "edit", declarationType: "agent" })
                     }
                   >
-                    <FileText className="h-4 w-4" />
-                    Edit Form
+                    <Edit2 className="h-4 w-4" />
+                    Complete Form
                   </Button>
                 )}
 

@@ -38,30 +38,15 @@ export default function AcceptRejectStatus({ applicationId }: AcceptRejectProps)
   const [rejectionReason, setRejectionReason] = useState("");
   const [isAppealable, setIsAppealable] = useState(false);
 
-  const approveMutation = useApplicationApproveMutation(applicationId);
+  
   const rejectMutation = useApplicationRejectMutation(applicationId);
   const archiveMutation = useArchiveApplicationMutation();
 
   const isPending =
-    approveMutation.isPending ||
+ 
     rejectMutation.isPending ||
     archiveMutation.isPending;
-
-  const handleAccept = () => {
-    approveMutation.mutate(
-      { offer_details: {} },
-      {
-        onSuccess: () => {
-          toast.success("Application accepted.");
-          setOpen(false);
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to accept application");
-        },
-      }
-    );
-  };
-
+ 
   const openRejectDialog = () => {
     setRejectionReason("");
     setIsAppealable(false);
@@ -127,16 +112,7 @@ export default function AcceptRejectStatus({ applicationId }: AcceptRejectProps)
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-1" align="center">
           <div className="flex flex-col gap-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-              onClick={handleAccept}
-              disabled={approveMutation.isPending}
-            >
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Accept
-            </Button>
+ 
             <Button
               variant="ghost"
               size="sm"
@@ -184,7 +160,7 @@ export default function AcceptRejectStatus({ applicationId }: AcceptRejectProps)
                 {rejectionReason.length}/1000 characters (min 10)
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Checkbox
                 id="is-appealable"
                 checked={isAppealable}
@@ -193,7 +169,7 @@ export default function AcceptRejectStatus({ applicationId }: AcceptRejectProps)
               <Label htmlFor="is-appealable" className="text-sm font-normal cursor-pointer">
                 Applicant may appeal this decision
               </Label>
-            </div>
+            </div> */}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>

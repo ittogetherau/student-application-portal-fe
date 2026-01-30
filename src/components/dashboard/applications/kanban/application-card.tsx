@@ -43,7 +43,7 @@ export function ApplicationCard({
       <Card
         className={cn(
           "hover:shadow-md transition-shadow cursor-pointer border-border/40 w-full",
-          isDragging && "ring-2 ring-primary"
+          isDragging && "ring-2 ring-primary",
         )}
       >
         <CardContent className="p-2.5 sm:p-3">
@@ -62,7 +62,13 @@ export function ApplicationCard({
                 {app.course}
               </p>
             </div>
-
+            {/* <div className="">
+              <p>Student Full Name</p>
+              <p>Course Enrolled</p>
+              <p>Campus</p>
+              <p>agent</p>
+              <p>submitted date</p>
+            </div> */}
             {app.assignedStaffName && (
               <p
                 className="text-[10px] sm:text-xs text-muted-foreground truncate"
@@ -71,7 +77,6 @@ export function ApplicationCard({
                 👤 {app.assignedStaffName}
               </p>
             )}
-
             <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5">
               {isallowMovingInKanban && (
                 <div

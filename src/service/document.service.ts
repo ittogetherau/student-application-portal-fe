@@ -52,7 +52,7 @@ export interface ApplicationDocumentListItem {
   document_type_id: string;
   document_type_name: string;
   document_type_code: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "verified" | "rejected" | "approved";
   ocr_status: "pending" | "processing" | "completed" | "failed";
   uploaded_at: string;
   uploaded_by: string;
@@ -114,7 +114,7 @@ class DocumentService extends ApiService {
       formData.append("application_id", application_id);
       formData.append("document_type_id", document_type_id);
       formData.append("file", file);
-      // formData.append("process_ocr", process_ocr?.toString() || "true");
+      if (process_ocr) formData.append("process_ocr", "true");
 
       return resolveServiceCall<{ process_ocr: boolean }>(
         () =>
@@ -122,7 +122,7 @@ class DocumentService extends ApiService {
             headers: { "Content-Type": "multipart/form-data" },
           }),
         "Document uploaded successfully.",
-        "Failed to upload document"
+        "Failed to upload document",
       );
     } catch (error) {
       return Promise.resolve({
@@ -138,7 +138,7 @@ class DocumentService extends ApiService {
     return resolveServiceCall<DocumentType[]>(
       () => this.get(`${this.basePath}/types`, true),
       "Document types fetched successfully.",
-      "Failed to fetch document types"
+      "Failed to fetch document types",
     );
   }
 
@@ -147,16 +147,16 @@ class DocumentService extends ApiService {
       () =>
         this.get(
           `${this.basePath}/application/${applicationId}/extracted-data`,
-          true
+          true,
         ),
       "Extracted data fetched successfully.",
-      "Failed to fetch extracted data"
+      "Failed to fetch extracted data",
     );
   }
 
   getDocument(
     documentId: string,
-    includeVersions: boolean = false
+    includeVersions: boolean = false,
   ): Promise<ServiceResponse<Document>> {
     const queryParams: Record<string, QueryValue> = {
       include_versions: includeVersions,
@@ -166,17 +166,18 @@ class DocumentService extends ApiService {
     return resolveServiceCall<Document>(
       () => this.get(`${this.basePath}/${documentId}${queryString}`, true),
       "Document fetched successfully.",
-      "Failed to fetch document"
+      "Failed to fetch document",
     );
   }
 
   listApplicationDocuments(
-    applicationId: string
+    applicationId: string,
   ): Promise<ServiceResponse<ApplicationDocumentListItem[]>> {
     return resolveServiceCall<ApplicationDocumentListItem[]>(
       async () => {
         const data = await this.get<
-          ApplicationDocumentListItem[] | { items?: ApplicationDocumentListItem[] }
+          | ApplicationDocumentListItem[]
+          | { items?: ApplicationDocumentListItem[] }
         >(`${this.basePath}/application/${applicationId}/list`, true);
 
         if (Array.isArray(data)) return data;
@@ -184,7 +185,18 @@ class DocumentService extends ApiService {
         return [];
       },
       "Application documents fetched successfully.",
-      "Failed to fetch application documents"
+      "Failed to fetch application documents",
+    );
+  }
+
+  verifyDocument(
+    documentId: string,
+    payload: { status: "verified" | "rejected"; notes?: string },
+  ): Promise<ServiceResponse<Document>> {
+    return resolveServiceCall<Document>(
+      () => this.post(`${this.basePath}/${documentId}/verify`, payload, true),
+      "Document verified successfully.",
+      "Failed to verify document",
     );
   }
 }

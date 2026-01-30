@@ -11,6 +11,15 @@
  * Internally we convert to 0-indexed (0-4) for array access.
  */
 
+import {
+  Calendar,
+  FilePenLine,
+  FileText,
+  Fullscreen,
+  LucideIcon,
+  NotebookPen,
+} from "lucide-react";
+
 // Step names matching the 5-stage workflow
 export type GSStepName =
   | "documents"
@@ -24,6 +33,7 @@ export interface GSStepConfig {
   name: GSStepName;
   label: string;
   description: string;
+  icon: LucideIcon;
 }
 
 // The 5 GS Assessment steps in order
@@ -32,26 +42,31 @@ export const GS_STEPS: readonly GSStepConfig[] = [
     name: "documents",
     label: "Documents",
     description: "Upload and review 9 required documents",
+    icon: FileText,
   },
   {
     name: "declarations",
     label: "Declarations",
     description: "Student and agent declarations",
+    icon: FilePenLine,
   },
   {
     name: "schedule",
     label: "Schedule",
     description: "Schedule the GS interview",
+    icon: Calendar,
   },
   {
     name: "interview",
     label: "Interview",
     description: "Conduct the interview",
+    icon: Fullscreen,
   },
   {
     name: "assessment",
     label: "Assessment",
     description: "Staff assessment and final decision",
+    icon: NotebookPen,
   },
 ] as const;
 
@@ -83,12 +98,15 @@ export interface GSAssessmentData {
  */
 function deriveStatusText(
   stepName: GSStepName,
-  data: GSAssessmentData | null | undefined
+  data: GSAssessmentData | null | undefined,
 ): string | undefined {
   if (!data) return undefined;
 
   if (stepName === "documents") {
-    if (data.documentsApproved !== undefined && data.documentsTotal !== undefined) {
+    if (
+      data.documentsApproved !== undefined &&
+      data.documentsTotal !== undefined
+    ) {
       return `${data.documentsApproved}/${data.documentsTotal} approved`;
     }
   }
@@ -113,13 +131,14 @@ function deriveStatusText(
  * - Otherwise, step is "inactive"
  */
 export function deriveAllStepsProgress(
-  data: GSAssessmentData | null | undefined
+  data: GSAssessmentData | null | undefined,
 ): GSStepProgress[] {
   const currentStage = data?.currentStage ?? 0;
 
   return GS_STEPS.map((config, index) => {
-    const isCompleted = data?.stageCompletedAt?.[index] !== null &&
-                        data?.stageCompletedAt?.[index] !== undefined;
+    const isCompleted =
+      data?.stageCompletedAt?.[index] !== null &&
+      data?.stageCompletedAt?.[index] !== undefined;
 
     let state: GSStepState;
     if (isCompleted) {
@@ -148,13 +167,14 @@ export function deriveAllStepsProgress(
  * We convert current_stage to 0-indexed internally for array access.
  */
 export function transformGSAssessmentData(
-  raw: Record<string, unknown> | null | undefined
+  raw: Record<string, unknown> | null | undefined,
 ): GSAssessmentData | null {
   if (!raw) return null;
 
   // API returns current_stage as 1-indexed, convert to 0-indexed for internal use
   // Fresh assessment starts at current_stage=1 (Documents), we convert to 0
-  const rawCurrentStage = typeof raw.current_stage === "number" ? raw.current_stage : 1;
+  const rawCurrentStage =
+    typeof raw.current_stage === "number" ? raw.current_stage : 1;
   const currentStage = Math.max(0, rawCurrentStage - 1);
 
   return {
@@ -168,19 +188,21 @@ export function transformGSAssessmentData(
     ],
     updatedAt: (raw.updated_at as string) ?? new Date().toISOString(),
     // Optional document counts
-    documentsApproved: typeof raw.documents_approved === "number"
-      ? raw.documents_approved
-      : undefined,
-    documentsTotal: typeof raw.documents_total === "number"
-      ? raw.documents_total
-      : undefined,
+    documentsApproved:
+      typeof raw.documents_approved === "number"
+        ? raw.documents_approved
+        : undefined,
+    documentsTotal:
+      typeof raw.documents_total === "number" ? raw.documents_total : undefined,
     // Optional declaration statuses
-    studentDeclarationStatus: typeof raw.student_declaration_status === "string"
-      ? raw.student_declaration_status
-      : undefined,
-    agentDeclarationStatus: typeof raw.agent_declaration_status === "string"
-      ? raw.agent_declaration_status
-      : undefined,
+    studentDeclarationStatus:
+      typeof raw.student_declaration_status === "string"
+        ? raw.student_declaration_status
+        : undefined,
+    agentDeclarationStatus:
+      typeof raw.agent_declaration_status === "string"
+        ? raw.agent_declaration_status
+        : undefined,
   };
 }
 
@@ -202,9 +224,6 @@ export function getStepConfig(stepName: GSStepName): GSStepConfig | undefined {
 // GS Document Configuration
 // ============================================================================
 
-/**
- * Document status from API (snake_case)
- */
 export type GSDocumentBackendStatus =
   | "not_started"
   | "uploaded"
@@ -229,13 +248,15 @@ export const GS_DOCUMENT_CONFIGS: readonly GSDocumentConfig[] = [
   {
     number: 1,
     title: "Passport Copy",
-    description: "All pages of passport including blank pages, color scanned or certified copy",
+    description:
+      "All pages of passport including blank pages, color scanned or certified copy",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 2,
     title: "Academic Transcripts",
-    description: "Academic transcripts, certificates, and mark sheets - color scanned or certified copy",
+    description:
+      "Academic transcripts, certificates, and mark sheets - color scanned or certified copy",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
@@ -247,13 +268,15 @@ export const GS_DOCUMENT_CONFIGS: readonly GSDocumentConfig[] = [
   {
     number: 4,
     title: "Certificate of Qualification",
-    description: "Degree certificates, diplomas, or other qualification documents",
+    description:
+      "Degree certificates, diplomas, or other qualification documents",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 5,
     title: "Financial Documents",
-    description: "Bank statements, fixed deposits, loan letters, or other financial evidence",
+    description:
+      "Bank statements, fixed deposits, loan letters, or other financial evidence",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
@@ -265,25 +288,29 @@ export const GS_DOCUMENT_CONFIGS: readonly GSDocumentConfig[] = [
   {
     number: 7,
     title: "Previous Visa History",
-    description: "Previous visa grants, refusals, or travel history documents if applicable",
+    description:
+      "Previous visa grants, refusals, or travel history documents if applicable",
     acceptedFormats: "PDF, JPG, PNG",
   },
   {
     number: 8,
     title: "Statement of Purpose",
-    description: "Written statement explaining study goals, career plans, and reasons for choosing this course",
+    description:
+      "Written statement explaining study goals, career plans, and reasons for choosing this course",
     acceptedFormats: "PDF",
   },
   {
     number: 9,
     title: "CV/Resume",
-    description: "Current curriculum vitae or resume with education and work experience",
+    description:
+      "Current curriculum vitae or resume with education and work experience",
     acceptedFormats: "PDF",
   },
   {
     number: 10,
     title: "Other Documents",
-    description: "Any additional supporting documents required for the assessment",
+    description:
+      "Any additional supporting documents required for the assessment",
     acceptedFormats: "PDF, JPG, PNG",
   },
 ] as const;
@@ -291,14 +318,18 @@ export const GS_DOCUMENT_CONFIGS: readonly GSDocumentConfig[] = [
 /**
  * Get document config by number (1-10)
  */
-export function getDocumentConfig(documentNumber: number): GSDocumentConfig | undefined {
+export function getDocumentConfig(
+  documentNumber: number,
+): GSDocumentConfig | undefined {
   return GS_DOCUMENT_CONFIGS.find((d) => d.number === documentNumber);
 }
 
 /**
  * Map backend status to UI-friendly label
  */
-export function getDocumentStatusLabel(status: GSDocumentBackendStatus): string {
+export function getDocumentStatusLabel(
+  status: GSDocumentBackendStatus,
+): string {
   switch (status) {
     case "approved":
       return "Approved";
@@ -390,19 +421,23 @@ function transformGSDocumentFile(raw: Record<string, unknown>): GSDocumentFile {
  * Transform raw API document to frontend format
  */
 export function transformGSDocument(
-  raw: Record<string, unknown>
+  raw: Record<string, unknown>,
 ): GSDocumentData {
-  const documentNumber = typeof raw.document_number === "number"
-    ? raw.document_number
-    : 1;
+  const documentNumber =
+    typeof raw.document_number === "number" ? raw.document_number : 1;
   const config = getDocumentConfig(documentNumber);
 
   // Use document_name from API, fallback to our config title
-  const documentName = (raw.document_name as string) ?? config?.title ?? `Document ${documentNumber}`;
+  const documentName =
+    (raw.document_name as string) ??
+    config?.title ??
+    `Document ${documentNumber}`;
 
   // Transform files array
   const rawFiles = Array.isArray(raw.files) ? raw.files : [];
-  const files = rawFiles.map((f) => transformGSDocumentFile(f as Record<string, unknown>));
+  const files = rawFiles.map((f) =>
+    transformGSDocumentFile(f as Record<string, unknown>),
+  );
 
   return {
     id: (raw.id as string) ?? `doc-${documentNumber}`,
@@ -429,7 +464,7 @@ export function transformGSDocument(
  * Always returns documents sorted by documentNumber (1-10)
  */
 export function transformGSDocuments(
-  raw: unknown[] | null | undefined
+  raw: unknown[] | null | undefined,
 ): GSDocumentData[] {
   if (!raw || !Array.isArray(raw)) {
     // Return default empty documents if no data
@@ -454,6 +489,8 @@ export function transformGSDocuments(
   }
 
   // Transform and sort by documentNumber to ensure correct order (1-10)
-  const transformed = raw.map((doc) => transformGSDocument(doc as Record<string, unknown>));
+  const transformed = raw.map((doc) =>
+    transformGSDocument(doc as Record<string, unknown>),
+  );
   return transformed.sort((a, b) => a.documentNumber - b.documentNumber);
 }

@@ -27,7 +27,7 @@ export function KanbanColumns({
 }) {
   const applicationIds = useMemo(
     () => applications.map((app) => app.id),
-    [applications]
+    [applications],
   );
 
   const { setNodeRef, isOver } = useDroppable({
@@ -45,13 +45,12 @@ export function KanbanColumns({
       className={cn(
         "shrink-0 w-[320px] rounded-lg p-3",
         statusBackground,
-        isOver && isallowMovingInKanban && "ring-2 ring-primary ring-offset-2"
+        isOver && isallowMovingInKanban && "ring-2 ring-primary ring-offset-2",
       )}
       data-stage={stage}
     >
       <div className="bg-background/50 rounded-lg p-3 mb-3 border">
         <div className="flex items-center gap-2">
-          <div className={cn("w-2 h-2 rounded-full", statusColor)} />
           <h3 className="font-medium text-sm">{statusLabel}</h3>
           <Badge variant="secondary" className="ml-auto text-xs h-5">
             {applications.length}

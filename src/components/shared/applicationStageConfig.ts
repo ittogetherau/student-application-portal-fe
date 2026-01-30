@@ -30,7 +30,7 @@ export const STAGE_PILL_CONFIG: Record<
       "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
   },
   [APPLICATION_STAGE.COE_ISSUED]: {
-    label: "COE Issued",
+    label: "Confirmation of Enrollment",
     className:
       "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
   },
@@ -63,15 +63,15 @@ export const ROLE_STATUS_LABELS: Record<
   },
   [APPLICATION_STAGE.OFFER_LETTER]: {
     agent: "Sign Offer Letter",
-    staff: "Awaiting Signatures",
+    staff: "Awaiting Offer Signature",
   },
   [APPLICATION_STAGE.GS_ASSESSMENT]: {
     agent: "GS Process",
     staff: "GS Process",
   },
   [APPLICATION_STAGE.COE_ISSUED]: {
-    agent: "COE Issued",
-    staff: "COE Issued",
+    agent: "Confirmation of Enrollment",
+    staff: "Confirmation of Enrollment",
   },
   [APPLICATION_STAGE.ACCEPTED]: {
     agent: "Accepted",

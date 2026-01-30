@@ -10,9 +10,11 @@ import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
 } from "@/hooks/useApplication.hook";
-import { FileText, Loader2 } from "lucide-react";
+import { useGalaxySyncApplicationMutation } from "@/hooks/galaxy-sync.hook";
+import { FileText, Loader2, RefreshCw } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
+import { toast } from "react-hot-toast";
 import {
   AdditionalServicesSection,
   DisabilitySupportSection,
@@ -46,11 +48,15 @@ const ReviewForm = ({
     isError,
   } = useApplicationGetQuery(applicationId);
   const submitApplication = useApplicationSubmitMutation(applicationId);
+  const syncApplication = useGalaxySyncApplicationMutation(applicationId);
 
   const application = response?.data;
   const isStaffOrAdmin =
     session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
   const syncMetadata = application?.sync_metadata ?? null;
+  const isUpToDate = syncMetadata
+    ? Object.values(syncMetadata).every((item) => item?.uptodate === true)
+    : false;
 
   const stageBadge = useMemo(() => {
     const stage = application?.current_stage;
@@ -144,6 +150,21 @@ const ReviewForm = ({
     return values.length ? values : undefined;
   }, [sections]);
 
+  const handleSync = async () => {
+    try {
+      toast.loading("Syncing application...", { id: "sync-application" });
+      await syncApplication.mutateAsync(false);
+      toast.success("Application synced to Galaxy", {
+        id: "sync-application",
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to sync application",
+        { id: "sync-application" },
+      );
+    }
+  };
+
   return (
     <div className="space-y-2">
       {showDetails ? (
@@ -161,6 +182,27 @@ const ReviewForm = ({
           </div>
         </div>
       ) : null}
+
+      {/* TODO: Add Sync */}
+      {showSync && (
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={handleSync}
+            disabled={syncApplication.isPending || isUpToDate}
+          >
+            {syncApplication.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Sync All
+          </Button>
+        </div>
+      )}
 
       <Accordion
         type="multiple"
@@ -269,9 +311,7 @@ const ReviewForm = ({
             </div>
             <span className="text-sm font-semibold">Documents</span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            View documents
-          </span>
+          <span className="text-xs text-muted-foreground">View documents</span>
         </div>
       ) : null}
 

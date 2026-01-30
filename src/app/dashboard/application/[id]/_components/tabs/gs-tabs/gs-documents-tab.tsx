@@ -13,7 +13,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import {
@@ -34,6 +34,7 @@ import {
   DialogHeader as ShadDialogHeader,
   DialogTitle as ShadDialogTitle,
 } from "@/components/ui/dialog";
+import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
 import {
   GS_DOCUMENT_CONFIGS,
@@ -48,19 +49,12 @@ import {
   useGSDocumentStatusMutation,
   useGSDocumentUploadMutation,
 } from "@/hooks/useGSAssessment.hook";
-
-const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
-
-const isAllowedFileType = (file: File): boolean => {
-  const fileName = file.name.toLowerCase();
-  const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some((ext) =>
-    fileName.endsWith(ext),
-  );
-  const hasAllowedMime =
-    !file.type || ALLOWED_MIME_TYPES.includes(file.type.toLowerCase());
-  return hasAllowedExtension && hasAllowedMime;
-};
+import {
+  isAllowedFileType,
+  DROPZONE_ACCEPT,
+  MAX_FILE_SIZE_BYTES,
+  getDropzoneHelperText,
+} from "@/lib/document-file-helpers";
 
 interface GSDocumentsTabProps {
   applicationId?: string;
@@ -139,7 +133,6 @@ export default function GSDocumentsTab({
     fileId: string;
     fileName: string;
   } | null>(null);
-  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Queries
   const {
@@ -243,11 +236,8 @@ export default function GSDocumentsTab({
   };
 
   // Handle file upload
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    documentNumber: number,
-  ) => {
-    const file = event.target.files?.[0];
+  const handleFiles = async (files: File[] | null, documentNumber: number) => {
+    const file = files?.[0];
     if (!file) return;
 
     // Validate file type
@@ -255,10 +245,6 @@ export default function GSDocumentsTab({
       toast.error(
         "Invalid file type. Only PDF, JPG, and PNG files are allowed.",
       );
-      // Reset the file input
-      if (fileInputRefs.current[documentNumber]) {
-        fileInputRefs.current[documentNumber]!.value = "";
-      }
       return;
     }
 
@@ -275,10 +261,6 @@ export default function GSDocumentsTab({
       );
     } finally {
       setUploadingDocNumber(null);
-      // Reset the file input
-      if (fileInputRefs.current[documentNumber]) {
-        fileInputRefs.current[documentNumber]!.value = "";
-      }
     }
   };
 
@@ -588,42 +570,44 @@ export default function GSDocumentsTab({
 
                     {/* Upload area */}
                     <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4">
-                      <input
-                        ref={(el) => {
-                          fileInputRefs.current[doc.documentNumber] = el;
-                        }}
-                        id={`gs-upload-${doc.documentNumber}`}
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={(e) =>
-                          handleFileChange(e, doc.documentNumber)
+                      <Dropzone
+                        onDrop={(acceptedFiles) =>
+                          handleFiles(acceptedFiles, doc.documentNumber)
                         }
+                        onError={(error) => {
+                          if (error?.message) {
+                            toast.error(error.message);
+                          }
+                        }}
+                        accept={DROPZONE_ACCEPT}
+                        maxFiles={1}
+                        maxSize={MAX_FILE_SIZE_BYTES}
                         disabled={isUploading}
-                      />
-                      <label
-                        htmlFor={`gs-upload-${doc.documentNumber}`}
-                        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background px-4 py-6 text-center text-xs text-muted-foreground transition hover:border-primary/60 hover:text-foreground ${
+                        className={`px-4 py-6 text-center text-xs text-muted-foreground transition hover:border-primary/60 hover:text-foreground ${
                           isUploading ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                       >
-                        {isUploading ? (
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : (
-                          <Upload className="h-6 w-6" />
-                        )}
-                        <span className="text-sm font-medium text-foreground">
-                          {isUploading
-                            ? "Uploading..."
-                            : hasFiles
-                              ? "Add file"
-                              : "Drop file here or click to upload"}
-                        </span>
-                        <span>
-                          Accepted: {config?.acceptedFormats ?? "PDF, JPG, PNG"}
-                          . Max 10MB.
-                        </span>
-                      </label>
+                        <DropzoneEmptyState>
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            {isUploading ? (
+                              <Loader2 className="h-6 w-6 animate-spin" />
+                            ) : (
+                              <Upload className="h-6 w-6" />
+                            )}
+                            <span className="text-sm font-medium text-foreground">
+                              {isUploading
+                                ? "Uploading..."
+                                : hasFiles
+                                  ? "Add file"
+                                  : "Drop file here or click to upload"}
+                            </span>
+                            <span>
+                              {config?.acceptedFormats ??
+                                getDropzoneHelperText(MAX_FILE_SIZE_BYTES)}
+                            </span>
+                          </div>
+                        </DropzoneEmptyState>
+                      </Dropzone>
                     </div>
 
                     {/* Review notes if change requested */}

@@ -1,8 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-import React from "react";
-import { toast } from "react-hot-toast";
 import {
   ArrowRight,
   BadgeCheck,
@@ -18,19 +15,20 @@ import {
   Signature,
   User,
 } from "lucide-react";
+import React, { useMemo } from "react";
+import { toast } from "react-hot-toast";
 
-import { Button } from "@/components/ui/button";
 import {
   STAGE_PILL_CONFIG,
   formatStageLabel,
   getRoleStageLabel,
 } from "@/components/shared/applicationStageConfig";
+import { Button } from "@/components/ui/button";
 import { GS_STEPS } from "@/constants/gs-assessment";
 import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
   useApplicationChangeStageMutation,
   useApplicationEnrollGalaxyCourseMutation,
-  useApplicationGalaxySyncMutation,
   useApplicationGetQuery,
   useApplicationSendOfferLetterMutation,
 } from "@/hooks/useApplication.hook";
@@ -39,8 +37,8 @@ import {
   useGSAssessmentProgress,
   useGSAssessmentQuery,
 } from "@/hooks/useGSAssessment.hook";
-import ApplicationSignDisplay from "./ApplicationSignDisplay";
 import { useQueryState } from "nuqs";
+import ApplicationSignDisplay from "./ApplicationSignDisplay";
 
 interface ApplicationStageProps {
   currentStatus: APPLICATION_STAGE;
@@ -186,8 +184,9 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         <div className={cardBorderClass}>
           <h3 className="text-base">Ready to Start Review?</h3>
           <p className="text-sm text-muted-foreground mt-2 mb-4">
-            You can start reviewing this application. Click the button below to
-            begin.
+            Please check all the student details documents uploaded and make
+            sure it can proceed before completing review or else please reject
+            application with reason.
           </p>
           <Button
             onClick={() => handleStartReview(APPLICATION_STAGE.IN_REVIEW)}
@@ -197,7 +196,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             {changeStage.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : null}
-            Start Review
+            Start Application Review
             {!changeStage.isPending && <ArrowRight />}
           </Button>
         </div>
@@ -210,10 +209,11 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         enrollGalaxyCourse.isPending || sendOfferLetter.isPending;
       return (
         <div className={cardBorderClass}>
-          <h3 className="text-base">Confirm Applicant Details</h3>
+          <h3 className="text-base">Confirm before generating Offer Letter</h3>
           <p className="text-sm text-muted-foreground mt-2 mb-4">
-            Review and confirm application details to generate and send the
-            offer letter.{" "}
+            Please review all the requirements and if it satisfies please
+            process further with generate offer letter or else please reject
+            application with reason.
           </p>
 
           <Button
@@ -261,6 +261,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           title: config.label,
           subtitle: progress.statusText ?? config.description,
           status,
+          ...config,
         };
       });
 
@@ -277,114 +278,59 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             Track the 5-stage GS assessment workflow
           </p>
 
-          {/* <div className="flex items-center gap-1 mb-4 relative">
-            {activeStageIndex > 1 && (
-              <div
-                className="absolute left-0 right-0 top-4 h-0.5 flex items-center"
-                style={{ zIndex: 0 }}
-              >
-                <div
-                  className="w-full relative"
-                  style={{
-                    marginLeft: "calc(100% / 10)",
-                    marginRight: "calc(100% / 10)",
-                    width: "calc(100% - 100% / 5)",
-                  }}
-                >
-                  <div
-                    className="absolute h-0.5 text-green-500 transition-all duration-500"
-                    style={{
-                      width: `${((activeStageIndex - 1) / (gsStages.length - 1)) * 100}%`,
-                      backgroundImage:
-                        "repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px)",
-                      backgroundColor: "transparent",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {gsStages.map((stageItem) => (
-              <div
-                key={stageItem.id}
-                className="flex items-center flex-1"
-                style={{ zIndex: 1 }}
-              >
-                <div className="flex flex-col items-center gap-1 w-full">
-                  <div
-                    className={`
-                      flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold transition-all
-                      ${stageItem.status === "completed" ? "bg-green-500 text-white shadow-sm" : ""}
-                      ${stageItem.status === "in-progress" ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20" : ""}
-                      ${stageItem.status === "pending" ? "bg-green-50 text-muted-foreground border border-dashed" : ""}
-                    `}
-                  >
-                    {stageItem.status === "completed" ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      stageItem.id
-                    )}
-                  </div>
-
-                  <span
-                    className={`
-                      text-[10px] font-medium text-center leading-tight
-                      ${stageItem.status === "completed" ? "text-green-600 dark:text-green-400" : ""}
-                      ${stageItem.status === "in-progress" ? "text-primary font-semibold" : ""}
-                      ${stageItem.status === "pending" ? "text-muted-foreground/60" : ""}
-                    `}
-                  >
-                    {stageItem.title}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div> */}
+          {/* <div className="flex items-center gap-1 mb-4 relative">{activeStageIndex > 1 && (  <divclassName="absolute left-0 right-0 top-4 h-0.5 flex items-center"style={{ zIndex: 0 }}  ><div  className="w-full relative"  style={{marginLeft: "calc(100% / 10)",marginRight: "calc(100% / 10)",width: "calc(100% - 100% / 5)",  }}>  <divclassName="absolute h-0.5 text-green-500 transition-all duration-500"style={{  width: `${((activeStageIndex - 1) / (gsStages.length - 1)) * 100}%`,  backgroundImage:"repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px)",  backgroundColor: "transparent",}}  /></div>  </div>)} {gsStages.map((stageItem) => (  <divkey={stageItem.id}className="flex items-center flex-1"style={{ zIndex: 1 }}  ><div className="flex flex-col items-center gap-1 w-full">  <divclassName={`  flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold transition-all  ${stageItem.status === "completed" ? "bg-green-500 text-white shadow-sm" : ""}  ${stageItem.status === "in-progress" ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20" : ""}  ${stageItem.status === "pending" ? "bg-green-50 text-muted-foreground border border-dashed" : ""}`}  >{stageItem.status === "completed" ? (  <CheckCircle2 className="h-4 w-4" />) : (  stageItem.id)}  </div> <spanclassName={`  text-[10px] font-medium text-center leading-tight  ${stageItem.status === "completed" ? "text-green-600 dark:text-green-400" : ""}  ${stageItem.status === "in-progress" ? "text-primary font-semibold" : ""}  ${stageItem.status === "pending" ? "text-muted-foreground/60" : ""}`}  >{stageItem.title}  </span></div>  </div>))}      </div> */}
 
           <div className="space-y-2 mb-4">
-            {gsStages.map((stageItem) => (
-              <div
-                key={stageItem.id}
-                className={`
-                  flex items-center justify-between p-2 rounded-lg border transition-all
-                  ${stageItem.status === "completed" ? "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-800" : ""}
-                  ${stageItem.status === "in-progress" ? "bg-primary/5 border-primary/30" : ""}
-                  ${stageItem.status === "pending" ? "bg-muted/30 border-muted" : ""}
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`
-                      w-1.5 h-1.5 rounded-full
-                      ${stageItem.status === "completed" ? "bg-green-500" : ""}
-                      ${stageItem.status === "in-progress" ? "bg-primary animate-pulse" : ""}
-                      ${stageItem.status === "pending" ? "bg-muted-foreground/40" : ""}
-                    `}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{stageItem.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {stageItem.subtitle}
-                    </p>
+            {gsStages.map((stageItem) => {
+              const Icon = stageItem.icon;
+
+              const containerStyles = {
+                completed:
+                  "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-800",
+                "in-progress": "bg-primary/5 border-primary/30",
+                pending: "bg-muted/30 border-muted",
+              }[stageItem.status];
+
+              const iconStyles = {
+                completed: "text-green-600 dark:text-green-400",
+                "in-progress": "text-primary",
+                pending: "text-muted-foreground",
+              }[stageItem.status];
+
+              return (
+                <div
+                  key={stageItem.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${containerStyles}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-4 w-4 ${iconStyles}`} />
+
+                    <div className="leading-tight">
+                      <p className="text-sm font-medium">{stageItem.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {stageItem.subtitle}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* {stageItem.status === "completed" && (
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  )}
+                  {stageItem.status === "in-progress" && (
+                    <Clock className="h-4 w-4 text-primary flex-shrink-0" />
+                  )} */}
                 </div>
-                {stageItem.status === "completed" && (
-                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                )}
-                {stageItem.status === "in-progress" && (
-                  <Clock className="h-4 w-4 text-primary animate-pulse" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <Button
             onClick={() => setTabNavigation("gs-process")}
             variant="outline"
-            className="w-full gap-2"
+            className="w-full gap-2 shadow-none"
           >
             <Eye className="h-4 w-4" />
-            Open GS Documents Tab
+            Open GS Process Tab
           </Button>
         </div>
       );
@@ -416,7 +362,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         // const isCompleted = i < currentIndex;
 
         const cardBorderClass = `
-          p-3 border-x-2 last:border-b-2 capitalize flex flex-col  gap-0
+          p-3 border-x-2 last:border-b-2  flex flex-col  gap-0
           ${isCurrent ? "bg-primary/5 border-primary" : ""}
           border-b-2
         `;
@@ -424,7 +370,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         return (
           <React.Fragment key={el}>
             <div
-              className={`p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg capitalize flex items-center justify-between gap-2.5 ${
+              className={`p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg  flex items-center justify-between gap-2.5 ${
                 isCurrent ? "bg-primary/5 border-primary" : "last:border-b"
               }`}
             >
@@ -445,9 +391,12 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         );
       })}
 
-      {/* <div onClick={() => handleStageChange(APPLICATION_STAGE.SUBMITTED)}>
-        reset
-      </div> */}
+      {/* <Button
+        className="mt-4"
+        onClick={() => handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)}
+      >
+        Change stage
+      </Button> */}
     </div>
   );
 };

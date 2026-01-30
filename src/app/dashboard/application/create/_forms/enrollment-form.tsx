@@ -23,7 +23,7 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
@@ -31,7 +31,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { setStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
   const storedStepData = useApplicationFormDataStore(
-    (state) => state.stepData[0]
+    (state) => state.stepData[0],
   );
 
   const {
@@ -62,9 +62,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     formData.intakeId !== "" &&
     formData.campusId !== "";
 
+  const hasRestoredRef = useRef(false);
+
   /* ---------- restore saved step ---------- */
   useEffect(() => {
-    if (!_hasHydrated) return;
+    if (!_hasHydrated || hasRestoredRef.current) return;
 
     const saved = storedStepData as
       | {
@@ -88,16 +90,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       campusId: campusId?.toString() ?? "",
     };
 
-    if (
-      nextFormData.courseId === formData.courseId &&
-      nextFormData.intakeId === formData.intakeId &&
-      nextFormData.campusId === formData.campusId
-    ) {
-      return;
-    }
-
     setFormData(nextFormData);
-  }, [storedStepData, _hasHydrated, formData.courseId, formData.intakeId, formData.campusId]);
+    hasRestoredRef.current = true;
+  }, [storedStepData, _hasHydrated]);
 
   /* ---------- auto-save to store ---------- */
   useEffect(() => {
@@ -117,7 +112,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   /* ---------- deterministic updates ---------- */
   const handleFieldChange = (
     field: "courseId" | "intakeId" | "campusId",
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => {
       if (field === "courseId") {
@@ -134,19 +129,19 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   /* ---------- derived entities ---------- */
   const selectedCourse = courses.find(
-    (c) => String(c.id) === formData.courseId
+    (c) => String(c.id) === formData.courseId,
   );
 
   const selectedIntake = useMemo(
     () =>
       selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
-    [selectedCourse, formData.intakeId]
+    [selectedCourse, formData.intakeId],
   );
 
   const selectedCampus = useMemo(
     () =>
       selectedIntake?.campuses?.find((c) => String(c.id) === formData.campusId),
-    [selectedIntake, formData.campusId]
+    [selectedIntake, formData.campusId],
   );
 
   const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];

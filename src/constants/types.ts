@@ -9,9 +9,8 @@ export enum APPLICATION_STAGE {
   SUBMITTED = "submitted",
   IN_REVIEW = "staff_review",
   OFFER_LETTER = "offer_generated",
-  // AWAITING_DOCUMENTS = "awaiting_documents",
   GS_ASSESSMENT = "gs_assessment",
-  COE_ISSUED = "enrolled",
+  COE_ISSUED = "coe",
   ACCEPTED = "accepted",
   REJECTED = "rejected",
 }
