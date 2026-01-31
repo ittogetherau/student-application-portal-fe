@@ -124,20 +124,20 @@ export function ApplicationActionsMenu({
     });
   };
 
-  const handleAccept = () => {
-    setMenuOpen(false);
-    approveMutation.mutate(
-      { offer_details: {} },
-      {
-        onSuccess: () => {
-          toast.success("Application accepted.");
-        },
-        onError: (e) => {
-          toast.error(e.message || "Failed to accept");
-        },
-      },
-    );
-  };
+  // const handleAccept = () => {
+  //   setMenuOpen(false);
+  //   approveMutation.mutate(
+  //     { offer_details: {} },
+  //     {
+  //       onSuccess: () => {
+  //         toast.success("Application accepted.");
+  //       },
+  //       onError: (e) => {
+  //         toast.error(e.message || "Failed to accept");
+  //       },
+  //     },
+  //   );
+  // };
 
   const openRejectDialog = () => {
     setRejectionReason("");
@@ -289,7 +289,7 @@ export function ApplicationActionsMenu({
           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
             Decision
           </DropdownMenuLabel>
-          <DropdownMenuItem
+          {/* <DropdownMenuItem
             onSelect={(e) => {
               e.preventDefault();
               handleAccept();
@@ -299,7 +299,7 @@ export function ApplicationActionsMenu({
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Accept
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
           <DropdownMenuItem
             onSelect={(e) => {
               e.preventDefault();

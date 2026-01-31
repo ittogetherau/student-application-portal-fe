@@ -55,9 +55,13 @@ export interface ApplicationTableRow {
   id: string;
   referenceNumber: string;
   agentName: string;
+  agentEmail?: string;
+  agentAgencyName?: string;
   studentName: string;
+  studentId?: string;
   studentEmail: string;
   course: string;
+  courseCode?: string;
   stage: APPLICATION_STAGE;
   stageRaw?: string | null;
   assignedStaffId?: string | null;

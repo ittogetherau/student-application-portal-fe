@@ -9,6 +9,9 @@ import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
+  BulkArchiveResponse,
+  BulkDeleteResponse,
+  BulkUnarchiveResponse,
   GalaxySyncResponse,
   TimelineResponse,
 } from "@/service/application.service";
@@ -647,6 +650,53 @@ export const useUnarchiveApplicationMutation = () => {
       queryClient.invalidateQueries({
         queryKey: ["application-get", applicationId],
       });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk archive applications
+export const useBulkArchiveApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkArchiveResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkArchiveApplications(applicationIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk delete applications
+export const useBulkDeleteApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkDeleteResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkDeleteApplications(applicationIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk unarchive applications
+export const useBulkUnarchiveApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkUnarchiveResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkUnarchiveApplications(
+        applicationIds,
+      );
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
     },

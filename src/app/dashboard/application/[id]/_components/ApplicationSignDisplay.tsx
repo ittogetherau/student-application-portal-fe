@@ -46,40 +46,52 @@ interface SignerRowProps {
   url: string;
   icon: React.ReactNode;
   signedAt?: string | null;
+  isInteractive?: boolean;
 }
 
-const SignerRow = memo(({ name, email, url, signedAt }: SignerRowProps) => (
-  <a
-    href={url}
-    target="_blank"
-    rel="noreferrer"
-    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
-  >
-    <div className="flex items-center justify-between w-full gap-3 min-w-0">
-      <div className="space-y-0.5 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium leading-none truncate">{name}</p>
-          {signedAt ? (
-            <Badge variant="default" className="text-[10px] px-1.5">
-              Signed
-            </Badge>
-          ) : null}
+const SignerRow = memo(
+  ({ name, email, url, signedAt, isInteractive = true }: SignerRowProps) => (
+    <a
+      href={isInteractive ? url : "#"}
+      target={isInteractive ? "_blank" : undefined}
+      rel={isInteractive ? "noreferrer" : undefined}
+      aria-disabled={!isInteractive}
+      tabIndex={isInteractive ? 0 : -1}
+      onClick={(event) => {
+        if (!isInteractive) {
+          event.preventDefault();
+        }
+      }}
+      className={`flex items-center justify-between p-2 rounded-md transition-colors ${
+        isInteractive ? "hover:bg-muted/40" : "opacity-70"
+      }`}
+    >
+      <div className="flex items-center justify-between w-full gap-3 min-w-0">
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium leading-none truncate">{name}</p>
+            {signedAt ? (
+              <Badge variant="default" className="text-[10px] px-1.5">
+                Signed
+              </Badge>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Mail className="h-3 w-3" />
+            <span className="truncate max-w-[16ch] block">{email}</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Mail className="h-3 w-3" />
-          <span className="truncate max-w-[16ch] block">{email}</span>
+        <div className="s">
+          <Button variant={"ghost"} size={"icon-sm"} disabled={!isInteractive}>
+            <ExternalLink />
+          </Button>
         </div>
       </div>
-
-      <div className="s">
-        <Button variant={"ghost"} size={"icon-sm"}>
-          <ExternalLink />
-        </Button>
-      </div>
-    </div>
-  </a>
-));
+    </a>
+  ),
+);
 
 SignerRow.displayName = "SignerRow";
 
@@ -89,6 +101,7 @@ interface ApplicationSignDisplayProps {
   studentEmail?: string | null;
   cardBorderClass?: string;
   handleStageChange: (val: APPLICATION_STAGE) => void;
+  isInteractive?: boolean;
 }
 
 const ApplicationSignDisplay = ({
@@ -97,6 +110,7 @@ const ApplicationSignDisplay = ({
   studentEmail,
   cardBorderClass,
   handleStageChange,
+  isInteractive = true,
 }: ApplicationSignDisplayProps) => {
   const {
     data,
@@ -126,7 +140,12 @@ const ApplicationSignDisplay = ({
       <div className={cardBorderClass}>
         <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
         <p className="text-sm font-medium">Signature data unavailable</p>
-        <Button variant="outline" size="sm" onClick={() => requestSignatures()}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => requestSignatures()}
+          disabled={!isInteractive}
+        >
           Retry
         </Button>
       </div>
@@ -168,6 +187,7 @@ const ApplicationSignDisplay = ({
                       url={item.student.signing_url}
                       icon={<User className="h-4 w-4" />}
                       signedAt={item.student.signed_at}
+                      isInteractive={true}
                     />
                     <SignerRow
                       name={item.agent.name}
@@ -175,6 +195,7 @@ const ApplicationSignDisplay = ({
                       url={item.agent.signing_url}
                       icon={<ShieldCheck className="h-4 w-4" />}
                       signedAt={item.agent.signed_at}
+                      isInteractive={true}
                     />
                   </div>
 
@@ -254,6 +275,7 @@ const ApplicationSignDisplay = ({
                         handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)
                       }
                       className="w-full text-xs"
+                      disabled={!isInteractive}
                     >
                       Start GS Documentation
                       <ArrowRight />

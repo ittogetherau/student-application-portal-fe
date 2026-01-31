@@ -26,7 +26,7 @@ import {
   type Resolver,
 } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { GSAssessmentStaffPdfDownloadButton } from "./gs-assessment-staff-pdf-download-button";
+import { GSAssessmentPdfDownloadButton } from "./gs-assessment-pdf-download-button";
 import {
   STAGE_1_QUESTIONS,
   STAGE_2_QUESTIONS,
@@ -435,7 +435,7 @@ export function GSAssessmentStaffForm({
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-background py-4">
-          <GSAssessmentStaffPdfDownloadButton
+          <GSAssessmentPdfDownloadButton
             data={staffAssessmentData}
             applicationId={applicationId}
             variant="secondary"

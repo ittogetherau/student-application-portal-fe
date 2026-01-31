@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -221,19 +222,15 @@ export const getApplicationColumns = (
     {
       accessorKey: "referenceNumber",
       meta: { columnTitle: "Reference" },
-      size: 120,
-      minSize: 100,
-      maxSize: 120,
+      size: 150,
+      minSize: 120,
+      maxSize: 180,
       header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Reference"
-          className="text-center"
-        />
+        <DataTableColumnHeader column={column} title="Reference" />
       ),
       cell: ({ row }) => (
         <div
-          className="font-semibold text-foreground truncate"
+          className="text-xs"
           title={(row.getValue("referenceNumber") as string) || "N/A"}
         >
           {(row.getValue("referenceNumber") as string) || "N/A"}
@@ -241,58 +238,102 @@ export const getApplicationColumns = (
       ),
     },
     {
-      accessorKey: "studentName",
-      meta: { columnTitle: "Student Name" },
-      size: 150,
-      minSize: 120,
-      maxSize: 180,
+      id: "studentIdentifiers",
+      accessorFn: (row) =>
+        `${row.referenceNumber ?? ""} ${row.studentId ?? ""} ${row.studentEmail ?? ""}`,
+      meta: { columnTitle: "Student" },
+      size: 220,
+      minSize: 200,
+      maxSize: 260,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Student Name" />
+        <DataTableColumnHeader column={column} title="Student" />
       ),
-      cell: ({ row }) => (
-        <div
-          className="text-sm font-medium text-center truncate"
-          title={(row.getValue("studentName") as string) || "Unknown student"}
-        >
-          {(row.getValue("studentName") as string) || "Unknown student"}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const name = row.original.studentName ?? "N/A";
+        const studentId = row.original.studentId ?? "N/A";
+        const email = row.original.studentEmail ?? "N/A";
+
+        return (
+          <div className="text-sm text-muted-foreground text-start truncate">
+            <div className="truncate" title={name}>
+              {name}
+            </div>
+            <div
+              className="text-xs text-muted-foreground/80 truncate"
+              title={studentId}
+            >
+              {studentId}
+            </div>
+            <div
+              className="text-xs text-muted-foreground/80 truncate"
+              title={email}
+            >
+              {email}
+            </div>
+          </div>
+        );
+      },
     },
     {
-      accessorKey: "studentEmail",
-      meta: { columnTitle: "Student Email" },
+      accessorKey: "agentName",
+      meta: { columnTitle: "Agent" },
       size: 200,
       minSize: 180,
       maxSize: 240,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Student Email" />
+        <DataTableColumnHeader column={column} title="Agent" />
       ),
-      cell: ({ row }) => (
-        <div
-          className="text-sm text-muted-foreground text-start truncate"
-          title={(row.getValue("studentEmail") as string) || "N/A"}
-        >
-          {(row.getValue("studentEmail") as string) || "N/A"}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const agency = row.original.agentAgencyName ?? "";
+        const email = row.original.agentEmail ?? "";
+        const name = row.original.agentName ?? "";
+        const label = agency || name || "N/A";
+        const sublabel = email || (agency && name ? name : "");
+
+        return (
+          <div className="text-sm text-muted-foreground text-start truncate">
+            <div className="truncate" title={label}>
+              {label}
+            </div>
+            {sublabel ? (
+              <div
+                className="text-xs text-muted-foreground/80 truncate"
+                title={sublabel}
+              >
+                {sublabel}
+              </div>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "course",
       meta: { columnTitle: "Course" },
-      size: 200,
-      minSize: 180,
-      maxSize: 250,
+      size: 220,
+      minSize: 200,
+      maxSize: 260,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Course" />
       ),
-      cell: ({ row }) => (
-        <div
-          className="text-sm text-muted-foreground text-start truncate whitespace-normal"
-          title={(row.getValue("course") as string) || "N/A"}
-        >
-          {(row.getValue("course") as string) || "N/A"}
-        </div>
-      ),
+      cell: ({ row }) => {
+        // const code = row.original.courseCode || "N/A";
+        const name = row.original.course || "N/A";
+
+        return (
+          <div className="text-sm text-muted-foreground text-start truncate">
+            {/* <div className="truncate" title={code}>
+              {code}
+            </div> */}
+            <div
+              className="text-sm text-muted-foreground/80 text-wrap"
+              title={name}
+            >
+              {name}
+            </div>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "stage",
@@ -399,7 +440,13 @@ export const getApplicationColumns = (
     },
   ];
 
-  if (role === USER_ROLE.AGENT || (role === USER_ROLE.STAFF && !isStaffAdmin)) {
+  if (role === USER_ROLE.AGENT) {
+    return baseColumns.filter(
+      (column) => column.id !== "assignedTo" && column.id !== "agentName",
+    );
+  }
+
+  if (role === USER_ROLE.STAFF && !isStaffAdmin) {
     return baseColumns.filter((column) => column.id !== "assignedTo");
   }
 

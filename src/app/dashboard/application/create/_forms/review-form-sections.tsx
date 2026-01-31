@@ -297,6 +297,7 @@ function SyncActionButton({
 }) {
   if (!showSync || !isStaffOrAdmin) return null;
   const isUpToDate = syncMeta?.uptodate === true;
+  if (isUpToDate) return null;
   const showWarning = syncMeta ? !isUpToDate : false;
   return (
     <div>
@@ -337,10 +338,7 @@ function SyncActionButton({
 }
 
 export function EnrollmentSection({
-  applicationId,
   enrollmentData,
-  showSync,
-  isStaffOrAdmin,
 }: {
   applicationId: string;
   enrollmentData: any;

@@ -1,13 +1,15 @@
-import { Badge } from "@/components/ui/badge";
+import { StaffAssignmentSelect } from "@/app/dashboard/application/[id]/_components/StaffAssignmentSelect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { siteRoutes } from "@/constants/site-routes";
-import { ApplicationTableRow } from "@/constants/types";
+import { ApplicationTableRow, USER_ROLE } from "@/constants/types";
 import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, GripVertical } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+
 export function ApplicationCard({
   app,
   isallowMovingInKanban,
@@ -15,6 +17,10 @@ export function ApplicationCard({
   app: ApplicationTableRow;
   isallowMovingInKanban: boolean;
 }) {
+  const { data: session } = useSession();
+  const role = session?.user.role as USER_ROLE | undefined;
+  const isStaffAdmin = session?.user.staff_admin;
+
   const {
     attributes,
     listeners,
@@ -55,28 +61,71 @@ export function ApplicationCard({
               >
                 {app.studentName}
               </p>
+              {app.studentEmail ? (
+                <p
+                  className="text-[10px] sm:text-xs text-muted-foreground truncate"
+                  title={app.studentEmail}
+                >
+                  {app.studentEmail}
+                </p>
+              ) : null}
+              {app.studentId ? (
+                <p
+                  className="text-[10px] sm:text-xs text-muted-foreground truncate"
+                  title={app.studentId}
+                >
+                  ID: {app.studentId}
+                </p>
+              ) : null}
               <p
                 className="text-[10px] sm:text-xs text-muted-foreground truncate"
                 title={app.course}
               >
                 {app.course}
               </p>
+              {(app.courseCode || app.intake) && (
+                <p
+                  className="text-[10px] sm:text-xs text-muted-foreground truncate"
+                  title={`${app.courseCode || "N/A"} · ${app.intake || "N/A"}`}
+                >
+                  {app.courseCode || "N/A"} · {app.intake || "N/A"}
+                </p>
+              )}
             </div>
-            {/* <div className="">
-              <p>Student Full Name</p>
-              <p>Course Enrolled</p>
-              <p>Campus</p>
-              <p>agent</p>
-              <p>submitted date</p>
-            </div> */}
-            {app.assignedStaffName && (
+
+            {role === USER_ROLE.STAFF ? (
+              <div className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                {app.agentAgencyName || app.agentName || app.agentEmail ? (
+                  <>
+                    <span className="font-medium text-foreground/80">
+                      Agent:
+                    </span>{" "}
+                    {app.agentAgencyName || app.agentName || "N/A"}
+                    {app.agentEmail ? ` · ${app.agentEmail}` : ""}
+                  </>
+                ) : (
+                  <span>Agent: N/A</span>
+                )}
+              </div>
+            ) : null}
+
+            {isStaffAdmin ? (
+              <div onClick={(event) => event.stopPropagation()}>
+                <StaffAssignmentSelect
+                  applicationId={app.id}
+                  assignedStaffId={app.assignedStaffId ?? undefined}
+                  assignedStaffEmail={app.assignedStaffName || undefined}
+                />
+              </div>
+            ) : app.assignedStaffName ? (
               <p
                 className="text-[10px] sm:text-xs text-muted-foreground truncate"
                 title={app.assignedStaffName}
               >
-                👤 {app.assignedStaffName}
+                Staff: {app.assignedStaffName}
               </p>
-            )}
+            ) : null}
+
             <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5">
               {isallowMovingInKanban && (
                 <div
@@ -90,12 +139,12 @@ export function ApplicationCard({
               )}
               <Link
                 href={`${siteRoutes.dashboard.application.root}/${app.id}`}
-                className="flex-1 min-w-0"
+                className="flex-1 w-full"
               >
                 <Button
-                  variant="ghost"
+                  variant="outline"
+                  className="w-full text-xs flex"
                   size="sm"
-                  className="w-full gap-1.5 sm:gap-2 h-7 sm:h-8 text-[10px] sm:text-xs px-2"
                 >
                   <Eye className="h-3 w-3 shrink-0" />
                   <span className="truncate">View</span>

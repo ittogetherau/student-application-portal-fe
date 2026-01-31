@@ -16,21 +16,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { siteRoutes } from "@/constants/site-routes";
 import { APPLICATION_STAGE } from "@/constants/types";
 import { useApplicationGetQuery } from "@/hooks/useApplication.hook";
-import { ArrowLeft, Plus, SquarePen } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarCheck,
+  CheckCircle2,
+  Hash,
+  Mail,
+  MapPin,
+  Plus,
+  SquarePen,
+  User,
+  XCircle,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import ReviewForm from "../create/_forms/review-form";
 import { ApplicationActionsMenu } from "./_components/ApplicationActionsMenu";
 import ApplicationStage from "./_components/ApplicationStage";
 import CreateThreadForm from "./_components/forms/CreateThreadForm";
 import ThreadMessagesPanel from "./_components/panels/thread-messages-panel";
 import { ErrorState, LoadingState, NotFoundState } from "./_components/states";
+import CoeTab from "./_components/tabs/coe-tab";
 import CommunicationTab from "./_components/tabs/communication-tab";
 import DocumentsTab from "./_components/tabs/DocumentsTab";
-import CoeTab from "./_components/tabs/coe-tab";
 import GSTab from "./_components/tabs/gs-tab";
 import Timeline from "./_components/tabs/TimelineTab";
 
@@ -79,6 +91,24 @@ const getAvailableTabs = (stage?: APPLICATION_STAGE | null) => {
   return tabs;
 };
 
+type InfoRowProps = {
+  icon: ReactNode;
+  label: string;
+  value?: string | null;
+};
+
+function InfoRow({ icon, label, value }: InfoRowProps) {
+  return (
+    <div className="flex items-center gap-2 text-xs min-w-0">
+      <div className="flex items-center gap-2 text-muted-foreground w-24 shrink-0">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <span className="font-medium truncate">{value || "N/A"}</span>
+    </div>
+  );
+}
+
 export default function AgentApplicationDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -97,6 +127,10 @@ export default function AgentApplicationDetail() {
   const application = response?.data;
   const isGSAssessment =
     application?.current_stage === APPLICATION_STAGE.GS_ASSESSMENT;
+  const { data: session } = useSession();
+  const ROLE = session?.user.role;
+  const IS_ADMIN_STAFF = session?.user.staff_admin;
+  const isStaffOrAdmin = ROLE === "staff" || !!IS_ADMIN_STAFF;
 
   useEffect(() => {
     if (hasSetInitialTab.current || !application) return;
@@ -109,26 +143,30 @@ export default function AgentApplicationDetail() {
   }, [application, tabParam, setTabParam, isGSAssessment]);
 
   const availableTabs = getAvailableTabs(application?.current_stage);
-  const showGsTab = availableTabs.includes("gs-process");
-  const showCoeTab = availableTabs.includes("coe");
+  const isRejected = application?.current_stage === APPLICATION_STAGE.REJECTED;
+  const availableTabsWithRejected = isRejected
+    ? ([
+        ...new Set([...availableTabs, "gs-process", "coe"]),
+      ] as TabValue[])
+    : availableTabs;
+  const showGsTab = availableTabsWithRejected.includes("gs-process");
+  const showCoeTab = availableTabsWithRejected.includes("coe");
 
   const activeTab =
-    tabParam && availableTabs.includes(tabParam as TabValue)
+    tabParam && availableTabsWithRejected.includes(tabParam as TabValue)
       ? tabParam
       : isGSAssessment && showGsTab
         ? "gs-process"
         : "details";
 
   useEffect(() => {
-    if (tabParam && !availableTabs.includes(tabParam as TabValue)) {
+    if (
+      tabParam &&
+      !availableTabsWithRejected.includes(tabParam as TabValue)
+    ) {
       setTabParam(null);
     }
-  }, [tabParam, setTabParam, availableTabs]);
-
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
-  const IS_ADMIN_STAFF = session?.user.staff_admin;
-  const isStaffOrAdmin = ROLE === "staff" || !!IS_ADMIN_STAFF;
+  }, [tabParam, setTabParam, availableTabsWithRejected]);
 
   const handleBackNavigation = () =>
     router.push(siteRoutes.dashboard.application.root);
@@ -151,19 +189,34 @@ export default function AgentApplicationDetail() {
     campus?: string | number;
   } | null;
 
-  const courseLabel =
-    enrollmentData?.course_name ?? enrollmentData?.course ?? "N/A";
-  const campusLabel =
-    enrollmentData?.campus_name ?? enrollmentData?.campus ?? "N/A";
+  const courseLabel = String(
+    enrollmentData?.course_name ?? enrollmentData?.course ?? "N/A",
+  );
+  const campusLabel = String(
+    enrollmentData?.campus_name ?? enrollmentData?.campus ?? "N/A",
+  );
 
   const agentInfo = application as {
-    agent?: { name?: string | null; email?: string | null };
+    agent?: {
+      agency_name?: string | null;
+      name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
     agent_name?: string | null;
     agent_email?: string | null;
   };
 
-  const agentName = agentInfo.agent?.name ?? agentInfo.agent_name ?? "N/A";
-  const agentEmail = agentInfo.agent?.email ?? agentInfo.agent_email ?? "N/A";
+  const agentName =
+    agentInfo.agent?.agency_name ??
+    agentInfo.agent?.name ??
+    agentInfo.agent_name ??
+    "N/A";
+  const agentEmail =
+    agentInfo.agent?.email ??
+    agentInfo.agent_email ??
+    "N/A";
+  const agentPhone = agentInfo.agent?.phone ?? null;
 
   const submittedAt =
     application.submitted_at ?? application.created_at ?? null;
@@ -180,7 +233,7 @@ export default function AgentApplicationDetail() {
       <ThreadMessagesPanel />
 
       <ContainerLayout>
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-start gap-3">
             <Button
               variant="ghost"
@@ -191,15 +244,70 @@ export default function AgentApplicationDetail() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
 
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-medium truncate">
-                {studentName()}
-              </h1>
+            <section className="grid grid-cols-3 gap-6 items-end">
+              <div className="space-y-2 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-medium truncate">
+                  {studentName()}
+                </h1>
 
-              <p className="text-xs text-muted-foreground truncate">
-                Reference: {application?.tracking_code || "N/A"}
-              </p>
-            </div>
+                <InfoRow
+                  icon={<BookOpen className="h-3.5 w-3.5" />}
+                  label="Ref ID"
+                  value={application?.tracking_code}
+                />
+
+                <InfoRow
+                  icon={<Mail className="h-3.5 w-3.5" />}
+                  label="Email"
+                  value={application?.personal_details?.email}
+                />
+              </div>
+
+              {/* Application */}
+              <div className="space-y-2 min-w-0">
+                <InfoRow
+                  icon={<BookOpen className="h-3.5 w-3.5" />}
+                  label="Course"
+                  value={courseLabel}
+                />
+
+                <InfoRow
+                  icon={<MapPin className="h-3.5 w-3.5" />}
+                  label="Campus"
+                  value={campusLabel}
+                />
+
+                <InfoRow
+                  icon={<CalendarCheck className="h-3.5 w-3.5" />}
+                  label="Submitted"
+                  value={submittedLabel}
+                />
+              </div>
+
+              {/* Agent */}
+              {isStaffOrAdmin ? (
+                <div className="space-y-2 min-w-0">
+                  <InfoRow
+                    icon={<User className="h-3.5 w-3.5" />}
+                    label="Agent"
+                    value={agentName}
+                  />
+
+                  <InfoRow
+                    icon={<Mail className="h-3.5 w-3.5" />}
+                    label="Email"
+                    value={agentEmail}
+                  />
+                  {agentPhone ? (
+                    <InfoRow
+                      icon={<Hash className="h-3.5 w-3.5" />}
+                      label="Phone"
+                      value={agentPhone}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
@@ -265,40 +373,35 @@ export default function AgentApplicationDetail() {
               id={id}
             />
 
-            <Card>
-              <CardHeader className="py-2 px-3">
-                <CardTitle className="text-sm sr-only">Snapshot</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 space-y-2 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">Course</span>
-                  <span className="text-foreground font-medium text-right">
-                    {courseLabel}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">Campus</span>
-                  <span className="text-foreground font-medium text-right">
-                    {campusLabel}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">Submitted</span>
-                  <span className="text-foreground font-medium text-right">
-                    {submittedLabel}
-                  </span>
-                </div>
-                <div className="pt-1 border-t">
-                  <div className="text-muted-foreground">Agent</div>
-                  <div className="text-foreground font-medium truncate">
-                    {agentName}
+            {application.current_stage === APPLICATION_STAGE.REJECTED && (
+              <div className="flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3">
+                <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium text-destructive">
+                    Application rejected
                   </div>
-                  <div className="text-muted-foreground truncate">
-                    {agentEmail}
+                  <div className="text-xs text-muted-foreground">
+                    This application was rejected by staff.
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
+
+            {application.current_stage === APPLICATION_STAGE.ACCEPTED && (
+              <div className="flex items-start gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-4 py-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium text-emerald-700">
+                    Application accepted
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    This application has been accepted by staff.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         }
       >
@@ -346,12 +449,7 @@ export default function AgentApplicationDetail() {
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-3">
-            <DocumentsTab
-              applicationId={application.id}
-              showSync={true}
-              isStaffOrAdmin={isStaffOrAdmin}
-              syncMeta={application.sync_metadata?.documents}
-            />
+            <DocumentsTab applicationId={application.id} />
           </TabsContent>
 
           <TabsContent value="timeline" className="space-y-3">

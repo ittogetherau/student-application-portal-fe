@@ -48,6 +48,11 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "react-hot-toast";
 import useStaffMembersQuery from "@/app/dashboard/application/[id]/_hooks/useStaffMembers.hook";
+import {
+  useBulkArchiveApplicationsMutation,
+  useBulkDeleteApplicationsMutation,
+  useBulkUnarchiveApplicationsMutation,
+} from "@/hooks/useApplication.hook";
 
 interface ApplicationTableProps {
   data?: ApplicationTableRow[];
@@ -62,6 +67,7 @@ interface ApplicationTableProps {
   onSearch?: (value: string) => void;
   onReset?: () => void;
   isSearchingOrFiltering?: boolean;
+  filtersPopover?: React.ReactNode;
 }
 
 const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
@@ -73,7 +79,7 @@ const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
     toast.success(
       `Assigned ${selectedCount} application${
         selectedCount === 1 ? "" : "s"
-      } to ${label}.`
+      } to ${label}.`,
     );
     setOpen(false);
   };
@@ -82,7 +88,7 @@ const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
     toast.success(
       `Unassigned ${selectedCount} application${
         selectedCount === 1 ? "" : "s"
-      }.`
+      }.`,
     );
     setOpen(false);
   };
@@ -147,8 +153,12 @@ export const ApplicationTable = ({
   onSearch,
   onReset,
   isSearchingOrFiltering,
+  filtersPopover,
 }: ApplicationTableProps) => {
   const [view, setView] = React.useState<"table" | "kanban">("table");
+  const bulkArchiveMutation = useBulkArchiveApplicationsMutation();
+  const bulkDeleteMutation = useBulkDeleteApplicationsMutation();
+  const bulkUnarchiveMutation = useBulkUnarchiveApplicationsMutation();
 
   const { data: session } = useSession();
   const ROLE = React.useMemo(() => {
@@ -167,11 +177,11 @@ export const ApplicationTable = ({
         options: applicationStageFilterOptions,
       },
     ],
-    []
+    [],
   );
   const columns = React.useMemo(
     () => getApplicationColumns(ROLE, isStaffAdmin, isArchived),
-    [ROLE, isStaffAdmin, isArchived]
+    [ROLE, isStaffAdmin, isArchived],
   );
 
   if (isLoading) {
@@ -188,7 +198,8 @@ export const ApplicationTable = ({
       view={view}
       isallowMovingInKanban={isallowMovingInKanban}
       data={data}
-      facetedFilters={filters}
+      facetedFilters={filtersPopover ? undefined : filters}
+      filtersPopover={filtersPopover}
       manualFiltering={true}
       columnFilters={externalFilters}
       onFilterChange={onFilterChange}
@@ -209,6 +220,9 @@ export const ApplicationTable = ({
       }}
       toolbarActions={(table) => {
         const selectedCount = table.getSelectedRowModel().rows.length;
+        const selectedApplicationIds = table
+          .getSelectedRowModel()
+          .rows.map((row) => row.original.id);
 
         return (
           <div className="flex items-center gap-3">
@@ -218,39 +232,97 @@ export const ApplicationTable = ({
                   {selectedCount} selected
                 </span>
                 {isArchived ? (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 />
-                        Delete all
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Delete selected applications?</DialogTitle>
-                        <DialogDescription>
-                          This will permanently delete {selectedCount} archived
-                          application
-                          {selectedCount === 1 ? "" : "s"}.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <DialogClose asChild>
-                          <Button variant="ghost">Cancel</Button>
-                        </DialogClose>
-                        <DialogClose asChild>
-                          <Button
-                            variant="destructive"
-                            onClick={() => {
-                              toast.success("Deleted selected applications.");
-                            }}
-                          >
-                            Delete all
-                          </Button>
-                        </DialogClose>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={bulkUnarchiveMutation.isPending}
+                      onClick={() => {
+                        if (!selectedApplicationIds.length) {
+                          toast.error("No applications selected.");
+                          return;
+                        }
+                        bulkUnarchiveMutation
+                          .mutateAsync(selectedApplicationIds)
+                          .then((response) => {
+                            if (response.success) {
+                              toast.success("Restored selected applications.");
+                              table.resetRowSelection();
+                            } else {
+                              toast.error(
+                                response.message ||
+                                  "Failed to restore applications."
+                              );
+                            }
+                          })
+                          .catch(() => {
+                            toast.error("Failed to restore applications.");
+                          });
+                      }}
+                    >
+                      <ArchiveRestore />
+                      Restore all
+                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 />
+                          Delete all
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            Delete selected applications?
+                          </DialogTitle>
+                          <DialogDescription>
+                            This will permanently delete {selectedCount} archived
+                            application
+                            {selectedCount === 1 ? "" : "s"}.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button variant="ghost">Cancel</Button>
+                          </DialogClose>
+                          <DialogClose asChild>
+                            <Button
+                              variant="destructive"
+                              disabled={bulkDeleteMutation.isPending}
+                              onClick={() => {
+                                if (!selectedApplicationIds.length) {
+                                  toast.error("No applications selected.");
+                                  return;
+                                }
+                                bulkDeleteMutation
+                                  .mutateAsync(selectedApplicationIds)
+                                  .then((response) => {
+                                    if (response.success) {
+                                      toast.success(
+                                        "Deleted selected applications."
+                                      );
+                                      table.resetRowSelection();
+                                    } else {
+                                      toast.error(
+                                        response.message ||
+                                          "Failed to delete applications."
+                                      );
+                                    }
+                                  })
+                                  .catch(() => {
+                                    toast.error(
+                                      "Failed to delete applications."
+                                    );
+                                  });
+                              }}
+                            >
+                              Delete all
+                            </Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </>
                 ) : (
                   <>
                     {ROLE === USER_ROLE.STAFF && isStaffAdmin ? (
@@ -279,10 +351,32 @@ export const ApplicationTable = ({
                           </DialogClose>
                           <DialogClose asChild>
                             <Button
+                              disabled={bulkArchiveMutation.isPending}
                               onClick={() => {
-                                toast.success(
-                                  "Archived selected applications."
-                                );
+                                if (!selectedApplicationIds.length) {
+                                  toast.error("No applications selected.");
+                                  return;
+                                }
+                                bulkArchiveMutation
+                                  .mutateAsync(selectedApplicationIds)
+                                  .then((response) => {
+                                    if (response.success) {
+                                      toast.success(
+                                        "Archived selected applications.",
+                                      );
+                                      table.resetRowSelection();
+                                    } else {
+                                      toast.error(
+                                        response.message ||
+                                          "Failed to archive applications.",
+                                      );
+                                    }
+                                  })
+                                  .catch(() => {
+                                    toast.error(
+                                      "Failed to archive applications.",
+                                    );
+                                  });
                               }}
                             >
                               Archive all

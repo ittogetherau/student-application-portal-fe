@@ -6,7 +6,11 @@ import staffMembersService, {
 import type { ServiceResponse } from "@/types/service";
 import { useQuery } from "@tanstack/react-query";
 
-export const useStaffMembersQuery = () => {
+type UseStaffMembersOptions = {
+  enabled?: boolean;
+};
+
+export const useStaffMembersQuery = (options: UseStaffMembersOptions = {}) => {
   return useQuery<ServiceResponse<StaffMember[]>, Error>({
     queryKey: ["staff-members"],
     queryFn: async () => {
@@ -16,6 +20,7 @@ export const useStaffMembersQuery = () => {
       }
       return response;
     },
+    enabled: options.enabled ?? true,
     staleTime: 1000 * 60 * 5,
   });
 };

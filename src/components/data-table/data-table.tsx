@@ -73,6 +73,7 @@ interface DataTableProps<TData, TValue> {
   searchableColumns?: Array<keyof TData | string>;
   searchPlaceholder?: string;
   toolbarActions?: React.ReactNode | ((table: TableType<TData>) => React.ReactNode);
+  filtersPopover?: React.ReactNode;
   enableLocalPagination?: boolean;
 
   isallowMovingInKanban?: boolean;
@@ -95,6 +96,7 @@ export function DataTable<TData, TValue>({
   searchableColumns,
   searchPlaceholder,
   toolbarActions,
+  filtersPopover,
 
   enableLocalPagination = true,
   isallowMovingInKanban = false,
@@ -189,6 +191,7 @@ export function DataTable<TData, TValue>({
         table={table}
         columnVisibility={columnVisibility}
         facetedFilters={facetedFilters}
+        filtersPopover={filtersPopover}
         searchValue={hasSearch ? searchValue : undefined}
         onSearch={hasSearch ? onSearch : undefined}
         placeholder={searchPlaceholder}

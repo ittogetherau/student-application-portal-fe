@@ -8,20 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
-import { useGalaxySyncDocumentsMutation } from "@/hooks/galaxy-sync.hook";
 import {
   Download,
   Eye,
   FileText,
   Loader2,
-  OctagonAlert,
-  RefreshCw,
 } from "lucide-react";
 
 //
@@ -49,28 +41,12 @@ const formatBytes = (bytes: number, decimals: number = 2): string => {
 
 interface DocumentsTabProps {
   applicationId: string;
-  showSync: boolean;
-  isStaffOrAdmin: boolean;
-  syncMeta?: {
-    last_synced_at?: string | null;
-    last_error?: string | null;
-    attempt_count?: number;
-    uptodate?: boolean;
-  } | null;
 }
 
-const DocumentsTab = ({
-  applicationId,
-  showSync,
-  isStaffOrAdmin,
-  syncMeta,
-}: DocumentsTabProps) => {
+const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
   const { data: documentsResponse, isLoading } =
     useApplicationDocumentsQuery(applicationId);
   const documents = (documentsResponse?.data || []) as Document[];
-  const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
-  const isUpToDate = syncMeta?.uptodate === true;
-  const showWarning = syncMeta ? !isUpToDate : false;
 
   // const { data: signaturesResponse } = useApplicationRequestSignaturesQuery(applicationId);
   // const offerLetter = signaturesResponse?.items?.[0];
@@ -85,42 +61,6 @@ const DocumentsTab = ({
               All documents submitted with this application
             </CardDescription>
           </div>
-          {showSync && isStaffOrAdmin ? (
-            <div>
-              {showWarning ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={"ghost"}
-                      size={"icon-sm"}
-                      className="text-destructive"
-                    >
-                      <OctagonAlert />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    This Section is not synced to galaxy yet.
-                  </TooltipContent>
-                </Tooltip>
-              ) : null}
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1 px-2 text-xs"
-                onClick={() => syncDocuments.mutate()}
-                disabled={syncDocuments.isPending || isUpToDate}
-              >
-                {syncDocuments.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5" />
-                )}
-                Sync
-              </Button>
-            </div>
-          ) : null}
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">

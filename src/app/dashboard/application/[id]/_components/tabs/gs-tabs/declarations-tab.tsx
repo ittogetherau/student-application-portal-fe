@@ -1,6 +1,8 @@
 "use client";
 
+import { GSDeclarationPdfDownloadButton } from "@/app/dashboard/application/[id]/_components/forms/gs-declaration-pdf-download-button";
 import { GSScreeningForm } from "@/app/dashboard/application/gs-form/_components/gs-screening-form";
+import type { GSScreeningFormValues } from "@/app/dashboard/application/gs-form/_utils/gs-screening.validation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +102,15 @@ export default function GSDeclarationsTab({
 
   const studentDeclarationData = studentDeclaration?.data;
   const agentDeclarationData = agentDeclaration?.data;
+  const hasDeclarationData =
+    Boolean(studentDeclarationData?.data) ||
+    Boolean(agentDeclarationData?.data);
+  const declarationPdfData = hasDeclarationData
+    ? ({
+        ...(studentDeclarationData?.data ?? {}),
+        ...(agentDeclarationData?.data ?? {}),
+      } as GSScreeningFormValues)
+    : null;
 
   // Derive status from declaration responses
   const studentStatus = studentDeclarationData?.status;
@@ -351,6 +362,16 @@ export default function GSDeclarationsTab({
             </span>
           </div>
         )}
+
+        <div className="flex justify-end">
+          <GSDeclarationPdfDownloadButton
+            data={declarationPdfData}
+            applicationId={applicationId}
+            variant="secondary"
+            className="gap-2"
+            buttonText="Declaration PDF"
+          />
+        </div>
       </div>
     );
   }

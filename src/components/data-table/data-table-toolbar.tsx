@@ -22,6 +22,7 @@ interface DataTableToolbarProps<TData> {
   placeholder?: string;
   searchValue?: string;
   onSearch?: (value: string) => void;
+  filtersPopover?: React.ReactNode;
   actions?: React.ReactNode;
   view?: "table" | "kanban";
   onReset?: () => void;
@@ -35,6 +36,7 @@ export function DataTableToolbar<TData>({
   placeholder,
   searchValue,
   onSearch,
+  filtersPopover,
   actions,
   view,
   onReset,
@@ -55,63 +57,67 @@ export function DataTableToolbar<TData>({
           />
         ) : null}
 
-        {facetedFilters?.map((filter) => {
-          const column = table.getColumn(filter.columnId);
-          if (!column) return null;
+        {filtersPopover ? (
+          filtersPopover
+        ) : (
+          facetedFilters?.map((filter) => {
+            const column = table.getColumn(filter.columnId);
+            if (!column) return null;
 
-          const selectedValues = new Set(
-            (column.getFilterValue() as string[]) ?? []
-          );
+            const selectedValues = new Set(
+              (column.getFilterValue() as string[]) ?? []
+            );
 
-          return (
-            <DropdownMenu key={filter.columnId}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-xs font-medium"
-                >
-                  <Filter className="h-3.5 w-3.5" />
-                  {filter.title}
-                  {selectedValues.size > 0 ? (
-                    <span className="ml-1 rounded-sm bg-primary/10 px-1 text-[10px] font-semibold text-primary">
-                      {selectedValues.size}
-                    </span>
-                  ) : null}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-52">
-                {filter.options.map((option) => (
-                  <DropdownMenuCheckboxItem
-                    key={option.value}
-                    className="capitalize"
-                    checked={selectedValues.has(option.value)}
-                    onCheckedChange={(checked) => {
-                      const next = new Set(selectedValues);
-                      if (checked) {
-                        next.add(option.value);
-                      } else {
-                        next.delete(option.value);
-                      }
-                      column.setFilterValue(
-                        Array.from(next.values()).length
-                          ? Array.from(next)
-                          : undefined
-                      );
-                    }}
+            return (
+              <DropdownMenu key={filter.columnId}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs font-medium"
                   >
-                    <div className="flex items-center gap-2">
-                      {option.icon ? (
-                        <option.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      ) : null}
-                      {option.label}
-                    </div>
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        })}
+                    <Filter className="h-3.5 w-3.5" />
+                    {filter.title}
+                    {selectedValues.size > 0 ? (
+                      <span className="ml-1 rounded-sm bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+                        {selectedValues.size}
+                      </span>
+                    ) : null}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52">
+                  {filter.options.map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option.value}
+                      className="capitalize"
+                      checked={selectedValues.has(option.value)}
+                      onCheckedChange={(checked) => {
+                        const next = new Set(selectedValues);
+                        if (checked) {
+                          next.add(option.value);
+                        } else {
+                          next.delete(option.value);
+                        }
+                        column.setFilterValue(
+                          Array.from(next.values()).length
+                            ? Array.from(next)
+                            : undefined
+                        );
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {option.icon ? (
+                          <option.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        ) : null}
+                        {option.label}
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })
+        )}
 
         {isSearchingOrFiltering && onReset && (
           <Button

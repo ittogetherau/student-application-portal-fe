@@ -3,10 +3,8 @@
 import {
   ArrowRight,
   BadgeCheck,
-  CheckCircle2,
   CircleQuestionMark,
   ClipboardCheck,
-  Clock,
   Eye,
   ListTodo,
   Loader2,
@@ -67,6 +65,15 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
 
   const application = response?.data;
   const isStaff = current_role === USER_ROLE.STAFF;
+  const currentStage = application?.current_stage;
+  const [activeStage, setActiveStage] =
+    React.useState<APPLICATION_STAGE | null>(currentStage ?? null);
+
+  React.useEffect(() => {
+    if (currentStage) {
+      setActiveStage(currentStage);
+    }
+  }, [currentStage]);
 
   // Transform GS assessment data from dedicated GS endpoint (same source as gs-tab.tsx)
   const gsAssessmentData = useMemo(
@@ -165,96 +172,26 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   if (!application) return null;
 
   const allStages = Object.values(APPLICATION_STAGE) as APPLICATION_STAGE[];
-  const stages: APPLICATION_STAGE[] = allStages.filter(
-    (s) => s !== APPLICATION_STAGE.ACCEPTED && s !== APPLICATION_STAGE.REJECTED,
+  const stages = allStages.filter(
+    (stage) =>
+      stage !== APPLICATION_STAGE.ACCEPTED &&
+      stage !== APPLICATION_STAGE.REJECTED,
   );
-  const currentStage = application.current_stage;
-  const currentIndex = stages.indexOf(currentStage);
-
-  const renderStageAction = (
-    stage: APPLICATION_STAGE,
-    isCurrent: boolean,
-    cardBorderClass: string,
-  ) => {
-    if (!isCurrent) return null;
-
-    if (stage === APPLICATION_STAGE.SUBMITTED) {
-      if (!isStaff) return null;
-      return (
-        <div className={cardBorderClass}>
-          <h3 className="text-base">Ready to Start Review?</h3>
-          <p className="text-sm text-muted-foreground mt-2 mb-4">
-            Please check all the student details documents uploaded and make
-            sure it can proceed before completing review or else please reject
-            application with reason.
-          </p>
-          <Button
-            onClick={() => handleStartReview(APPLICATION_STAGE.IN_REVIEW)}
-            disabled={changeStage.isPending}
-            className="w-full"
-          >
-            {changeStage.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : null}
-            Start Application Review
-            {!changeStage.isPending && <ArrowRight />}
-          </Button>
-        </div>
-      );
-    }
-
-    if (stage === APPLICATION_STAGE.IN_REVIEW) {
-      if (!isStaff) return null;
-      const isGeneratingOffer =
-        enrollGalaxyCourse.isPending || sendOfferLetter.isPending;
-      return (
-        <div className={cardBorderClass}>
-          <h3 className="text-base">Confirm before generating Offer Letter</h3>
-          <p className="text-sm text-muted-foreground mt-2 mb-4">
-            Please review all the requirements and if it satisfies please
-            process further with generate offer letter or else please reject
-            application with reason.
-          </p>
-
-          <Button
-            onClick={handleEnrollGalaxyCourse}
-            disabled={isGeneratingOffer}
-            className="w-full"
-          >
-            {isGeneratingOffer && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            Generate Offer Letter
-            {!isGeneratingOffer && <ArrowRight />}
-          </Button>
-        </div>
-      );
-    }
-
-    if (stage === APPLICATION_STAGE.OFFER_LETTER) {
-      return (
-        <ApplicationSignDisplay
-          applicationId={id}
-          currentRole={current_role}
-          studentEmail={application?.personal_details?.email}
-          cardBorderClass={cardBorderClass}
-          handleStageChange={handleStageChange}
-        />
-      );
-    }
-
-    if (stage === APPLICATION_STAGE.GS_ASSESSMENT) {
-      // Map stepsProgress to UI format
-      const gsStages = stepsProgress.map((progress, index) => {
+  const currentStageForIndex =
+    currentStage && stages.includes(currentStage as (typeof stages)[number])
+      ? (currentStage as (typeof stages)[number])
+      : stages[0];
+  const currentIndex = stages.indexOf(currentStageForIndex);
+  const gsStages = useMemo(
+    () =>
+      stepsProgress.map((progress, index) => {
         const config = GS_STEPS[index];
-        let status: "completed" | "in-progress" | "pending";
-        if (progress.state === "completed") {
-          status = "completed";
-        } else if (progress.state === "active") {
-          status = "in-progress";
-        } else {
-          status = "pending";
-        }
+        const status =
+          progress.state === "completed"
+            ? "completed"
+            : progress.state === "active"
+              ? "in-progress"
+              : "pending";
 
         return {
           id: index + 1,
@@ -263,87 +200,159 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           status,
           ...config,
         };
-      });
+      }),
+    [stepsProgress],
+  );
 
-      // Calculate current active stage index (1-indexed for display)
-      // const activeStageIndex =
-      //   gsAssessmentData?.currentStage !== undefined
-      //     ? gsAssessmentData.currentStage + 1
-      //     : 1;
+  const renderStageAction = ({
+    stage,
+    isActive,
+    isInteractive,
+    cardBorderClass,
+  }: {
+    stage: APPLICATION_STAGE;
+    isActive: boolean;
+    isInteractive: boolean;
+    cardBorderClass: string;
+  }) => {
+    if (!isActive) return null;
 
-      return (
-        <div className={cardBorderClass}>
-          <h3 className="text-base font-semibold">GS Assessment Progress</h3>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">
-            Track the 5-stage GS assessment workflow
-          </p>
+    switch (stage) {
+      case APPLICATION_STAGE.SUBMITTED: {
+        if (!isStaff) return null;
+        return (
+          <div className={cardBorderClass}>
+            <h3 className="text-base">Ready to Start Review?</h3>
+            <p className="text-sm text-muted-foreground mt-2 mb-4">
+              Please check all the student details documents uploaded and make
+              sure it can proceed before completing review or else please reject
+              application with reason.
+            </p>
+            <Button
+              onClick={() => handleStartReview(APPLICATION_STAGE.IN_REVIEW)}
+              disabled={!isInteractive || changeStage.isPending}
+              className="w-full"
+            >
+              {changeStage.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Start Application Review
+              {!changeStage.isPending && <ArrowRight />}
+            </Button>
+          </div>
+        );
+      }
+      case APPLICATION_STAGE.IN_REVIEW: {
+        if (!isStaff) return null;
+        const isGeneratingOffer =
+          enrollGalaxyCourse.isPending || sendOfferLetter.isPending;
+        return (
+          <div className={cardBorderClass}>
+            <h3 className="text-base">
+              Confirm before generating Offer Letter
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2 mb-4">
+              Please review all the requirements and if it satisfies please
+              process further with generate offer letter or else please reject
+              application with reason.
+            </p>
 
-          {/* <div className="flex items-center gap-1 mb-4 relative">{activeStageIndex > 1 && (  <divclassName="absolute left-0 right-0 top-4 h-0.5 flex items-center"style={{ zIndex: 0 }}  ><div  className="w-full relative"  style={{marginLeft: "calc(100% / 10)",marginRight: "calc(100% / 10)",width: "calc(100% - 100% / 5)",  }}>  <divclassName="absolute h-0.5 text-green-500 transition-all duration-500"style={{  width: `${((activeStageIndex - 1) / (gsStages.length - 1)) * 100}%`,  backgroundImage:"repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px)",  backgroundColor: "transparent",}}  /></div>  </div>)} {gsStages.map((stageItem) => (  <divkey={stageItem.id}className="flex items-center flex-1"style={{ zIndex: 1 }}  ><div className="flex flex-col items-center gap-1 w-full">  <divclassName={`  flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold transition-all  ${stageItem.status === "completed" ? "bg-green-500 text-white shadow-sm" : ""}  ${stageItem.status === "in-progress" ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20" : ""}  ${stageItem.status === "pending" ? "bg-green-50 text-muted-foreground border border-dashed" : ""}`}  >{stageItem.status === "completed" ? (  <CheckCircle2 className="h-4 w-4" />) : (  stageItem.id)}  </div> <spanclassName={`  text-[10px] font-medium text-center leading-tight  ${stageItem.status === "completed" ? "text-green-600 dark:text-green-400" : ""}  ${stageItem.status === "in-progress" ? "text-primary font-semibold" : ""}  ${stageItem.status === "pending" ? "text-muted-foreground/60" : ""}`}  >{stageItem.title}  </span></div>  </div>))}      </div> */}
+            <Button
+              onClick={handleEnrollGalaxyCourse}
+              disabled={!isInteractive || isGeneratingOffer}
+              className="w-full"
+            >
+              {isGeneratingOffer && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Generate Offer Letter
+              {!isGeneratingOffer && <ArrowRight />}
+            </Button>
+          </div>
+        );
+      }
+      case APPLICATION_STAGE.OFFER_LETTER: {
+        return (
+          <ApplicationSignDisplay
+            applicationId={id}
+            currentRole={current_role}
+            studentEmail={application?.personal_details?.email}
+            cardBorderClass={cardBorderClass}
+            handleStageChange={handleStageChange}
+            isInteractive={isInteractive}
+          />
+        );
+      }
+      case APPLICATION_STAGE.GS_ASSESSMENT: {
+        return (
+          <div className={cardBorderClass}>
+            <h3 className="text-base font-semibold">GS Assessment Progress</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">
+              Track the 5-stage GS assessment workflow
+            </p>
 
-          <div className="space-y-2 mb-4">
-            {gsStages.map((stageItem) => {
-              const Icon = stageItem.icon;
+            <div className="space-y-2 mb-4">
+              {gsStages.map((stageItem) => {
+                const Icon = stageItem.icon;
 
-              const containerStyles = {
-                completed:
-                  "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-800",
-                "in-progress": "bg-primary/5 border-primary/30",
-                pending: "bg-muted/30 border-muted",
-              }[stageItem.status];
+                const containerStyles = {
+                  completed:
+                    "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-800",
+                  "in-progress": "bg-primary/5 border-primary/30",
+                  pending: "bg-muted/30 border-muted",
+                }[stageItem.status];
 
-              const iconStyles = {
-                completed: "text-green-600 dark:text-green-400",
-                "in-progress": "text-primary",
-                pending: "text-muted-foreground",
-              }[stageItem.status];
+                const iconStyles = {
+                  completed: "text-green-600 dark:text-green-400",
+                  "in-progress": "text-primary",
+                  pending: "text-muted-foreground",
+                }[stageItem.status];
 
-              return (
-                <div
-                  key={stageItem.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${containerStyles}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`h-4 w-4 ${iconStyles}`} />
+                return (
+                  <div
+                    key={stageItem.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${containerStyles}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-4 w-4 ${iconStyles}`} />
 
-                    <div className="leading-tight">
-                      <p className="text-sm font-medium">{stageItem.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {stageItem.subtitle}
-                      </p>
+                      <div className="leading-tight">
+                        <p className="text-sm font-medium">{stageItem.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {stageItem.subtitle}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* {stageItem.status === "completed" && (
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  )}
-                  {stageItem.status === "in-progress" && (
-                    <Clock className="h-4 w-4 text-primary flex-shrink-0" />
-                  )} */}
-                </div>
-              );
-            })}
+            <Button
+              onClick={() => setTabNavigation("gs-process")}
+              variant="outline"
+              className="w-full gap-2 shadow-none"
+              disabled={!isInteractive}
+            >
+              <Eye className="h-4 w-4" />
+              Open GS Process Tab
+            </Button>
           </div>
-
-          <Button
-            onClick={() => setTabNavigation("gs-process")}
-            variant="outline"
-            className="w-full gap-2 shadow-none"
-          >
-            <Eye className="h-4 w-4" />
-            Open GS Process Tab
-          </Button>
-        </div>
-      );
+        );
+      }
+      case APPLICATION_STAGE.COE_ISSUED: {
+        return (
+          <div className={cardBorderClass}>
+            <h3 className="text-base font-semibold">COE Process</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">
+              Confirmation of Enrolment has been issued
+            </p>
+          </div>
+        );
+      }
+      default:
+        return null;
     }
-
-    if (stage === APPLICATION_STAGE.COE_ISSUED) {
-      <div className={cardBorderClass}>
-        <h3 className="text-base font-semibold">COE Proceess</h3>
-        <p className="text-xs text-muted-foreground mt-1 mb-4">in sad</p>
-      </div>;
-    }
-
-    return null;
   };
 
   return (
@@ -353,6 +362,8 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
 
         const Icon = IconMap[el] ?? User;
         const isCurrent = i === currentIndex;
+        const isActive = activeStage === el;
+        const isInteractive = isCurrent && isActive;
         const stageLabel =
           getRoleStageLabel(el, current_role) ??
           STAGE_PILL_CONFIG[el]?.label ??
@@ -364,29 +375,41 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         const cardBorderClass = `
           p-3 border-x-2 last:border-b-2  flex flex-col  gap-0
           ${isCurrent ? "bg-primary/5 border-primary" : ""}
-          border-b-2
+          border-b-2 last:rounded-bg-lg
         `;
 
         return (
           <React.Fragment key={el}>
-            <div
-              className={`p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg  flex items-center justify-between gap-2.5 ${
+            <button
+              type="button"
+              onClick={() =>
+                setActiveStage((prev) =>
+                  prev === el ? (currentStage ?? null) : el,
+                )
+              }
+              aria-expanded={isActive}
+              className={`w-full text-left p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg flex items-center justify-between gap-2.5 ${
                 isCurrent ? "bg-primary/5 border-primary" : "last:border-b"
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-primary/10 outline-2 outline-primary/30 text-primary rounded-sm dark:text-white">
-                  <Icon size={17} className="" />
-                </div>
+              <span className="flex items-center gap-2.5">
+                <span className="p-1.5 bg-primary/10 outline-2 outline-primary/30 text-primary rounded-sm dark:text-white">
+                  <Icon size={17} />
+                </span>
                 {stageLabel}
-              </div>
+              </span>
 
               {i < currentIndex && (
                 <BadgeCheck fill="#2a52be" className="text-white" />
               )}
-            </div>
+            </button>
 
-            {renderStageAction(el, isCurrent, cardBorderClass)}
+            {renderStageAction({
+              stage: el,
+              isActive,
+              isInteractive,
+              cardBorderClass,
+            })}
           </React.Fragment>
         );
       })}

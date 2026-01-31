@@ -5,13 +5,30 @@ import ApplicationStepHeader from "@/app/dashboard/application/create/_component
 import { Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { USER_ROLE } from "@/constants/types";
+import {
+  useGalaxySyncDeclarationMutation,
+  useGalaxySyncDisabilityMutation,
+  useGalaxySyncDocumentsMutation,
+  useGalaxySyncEmergencyContactMutation,
+  useGalaxySyncEmploymentMutation,
+  useGalaxySyncLanguageMutation,
+  useGalaxySyncOshcMutation,
+  useGalaxySyncPersonalDetailsMutation,
+  useGalaxySyncQualificationsMutation,
+  useGalaxySyncSchoolingMutation,
+  useGalaxySyncUsiMutation,
+} from "@/hooks/galaxy-sync.hook";
 import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
 } from "@/hooks/useApplication.hook";
-import { useGalaxySyncApplicationMutation } from "@/hooks/galaxy-sync.hook";
-import { FileText, Loader2, RefreshCw } from "lucide-react";
+import { FileText, Loader2, OctagonAlert, RefreshCw } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 import { toast } from "react-hot-toast";
@@ -48,7 +65,19 @@ const ReviewForm = ({
     isError,
   } = useApplicationGetQuery(applicationId);
   const submitApplication = useApplicationSubmitMutation(applicationId);
-  const syncApplication = useGalaxySyncApplicationMutation(applicationId);
+  const syncPersonalDetails =
+    useGalaxySyncPersonalDetailsMutation(applicationId);
+  const syncEmergencyContacts =
+    useGalaxySyncEmergencyContactMutation(applicationId);
+  const syncOshc = useGalaxySyncOshcMutation(applicationId);
+  const syncLanguage = useGalaxySyncLanguageMutation(applicationId);
+  const syncDisability = useGalaxySyncDisabilityMutation(applicationId);
+  const syncSchooling = useGalaxySyncSchoolingMutation(applicationId);
+  const syncQualifications = useGalaxySyncQualificationsMutation(applicationId);
+  const syncEmployment = useGalaxySyncEmploymentMutation(applicationId);
+  const syncUsi = useGalaxySyncUsiMutation(applicationId);
+  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
+  const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
 
   const application = response?.data;
   const isStaffOrAdmin =
@@ -57,6 +86,9 @@ const ReviewForm = ({
   const isUpToDate = syncMetadata
     ? Object.values(syncMetadata).every((item) => item?.uptodate === true)
     : false;
+  const documentsSyncMeta = syncMetadata?.documents;
+  const documentsUpToDate = documentsSyncMeta?.uptodate === true;
+  const showDocumentsWarning = documentsSyncMeta ? !documentsUpToDate : false;
 
   const stageBadge = useMemo(() => {
     const stage = application?.current_stage;
@@ -151,19 +183,120 @@ const ReviewForm = ({
   }, [sections]);
 
   const handleSync = async () => {
-    try {
-      toast.loading("Syncing application...", { id: "sync-application" });
-      await syncApplication.mutateAsync(false);
-      toast.success("Application synced to Galaxy", {
-        id: "sync-application",
-      });
-    } catch (error) {
+    const tasks = [
+      {
+        label: "Personal details",
+        enabled: !!application.personal_details,
+        upToDate: syncMetadata?.personal_details?.uptodate === true,
+        run: () => syncPersonalDetails.mutateAsync(),
+      },
+      {
+        label: "Emergency contacts",
+        enabled: emergencyContacts.length > 0,
+        upToDate: syncMetadata?.emergency_contacts?.uptodate === true,
+        run: () => syncEmergencyContacts.mutateAsync(),
+      },
+      {
+        label: "Health cover",
+        enabled: !!application.health_cover_policy,
+        upToDate: syncMetadata?.health_cover_policy?.uptodate === true,
+        run: () => syncOshc.mutateAsync(),
+      },
+      {
+        label: "Language & cultural",
+        enabled: !!application.language_cultural_data,
+        upToDate: syncMetadata?.language_cultural_data?.uptodate === true,
+        run: () => syncLanguage.mutateAsync(),
+      },
+      {
+        label: "Disability support",
+        enabled: !!application.disability_support,
+        upToDate: syncMetadata?.disability_support?.uptodate === true,
+        run: () => syncDisability.mutateAsync(),
+      },
+      {
+        label: "Schooling history",
+        enabled: !!application.schooling_history,
+        upToDate: syncMetadata?.schooling_history?.uptodate === true,
+        run: () => syncSchooling.mutateAsync(),
+      },
+      {
+        label: "Qualifications",
+        enabled: qualificationsArray.length > 0,
+        upToDate: syncMetadata?.qualifications?.uptodate === true,
+        run: () => syncQualifications.mutateAsync(),
+      },
+      {
+        label: "Employment",
+        enabled: hasEmploymentHistory,
+        upToDate: syncMetadata?.employment_history?.uptodate === true,
+        run: () => syncEmployment.mutateAsync(),
+      },
+      {
+        label: "USI",
+        enabled: !!application.usi,
+        upToDate: syncMetadata?.usi?.uptodate === true,
+        run: () => syncUsi.mutateAsync(),
+      },
+      {
+        label: "Documents",
+        enabled: true,
+        upToDate: syncMetadata?.documents?.uptodate === true,
+        run: () => syncDocuments.mutateAsync(),
+      },
+      {
+        label: "Survey/Declaration",
+        enabled: (application.survey_responses?.length ?? 0) > 0,
+        upToDate: syncMetadata?.survey_responses?.uptodate === true,
+        run: () => syncDeclaration.mutateAsync(),
+      },
+    ];
+
+    const runnable = tasks.filter((task) => task.enabled && !task.upToDate);
+    if (!runnable.length) {
+      toast("Everything is already synced.", { id: "sync-application" });
+      return;
+    }
+
+    toast.loading("Syncing sections to Galaxy...", {
+      id: "sync-application",
+    });
+
+    const results = await Promise.allSettled(
+      runnable.map(async (task) => {
+        await task.run();
+        return task.label;
+      }),
+    );
+
+    const failures = results.filter((result) => result.status === "rejected");
+    if (failures.length) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to sync application",
+        `Failed to sync ${failures.length} section${
+          failures.length === 1 ? "" : "s"
+        }.`,
         { id: "sync-application" },
       );
+      return;
     }
+
+    toast.success("All sections synced to Galaxy.", {
+      id: "sync-application",
+    });
   };
+
+  const isSyncing =
+    syncPersonalDetails.isPending ||
+    syncEmergencyContacts.isPending ||
+    syncOshc.isPending ||
+    syncLanguage.isPending ||
+    syncDisability.isPending ||
+    syncSchooling.isPending ||
+    syncQualifications.isPending ||
+    syncEmployment.isPending ||
+    syncDocuments.isPending ||
+    syncUsi.isPending ||
+    syncDeclaration.isPending;
 
   return (
     <div className="space-y-2">
@@ -184,7 +317,7 @@ const ReviewForm = ({
       ) : null}
 
       {/* TODO: Add Sync */}
-      {showSync && (
+      {showSync && !isUpToDate ? (
         <div className="flex items-center justify-end gap-2">
           <Button
             type="button"
@@ -192,9 +325,9 @@ const ReviewForm = ({
             size="sm"
             className="h-7 gap-1 px-2 text-xs"
             onClick={handleSync}
-            disabled={syncApplication.isPending || isUpToDate}
+            disabled={isSyncing}
           >
-            {syncApplication.isPending ? (
+            {isSyncing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
@@ -202,7 +335,7 @@ const ReviewForm = ({
             Sync All
           </Button>
         </div>
-      )}
+      ) : null}
 
       <Accordion
         type="multiple"
@@ -311,7 +444,51 @@ const ReviewForm = ({
             </div>
             <span className="text-sm font-semibold">Documents</span>
           </div>
-          <span className="text-xs text-muted-foreground">View documents</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              View documents
+            </span>
+            {showSync && isStaffOrAdmin && !documentsUpToDate ? (
+              <div
+                className="flex items-center gap-1"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                role="presentation"
+              >
+                {showDocumentsWarning ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-destructive"
+                      >
+                        <OctagonAlert />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      This Section is not synced to galaxy yet.
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs"
+                  onClick={() => syncDocuments.mutate()}
+                  disabled={syncDocuments.isPending}
+                >
+                  {syncDocuments.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  Sync
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

@@ -109,6 +109,24 @@ export interface ApplicationResponse {
   };
 }
 
+export interface BulkArchiveResponse {
+  archived_ids?: string[];
+  failed_ids?: string[];
+  [key: string]: unknown;
+}
+
+export interface BulkDeleteResponse {
+  deleted_ids?: string[];
+  failed_ids?: string[];
+  [key: string]: unknown;
+}
+
+export interface BulkUnarchiveResponse {
+  restored_ids?: string[];
+  failed_ids?: string[];
+  [key: string]: unknown;
+}
+
 export interface TimelineResponse {
   id: string;
   entry_type: string;
@@ -558,6 +576,78 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to restore application");
+    }
+  };
+
+  // Bulk archive applications (staff/admin only)
+  bulkArchiveApplications = async (
+    applicationIds: string[],
+  ): Promise<ServiceResponse<BulkArchiveResponse>> => {
+    if (!applicationIds?.length) {
+      throw new Error("Application ids are required");
+    }
+    try {
+      const payload = { application_ids: applicationIds };
+      const data = await this.post<BulkArchiveResponse>(
+        `${this.basePath}/bulk-archive`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Applications archived successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to archive applications");
+    }
+  };
+
+  // Bulk delete applications (staff/admin only)
+  bulkDeleteApplications = async (
+    applicationIds: string[],
+  ): Promise<ServiceResponse<BulkDeleteResponse>> => {
+    if (!applicationIds?.length) {
+      throw new Error("Application ids are required");
+    }
+    try {
+      const payload = { application_ids: applicationIds };
+      const data = await this.post<BulkDeleteResponse>(
+        `${this.basePath}/bulk-delete`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Applications deleted successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to delete applications");
+    }
+  };
+
+  // Bulk unarchive applications (staff/admin only)
+  bulkUnarchiveApplications = async (
+    applicationIds: string[],
+  ): Promise<ServiceResponse<BulkUnarchiveResponse>> => {
+    if (!applicationIds?.length) {
+      throw new Error("Application ids are required");
+    }
+    try {
+      const payload = { application_ids: applicationIds };
+      const data = await this.post<BulkUnarchiveResponse>(
+        `${this.basePath}/bulk-unarchive`,
+        payload,
+        true,
+      );
+      return {
+        success: true,
+        message: "Applications restored successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to restore applications");
     }
   };
 }
