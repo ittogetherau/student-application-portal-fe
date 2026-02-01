@@ -212,9 +212,7 @@ export const getApplicationColumns = (
     {
       accessorKey: "referenceNumber",
       meta: { columnTitle: "Reference" },
-      size: 150,
-      minSize: 120,
-      maxSize: 180,
+      size: 100,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Reference" />
       ),
@@ -232,9 +230,7 @@ export const getApplicationColumns = (
       accessorFn: (row) =>
         `${row.referenceNumber ?? ""} ${row.studentId ?? ""} ${row.studentEmail ?? ""}`,
       meta: { columnTitle: "Student" },
-      size: 220,
-      minSize: 200,
-      maxSize: 260,
+      size: 180,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Student" />
       ),
@@ -267,9 +263,7 @@ export const getApplicationColumns = (
     {
       accessorKey: "agentName",
       meta: { columnTitle: "Agent" },
-      size: 200,
-      minSize: 180,
-      maxSize: 240,
+      size: 160,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Agent" />
       ),
@@ -328,9 +322,7 @@ export const getApplicationColumns = (
     {
       accessorKey: "stage",
       meta: { columnTitle: "Status" },
-      size: 140,
-      minSize: 130,
-      maxSize: 180,
+      size: 180,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Status" />
       ),
@@ -355,9 +347,9 @@ export const getApplicationColumns = (
       id: "assignedTo",
       accessorFn: (row) => row.assignedStaffName ?? "",
       meta: { columnTitle: "Assigned To" },
-      size: 150,
-      minSize: 130,
-      maxSize: 190,
+      size: 240,
+      minSize: 220,
+      maxSize: 250,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Assigned To" />
       ),
@@ -387,14 +379,12 @@ export const getApplicationColumns = (
     {
       accessorKey: "submittedAt",
       meta: { columnTitle: "Submitted" },
-      size: 130,
-      minSize: 110,
-      maxSize: 160,
+      size: 110,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Submitted" />
       ),
       cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {row.original.submittedAt
             ? formatUtcToFriendlyLocal(row.original.submittedAt)
             : "N/A"}
@@ -404,15 +394,13 @@ export const getApplicationColumns = (
     {
       accessorKey: "intake",
       meta: { columnTitle: "Intake" },
-      size: 100,
-      minSize: 80,
-      maxSize: 120,
+      size: 90,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Intake" />
       ),
       cell: ({ row }) => (
         <div
-          className="text-sm text-muted-foreground text-start truncate whitespace-normal"
+          className="text-xs text-muted-foreground text-start truncate whitespace-normal"
           title={(row.getValue("intake") as string) || "N/A"}
         >
           {(row.getValue("intake") as string) || "N/A"}
@@ -422,9 +410,7 @@ export const getApplicationColumns = (
     {
       id: "actions",
       meta: { columnTitle: "Actions" },
-      size: 140,
-      minSize: 120,
-      maxSize: 160,
+      size: 100,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Actions" />
       ),
