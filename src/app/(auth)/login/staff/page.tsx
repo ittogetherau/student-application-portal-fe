@@ -53,7 +53,7 @@ const page = () => {
             <p className="text-sm text-muted-foreground">
               Having trouble logging in?{" "}
               <a
-                href="mailto:it.support@churchill.edu.au"
+                href="mailto:myit@churchill.edu.au"
                 className="text-primary hover:text-primary/90 underline"
               >
                 Contact IT Support
