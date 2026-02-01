@@ -74,14 +74,14 @@ export function StaffAssignmentSelect({
   };
 
   return (
-    <div className="flex items-center gap-1 min-w-0 w-full">
+    <div className="flex items-center gap-1 min-w-0 w-full relative">
       {!(assignedStaffId || assignedStaffEmail) && (
-        <div className="animate-scale-pulse">
+        <div className="absolute top-1/2 -translate-y-1/2 right-6 animate-scale-pulse">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant={"ghost"}
-                size={"icon-sm"}
+                size={"icon-xs"}
                 className="text-destructive"
               >
                 <OctagonAlert />
