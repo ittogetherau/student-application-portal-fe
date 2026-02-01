@@ -142,7 +142,7 @@ export function CreateThreadForm({
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Creating..." : "Create Thread"}
+            {isPending ? "Starting..." : "Start Conversation"}
           </Button>
         </div>
       </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import { ApplicationDetailResponse } from "@/service/application.service";
 import {
   Calendar,
@@ -13,17 +14,6 @@ import {
   User2,
 } from "lucide-react";
 import React from "react";
-
-const formatDate = (dateString?: string | null): string => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 //
 
@@ -59,12 +49,16 @@ const ApplicationSidebar = ({ application }: ApplicationSidebarProps) => {
     {
       icon: Clock,
       label: "Submitted",
-      value: formatDate(application.submitted_at),
+      value: application.submitted_at
+        ? formatUtcToFriendlyLocal(application.submitted_at)
+        : "N/A",
     },
     {
       icon: Clock,
       label: "Last Updated",
-      value: formatDate(application.updated_at),
+      value: application.updated_at
+        ? formatUtcToFriendlyLocal(application.updated_at)
+        : "N/A",
     },
   ];
 

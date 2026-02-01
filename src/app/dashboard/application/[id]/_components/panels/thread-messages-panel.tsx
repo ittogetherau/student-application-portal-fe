@@ -17,6 +17,7 @@ import {
   useUpdateThreadPriorityMutation,
   useUpdateThreadStatusMutation,
 } from "@/hooks/application-threads.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import { ListRestart, SendHorizonal, Verified } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -24,16 +25,6 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { LoadingState } from "../states";
-
-const formatDateTime = (dateString?: string | null) => {
-  if (!dateString) return "";
-  return new Date(dateString).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const formatContactName = (name?: string | null, email?: string | null) => {
   if (name) return name;
@@ -70,12 +61,12 @@ const ThreadMessagesPanel = () => {
   const updateStatus = useUpdateThreadStatusMutation(applicationId, threadId);
   const updatePriority = useUpdateThreadPriorityMutation(
     applicationId,
-    threadId
+    threadId,
   );
 
   const [status, setStatus] = useState<ThreadStatusType>(ThreadStatus.pending);
   const [priority, setPriority] = useState<ThreadPriorityType>(
-    ThreadPriority.medium
+    ThreadPriority.medium,
   );
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -284,7 +275,7 @@ const ThreadMessagesPanel = () => {
               <Button
                 onClick={() =>
                   handleStatusChange(
-                    isCompleted ? ThreadStatus.pending : ThreadStatus.completed
+                    isCompleted ? ThreadStatus.pending : ThreadStatus.completed,
                   )
                 }
                 size="sm"
@@ -336,7 +327,7 @@ const ThreadMessagesPanel = () => {
                         {msg.author_name || msg.author_email.split("@")[0]}
                       </span>
                       <span>-</span>
-                      <span>{formatDateTime(msg.created_at)}</span>
+                      <span>{formatUtcToFriendlyLocal(msg.created_at)}</span>
                     </div>
                     {msg.message && (
                       <p className="text-sm leading-snug break-words">

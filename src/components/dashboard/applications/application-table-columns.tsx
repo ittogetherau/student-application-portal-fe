@@ -25,19 +25,9 @@ import {
   useArchiveApplicationMutation,
   useUnarchiveApplicationMutation,
 } from "@/hooks/useApplication.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import { Archive, ArchiveRestore, Edit, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "N/A";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
 
 const ActionCell = ({
   row,
@@ -405,7 +395,9 @@ export const getApplicationColumns = (
       ),
       cell: ({ row }) => (
         <div className="text-sm text-muted-foreground">
-          {formatDate(row.original.submittedAt)}
+          {row.original.submittedAt
+            ? formatUtcToFriendlyLocal(row.original.submittedAt)
+            : "N/A"}
         </div>
       ),
     },

@@ -6,8 +6,8 @@ const StaffSignInForm = () => {
   return (
     <PortalCredentialsForm
       idPrefix="staff"
-      submitLabel="Sign In as Staff"
-      placeholderEmail="staff@example.com"
+      submitLabel="Sign In"
+      placeholderEmail="Enter your email."
       role="staff"
     />
   );

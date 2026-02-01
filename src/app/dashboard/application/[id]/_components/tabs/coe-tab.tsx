@@ -24,6 +24,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   isAllowedFileType,
 } from "@/lib/document-file-helpers";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import {
   CheckCircle2,
   Clock,
@@ -36,22 +37,6 @@ import { useSession } from "next-auth/react";
 import { useQueryState } from "nuqs";
 import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "react-hot-toast";
-
-//
-
-function formatDate(dateString: string | undefined): string {
-  if (!dateString) return "Not uploaded";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return "Invalid date";
-  }
-}
 
 function formatFileSize(bytes: number | undefined): string {
   if (!bytes || bytes <= 0) return "";
@@ -146,7 +131,8 @@ const DocumentSummary = ({ doc }: DocumentSummaryProps) => (
         {doc.document_type_code ?? "Document"}
       </p>
       <p className="text-xs text-muted-foreground">
-        {formatFileSize(doc.file_size_bytes)} - {formatDate(doc.uploaded_at)}
+        {formatFileSize(doc.file_size_bytes)} -{" "}
+        {formatUtcToFriendlyLocal(doc.uploaded_at)}
       </p>
     </div>
     <div className="flex items-center gap-2">

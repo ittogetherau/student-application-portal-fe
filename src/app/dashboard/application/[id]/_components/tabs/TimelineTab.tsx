@@ -1,26 +1,19 @@
 "use client";
 
 import { useApplicationTimelineQuery } from "@/hooks/useApplication.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import { Clock, Loader2 } from "lucide-react";
-
-const formatDate = (dateString?: string | null): string => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 interface props {
   id: string;
 }
 
 const TimelineTab = ({ id }: props) => {
-  const { data: response, isLoading, isError } =
-    useApplicationTimelineQuery(id);
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useApplicationTimelineQuery(id);
   const data = response?.data || [];
 
   if (isLoading) {
@@ -62,7 +55,7 @@ const TimelineTab = ({ id }: props) => {
           <div className="flex-1 pb-3">
             <p className="text-sm font-medium leading-tight">{el.message}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {formatDate(el.created_at)}
+              {formatUtcToFriendlyLocal(el.created_at)}
             </p>
           </div>
         </div>

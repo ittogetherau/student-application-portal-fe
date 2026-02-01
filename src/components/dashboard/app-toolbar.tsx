@@ -25,7 +25,7 @@ const formatSegment = (segment: string) =>
 
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+    value,
   );
 
 type NotificationType = "info" | "success" | "warning" | "error";
@@ -40,41 +40,41 @@ interface Notification {
 }
 
 const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "success",
-    title: "Application Approved",
-    message:
-      "Application #12345 has been approved and is ready for processing.",
-    timestamp: "2 minutes ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "info",
-    title: "New Application Submitted",
-    message: "A new application has been submitted and requires your review.",
-    timestamp: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "warning",
-    title: "Document Missing",
-    message:
-      "Application #12340 is missing required documents. Please follow up.",
-    timestamp: "3 hours ago",
-    read: true,
-  },
-  {
-    id: "4",
-    type: "error",
-    title: "Payment Failed",
-    message:
-      "Payment processing failed for Application #12338. Action required.",
-    timestamp: "1 day ago",
-    read: true,
-  },
+  // {
+  //   id: "1",
+  //   type: "success",
+  //   title: "Application Approved",
+  //   message:
+  //     "Application #12345 has been approved and is ready for processing.",
+  //   timestamp: "2 minutes ago",
+  //   read: false,
+  // },
+  // {
+  //   id: "2",
+  //   type: "info",
+  //   title: "New Application Submitted",
+  //   message: "A new application has been submitted and requires your review.",
+  //   timestamp: "1 hour ago",
+  //   read: false,
+  // },
+  // {
+  //   id: "3",
+  //   type: "warning",
+  //   title: "Document Missing",
+  //   message:
+  //     "Application #12340 is missing required documents. Please follow up.",
+  //   timestamp: "3 hours ago",
+  //   read: true,
+  // },
+  // {
+  //   id: "4",
+  //   type: "error",
+  //   title: "Payment Failed",
+  //   message:
+  //     "Payment processing failed for Application #12338. Action required.",
+  //   timestamp: "1 day ago",
+  //   read: true,
+  // },
 ];
 
 const getNotificationIcon = (type: NotificationType) => {
@@ -113,7 +113,7 @@ const AppToolbar = () => {
 
   const markAsRead = (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   };
 
@@ -138,9 +138,9 @@ const AppToolbar = () => {
           });
           return acc;
         },
-        []
+        [],
       ),
-    [segments]
+    [segments],
   );
 
   return (
@@ -160,7 +160,7 @@ const AppToolbar = () => {
                       "transition-colors",
                       isActive
                         ? "font-semibold text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {crumb.label}
@@ -238,7 +238,7 @@ const AppToolbar = () => {
                           key={notification.id}
                           className={cn(
                             "px-4 py-3 hover:bg-accent transition-colors cursor-pointer group",
-                            !notification.read && "bg-accent/50"
+                            !notification.read && "bg-accent/50",
                           )}
                           onClick={() => markAsRead(notification.id)}
                         >
@@ -251,7 +251,7 @@ const AppToolbar = () => {
                                 <p
                                   className={cn(
                                     "text-sm font-medium",
-                                    !notification.read && "font-semibold"
+                                    !notification.read && "font-semibold",
                                   )}
                                 >
                                   {notification.title}

@@ -4,6 +4,7 @@ export const MAX_FILES_PER_UPLOAD = 10;
 export const IGNORED_DOCUMENT_TYPES = new Set([
   "COE_PAYMENT_PROOF",
   "COE_DOCUMENTS",
+  "OFFER_LETTER_SIGNED",
 ]);
 
 export const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];

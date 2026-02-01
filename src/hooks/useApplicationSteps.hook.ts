@@ -44,6 +44,9 @@ const useStepMutation = <TInput>(
     (state) => state.markStepCompleted
   );
   const goToNext = useApplicationStepStore((state) => state.goToNext);
+  const clearStepDirty = useApplicationStepStore(
+    (state) => state.clearStepDirty
+  );
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
 
   return useMutation<ServiceResponse<StepUpdateResponse>, Error, TInput>({
@@ -73,6 +76,7 @@ const useStepMutation = <TInput>(
         setStepData(stepId, payload);
       }
 
+      clearStepDirty(stepId);
       markStepCompleted(stepId);
       goToNext();
     },

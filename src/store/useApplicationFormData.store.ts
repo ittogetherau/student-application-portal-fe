@@ -156,6 +156,7 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       },
 
       clearAllData: () => {
+        useApplicationStepStore.getState().clearDirtySteps();
         set({
           stepData: {},
           ocrData: {},

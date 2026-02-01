@@ -21,6 +21,7 @@ const NewForm = ({
 }: {
   applicationId?: string;
 }) => {
+  const isDev = process.env.NODE_ENV === "development";
   const [autoFillKey, setAutoFillKey] = useState(0);
   const searchParams = useSearchParams();
 
@@ -35,6 +36,10 @@ const NewForm = ({
     isStepCompleted,
     resetNavigation,
     completedSteps,
+    isStepDirty,
+    dirtySteps,
+    setUnsavedMessage,
+    clearUnsavedMessage,
   } = useApplicationStepStore();
 
   const storedApplicationId = useApplicationFormDataStore(
@@ -71,6 +76,26 @@ const NewForm = ({
   const hasCompletedSteps = completedSteps.length > 0;
 
   const fetchedEditApplicationRef = useRef<string | null>(null);
+
+  const handleStepNavigation = (targetStep: number, canNavigate: boolean) => {
+    if (!canNavigate) return;
+
+    const hasBlockingDirty = dirtySteps.some((stepId) => stepId < targetStep);
+    if (hasBlockingDirty) {
+      setUnsavedMessage("Please save your changes before moving forward.");
+      return;
+    }
+
+    if (isStepDirty(currentStep) && targetStep < currentStep) {
+      setUnsavedMessage(
+        "You have unsaved changes. Please save before going back.",
+      );
+      return;
+    }
+
+    clearUnsavedMessage();
+    goToStep(targetStep);
+  };
 
   // Initialize form
   useEffect(() => {
@@ -135,6 +160,7 @@ const NewForm = ({
     isHydrated,
     storedApplicationId,
     hasStoredStepData,
+    hasCompletedSteps,
   ]);
 
   // Loading State
@@ -165,14 +191,19 @@ const NewForm = ({
           </div>
 
           {/* Auto-fill button */}
-          <Button
-            onClick={performAutoFill}
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-primary border-primary text-primary-foreground hover:bg-primary/80"
-          >
-            Auto Fill
-          </Button>
+          {isDev && (
+            <Button
+              onClick={() => {
+                if (!isDev) return;
+                performAutoFill();
+              }}
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-primary border-primary text-primary-foreground hover:bg-primary/80"
+            >
+              Auto Fill
+            </Button>
+          )}
         </div>
       </ContainerLayout>
 
@@ -194,7 +225,7 @@ const NewForm = ({
                     key={step.id}
                     type="button"
                     disabled={!canNavigate}
-                    onClick={() => canNavigate && goToStep(step.id)}
+                    onClick={() => handleStepNavigation(step.id, canNavigate)}
                     className={cn(
                       "flex items-center justify-center lg:justify-start gap-2 rounded-lg px-2 py-2.5 text-left transition-colors shrink-0",
                       isCurrent
@@ -247,9 +278,7 @@ const NewForm = ({
           <h2 className="text-2xl font-semibold">
             {FORM_STEPS[currentStep].title}
           </h2>
-          {/* <span className="text-sm text-muted-foreground">
-            Step {currentStep + 1} of {FORM_STEPS.length}
-          </span> */}
+          {/* <span className="text-sm text-muted-foreground"> Step {currentStep + 1} of {FORM_STEPS.length} </span> */}
         </div>
 
         {StepComponent && (
@@ -260,6 +289,7 @@ const NewForm = ({
           />
         )}
       </TwoColumnLayout>
+
     </>
   );
 };

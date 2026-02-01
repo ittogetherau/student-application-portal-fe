@@ -4,8 +4,8 @@ const AgentSignInForm = () => {
   return (
     <PortalCredentialsForm
       idPrefix="agent"
-      submitLabel="Sign In as Agent"
-      placeholderEmail="agent@example.com"
+      submitLabel="Sign In"
+      placeholderEmail="Enter your email."
       role="agent"
     />
   );
