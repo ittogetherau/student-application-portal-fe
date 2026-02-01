@@ -89,6 +89,9 @@ export const gsScreeningSchema = z
     agentAgencyName: z.string().optional(),
     agentCounsellorName: z.string().optional(),
     agentDate: z.string().optional(),
+
+    applicantSignature: z.string().optional(),
+    agentSignature: z.string().optional(),
   })
   .superRefine((values, ctx) => {
     if (values.currentlyInAustralia === "yes") {
@@ -210,7 +213,10 @@ export const createGSScreeningSchema = (viewType: DeclarationViewType) => {
           message: "Agent agency name is required",
         });
       }
-      if (!values.agentCounsellorName || trim(values.agentCounsellorName) === "") {
+      if (
+        !values.agentCounsellorName ||
+        trim(values.agentCounsellorName) === ""
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["agentCounsellorName"],
@@ -222,6 +228,22 @@ export const createGSScreeningSchema = (viewType: DeclarationViewType) => {
           code: z.ZodIssueCode.custom,
           path: ["agentDate"],
           message: "Agent date is required",
+        });
+      }
+
+      if (!values.agentSignature || trim(values.agentSignature) === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["agentSignature"],
+          message: "Agent signature is required",
+        });
+      }
+    } else {
+      if (!values.applicantSignature || trim(values.applicantSignature) === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["applicantSignature"],
+          message: "Applicant signature is required",
         });
       }
     }

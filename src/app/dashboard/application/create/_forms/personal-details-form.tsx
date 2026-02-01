@@ -114,7 +114,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
   // Get passport document type ID
   const passportDocType = documentTypesResponse?.data?.find(
-    (dt) => dt.code === "PASSPORT"
+    (dt) => dt.code === "PASSPORT",
   );
 
   // Handle file upload
@@ -162,11 +162,10 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           try {
             console.log(
               "[PersonalDetails] 🔍 Polling OCR results, attempt:",
-              attempts
+              attempts,
             );
-            const ocrResponse = await documentService.getOcrResults(
-              applicationId
-            );
+            const ocrResponse =
+              await documentService.getOcrResults(applicationId);
 
             console.log("[PersonalDetails] 📦 OCR Response:", {
               success: ocrResponse.success,
@@ -177,11 +176,11 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
             if (ocrResponse.success && ocrResponse.data) {
               console.log(
                 "[PersonalDetails] 📊 OCR Sections:",
-                ocrResponse.data.sections
+                ocrResponse.data.sections,
               );
               console.log(
                 "[PersonalDetails] 📋 Personal Details Section:",
-                ocrResponse.data.sections.personal_details
+                ocrResponse.data.sections.personal_details,
               );
 
               let personalDetailsData =
@@ -220,14 +219,14 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
               console.log(
                 "[PersonalDetails] 🎯 Processed Data:",
-                personalDetailsData
+                personalDetailsData,
               );
 
               // Check if OCR is still pending
               const pendingCount = ocrResponse.data.metadata?.ocr_pending || 0;
               console.log(
                 "[PersonalDetails] ⏳ Pending OCR jobs:",
-                pendingCount
+                pendingCount,
               );
 
               if (personalDetailsData && pendingCount === 0) {
@@ -261,7 +260,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                   } catch (error) {
                     console.error(
                       `[PersonalDetails] ❌ Error setting field "${key}":`,
-                      error
+                      error,
                     );
                   }
                 });
@@ -271,7 +270,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                 setIsUploading(false);
                 if (fieldsPopulated > 0) {
                   toast.success(
-                    `Passport data extracted! ${fieldsPopulated} fields populated.`
+                    `Passport data extracted! ${fieldsPopulated} fields populated.`,
                   );
                 } else {
                   toast.success("Passport uploaded successfully!");
@@ -319,7 +318,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         setIsUploading(false);
       }
     },
-    [applicationId, passportDocType, uploadDocument, methods]
+    [applicationId, passportDocType, uploadDocument, methods],
   );
 
   // Remove uploaded file
@@ -337,14 +336,12 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     personalDetailsMutation.mutate(values);
   };
 
-  const getComponentByType = (
-    components: AddressComponent[],
-    type: string
-  ) => components.find((component) => component.types.includes(type));
+  const getComponentByType = (components: AddressComponent[], type: string) =>
+    components.find((component) => component.types.includes(type));
 
   const getComponentByPriority = (
     components: AddressComponent[],
-    types: string[]
+    types: string[],
   ) => {
     for (const type of types) {
       const match = getComponentByType(components, type);
@@ -368,8 +365,8 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
       try {
         const response = await fetch(
           `/api/google-places/details?placeId=${encodeURIComponent(
-            prediction.place_id
-          )}`
+            prediction.place_id,
+          )}`,
         );
 
         if (!response.ok) {
@@ -390,7 +387,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         const country = getComponentByType(components, "country")?.long_name;
         const streetNumber = getComponentByType(
           components,
-          "street_number"
+          "street_number",
         )?.long_name;
         const streetName = getComponentByType(components, "route")?.long_name;
         const suburb = getComponentByPriority(components, [
@@ -405,7 +402,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         ])?.long_name;
         const postcode = getComponentByType(
           components,
-          "postal_code"
+          "postal_code",
         )?.long_name;
 
         if (country)
@@ -442,19 +439,18 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to fetch address details."
+            : "Failed to fetch address details.",
         );
       }
     },
-    [methods, setAddressQuery]
+    [methods, setAddressQuery],
   );
 
   const {
     formState: { errors },
   } = methods;
-  const searchAddressError = getFieldError(errors, "search_address")?.message as
-    | string
-    | undefined;
+  const searchAddressError = getFieldError(errors, "search_address")
+    ?.message as string | undefined;
 
   return (
     <FormProvider {...methods}>
@@ -836,19 +832,18 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                                 <button
                                   type="button"
                                   className="w-full text-left px-3 py-2 hover:bg-muted"
-                                  onMouseDown={(event) => event.preventDefault()}
-                                  onClick={() =>
-                                    handlePlaceSelect(prediction)
+                                  onMouseDown={(event) =>
+                                    event.preventDefault()
                                   }
+                                  onClick={() => handlePlaceSelect(prediction)}
                                 >
                                   <span className="font-medium">
-                                    {prediction.structured_formatting?.main_text ??
-                                      prediction.description}
+                                    {prediction.structured_formatting
+                                      ?.main_text ?? prediction.description}
                                   </span>
                                   {prediction.structured_formatting
                                     ?.secondary_text ? (
                                     <span className="text-muted-foreground">
-                                      {" "}
                                       {
                                         prediction.structured_formatting
                                           .secondary_text

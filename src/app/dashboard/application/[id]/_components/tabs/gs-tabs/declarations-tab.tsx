@@ -223,7 +223,7 @@ export default function GSDeclarationsTab({
                     Resend Form
                   </Button>
                 )} */}
-                {!isStaff && (
+                {!isStaff && !isStudentVerified && (
                   <Button
                     className="w-full gap-2"
                     onClick={() =>
@@ -287,7 +287,7 @@ export default function GSDeclarationsTab({
 
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                {!isStaff && (
+                {!isAgentVerified && (
                   <Button
                     className="w-full gap-2"
                     onClick={() =>
@@ -295,7 +295,7 @@ export default function GSDeclarationsTab({
                     }
                   >
                     <Edit2 className="h-4 w-4" />
-                    Complete Form
+                    {isStaff ? "Complete as Admin" : "Complete Form"}
                   </Button>
                 )}
 

@@ -104,6 +104,7 @@ class DocumentService extends ApiService {
     document_type_id: string,
     file: File,
     process_ocr?: boolean,
+    upload_mode?: "replace" | "new",
   ): Promise<ServiceResponse<{ process_ocr: boolean }>> {
     try {
       if (!application_id) throw new Error("Application id is required");
@@ -114,7 +115,9 @@ class DocumentService extends ApiService {
       formData.append("application_id", application_id);
       formData.append("document_type_id", document_type_id);
       formData.append("file", file);
-      if (process_ocr) formData.append("process_ocr", "true");
+      if (process_ocr)
+        formData.append("process_ocr", process_ocr ? "true" : "false");
+      if (upload_mode) formData.append("upload_mode", upload_mode);
 
       return resolveServiceCall<{ process_ocr: boolean }>(
         () =>
@@ -197,6 +200,14 @@ class DocumentService extends ApiService {
       () => this.post(`${this.basePath}/${documentId}/verify`, payload, true),
       "Document verified successfully.",
       "Failed to verify document",
+    );
+  }
+
+  deleteDocument(documentId: string): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.delete(`${this.basePath}/${documentId}`, true),
+      "Document deleted successfully.",
+      "Failed to delete document",
     );
   }
 }

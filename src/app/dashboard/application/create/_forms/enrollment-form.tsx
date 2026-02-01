@@ -27,7 +27,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
-  const { goToNext, markStepCompleted } = useApplicationStepStore();
+  const { goToNext, markStepCompleted, setStepDirty, clearStepDirty } =
+    useApplicationStepStore();
   const { setStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
   const storedStepData = useApplicationFormDataStore(
@@ -114,6 +115,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     field: "courseId" | "intakeId" | "campusId",
     value: string,
   ) => {
+    // Only user-driven changes should mark the step as dirty.
+    setStepDirty(0, true);
     setFormData((prev) => {
       if (field === "courseId") {
         return { courseId: value, intakeId: "", campusId: "" };
@@ -195,6 +198,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       });
 
       toast.success("Enrollment saved", { id: "application-flow" });
+      clearStepDirty(0);
       markStepCompleted(0);
       goToNext();
     } catch (err: any) {

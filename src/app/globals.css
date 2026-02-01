@@ -207,3 +207,19 @@
 }
 
 /* * {outline: 1px solid red;} */
+
+@keyframes scale-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.9;
+  }
+}
+
+.animate-scale-pulse {
+  animation: scale-pulse 1s ease-in-out infinite;
+}

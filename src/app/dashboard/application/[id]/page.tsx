@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { siteRoutes } from "@/constants/site-routes";
 import { APPLICATION_STAGE } from "@/constants/types";
 import { useApplicationGetQuery } from "@/hooks/useApplication.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import {
   ArrowLeft,
   BookOpen,
@@ -45,6 +46,7 @@ import CommunicationTab from "./_components/tabs/communication-tab";
 import DocumentsTab from "./_components/tabs/DocumentsTab";
 import GSTab from "./_components/tabs/gs-tab";
 import Timeline from "./_components/tabs/TimelineTab";
+import { StaffAssignmentSelect } from "./_components/StaffAssignmentSelect";
 
 const BASE_TABS = [
   "details",
@@ -145,9 +147,7 @@ export default function AgentApplicationDetail() {
   const availableTabs = getAvailableTabs(application?.current_stage);
   const isRejected = application?.current_stage === APPLICATION_STAGE.REJECTED;
   const availableTabsWithRejected = isRejected
-    ? ([
-        ...new Set([...availableTabs, "gs-process", "coe"]),
-      ] as TabValue[])
+    ? ([...new Set([...availableTabs, "gs-process", "coe"])] as TabValue[])
     : availableTabs;
   const showGsTab = availableTabsWithRejected.includes("gs-process");
   const showCoeTab = availableTabsWithRejected.includes("coe");
@@ -160,10 +160,7 @@ export default function AgentApplicationDetail() {
         : "details";
 
   useEffect(() => {
-    if (
-      tabParam &&
-      !availableTabsWithRejected.includes(tabParam as TabValue)
-    ) {
+    if (tabParam && !availableTabsWithRejected.includes(tabParam as TabValue)) {
       setTabParam(null);
     }
   }, [tabParam, setTabParam, availableTabsWithRejected]);
@@ -212,20 +209,13 @@ export default function AgentApplicationDetail() {
     agentInfo.agent?.name ??
     agentInfo.agent_name ??
     "N/A";
-  const agentEmail =
-    agentInfo.agent?.email ??
-    agentInfo.agent_email ??
-    "N/A";
+  const agentEmail = agentInfo.agent?.email ?? agentInfo.agent_email ?? "N/A";
   const agentPhone = agentInfo.agent?.phone ?? null;
 
   const submittedAt =
     application.submitted_at ?? application.created_at ?? null;
   const submittedLabel = submittedAt
-    ? new Date(submittedAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+    ? formatUtcToFriendlyLocal(submittedAt)
     : "N/A";
 
   return (
@@ -233,7 +223,7 @@ export default function AgentApplicationDetail() {
       <ThreadMessagesPanel />
 
       <ContainerLayout>
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex items-start gap-3">
             <Button
               variant="ghost"
@@ -244,7 +234,7 @@ export default function AgentApplicationDetail() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
 
-            <section className="grid grid-cols-3 gap-6 items-end">
+            <section className="grid lg:  grid-cols-3 gap-6 items-end">
               <div className="space-y-2 min-w-0">
                 <h1 className="text-xl sm:text-2xl font-medium truncate">
                   {studentName()}
@@ -335,20 +325,16 @@ export default function AgentApplicationDetail() {
             )}
 
             {ROLE === "staff" && IS_ADMIN_STAFF && (
-              <GuidedTooltip
-                storageKey="staff:application-detail:actions"
-                text="Assign, accept, reject, or archive this application."
-                enabled={ROLE === "staff" && IS_ADMIN_STAFF}
-              >
-                <ApplicationActionsMenu
-                  applicationId={application.id}
-                  assignedStaffId={application.assigned_staff_id}
-                  assignedStaffEmail={
-                    (application as { assigned_staff_email?: string | null })
-                      .assigned_staff_email
-                  }
-                />
-              </GuidedTooltip>
+              <>
+                <div className="w-56 min-w-0 shrink">
+                  <StaffAssignmentSelect
+                    assignedStaffId={application.assigned_staff_id}
+                    applicationId={application.id}
+                  />
+                </div>
+
+                <ApplicationActionsMenu applicationId={application.id} />
+              </>
             )}
 
             <Button
@@ -357,7 +343,7 @@ export default function AgentApplicationDetail() {
               onClick={() => setIsCreateThreadOpen(true)}
             >
               <Plus className="h-4 w-4" />
-              Create Thread
+              Start Conversation
             </Button>
           </div>
         </section>
@@ -394,10 +380,10 @@ export default function AgentApplicationDetail() {
 
                 <div className="space-y-0.5">
                   <div className="text-sm font-medium text-emerald-700">
-                    Application accepted
+                    Application Completed
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    This application has been accepted by staff.
+                    This application has been completed by staff.
                   </div>
                 </div>
               </div>

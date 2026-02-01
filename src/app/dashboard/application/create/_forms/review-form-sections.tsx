@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import {
   useGalaxySyncDeclarationMutation,
   useGalaxySyncDisabilityMutation,
@@ -64,36 +65,6 @@ const toText = (v: Primitive) => {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "boolean") return v ? "Yes" : "No";
   return String(v);
-};
-
-const formatMaybeDate = (v: Primitive) => {
-  const s = toText(v);
-  if (!s) return "";
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    });
-  }
-  return s;
-};
-
-const formatMaybeDateTime = (v: Primitive) => {
-  const s = toText(v);
-  if (!s) return "";
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  return s;
 };
 
 const formatMoney = (v: Primitive) => {
@@ -269,7 +240,7 @@ function SyncMetadataNote({
         </Badge>
         {syncMeta.last_synced_at ? (
           <span>
-            Last synced: {formatMaybeDateTime(syncMeta.last_synced_at)}
+            Last synced: {formatUtcToFriendlyLocal(syncMeta.last_synced_at)}
           </span>
         ) : null}
       </div>
@@ -296,27 +267,34 @@ function SyncActionButton({
   syncMeta?: SyncMetadataItem | null;
 }) {
   if (!showSync || !isStaffOrAdmin) return null;
-  const isUpToDate = syncMeta?.uptodate === true;
+  if (!syncMeta) return null;
+  const isUpToDate = syncMeta.uptodate === true;
+  const hasError = !!syncMeta.last_error;
+  const hasEverSynced = !!syncMeta.last_synced_at || syncMeta.attempt_count;
+
   if (isUpToDate) return null;
-  const showWarning = syncMeta ? !isUpToDate : false;
+  if (!hasEverSynced && !hasError) return null;
+
   return (
-    <div>
-      {showWarning ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={"ghost"}
-              size={"icon-sm"}
-              className="text-destructive"
-            >
-              <OctagonAlert />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            This Section is not synced to galaxy yet.
-          </TooltipContent>
-        </Tooltip>
-      ) : null}
+    <section className="flex items-center">
+      {!hasError ? null : (
+        <div className="animate-scale-pulse">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={"ghost"}
+                size={"icon-sm"}
+                className="text-destructive"
+              >
+                <OctagonAlert />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs text-wrap">
+              {syncMeta.last_error}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
 
       <Button
         type="button"
@@ -331,9 +309,9 @@ function SyncActionButton({
         ) : (
           <RefreshCw className="h-3.5 w-3.5" />
         )}
-        Sync
+        Sync to Galaxy
       </Button>
-    </div>
+    </section>
   );
 }
 
@@ -393,7 +371,9 @@ export function EnrollmentSection({
             headers={["Course", "Intake Date", "Campus"]}
             rows={enrollments.map((enr: any) => [
               enr.course,
-              formatMaybeDate(enr.intakeDate),
+              enr.intakeDate
+                ? formatUtcToFriendlyLocal(String(enr.intakeDate))
+                : "",
               enr.campus,
             ])}
           />
@@ -469,9 +449,12 @@ export function PersonalDetailsSection({
         />
         <Field
           label="Date of Birth"
-          value={personalDetails.date_of_birth}
+          value={
+            personalDetails.date_of_birth
+              ? formatUtcToFriendlyLocal(personalDetails.date_of_birth)
+              : null
+          }
           icon={CalendarDays}
-          format={formatMaybeDate}
         />
         <Field label="Gender" value={personalDetails.gender} icon={User2} />
         <Field
@@ -506,9 +489,12 @@ export function PersonalDetailsSection({
         />
         <Field
           label="Passport Expiry"
-          value={personalDetails.passport_expiry}
+          value={
+            personalDetails.passport_expiry
+              ? formatUtcToFriendlyLocal(personalDetails.passport_expiry)
+              : null
+          }
           icon={CalendarDays}
-          format={formatMaybeDate}
         />
       </FieldsGrid>
     </Section>
@@ -642,15 +628,21 @@ export function HealthCoverSection({
           />
           <Field
             label="Start Date"
-            value={policy.OSHC_start_date}
+            value={
+              policy.OSHC_start_date
+                ? formatUtcToFriendlyLocal(policy.OSHC_start_date)
+                : null
+            }
             icon={CalendarDays}
-            format={formatMaybeDate}
           />
           <Field
             label="End Date"
-            value={policy.OSHC_end_date}
+            value={
+              policy.OSHC_end_date
+                ? formatUtcToFriendlyLocal(policy.OSHC_end_date)
+                : null
+            }
             icon={CalendarDays}
-            format={formatMaybeDate}
           />
           <Field
             label="Duration"
@@ -978,7 +970,9 @@ export function QualificationsSection({
             qual.qualification_name,
             qual.institution,
             qual.field_of_study,
-            formatMaybeDate(qual.completion_date),
+            qual.completion_date
+              ? formatUtcToFriendlyLocal(String(qual.completion_date))
+              : "",
             qual.grade,
             qual.certificate_number,
           ])}
@@ -1069,8 +1063,12 @@ export function EmploymentSection({
               employment.employer,
               employment.role,
               employment.industry,
-              formatMaybeDate(employment.start_date),
-              formatMaybeDate(employment.end_date),
+              employment.start_date
+                ? formatUtcToFriendlyLocal(String(employment.start_date))
+                : "",
+              employment.end_date
+                ? formatUtcToFriendlyLocal(String(employment.end_date))
+                : "",
               employment.responsibilities,
               toText(employment.is_current),
             ])}
@@ -1130,9 +1128,8 @@ export function UsiSection({
         <Field label="Verified" value={verified} icon={CheckCircle2} />
         <Field
           label="Verified At"
-          value={verifiedAt}
+          value={verifiedAt ? formatUtcToFriendlyLocal(verifiedAt) : null}
           icon={CalendarDays}
-          format={formatMaybeDateTime}
         />
       </FieldsGrid>
     </Section>

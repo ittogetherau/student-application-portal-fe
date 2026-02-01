@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { siteRoutes } from "@/constants/site-routes";
 import { useApplicationThreadsQuery } from "@/hooks/application-threads.hook";
 import { formatParamUrl } from "@/lib/format-param-url";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import { Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -14,14 +15,6 @@ import { useMemo, useState } from "react";
 interface CommunicationTabProps {
   applicationId: string;
 }
-
-const formatDate = (dateString?: string | null) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-};
 
 export default function CommunicationTab({
   applicationId,
@@ -114,7 +107,7 @@ export default function CommunicationTab({
                   <MessageSquare className="h-3 w-3" />
                   <span>{thread.messages?.length || 0}</span>
                   <span>·</span>
-                  <span>{formatDate(thread.created_at)}</span>
+                  <span>{formatUtcToFriendlyLocal(thread.created_at)}</span>
                 </div>
 
                 <Link

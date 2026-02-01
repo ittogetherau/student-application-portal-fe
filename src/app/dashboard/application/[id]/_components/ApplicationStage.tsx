@@ -1,22 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
-  BadgeCheck,
-  CircleQuestionMark,
-  ClipboardCheck,
-  Eye,
-  ListTodo,
-  Loader2,
-  LucideIcon,
-  ScanSearch,
-  Signature,
-  User,
-} from "lucide-react";
-import React, { useMemo } from "react";
-import { toast } from "react-hot-toast";
-
-import {
   STAGE_PILL_CONFIG,
   formatStageLabel,
   getRoleStageLabel,
@@ -35,7 +19,22 @@ import {
   useGSAssessmentProgress,
   useGSAssessmentQuery,
 } from "@/hooks/useGSAssessment.hook";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CircleQuestionMark,
+  ClipboardCheck,
+  Eye,
+  ListTodo,
+  Loader2,
+  LucideIcon,
+  ScanSearch,
+  Signature,
+  User,
+} from "lucide-react";
 import { useQueryState } from "nuqs";
+import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import ApplicationSignDisplay from "./ApplicationSignDisplay";
 
 interface ApplicationStageProps {
@@ -53,29 +52,32 @@ const IconMap: Record<string, LucideIcon> = {
   [APPLICATION_STAGE.COE_ISSUED]: CircleQuestionMark,
 };
 
+const STAGE_TAB_MAP: Partial<Record<APPLICATION_STAGE, string>> = {
+  [APPLICATION_STAGE.GS_ASSESSMENT]: "gs-process",
+  [APPLICATION_STAGE.COE_ISSUED]: "coe",
+};
+
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
-  const [_, setTabNavigation] = useQueryState("application_tab");
-  // Queries & Mutations
+  const [tabParam, setTabNavigation] = useQueryState("application_tab");
   const { data: response, isLoading } = useApplicationGetQuery(id);
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(id);
   const changeStage = useApplicationChangeStageMutation(id);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(id);
   const enrollGalaxyCourse = useApplicationEnrollGalaxyCourseMutation(id);
-  // const syncGalaxyApplication = useApplicationGalaxySyncMutation(id);
 
   const application = response?.data;
   const isStaff = current_role === USER_ROLE.STAFF;
   const currentStage = application?.current_stage;
-  const [activeStage, setActiveStage] =
-    React.useState<APPLICATION_STAGE | null>(currentStage ?? null);
+  const [activeStage, setActiveStage] = useState<APPLICATION_STAGE | null>(
+    currentStage ?? null,
+  );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentStage) {
       setActiveStage(currentStage);
     }
   }, [currentStage]);
 
-  // Transform GS assessment data from dedicated GS endpoint (same source as gs-tab.tsx)
   const gsAssessmentData = useMemo(
     () =>
       transformGSAssessmentData(
@@ -84,10 +86,8 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
     [gsAssessmentResponse?.data],
   );
 
-  // Derive GS step progress from API data
   const { stepsProgress } = useGSAssessmentProgress(gsAssessmentData);
 
-  // Handlers
   const handleStartReview = (toStage: APPLICATION_STAGE) => {
     changeStage.mutate(
       { to_stage: toStage },
@@ -113,25 +113,12 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           data?.message || "Course enrollment in Galaxy completed.",
         );
         handleSendOfferLetter();
-        // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
       },
       onError: (error) => {
         toast.error(error.message || "Failed to enroll course in Galaxy");
       },
     });
   };
-
-  // const handleSyncGalaxyApplication = () => {
-  //   syncGalaxyApplication.mutate(undefined, {
-  //     onSuccess: (data) => {
-  //       toast.success(data?.message || "Galaxy sync completed.");
-  //       // handleStageChange(APPLICATION_STAGE.OFFER_LETTER);
-  //     },
-  //     onError: (error) => {
-  //       toast.error(error.message || "Failed to sync application in Galaxy");
-  //     },
-  //   });
-  // };
 
   const handleSendOfferLetter = () => {
     const studentEmail = application?.personal_details?.email;
@@ -159,6 +146,24 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         },
       },
     );
+  };
+
+  const handleTabNavigation = (stage: APPLICATION_STAGE) => {
+    const tabTarget = STAGE_TAB_MAP[stage];
+    if (!tabTarget) return;
+    void setTabNavigation(tabTarget);
+  };
+
+  const handleStageClick = (stage: APPLICATION_STAGE, isCurrent: boolean) => {
+    const tabTarget = STAGE_TAB_MAP[stage];
+
+    if (isCurrent && tabTarget) {
+      handleTabNavigation(stage);
+      setActiveStage(stage);
+      return;
+    }
+
+    setActiveStage((prev) => (prev === stage ? (currentStage ?? null) : stage));
   };
 
   if (isLoading) {
@@ -329,10 +334,11 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             </div>
 
             <Button
-              onClick={() => setTabNavigation("gs-process")}
+              onClick={() =>
+                handleTabNavigation(APPLICATION_STAGE.GS_ASSESSMENT)
+              }
               variant="outline"
               className="w-full gap-2 shadow-none"
-              disabled={!isInteractive}
             >
               <Eye className="h-4 w-4" />
               Open GS Process Tab
@@ -347,6 +353,15 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             <p className="text-xs text-muted-foreground mt-1 mb-4">
               Confirmation of Enrolment has been issued
             </p>
+
+            <Button
+              onClick={() => handleTabNavigation(APPLICATION_STAGE.COE_ISSUED)}
+              variant="outline"
+              className="w-full gap-2 shadow-none"
+            >
+              <Eye className="h-4 w-4" />
+              Open COE Tab
+            </Button>
           </div>
         );
       }
@@ -368,9 +383,6 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           getRoleStageLabel(el, current_role) ??
           STAGE_PILL_CONFIG[el]?.label ??
           formatStageLabel(el);
-        // const isPrevious = i === currentIndex - 1;
-        // const isNext = i === currentIndex + 1;
-        // const isCompleted = i < currentIndex;
 
         const cardBorderClass = `
           p-3 border-x-2 last:border-b-2  flex flex-col  gap-0
@@ -382,11 +394,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           <React.Fragment key={el}>
             <button
               type="button"
-              onClick={() =>
-                setActiveStage((prev) =>
-                  prev === el ? (currentStage ?? null) : el,
-                )
-              }
+              onClick={() => handleStageClick(el, isCurrent)}
               aria-expanded={isActive}
               className={`w-full text-left p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg flex items-center justify-between gap-2.5 ${
                 isCurrent ? "bg-primary/5 border-primary" : "last:border-b"
@@ -414,9 +422,9 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         );
       })}
 
-      {/* <Button
+      {/* Button
         className="mt-4"
-        onClick={() => handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)}
+        onClick={() => handleStageChange(APPLICATION_STAGE.COE_ISSUED)}
       >
         Change stage
       </Button> */}

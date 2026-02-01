@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { UseFormReturn, FieldValues } from "react-hook-form";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
+import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 
 interface UseFormPersistenceOptions<T extends FieldValues> {
   applicationId: string | null;
@@ -36,6 +37,7 @@ export const useFormPersistence = <T extends FieldValues>({
   const stepData = useApplicationFormDataStore((state) => state.stepData[stepId]);
   const stepOcrData = useApplicationFormDataStore((state) => state.ocrData[stepId]);
   const _hasHydrated = useApplicationFormDataStore((state) => state._hasHydrated);
+  const setStepDirty = useApplicationStepStore((state) => state.setStepDirty);
   const isInitialLoadRef = useRef(true);
   const hasLoadedPersistedDataRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -225,7 +227,23 @@ export const useFormPersistence = <T extends FieldValues>({
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [enabled, applicationId, form, saveStepDataDebounced]);
+  }, [enabled, applicationId, form, saveStepDataDebounced, stepId, _hasHydrated]);
+
+  // Keep the step dirty state in sync with RHF's dirty flag.
+  // NOTE: `watch()` fires immediately on subscribe, even with no user changes.
+  // `formState.isDirty` is the correct signal for "user changed something".
+  useEffect(() => {
+    if (!enabled || !applicationId || !_hasHydrated) return;
+    if (isInitialLoadRef.current) return;
+    setStepDirty(stepId, form.formState.isDirty);
+  }, [
+    enabled,
+    applicationId,
+    _hasHydrated,
+    form.formState.isDirty,
+    setStepDirty,
+    stepId,
+  ]);
 
   // Save immediately on form submit (before mutation)
   const saveOnSubmit = useCallback(

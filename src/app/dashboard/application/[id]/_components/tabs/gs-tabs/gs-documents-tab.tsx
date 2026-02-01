@@ -50,11 +50,12 @@ import {
   useGSDocumentUploadMutation,
 } from "@/hooks/useGSAssessment.hook";
 import {
-  isAllowedFileType,
   DROPZONE_ACCEPT,
-  MAX_FILE_SIZE_BYTES,
   getDropzoneHelperText,
+  isAllowedFileType,
+  MAX_FILE_SIZE_BYTES,
 } from "@/lib/document-file-helpers";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 
 interface GSDocumentsTabProps {
   applicationId?: string;
@@ -92,20 +93,6 @@ function getStatusBadge(status: GSDocumentBackendStatus) {
     case "not_started":
     default:
       return <Badge variant="secondary">Not Started</Badge>;
-  }
-}
-
-function formatDate(dateString: string | null): string {
-  if (!dateString) return "Not uploaded";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return "Invalid date";
   }
 }
 
@@ -489,7 +476,7 @@ export default function GSDocumentsTab({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {latestFile
-                              ? `${latestFile.fileName} - ${formatDate(latestFile.uploadedAt)}`
+                              ? `${latestFile.fileName} - ${formatUtcToFriendlyLocal(latestFile.uploadedAt)}`
                               : (config?.description ?? "No file uploaded")}
                           </p>
                         </div>
@@ -525,7 +512,7 @@ export default function GSDocumentsTab({
                                 <p className="text-[11px] text-muted-foreground truncate">
                                   {formatFileSize(file.fileSize)}
                                   {file.uploadedAt
-                                    ? ` • ${formatDate(file.uploadedAt)}`
+                                    ? ` • ${formatUtcToFriendlyLocal(file.uploadedAt)}`
                                     : ""}
                                 </p>
                               </div>

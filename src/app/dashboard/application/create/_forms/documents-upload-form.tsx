@@ -11,6 +11,7 @@ import {
 } from "@/hooks/document.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import {
+  ALLOWED_FILE_EXTENSIONS,
   DROPZONE_ACCEPT,
   IGNORED_DOCUMENT_TYPES,
   MAX_FILES_PER_UPLOAD,
@@ -23,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
-import { CheckCircle2, Dot, Eye, File, Loader2, Upload } from "lucide-react";
+import { CheckCircle2, Eye, Loader2, Trash2, Upload } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -74,6 +75,7 @@ type DocumentType = {
 };
 
 type ApiDocument = {
+  id?: string;
   document_type_id?: string;
   document_type_code?: string;
   document_type?: { id?: string; code?: string };
@@ -81,6 +83,8 @@ type ApiDocument = {
   file_size_bytes: number;
   uploaded_at?: string;
   view_url?: string;
+  download_url?: string;
+  latest_version_id?: string;
 };
 
 const STEP_ID = 12;
@@ -234,67 +238,55 @@ const DocumentTypeOption = ({
   </button>
 );
 
-type UploadedDocumentsGridProps = {
+type UploadFilesTableProps = {
+  state: DocumentState | null;
   uploadedDocuments: ApiDocument[];
+  onRemoveLocalFile: (documentTypeId: string, fileKey: string) => void;
+  onDeleteApiDocument: (doc: ApiDocument) => void;
+  isDeleting: boolean;
+  isLoadingUploadedDocuments: boolean;
 };
 
-const UploadedDocumentsGrid = ({
+const UploadFilesTable = ({
+  state,
   uploadedDocuments,
-}: UploadedDocumentsGridProps) => {
-  if (uploadedDocuments.length === 0) {
+  onRemoveLocalFile,
+  onDeleteApiDocument,
+  isDeleting,
+  isLoadingUploadedDocuments,
+}: UploadFilesTableProps) => {
+  if (!state && !isLoadingUploadedDocuments) return null;
+
+  if (isLoadingUploadedDocuments) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No documents uploaded yet
-        </CardContent>
-      </Card>
+      <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Fetching uploaded files...</span>
+      </div>
     );
   }
 
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {uploadedDocuments.map((doc, index) => (
-        <Card
-          key={index}
-          onClick={() => window.open(doc.view_url, "_blank")}
-          className="bg-primary/5 rounded-lg border border-primary/50 cursor-pointer hover:bg-primary/10 transition-all"
-        >
-          <CardContent className="p-2 flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <File className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p
-                className="font-medium text-sm truncate"
-                title={doc.document_type_name}
-              >
-                {doc.document_type_name || "Unknown Type"}
-              </p>
-              {doc.uploaded_at && (
-                <p className="text-[10px] flex items-center">
-                  {new Date(doc.uploaded_at).toLocaleDateString()} <Dot />{" "}
-                  {humanFileSize(doc.file_size_bytes)}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-};
-
-type UploadFilesTableProps = {
-  state: DocumentState | null;
-};
-
-const UploadFilesTable = ({ state }: UploadFilesTableProps) => {
   if (!state) return null;
+
+  const knownPreviewUrls = new Set(
+    (state.uploadedFiles ?? [])
+      .map((file) => file.previewUrl)
+      .filter(Boolean) as string[],
+  );
+
+  const apiUploaded = uploadedDocuments
+    .filter((doc) => getDocumentTypeId(doc) === state.documentTypeId)
+    .filter((doc) => {
+      // Avoid duplicate rows when we already have a locally-tracked preview url.
+      if (!doc.view_url) return true;
+      return !knownPreviewUrls.has(doc.view_url);
+    });
 
   const hasRows =
     (state.uploadedFiles?.length ?? 0) > 0 || (state.files?.length ?? 0) > 0;
+  const hasApiRows = apiUploaded.length > 0;
 
-  if (!hasRows) return null;
+  if (!hasRows && !hasApiRows) return null;
 
   const pendingFiles = state.files?.filter((f) => f.uploading || f.error) ?? [];
 
@@ -333,6 +325,25 @@ const UploadFilesTable = ({ state }: UploadFilesTableProps) => {
                   )}
                 </div>
               </td>
+              <td className="py-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() =>
+                      onRemoveLocalFile(state.documentTypeId, f.key)
+                    }
+                    disabled={f.uploading}
+                    title={
+                      f.uploading ? "Can't remove while uploading" : "Remove"
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </td>
             </tr>
           ))}
 
@@ -355,10 +366,86 @@ const UploadFilesTable = ({ state }: UploadFilesTableProps) => {
                       size="sm"
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
                       onClick={() => window.open(file.previewUrl, "_blank")}
+                      title="View"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      const match = file.previewUrl
+                        ? uploadedDocuments.find(
+                            (doc) =>
+                              getDocumentTypeId(doc) === state.documentTypeId &&
+                              doc.view_url === file.previewUrl,
+                          )
+                        : undefined;
+
+                      if (!match) {
+                        toast.error(
+                          "Couldn't identify this document on the server. Refresh and try again.",
+                        );
+                        return;
+                      }
+
+                      onDeleteApiDocument(match);
+                    }}
+                    disabled={isDeleting}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+
+          {apiUploaded.map((doc, index) => (
+            <tr
+              key={`api-uploaded-${index}`}
+              className="border-b last:border-0"
+            >
+              <td className="py-3 text-sm">
+                {doc.document_type_name || "Uploaded document"}
+              </td>
+              <td className="py-3 text-sm">
+                {humanFileSize(doc.file_size_bytes)}
+              </td>
+              <td className="py-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-primary">Uploaded</span>
+                </div>
+              </td>
+              <td className="py-3 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  {doc.view_url ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                      onClick={() => window.open(doc.view_url, "_blank")}
+                      title="View"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => onDeleteApiDocument(doc)}
+                    disabled={isDeleting}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </td>
             </tr>
@@ -368,6 +455,7 @@ const UploadFilesTable = ({ state }: UploadFilesTableProps) => {
     </div>
   );
 };
+
 // Main Component
 export default function DocumentsUploadForm() {
   const searchParams = useSearchParams();
@@ -377,19 +465,26 @@ export default function DocumentsUploadForm() {
   );
   const applicationId = applicationIdFromUrl || storedApplicationId;
 
-  const { uploadDocument } = useDocuments(applicationId);
+  const { uploadDocument, deleteDocument } = useDocuments(applicationId);
   const {
     data: documentTypesResponse,
     isLoading: isLoadingDocumentTypes,
     error: documentTypesError,
   } = useDocumentTypesQuery();
 
-  const { data: documentsResponse } =
-    useApplicationDocumentsQuery(applicationId);
+  const {
+    data: documentsResponse,
+    isLoading: isLoadingUploadedDocuments,
+    isFetching: isFetchingUploadedDocuments,
+  } = useApplicationDocumentsQuery(applicationId);
 
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const markStepCompleted = useApplicationStepStore(
     (state) => state.markStepCompleted,
+  );
+  const setStepDirty = useApplicationStepStore((state) => state.setStepDirty);
+  const clearStepDirty = useApplicationStepStore(
+    (state) => state.clearStepDirty,
   );
 
   const filteredDocumentTypes = useMemo((): DocumentType[] => {
@@ -484,6 +579,68 @@ export default function DocumentsUploadForm() {
   );
 
   const isAnyFileUploading = uploadingFiles.size > 0;
+  const isDeleting = deleteDocument.isPending;
+  const isLoadingApiDocuments =
+    isLoadingUploadedDocuments || isFetchingUploadedDocuments;
+
+  const handleRemoveLocalFile = useCallback(
+    (documentTypeId: string, fileKey: string) => {
+      setStepDirty(STEP_ID, true);
+      setDocumentStates((prev) => {
+        const current = prev[documentTypeId];
+        if (!current) return prev;
+        return {
+          ...prev,
+          [documentTypeId]: {
+            ...current,
+            files: (current.files ?? []).filter((f) => f.key !== fileKey),
+          },
+        };
+      });
+    },
+    [setStepDirty],
+  );
+
+  const handleDeleteApiDocument = useCallback(
+    async (doc: ApiDocument) => {
+      if (!applicationId || !doc?.id) return;
+
+      setStepDirty(STEP_ID, true);
+      const toastId = `delete-document-${doc.id}`;
+      toast.loading("Deleting document...", { id: toastId });
+
+      try {
+        await deleteDocument.mutateAsync({ documentId: doc.id, applicationId });
+
+        // Best-effort: remove any locally tracked uploaded row that matches the deleted view_url.
+        if (doc.view_url) {
+          setDocumentStates((prev) => {
+            const docTypeId = getDocumentTypeId(doc);
+            const current = prev[docTypeId];
+            if (!current) return prev;
+
+            return {
+              ...prev,
+              [docTypeId]: {
+                ...current,
+                uploadedFiles: (current.uploadedFiles ?? []).filter(
+                  (f) => f.previewUrl !== doc.view_url,
+                ),
+              },
+            };
+          });
+        }
+
+        toast.success("Document deleted", { id: toastId });
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to delete document",
+          { id: toastId },
+        );
+      }
+    },
+    [applicationId, deleteDocument, setStepDirty],
+  );
 
   // Set first document as selected when loaded
   useEffect(() => {
@@ -549,12 +706,16 @@ export default function DocumentsUploadForm() {
     uploadedDocuments,
   ]);
 
+  // Mark this step dirty only on explicit user actions (upload/remove/delete),
+  // not on initial load/hydration.
+
   const uploadSingleFile = useCallback(
     async (
       documentTypeId: string,
       file: File,
       fileKey: string,
       process_ocr?: boolean,
+      upload_mode?: "replace" | "new",
     ): Promise<void> => {
       if (!applicationId) return;
 
@@ -566,6 +727,7 @@ export default function DocumentsUploadForm() {
           document_type_id: documentTypeId,
           file,
           process_ocr,
+          upload_mode,
         });
 
         console.log("Upload response", response);
@@ -681,6 +843,11 @@ export default function DocumentsUploadForm() {
     ) => {
       if (!files || files.length === 0 || !applicationId) return;
 
+      // Backend behavior:
+      // - "replace" (default): creates a new version if doc type already exists
+      // - "new": always creates a new document entry (multi-doc)
+      const uploadMode = "new";
+
       const validFiles = files.filter((file) => {
         if (file.size > MAX_FILE_SIZE_BYTES) {
           toast.error(`"${file.name}" exceeds 5MB limit`);
@@ -689,7 +856,7 @@ export default function DocumentsUploadForm() {
 
         if (!isAllowedFileType(file)) {
           toast.error(
-            `"${file.name}" type not allowed. Allowed types: .jpg, .gif, .png, .tiff, .jpeg, .pdf, .tif, .bmp`,
+            `"${file.name}" type not allowed. Allowed types: ${ALLOWED_FILE_EXTENSIONS.join(",")}`,
           );
           return false;
         }
@@ -713,6 +880,10 @@ export default function DocumentsUploadForm() {
         (entry) => !existingKeys.has(entry.key),
       );
 
+      if (uniqueNewEntries.length > 0) {
+        setStepDirty(STEP_ID, true);
+      }
+
       setDocumentStates((prev) => {
         const current = prev[documentTypeId];
         const existingFiles = current?.files ?? [];
@@ -733,11 +904,12 @@ export default function DocumentsUploadForm() {
             entry.file,
             entry.key,
             accepts_ocr ?? false,
+            uploadMode,
           );
         }
       }
     },
-    [applicationId, documentStates, uploadSingleFile],
+    [applicationId, documentStates, uploadSingleFile, setStepDirty],
   );
 
   const handleContinue = useCallback(() => {
@@ -763,6 +935,7 @@ export default function DocumentsUploadForm() {
     const formData = convertToFormData(documentStates);
     saveOnSubmit(formData);
     markStepCompleted(STEP_ID);
+    clearStepDirty(STEP_ID);
     goToNext();
   }, [
     applicationId,
@@ -772,6 +945,7 @@ export default function DocumentsUploadForm() {
     markStepCompleted,
     goToNext,
     uploadedDocuments,
+    clearStepDirty,
   ]);
 
   if (isLoadingDocumentTypes) {
@@ -819,15 +993,6 @@ export default function DocumentsUploadForm() {
   return (
     <FormProvider {...methods}>
       <form className="space-y-8">
-        {uploadedDocuments.length > 0 && (
-          <Card className=" p-4">
-            <CardContent className="p-0">
-              <h3 className="text-lg font-semibold mb-4">Uploaded Documents</h3>
-              <UploadedDocumentsGrid uploadedDocuments={uploadedDocuments} />
-            </CardContent>
-          </Card>
-        )}
-
         {/* Upload Section */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Document Types Grid - 2 columns */}
@@ -929,7 +1094,14 @@ export default function DocumentsUploadForm() {
                     </Dropzone>
 
                     {/* Files Table */}
-                    <UploadFilesTable state={selectedState} />
+                    <UploadFilesTable
+                      state={selectedState}
+                      uploadedDocuments={uploadedDocuments}
+                      onRemoveLocalFile={handleRemoveLocalFile}
+                      onDeleteApiDocument={handleDeleteApiDocument}
+                      isDeleting={isDeleting}
+                      isLoadingUploadedDocuments={isLoadingApiDocuments}
+                    />
                   </div>
                 </CardContent>
               </Card>

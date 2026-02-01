@@ -17,6 +17,7 @@ import {
   useApplicationRequestSignaturesMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/hooks/useApplication.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import {
   AlertCircle,
   ArrowRight,
@@ -28,17 +29,6 @@ import {
   User,
 } from "lucide-react";
 import { memo, useEffect, useState } from "react";
-
-const formatDateTime = (value: string | null) => {
-  if (!value) return "N/A";
-  return new Date(value).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 interface SignerRowProps {
   name: string;
@@ -200,7 +190,7 @@ const ApplicationSignDisplay = ({
                   </div>
 
                   <p className="text-[10px] text-right text-muted-foreground">
-                    Initiated {formatDateTime(item.created_at)}
+                    Initiated {formatUtcToFriendlyLocal(item.created_at)}
                   </p>
                 </div>
               );

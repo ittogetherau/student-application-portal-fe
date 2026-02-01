@@ -1,19 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import type { StaffThreadSummary } from "@/service/application-threads.service";
 import { ThreadMessage } from "@/service/application-threads.service";
 import { LucideIcon } from "lucide-react";
-
-export const formatDateTime = (date?: string | null) =>
-  date
-    ? new Date(date).toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
 
 //
 export const statusVariant = (status: string) => {
@@ -70,7 +61,10 @@ export const ThreadListItem = ({
       </Badge>
     </div>
     <p className="text-[10px] text-muted-foreground mt-1">
-      Updated {formatDateTime(thread.status_updated_at)}
+      Updated{" "}
+      {thread.status_updated_at
+        ? formatUtcToFriendlyLocal(thread.status_updated_at)
+        : ""}
     </p>
   </div>
 );
@@ -96,7 +90,7 @@ export const MessageBubble = ({
           <span className="font-semibold truncate">{authorLabel}</span>
           <span>-</span>
           <span className="whitespace-nowrap">
-            {formatDateTime(message.created_at)}
+            {message.created_at ? formatUtcToFriendlyLocal(message.created_at) : ""}
           </span>
         </div>
         {message.message && (

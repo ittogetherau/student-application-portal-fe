@@ -15,6 +15,7 @@ type UploadDocumentParams = {
   document_type_id: string;
   file: File;
   process_ocr?: boolean;
+  upload_mode?: "replace" | "new";
 };
 
 // type VerifyDocumentParams = Record<string, unknown>;
@@ -90,12 +91,14 @@ export const useUploadDocument = () => {
       document_type_id,
       file,
       process_ocr,
+      upload_mode,
     }) => {
       const response = await documentService.uploadDocument(
         application_id,
         document_type_id,
         file,
         process_ocr,
+        upload_mode,
       );
       if (!response.success) {
         throw new Error(response.message || "Failed to upload document");
@@ -160,13 +163,50 @@ export const useVerifyDocument = () => {
   });
 };
 
+export const useDeleteDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ServiceResponse<unknown>,
+    Error,
+    { documentId: string; applicationId?: string }
+  >({
+    mutationFn: async ({ documentId }) => {
+      const response = await documentService.deleteDocument(documentId);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to delete document");
+      }
+      return response;
+    },
+    onSuccess: async (_response, variables) => {
+      if (variables.applicationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["application-documents", variables.applicationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["document-stats", variables.applicationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["autofill-suggestions", variables.applicationId],
+        });
+      }
+      // toast.success("Document deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete document");
+    },
+  });
+};
+
 // Main hook that exports all document operations
 export const useDocuments = (applicationId: string | null) => {
   const uploadDocument = useUploadDocument();
+  const deleteDocument = useDeleteDocument();
 
   return {
     // Mutations
     uploadDocument,
+    deleteDocument,
   };
 };
 

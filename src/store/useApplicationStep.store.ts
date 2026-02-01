@@ -13,6 +13,8 @@ type ApplicationStepState = {
   currentStep: number;
   totalSteps: number;
   completedSteps: number[];
+  dirtySteps: number[];
+  unsavedMessage: string | null;
   initializeStep: (applicationId: string | null, stepData: StepData) => void;
   goToStep: (step: number) => void;
   goToNext: () => void;
@@ -20,6 +22,12 @@ type ApplicationStepState = {
   setTotalSteps: (total: number) => void;
   markStepCompleted: (step: number) => void;
   isStepCompleted: (step: number) => boolean;
+  setStepDirty: (step: number, isDirty: boolean) => void;
+  clearStepDirty: (step: number) => void;
+  clearDirtySteps: () => void;
+  isStepDirty: (step: number) => boolean;
+  setUnsavedMessage: (message: string | null) => void;
+  clearUnsavedMessage: () => void;
   restoreCompletedSteps: (stepData: StepData) => void;
   resetNavigation: () => void;
   _hasHydrated: boolean;
@@ -100,6 +108,8 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       currentStep: 0,
       totalSteps: FORM_STEPS.length,
       completedSteps: [],
+      dirtySteps: [],
+      unsavedMessage: null,
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
       initializeStep: (applicationId, stepData) => {
@@ -152,6 +162,31 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
 
       isStepCompleted: (step) => get().completedSteps.includes(step),
 
+      setStepDirty: (step, isDirty) =>
+        set((s) => {
+          const hasStep = s.dirtySteps.includes(step);
+          if (isDirty && !hasStep) {
+            return { dirtySteps: [...s.dirtySteps, step] };
+          }
+          if (!isDirty && hasStep) {
+            return { dirtySteps: s.dirtySteps.filter((id) => id !== step) };
+          }
+          return s;
+        }),
+
+      clearStepDirty: (step) =>
+        set((s) => ({
+          dirtySteps: s.dirtySteps.filter((id) => id !== step),
+        })),
+
+      clearDirtySteps: () => set({ dirtySteps: [] }),
+
+      isStepDirty: (step) => get().dirtySteps.includes(step),
+
+      setUnsavedMessage: (message) => set({ unsavedMessage: message }),
+
+      clearUnsavedMessage: () => set({ unsavedMessage: null }),
+
       restoreCompletedSteps: (stepData) => {
         const totalSteps = get().totalSteps;
         const completedSteps = getCompletedStepsFromData(stepData, totalSteps);
@@ -159,7 +194,12 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       },
 
       resetNavigation: () => {
-        set({ currentStep: 0, completedSteps: [] });
+        set({
+          currentStep: 0,
+          completedSteps: [],
+          dirtySteps: [],
+          unsavedMessage: null,
+        });
       },
     }),
     {

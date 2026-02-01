@@ -24,6 +24,7 @@ import {
   useUpdateThreadPriorityMutation,
   useUpdateThreadStatusMutation,
 } from "@/hooks/application-threads.hook";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import type { StaffThreadSummary } from "@/service/application-threads.service";
 import { CommunicationThread } from "@/service/application-threads.service";
 import {
@@ -43,7 +44,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import {
   EmptyState,
-  formatDateTime,
   MessageBubble,
   ThreadListItem,
 } from "./general";
@@ -539,7 +539,11 @@ export default function TasksPageClient() {
                 <div>
                   <p className="text-muted-foreground mb-1">Last Updated</p>
                   <p className="font-medium text-xs break-words">
-                    {formatDateTime(selectedThread.status_updated_at)}
+                    {selectedThread.status_updated_at
+                      ? formatUtcToFriendlyLocal(
+                          selectedThread.status_updated_at,
+                        )
+                      : ""}
                   </p>
                 </div>
 

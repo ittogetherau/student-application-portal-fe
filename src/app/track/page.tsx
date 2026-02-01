@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { siteRoutes } from "@/constants/site-routes";
+import { formatUtcToFriendlyLocal } from "@/lib/format-utc-to-local";
 import studentService from "@/service/student.service";
 
 type ApplicationStatus =
@@ -36,22 +37,9 @@ interface TrackApplicationResponse {
   assigned_staff_email: string | null;
 }
 
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return "N/A";
-  try {
-    return new Date(dateString).toLocaleDateString("en-AU", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return dateString;
-  }
-};
-
 const normalizeStatus = (
   status: string | null,
-  stage: string | null
+  stage: string | null,
 ): ApplicationStatus => {
   const value = `${status ?? ""} ${stage ?? ""}`.toLowerCase();
   if (value.includes("submitted")) return "submitted";
@@ -131,7 +119,7 @@ const ApplicationTrack = () => {
 
     try {
       const response = await studentService.trackApplication(
-        applicationId.trim()
+        applicationId.trim(),
       );
       if (response.success && response.data) {
         setTrackedApplication(response.data as TrackApplicationResponse);
@@ -158,8 +146,8 @@ const ApplicationTrack = () => {
     ? getStatusConfig(
         normalizeStatus(
           trackedApplication.application_status,
-          trackedApplication.current_stage
-        )
+          trackedApplication.current_stage,
+        ),
       )
     : null;
 
@@ -284,7 +272,11 @@ const ApplicationTrack = () => {
                       Submitted On
                     </p>
                     <p className="font-semibold text-foreground">
-                      {formatDate(trackedApplication.submitted_at)}
+                      {trackedApplication.submitted_at
+                        ? formatUtcToFriendlyLocal(
+                            trackedApplication.submitted_at,
+                          )
+                        : "N/A"}
                     </p>
                   </div>
                   <div>
@@ -292,7 +284,11 @@ const ApplicationTrack = () => {
                       Last Updated
                     </p>
                     <p className="font-semibold text-foreground">
-                      {formatDate(trackedApplication.decision_at)}
+                      {trackedApplication.decision_at
+                        ? formatUtcToFriendlyLocal(
+                            trackedApplication.decision_at,
+                          )
+                        : "N/A"}
                     </p>
                   </div>
                 </div>
