@@ -45,16 +45,17 @@ export default function StaffDashboard() {
         application.priority === "High"
           ? "High"
           : application.priority === "Medium"
-          ? "Medium"
-          : "Low",
-    })
+            ? "Medium"
+            : "Low",
+    }),
   );
 
   return (
     <div className="min-h-screen p-4 bg-background">
+      {/*
       <div className="wrapper py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
               <Building2 className="w-6 h-6 text-primary shrink-0" />
             </div>
@@ -66,9 +67,9 @@ export default function StaffDashboard() {
                 Application Management Dashboard
               </p>
             </div>
-          </div>
+          </div> 
 
-          {/* <div className="flex-1 max-w-md w-full md:ml-auto">
+           <div className="flex-1 max-w-md w-full md:ml-auto">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 w-4 h-4 transition-colors group-focus-within:text-primary z-10" />
               <Input
@@ -77,12 +78,13 @@ export default function StaffDashboard() {
                 className="w-full pl-10 h-12 bg-white dark:bg-neutral-600 border-none rounded-2xl text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/20 ring-1 ring-neutral-200 dark:ring-neutral-700 outline-none"
               />
             </div>
-          </div> */}
+          </div> 
         </div>
       </div>
+          */}
 
       {/* Main Content */}
-      <main className="wrapper py-6 space-y-6">
+      <main className="wrapper py-2 space-y-6">
         {/* Workload Section */}
         <section>
           <WorkloadSection workload={workload} />

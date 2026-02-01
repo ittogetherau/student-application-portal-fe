@@ -48,6 +48,14 @@ import {
   ThreadListItem,
 } from "./general";
 
+const formatContactName = (name?: string | null, email?: string | null) => {
+  if (name) return name;
+  if (email) return email.split("@")[0];
+  return "N/A";
+};
+
+const formatContactEmail = (email?: string | null) => email || "N/A";
+
 export default function TasksPageClient() {
   const { data: session } = useSession();
   const ROLE = session?.user.role;
@@ -123,6 +131,8 @@ export default function TasksPageClient() {
     () => applicationThreads.find((t) => t.id === selectedThreadId) || null,
     [applicationThreads, selectedThreadId]
   );
+  const agentContact = selectedThreadFromApp?.agent;
+  const staffContact = selectedThreadFromApp?.assigned_staff;
 
   const selectedStaffThread = useMemo(
     () => staffThreadsList.find((t) => t.id === selectedThreadId) || null,
@@ -404,6 +414,30 @@ export default function TasksPageClient() {
             <h3 className="text-sm font-semibold mb-3">Thread Details</h3>
             {selectedThread ? (
               <div className="space-y-4 text-xs">
+                <div>
+                  <p className="text-muted-foreground mb-1">Agent</p>
+                  <p className="font-medium">
+                    {formatContactName(
+                      agentContact?.name,
+                      agentContact?.email
+                    )}
+                  </p>
+                  <p className="text-muted-foreground break-all">
+                    {formatContactEmail(agentContact?.email)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground mb-1">Staff</p>
+                  <p className="font-medium">
+                    {formatContactName(
+                      staffContact?.name,
+                      staffContact?.email
+                    )}
+                  </p>
+                  <p className="text-muted-foreground break-all">
+                    {formatContactEmail(staffContact?.email)}
+                  </p>
+                </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Issue Type</p>
                   <p className="font-medium">

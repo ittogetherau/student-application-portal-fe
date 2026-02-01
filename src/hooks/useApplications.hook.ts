@@ -21,9 +21,10 @@ type UseApplicationsOptions = {
 const normalizeStage = (value?: string): APPLICATION_STAGE => {
   if (!value) return APPLICATION_STAGE.DRAFT;
   const stage = value as APPLICATION_STAGE;
-  return Object.values(APPLICATION_STAGE).includes(stage)
-    ? stage
-    : APPLICATION_STAGE.DRAFT;
+  if (Object.values(APPLICATION_STAGE).includes(stage)) {
+    return stage;
+  }
+  return APPLICATION_STAGE.DRAFT;
 };
 
 const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
@@ -44,20 +45,36 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
         (item.reference_number as string) ??
         String(item.id ?? `ERR-${index + 1}`),
       agentName: (item.agent_name as string) ?? "",
+      agentEmail:
+        (item.agent_email as string) ??
+        (item.agent as { email?: string } | null | undefined)?.email ??
+        "",
+      agentAgencyName:
+        (item.agency_name as string) ??
+        (item.agent as { agency_name?: string } | null | undefined)
+          ?.agency_name ??
+        "",
       studentName: (item.student_name as string) ?? "Unknown student",
+      studentId:
+        (item.generated_stud_id as string) ??
+        (item.student_profile_id as string) ??
+        "",
       studentEmail: (item.student_email as string) ?? "",
       stage: normalizedStage,
+      stageRaw: rawStage ?? null,
       assignedStaffId:
         (item.assigned_staff_id as string) ??
-        ((item.assigned_staff as { id?: string } | null | undefined)?.id ??
-          null),
+        (item.assigned_staff as { id?: string } | null | undefined)?.id ??
+        null,
       assignedStaffName:
         (item.assigned_staff_name as string) ??
-        ((
-          item.assigned_staff as { email?: string } | null | undefined
-        )?.email ?? undefined),
-      destination: (item.destination as string) || "N/A",
+        (item.assigned_staff as { email?: string } | null | undefined)?.email ??
+        undefined,
       course: (item.course_name as string) || (item.course as string) || "N/A",
+      courseCode:
+        (item.course_code as string) ??
+        (item.course_offering_code as string) ??
+        "",
       intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",
     };
@@ -112,6 +129,7 @@ export const useApplications = ({
   const maxPage = paginationStore((state) => state.maxPage);
   const query = paginationStore((state) => state.query);
   const setPage = paginationStore((state) => state.setPage);
+  const setPerPage = paginationStore((state) => state.setPerPage);
   const setMaxPage = paginationStore((state) => state.setMaxPage);
   const setQuery = paginationStore((state) => state.setQuery);
   const nextPage = paginationStore((state) => state.nextPage);
@@ -134,7 +152,12 @@ export const useApplications = ({
 
   const isSearchingOrFiltering =
     !!debouncedQuery ||
-    Object.values(extraFilters).some((v) => v !== undefined);
+    Object.entries(extraFilters).some(([key, value]) => {
+      if (value === undefined) return false;
+      const initialValue =
+        initialFilters[key as keyof ApplicationListParams];
+      return value !== initialValue;
+    });
 
   const applicationsQuery = useQuery({
     queryKey: [
@@ -202,6 +225,7 @@ export const useApplications = ({
     nextPage,
     prevPage,
     setPage,
+    setPerPage,
     setQuery: handleSearch,
     searchValue: query,
     extraFilters,

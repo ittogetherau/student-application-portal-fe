@@ -4,10 +4,12 @@
 import ApplicationStepHeader from "@/app/dashboard/application/create/_components/application-step-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { FormInput } from "@/components/ui/forms/form-input";
 import { FormRadio } from "@/components/ui/forms/form-radio";
 import { FormSearchableSelect } from "@/components/ui/forms/form-searchable-select";
 import { FormSelect } from "@/components/ui/forms/form-select";
+import { getFieldError } from "@/components/ui/forms/form-errors";
 import {
   Tooltip,
   TooltipContent,
@@ -15,10 +17,19 @@ import {
 } from "@/components/ui/tooltip";
 import { getCountriesList, getNationalitiesList } from "@/data/country-list";
 import { useDocuments, useDocumentTypesQuery } from "@/hooks/document.hook";
+import usePlacesAutocomplete from "@/hooks/usePlacesAutocomplete.hook";
 import { useApplicationStepMutations } from "@/hooks/useApplicationSteps.hook";
 import { useFormPersistence } from "@/hooks/useFormPersistence.hook";
 import { cn } from "@/lib/utils";
+import {
+  DROPZONE_ACCEPT,
+  MAX_FILE_SIZE_BYTES,
+  getDropzoneHelperText,
+  isAllowedFileType,
+} from "@/lib/document-file-helpers";
 import documentService from "@/service/document.service";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   defaultPersonalDetailsValues,
   personalDetailsSchema,
@@ -35,12 +46,28 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { ExtractedDataPreview } from "../_components/extracted-data-preview";
 import HealthCoverAutoSubmit from "../_components/health-cover-auto-submit";
+import { FormTextarea } from "@/components/ui/forms/form-textarea";
 
 const stepId = 1;
+
+type PlacePrediction = {
+  description: string;
+  place_id?: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+};
+
+type AddressComponent = {
+  long_name: string;
+  short_name: string;
+  types: string[];
+};
 
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
@@ -61,11 +88,22 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     enabled: !!applicationId,
   });
 
+  const {
+    query: addressQuery,
+    setQuery: setAddressQuery,
+    data: placePredictions,
+    isLoading: isPlacesLoading,
+    error: placesError,
+  } = usePlacesAutocomplete("", {
+    debounceMs: 350,
+    minLength: 3,
+  });
+  const [isPlacesOpen, setIsPlacesOpen] = useState(false);
+
   // Passport upload state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [extractedSummary, setExtractedSummary] = useState<Record<
     string,
     any
@@ -88,19 +126,13 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
       }
 
       // Validate file type
-      const validTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/pdf",
-      ];
-      if (!validTypes.includes(file.type)) {
+      if (!isAllowedFileType(file)) {
         toast.error("Please upload a valid image (JPG, PNG) or PDF file");
         return;
       }
 
       // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error("File size must be less than 5MB");
         return;
       }
@@ -115,6 +147,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           application_id: applicationId,
           document_type_id: passportDocType.id,
           file,
+          process_ocr: true,
         });
 
         toast.success("Passport uploaded! Extracting data...");
@@ -289,35 +322,6 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     [applicationId, passportDocType, uploadDocument, methods]
   );
 
-  // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
-  // Handle drag and drop
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-
   // Remove uploaded file
   const handleRemoveFile = () => {
     setUploadedFile(null);
@@ -332,6 +336,125 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     }
     personalDetailsMutation.mutate(values);
   };
+
+  const getComponentByType = (
+    components: AddressComponent[],
+    type: string
+  ) => components.find((component) => component.types.includes(type));
+
+  const getComponentByPriority = (
+    components: AddressComponent[],
+    types: string[]
+  ) => {
+    for (const type of types) {
+      const match = getComponentByType(components, type);
+      if (match) return match;
+    }
+    return undefined;
+  };
+
+  const handlePlaceSelect = useCallback(
+    async (prediction: PlacePrediction) => {
+      const description = prediction.description;
+      methods.setValue("search_address", description, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setAddressQuery(description);
+      setIsPlacesOpen(false);
+
+      if (!prediction.place_id) return;
+
+      try {
+        const response = await fetch(
+          `/api/google-places/details?placeId=${encodeURIComponent(
+            prediction.place_id
+          )}`
+        );
+
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || "Failed to fetch address details.");
+        }
+
+        const payload = (await response.json()) as {
+          address_components?: AddressComponent[];
+          error?: string;
+        };
+
+        if (payload.error) {
+          throw new Error(payload.error);
+        }
+
+        const components = payload.address_components ?? [];
+        const country = getComponentByType(components, "country")?.long_name;
+        const streetNumber = getComponentByType(
+          components,
+          "street_number"
+        )?.long_name;
+        const streetName = getComponentByType(components, "route")?.long_name;
+        const suburb = getComponentByPriority(components, [
+          "locality",
+          "postal_town",
+          "sublocality",
+          "sublocality_level_1",
+        ])?.long_name;
+        const state = getComponentByPriority(components, [
+          "administrative_area_level_1",
+          "administrative_area_level_2",
+        ])?.long_name;
+        const postcode = getComponentByType(
+          components,
+          "postal_code"
+        )?.long_name;
+
+        if (country)
+          methods.setValue("country", country, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (streetNumber)
+          methods.setValue("street_number", streetNumber, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (streetName)
+          methods.setValue("street_name", streetName, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (suburb)
+          methods.setValue("suburb", suburb, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (state)
+          methods.setValue("state", state, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        if (postcode)
+          methods.setValue("postcode", postcode, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch address details."
+        );
+      }
+    },
+    [methods, setAddressQuery]
+  );
+
+  const {
+    formState: { errors },
+  } = methods;
+  const searchAddressError = getFieldError(errors, "search_address")?.message as
+    | string
+    | undefined;
 
   return (
     <FormProvider {...methods}>
@@ -350,40 +473,39 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               </div>
 
               {!uploadedFile ? (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
+                <Dropzone
+                  onDrop={(acceptedFiles) => {
+                    const file = acceptedFiles?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  onError={(error) => {
+                    if (error?.message) {
+                      toast.error(error.message);
+                    }
+                  }}
+                  accept={DROPZONE_ACCEPT}
+                  maxFiles={1}
+                  maxSize={MAX_FILE_SIZE_BYTES}
+                  disabled={isUploading || !applicationId}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                    isDragging
-                      ? "border-primary bg-primary/10"
-                      : "border-muted hover:border-primary/50 hover:bg-accent"
+                    "border-muted hover:border-primary/50 hover:bg-accent",
                   )}
                 >
-                  <input
-                    type="file"
-                    id="passport-upload"
-                    className="hidden"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={handleFileChange}
-                    disabled={isUploading || !applicationId}
-                  />
-                  <label
-                    htmlFor="passport-upload"
-                    className="cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Upload className="h-4 w-4 text-primary" />
-                    <div className="text-left">
-                      <p className="text-sm font-medium">
-                        Upload passport to auto-fill
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, PNG or PDF (max 5MB)
-                      </p>
+                  <DropzoneEmptyState>
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium">
+                          Upload passport to auto-fill
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {getDropzoneHelperText(MAX_FILE_SIZE_BYTES)}
+                        </p>
+                      </div>
                     </div>
-                  </label>
-                </div>
+                  </DropzoneEmptyState>
+                </Dropzone>
               ) : (
                 <div className="border rounded-lg p-3 bg-background">
                   <div className="flex items-center justify-between">
@@ -658,11 +780,95 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
           </div>
 
           <div className="space-y-4">
-            <FormInput
-              name="search_address"
-              label="Search Address"
-              placeholder="Enter address or search"
-            />
+            <div className="space-y-1">
+              <Label htmlFor="search_address">Search Address</Label>
+              <Controller
+                name="search_address"
+                control={methods.control}
+                render={({ field: { value, onChange, onBlur, ref } }) => (
+                  <div className="relative">
+                    <Input
+                      id="search_address"
+                      ref={ref}
+                      placeholder="Enter address or search"
+                      aria-invalid={!!searchAddressError}
+                      value={value ?? ""}
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        onChange(nextValue);
+                        setAddressQuery(nextValue);
+                        setIsPlacesOpen(true);
+                      }}
+                      onFocus={() => setIsPlacesOpen(true)}
+                      onBlur={(event) => {
+                        onBlur();
+                        const inputEl = event.currentTarget;
+                        setTimeout(() => {
+                          if (!inputEl.contains(document.activeElement)) {
+                            setIsPlacesOpen(false);
+                          }
+                        }, 150);
+                      }}
+                      autoComplete="off"
+                    />
+
+                    {isPlacesOpen &&
+                    (isPlacesLoading ||
+                      placesError ||
+                      placePredictions.length > 0) ? (
+                      <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow">
+                        {isPlacesLoading ? (
+                          <p className="px-3 py-2 text-xs text-muted-foreground">
+                            Loading suggestions...
+                          </p>
+                        ) : placesError ? (
+                          <p className="px-3 py-2 text-xs text-destructive">
+                            {placesError}
+                          </p>
+                        ) : (
+                          <ul className="max-h-56 overflow-auto py-1 text-sm">
+                            {placePredictions.map((prediction) => (
+                              <li
+                                key={
+                                  prediction.place_id ?? prediction.description
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 hover:bg-muted"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() =>
+                                    handlePlaceSelect(prediction)
+                                  }
+                                >
+                                  <span className="font-medium">
+                                    {prediction.structured_formatting?.main_text ??
+                                      prediction.description}
+                                  </span>
+                                  {prediction.structured_formatting
+                                    ?.secondary_text ? (
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      {
+                                        prediction.structured_formatting
+                                          .secondary_text
+                                      }
+                                    </span>
+                                  ) : null}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              />
+              {searchAddressError ? (
+                <p className="text-sm text-red-500">{searchAddressError}</p>
+              ) : null}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormSearchableSelect
@@ -793,12 +999,12 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               emptyMessage="No country found."
             />
 
-            {/* <FormTextarea
+            <FormTextarea
               name="overseas_address"
-              label="Overseas Address(Optional)"
+              label="Overseas Address"
               placeholder="Enter overseas address"
               rows={5}
-            /> */}
+            />
           </div>
         </section>
 

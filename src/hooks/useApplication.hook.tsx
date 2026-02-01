@@ -9,6 +9,10 @@ import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
+  BulkArchiveResponse,
+  BulkDeleteResponse,
+  BulkUnarchiveResponse,
+  GalaxySyncResponse,
   TimelineResponse,
 } from "@/service/application.service";
 import applicationService from "@/service/application.service";
@@ -20,6 +24,10 @@ import signatureService, {
 import { useApplicationFormDataStore } from "@/store/useApplicationFormData.store";
 import type { ServiceResponse } from "@/types/service";
 import type { ApplicationCreateValues } from "@/validation/application.validation";
+
+export type ServiceMutationError = Error & {
+  response?: ServiceResponse<unknown>;
+};
 
 // --- Queries ---
 
@@ -52,7 +60,7 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
 };
 
 export const useApplicationRequestSignaturesQuery = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   return useQuery<SignatureRequestResponse, Error>({
     queryKey: ["application-signature-requests", applicationId],
@@ -61,7 +69,11 @@ export const useApplicationRequestSignaturesQuery = (
 
       const response = await signatureService.requestSignatures(applicationId);
 
-      if (!response.success) throw new Error(response.message);
+      if (!response.success) {
+        const error = new Error(response.message) as ServiceMutationError;
+        error.response = response;
+        throw error;
+      }
       if (!response.data) throw new Error("Response data is missing.");
 
       return response.data;
@@ -75,9 +87,8 @@ export const useApplicationTimelineQuery = (applicationId: string | null) => {
     queryKey: ["application-timeline", applicationId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationService.getApplicationTimeline(
-        applicationId
-      );
+      const response =
+        await applicationService.getApplicationTimeline(applicationId);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -92,7 +103,7 @@ export const useApplicationTimelineQuery = (applicationId: string | null) => {
 export const useApplicationSubmitMutation = (applicationId: string | null) => {
   const router = useRouter();
   const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData
+    (state) => state.clearAllData,
   );
   const queryClient = useQueryClient();
 
@@ -101,11 +112,14 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.submitApplication(
-        applicationId
-      );
+      const response =
+        await applicationService.submitApplication(applicationId);
 
-      if (!response.success) throw new Error(response.message);
+      if (!response.success) {
+        const error = new Error(response.message) as ServiceMutationError;
+        error.response = response;
+        throw error;
+      }
       if (!response.data)
         throw new Error("Application data is missing from response.");
 
@@ -136,7 +150,7 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
 
 export const useApplicationGetMutation = (applicationId: string | null) => {
   const populateFromApiResponse = useApplicationFormDataStore(
-    (state) => state.populateFromApiResponse
+    (state) => state.populateFromApiResponse,
   );
 
   return useMutation<ServiceResponse<ApplicationDetailResponse>, Error, void>({
@@ -184,7 +198,7 @@ export const useApplicationCreateMutation = () => {
   return useMutation<ApplicationResponse, Error, ApplicationCreateValues>({
     mutationKey: ["application-create"],
     mutationFn: async (
-      payload: ApplicationCreateValues = DEFAULT_CREATE_PAYLOAD_temp
+      payload: ApplicationCreateValues = DEFAULT_CREATE_PAYLOAD_temp,
     ) => {
       const response = await applicationService.createApplication(payload);
       if (!response.success) {
@@ -211,7 +225,7 @@ export const useApplicationCreateMutation = () => {
       } else {
         console.warn(
           "[Application] createApplication response missing id",
-          data
+          data,
         );
       }
     },
@@ -232,7 +246,7 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
 
         const response = await applicationService.updateApplication(
           applicationId,
-          payload
+          payload,
         );
 
         if (!response.success) throw new Error(response.message);
@@ -254,7 +268,7 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
       onError: (error) => {
         console.error("[Application] updateApplication failed", error);
       },
-    }
+    },
   );
 };
 
@@ -268,7 +282,7 @@ export const useApplicationAssignMutation = (applicationId: string | null) => {
 
       const response = await applicationService.assignApplication(
         applicationId,
-        staffId
+        staffId,
       );
 
       if (!response.success) throw new Error(response.message);
@@ -295,7 +309,7 @@ export const useApplicationAssignMutation = (applicationId: string | null) => {
 };
 
 export const useApplicationChangeStageMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -306,7 +320,7 @@ export const useApplicationChangeStageMutation = (
 
       const response = await applicationService.changeStage(
         applicationId,
-        payload
+        payload,
       );
 
       if (!response.success) throw new Error(response.message);
@@ -331,7 +345,7 @@ export const useApplicationChangeStageMutation = (
 
 // Staff - Enroll course in Galaxy
 export const useApplicationEnrollGalaxyCourseMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -344,9 +358,8 @@ export const useApplicationEnrollGalaxyCourseMutation = (
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.enrollGalaxyCourse(
-        applicationId
-      );
+      const response =
+        await applicationService.enrollGalaxyCourse(applicationId);
 
       if (!response.success) throw new Error(response.message);
       if (!response.data) throw new Error("Response data is missing.");
@@ -365,6 +378,41 @@ export const useApplicationEnrollGalaxyCourseMutation = (
     },
     onError: (error) => {
       console.error("[Application] enrollGalaxyCourse failed", error);
+    },
+  });
+};
+
+// Staff - Sync application in Galaxy
+export const useApplicationGalaxySyncMutation = (
+  applicationId: string | null,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<GalaxySyncResponse, Error, void>({
+    mutationKey: ["application-galaxy-sync", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response =
+        await applicationService.syncGalaxyApplication(applicationId);
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] galaxySync success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] galaxySync failed", error);
     },
   });
 };
@@ -390,9 +438,9 @@ export const useApplicationApproveMutation = (applicationId: string | null) => {
     mutationFn: async (payload) => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.startApplicationReview(
+      const response = await applicationService.approveApplication(
         applicationId,
-        payload
+        payload,
       );
 
       if (!response.success) throw new Error(response.message);
@@ -439,7 +487,7 @@ export const useApplicationRejectMutation = (applicationId: string | null) => {
 
       const response = await applicationService.rejectApplication(
         applicationId,
-        payload
+        payload,
       );
 
       if (!response.success) throw new Error(response.message);
@@ -465,7 +513,7 @@ export const useApplicationRejectMutation = (applicationId: string | null) => {
 
 // Staff - Generate offer letter hook
 export const useApplicationGenerateOfferLetterMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -483,9 +531,8 @@ export const useApplicationGenerateOfferLetterMutation = (
     mutationFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
 
-      const response = await applicationService.generateOfferLetter(
-        applicationId
-      );
+      const response =
+        await applicationService.generateOfferLetter(applicationId);
 
       if (!response.success) throw new Error(response.message);
       if (!response.data) throw new Error("Response data is missing.");
@@ -510,7 +557,7 @@ export const useApplicationGenerateOfferLetterMutation = (
 
 // Staff - Send offer letter hook
 export const useApplicationSendOfferLetterMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   const queryClient = useQueryClient();
 
@@ -521,7 +568,7 @@ export const useApplicationSendOfferLetterMutation = (
 
       const response = await signatureService.sendOfferLetter(
         applicationId,
-        payload
+        payload,
       );
 
       if (!response.success) throw new Error(response.message);
@@ -546,7 +593,7 @@ export const useApplicationSendOfferLetterMutation = (
 };
 
 export const useApplicationRequestSignaturesMutation = (
-  applicationId: string | null
+  applicationId: string | null,
 ) => {
   return useMutation<SignatureRequestResponse, Error, void>({
     mutationKey: ["application-request-signatures", applicationId],
@@ -569,6 +616,89 @@ export const useApplicationRequestSignaturesMutation = (
     },
     onError: (error) => {
       console.error("[Application] requestSignatures failed", error);
+    },
+  });
+};
+
+// Archive application
+export const useArchiveApplicationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
+    mutationFn: async (applicationId: string) => {
+      return await applicationService.archiveApplication(applicationId);
+    },
+    onSuccess: (_, applicationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Unarchive (restore) application
+export const useUnarchiveApplicationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<ApplicationResponse>, Error, string>({
+    mutationFn: async (applicationId: string) => {
+      return await applicationService.unarchiveApplication(applicationId);
+    },
+    onSuccess: (_, applicationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk archive applications
+export const useBulkArchiveApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkArchiveResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkArchiveApplications(applicationIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk delete applications
+export const useBulkDeleteApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkDeleteResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkDeleteApplications(applicationIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Bulk unarchive applications
+export const useBulkUnarchiveApplicationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<BulkUnarchiveResponse>, Error, string[]>({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.bulkUnarchiveApplications(
+        applicationIds,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
     },
   });
 };

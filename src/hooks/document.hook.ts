@@ -2,7 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import documentService, { type DocumentType, type OcrResult } from "@/service/document.service";
+import documentService, {
+  type DocumentType,
+  type OcrResult,
+} from "@/service/document.service";
 import type { ServiceResponse } from "@/types/service";
 import type { QueryValue } from "@/service/service-helpers";
 
@@ -11,11 +14,12 @@ type UploadDocumentParams = {
   application_id: string;
   document_type_id: string;
   file: File;
+  process_ocr?: boolean;
 };
 
-type VerifyDocumentParams = Record<string, unknown>;
+// type VerifyDocumentParams = Record<string, unknown>;
 
-type ListApplicationDocumentsParams = Record<string, QueryValue>;
+// type ListApplicationDocumentsParams = Record<string, QueryValue>;
 
 // Query hooks
 export const useDocumentTypesQuery = () => {
@@ -34,7 +38,7 @@ export const useDocumentTypesQuery = () => {
 
 export const useDocumentQuery = (
   documentId: string | null,
-  includeVersions: boolean = false
+  includeVersions: boolean = false,
 ) => {
   return useQuery({
     queryKey: ["document", documentId, includeVersions],
@@ -42,7 +46,7 @@ export const useDocumentQuery = (
       if (!documentId) throw new Error("Document ID is required");
       const response = await documentService.getDocument(
         documentId,
-        includeVersions
+        includeVersions,
       );
       if (!response.success) {
         throw new Error(response.message || "Failed to fetch document");
@@ -58,12 +62,11 @@ export const useApplicationDocumentsQuery = (applicationId: string | null) => {
     queryKey: ["application-documents", applicationId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Application ID is required");
-      const response = await documentService.listApplicationDocuments(
-        applicationId
-      );
+      const response =
+        await documentService.listApplicationDocuments(applicationId);
       if (!response.success) {
         throw new Error(
-          response.message || "Failed to fetch application documents"
+          response.message || "Failed to fetch application documents",
         );
       }
       return response;
@@ -82,11 +85,17 @@ export const useUploadDocument = () => {
     Error,
     UploadDocumentParams
   >({
-    mutationFn: async ({ application_id, document_type_id, file }) => {
+    mutationFn: async ({
+      application_id,
+      document_type_id,
+      file,
+      process_ocr,
+    }) => {
       const response = await documentService.uploadDocument(
         application_id,
         document_type_id,
-        file
+        file,
+        process_ocr,
       );
       if (!response.success) {
         throw new Error(response.message || "Failed to upload document");
@@ -107,6 +116,46 @@ export const useUploadDocument = () => {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to upload document");
+    },
+  });
+};
+
+export const useVerifyDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ServiceResponse<any>,
+    Error,
+    {
+      documentId: string;
+      status: "verified" | "rejected";
+      notes?: string;
+      applicationId?: string;
+    }
+  >({
+    mutationFn: async ({ documentId, status, notes }) => {
+      const response = await documentService.verifyDocument(documentId, {
+        status,
+        notes,
+      });
+      if (!response.success) {
+        throw new Error(response.message || "Failed to verify document");
+      }
+      return response;
+    },
+    onSuccess: (response, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["document", variables.documentId],
+      });
+      if (variables.applicationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["application-documents", variables.applicationId],
+        });
+      }
+      toast.success("Document status updated successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to verify document");
     },
   });
 };

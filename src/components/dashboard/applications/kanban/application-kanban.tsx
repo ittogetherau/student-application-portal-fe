@@ -35,51 +35,50 @@ function isTouchDevice() {
 const STAGES: APPLICATION_STAGE[] = [
   APPLICATION_STAGE.DRAFT,
   APPLICATION_STAGE.SUBMITTED,
-  APPLICATION_STAGE.STAFF_REVIEW,
-  APPLICATION_STAGE.AWAITING_DOCUMENTS,
+  APPLICATION_STAGE.IN_REVIEW,
+  APPLICATION_STAGE.OFFER_LETTER,
   APPLICATION_STAGE.GS_ASSESSMENT,
-  APPLICATION_STAGE.OFFER_GENERATED,
-  APPLICATION_STAGE.ENROLLED,
+  APPLICATION_STAGE.COE_ISSUED,
 ];
 
-const STAGE_LABELS: Record<APPLICATION_STAGE, string> = {
+const STAGE_LABELS = {
   [APPLICATION_STAGE.DRAFT]: "Draft",
   [APPLICATION_STAGE.SUBMITTED]: "Submitted",
-  [APPLICATION_STAGE.STAFF_REVIEW]: "Staff Review",
-  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "Awaiting Documents",
+  [APPLICATION_STAGE.IN_REVIEW]: "In Review",
+  [APPLICATION_STAGE.OFFER_LETTER]: "Offer Letter",
   [APPLICATION_STAGE.GS_ASSESSMENT]: "GS Assessment",
-  [APPLICATION_STAGE.OFFER_GENERATED]: "Offer Generated",
-  [APPLICATION_STAGE.OFFER_ACCEPTED]: "Offer Accepted",
-  [APPLICATION_STAGE.ENROLLED]: "Enrolled",
-  [APPLICATION_STAGE.REJECTED]: "Rejected",
-  [APPLICATION_STAGE.WITHDRAWN]: "Withdrawn",
-};
+  [APPLICATION_STAGE.COE_ISSUED]: "COE Issued",
+} satisfies Partial<Record<APPLICATION_STAGE, string>>;
 
-const STAGE_COLORS: Record<APPLICATION_STAGE, string> = {
+const STAGE_COLORS = {
   [APPLICATION_STAGE.DRAFT]: "bg-gray-500",
   [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500",
-  [APPLICATION_STAGE.STAFF_REVIEW]: "bg-yellow-500",
-  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "bg-orange-500",
+  [APPLICATION_STAGE.IN_REVIEW]: "bg-yellow-500",
+  [APPLICATION_STAGE.OFFER_LETTER]: "bg-orange-500",
   [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500",
-  [APPLICATION_STAGE.OFFER_GENERATED]: "bg-purple-500",
-  [APPLICATION_STAGE.OFFER_ACCEPTED]: "bg-green-500",
-  [APPLICATION_STAGE.ENROLLED]: "bg-emerald-600",
-  [APPLICATION_STAGE.REJECTED]: "bg-red-500",
-  [APPLICATION_STAGE.WITHDRAWN]: "bg-slate-500",
-};
+  [APPLICATION_STAGE.COE_ISSUED]: "bg-emerald-500",
+} satisfies Partial<Record<APPLICATION_STAGE, string>>;
 
-const STAGE_BACKGROUNDS: Record<APPLICATION_STAGE, string> = {
+const STAGE_BACKGROUNDS = {
   [APPLICATION_STAGE.DRAFT]: "bg-gray-500/5",
   [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500/5",
-  [APPLICATION_STAGE.STAFF_REVIEW]: "bg-yellow-500/5",
-  [APPLICATION_STAGE.AWAITING_DOCUMENTS]: "bg-orange-500/5",
+  [APPLICATION_STAGE.IN_REVIEW]: "bg-yellow-500/5",
+  [APPLICATION_STAGE.OFFER_LETTER]: "bg-orange-500/5",
   [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500/5",
-  [APPLICATION_STAGE.OFFER_GENERATED]: "bg-purple-500/5",
-  [APPLICATION_STAGE.OFFER_ACCEPTED]: "bg-green-500/5",
-  [APPLICATION_STAGE.ENROLLED]: "bg-emerald-500/5",
-  [APPLICATION_STAGE.REJECTED]: "bg-red-500/5",
-  [APPLICATION_STAGE.WITHDRAWN]: "bg-slate-500/5",
-};
+  [APPLICATION_STAGE.COE_ISSUED]: "bg-emerald-500/5",
+} satisfies Partial<Record<APPLICATION_STAGE, string>>;
+
+const getStageLabel = (stage: APPLICATION_STAGE) =>
+  (STAGE_LABELS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
+  "Updated";
+
+const getStageColor = (stage: APPLICATION_STAGE) =>
+  (STAGE_COLORS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
+  "bg-slate-500";
+
+const getStageBackground = (stage: APPLICATION_STAGE) =>
+  (STAGE_BACKGROUNDS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
+  "";
 
 export function ApplicationKanban({
   data,
@@ -218,7 +217,8 @@ export function ApplicationKanban({
             queryKey: ["application-get", activeId],
           });
 
-          toast.success(`Application moved to "${STAGE_LABELS[overStage]}"`, {
+          const stageLabel = getStageLabel(overStage);
+          toast.success(`Application moved to "${stageLabel}"`, {
             icon: "OK",
           });
         } else {
@@ -265,9 +265,9 @@ export function ApplicationKanban({
               key={stage}
               stage={stage}
               applications={applicationsByStage[stage] || []}
-              statusLabel={STAGE_LABELS[stage]}
-              statusColor={STAGE_COLORS[stage]}
-              statusBackground={STAGE_BACKGROUNDS[stage] || ""}
+              statusLabel={getStageLabel(stage)}
+              statusColor={getStageColor(stage)}
+              statusBackground={getStageBackground(stage)}
               isallowMovingInKanban={isallowMovingInKanban}
             />
           ))}
@@ -288,9 +288,6 @@ export function ApplicationKanban({
                   </p>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {activeApplication.destination}
-                  </span>
                   <Badge variant="outline" className="text-xs h-5">
                     {activeApplication.referenceNumber}
                   </Badge>

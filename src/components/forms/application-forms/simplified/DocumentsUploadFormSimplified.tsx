@@ -1,11 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { documentTypes } from "@/data/document-types.data";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "../../../../app/dashboard/application/create/_components/application-step-header";
 import { useApplicationFormContext } from "@/contexts/ApplicationFormContext";
 import { Badge } from "@/components/ui/badge";
+
+const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+
+const isAllowedFileType = (file: File): boolean => {
+  const fileName = file.name.toLowerCase();
+  const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some((ext) =>
+    fileName.endsWith(ext)
+  );
+  const hasAllowedMime =
+    !file.type || ALLOWED_MIME_TYPES.includes(file.type.toLowerCase());
+  return hasAllowedExtension && hasAllowedMime;
+};
 
 /**
  * Simplified Documents Upload Form
@@ -69,6 +83,13 @@ export default function DocumentsUploadFormSimplified() {
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
+                  const files = Array.from(e.target.files);
+                  const invalidFiles = files.filter((f) => !isAllowedFileType(f));
+                  if (invalidFiles.length > 0) {
+                    toast.error("Invalid file type. Only PDF, JPG, and PNG files are allowed.");
+                    e.target.value = "";
+                    return;
+                  }
                   handleUploadComplete(docType.id);
                 }
               }}

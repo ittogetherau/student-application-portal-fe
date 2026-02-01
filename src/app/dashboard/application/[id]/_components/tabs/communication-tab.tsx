@@ -120,11 +120,12 @@ export default function CommunicationTab({
                 <Link
                   href={formatParamUrl(
                     {
+                      application_tab: "communication",
                       view: "message",
-                      applicationId,
                       threadId: thread.id,
+                      applicationId,
                     },
-                    `${siteRoutes.dashboard.application.root}/${applicationId}/`
+                    `${siteRoutes.dashboard.application.root}/${applicationId}/`,
                   )}
                 >
                   <Button size="sm" variant="secondary" className="h-7 text-xs">

@@ -36,28 +36,79 @@ type AutoFillData = {
   };
 };
 
+const FIRST_NAMES = [
+  "Ava",
+  "Liam",
+  "Mia",
+  "Noah",
+  "Sophia",
+  "Ethan",
+  "Isabella",
+  "Lucas",
+  "Amelia",
+  "Mason",
+  "Olivia",
+  "Logan",
+];
+
+const LAST_NAMES = [
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Garcia",
+  "Miller",
+  "Davis",
+  "Martinez",
+  "Anderson",
+  "Taylor",
+  "Thomas",
+  "Hernandez",
+];
+
+const pickOne = <T>(values: T[]): T =>
+  values[Math.floor(Math.random() * values.length)];
+
+const randomDigits = (length: number) =>
+  Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+
+const buildEmail = (first: string, last: string) => {
+  const suffix = Math.floor(Math.random() * 900 + 100);
+  return `${first}.${last}${suffix}@example.com`.toLowerCase();
+};
+
+const studentFirstName = pickOne(FIRST_NAMES);
+const studentLastName = pickOne(LAST_NAMES);
+const studentEmail = buildEmail(studentFirstName, studentLastName);
+const studentPhone = `04${randomDigits(8)}`;
+const studentHomePhone = `0${randomDigits(9)}`;
+
+const emergencyFirstName = pickOne(FIRST_NAMES);
+const emergencyLastName = pickOne(LAST_NAMES);
+const emergencyEmail = buildEmail(emergencyFirstName, emergencyLastName);
+const emergencyPhone = `04${randomDigits(8)}`;
+
 export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
   enrollmentData: {
+    course: 8,
+    course_name: "Bachelor Of Business- Major In Information System",
+    intake: 50,
+    intake_name: "CIHE2023 SEM 2",
     campus: 1,
-    course: 6,
-    intake: 53,
-    campus_name: "",
-    course_name: "",
-    intake_name: "",
+    campus_name: "CIHE Parramatta Campus",
   },
   personalDetailsData: {
     student_origin: "Overseas Student (Offshore)",
     title: "Mr",
-    given_name: "John",
+    given_name: studentFirstName,
     middle_name: "Michael",
-    family_name: "Smith",
+    family_name: studentLastName,
     gender: "Male",
     date_of_birth: "1995-06-15",
-    email: "john12.smith@example.com",
-    // alternate_email: "j.smith.alt@example.com",
-    phone: "1234567890",
-    home_phone: "0987654321",
-    country_of_birth: "United States",
+    email: studentEmail,
+    phone: studentPhone,
+    home_phone: studentHomePhone,
+    country_of_birth: "australia",
     nationality: "American",
     passport_number: "A12345678",
     passport_expiry: "2030-12-31",
@@ -83,15 +134,14 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     postal_state: "",
     postal_postcode: "",
     overseas_country: "United States",
-    // overseas_address: "456 Oak Avenue, New York, NY 10001",
   },
   emergencyContactData: {
     contacts: [
       {
-        name: "Jane Smith",
+        name: `${emergencyFirstName} ${emergencyLastName}`,
         relationship: "friend",
-        phone: "0987654321",
-        email: "jane.smith@example.com",
+        phone: emergencyPhone,
+        email: emergencyEmail,
         address: "456 Oak Street, Melbourne VIC 3000",
         is_primary: true,
       },
@@ -153,17 +203,12 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
     still_attending: "No",
     entries: [
       {
-
         country: "Australia",
 
         institution: "St. Mary's High School",
         start_year: 2012,
         qualification_level: "12 - Completed year 12",
         currently_attending: false,
-
-
-
-
       },
     ],
     secondary_school_type: "Government",

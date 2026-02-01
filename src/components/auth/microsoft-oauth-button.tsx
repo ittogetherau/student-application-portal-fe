@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-import authService from "@/service/auth.service";
 import { siteRoutes } from "@/constants/site-routes";
-import type { LoginResponse } from "@/service/auth.service";
 import { cn } from "@/lib/utils";
+import type { LoginResponse } from "@/service/auth.service";
+import authService from "@/service/auth.service";
 
 interface MicrosoftOAuthButtonProps {
   className?: string;
@@ -221,9 +221,7 @@ const MicrosoftOAuthButton = ({
     setIsLoading(true);
     try {
       const redirectUri =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${window.location.pathname}`
-          : "";
+        typeof window !== "undefined" ? window.location.origin : "";
 
       const result = await authService.microsoftLogin({
         role,

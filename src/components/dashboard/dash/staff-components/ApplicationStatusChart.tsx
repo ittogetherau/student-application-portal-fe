@@ -24,7 +24,6 @@ interface ApplicationStatusChartProps {
 }
 
 export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
-  const [dateFilter, setDateFilter] = useState("all");
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -41,19 +40,6 @@ export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
           <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium mt-1">
             Status breakdown for current intake
           </p>
-        </div>
-        <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-xl self-start sm:self-auto ring-1 ring-neutral-200 dark:ring-neutral-700">
-          <Calendar className="w-4 h-4 text-neutral-500 ml-2" />
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-transparent border-none py-1 pl-1 pr-6 text-xs font-medium text-neutral-700 dark:text-neutral-300 focus:ring-0 cursor-pointer outline-none"
-          >
-            <option value="today">Today</option>
-            <option value="7days">7 Days</option>
-            <option value="30days">30 Days</option>
-            <option value="all">All Time</option>
-          </select>
         </div>
       </div>
       <div className="h-[300px] w-full">

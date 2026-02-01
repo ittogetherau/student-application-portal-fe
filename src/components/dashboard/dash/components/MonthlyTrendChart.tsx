@@ -129,7 +129,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
                   stroke="#8b5cf6"
                   strokeWidth={2}
                   fill="#8b5cf6"
-                  name="COE Issued"
+                  name="Confirmation of Enrollment"
                 />
               </BarChart>
             </ResponsiveContainer>

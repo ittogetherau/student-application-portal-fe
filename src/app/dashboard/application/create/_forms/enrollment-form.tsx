@@ -23,7 +23,7 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
@@ -31,7 +31,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { setStepData, setApplicationId, _hasHydrated } =
     useApplicationFormDataStore();
   const storedStepData = useApplicationFormDataStore(
-    (state) => state.stepData[0]
+    (state) => state.stepData[0],
   );
 
   const {
@@ -62,9 +62,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     formData.intakeId !== "" &&
     formData.campusId !== "";
 
+  const hasRestoredRef = useRef(false);
+
   /* ---------- restore saved step ---------- */
   useEffect(() => {
-    if (!_hasHydrated) return;
+    if (!_hasHydrated || hasRestoredRef.current) return;
 
     const saved = storedStepData as
       | {
@@ -82,11 +84,14 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const intakeId = (saved as { intakeId?: number }).intakeId ?? saved.intake;
     const campusId = (saved as { campusId?: number }).campusId ?? saved.campus;
 
-    setFormData({
+    const nextFormData = {
       courseId: courseId?.toString() ?? "",
       intakeId: intakeId?.toString() ?? "",
       campusId: campusId?.toString() ?? "",
-    });
+    };
+
+    setFormData(nextFormData);
+    hasRestoredRef.current = true;
   }, [storedStepData, _hasHydrated]);
 
   /* ---------- auto-save to store ---------- */
@@ -107,7 +112,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   /* ---------- deterministic updates ---------- */
   const handleFieldChange = (
     field: "courseId" | "intakeId" | "campusId",
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => {
       if (field === "courseId") {
@@ -124,23 +129,23 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   /* ---------- derived entities ---------- */
   const selectedCourse = courses.find(
-    (c) => String(c.id) === formData.courseId
+    (c) => String(c.id) === formData.courseId,
   );
 
   const selectedIntake = useMemo(
     () =>
       selectedCourse?.intakes?.find((i) => String(i.id) === formData.intakeId),
-    [selectedCourse, formData.intakeId]
+    [selectedCourse, formData.intakeId],
   );
 
   const selectedCampus = useMemo(
     () =>
-      selectedCourse?.campuses?.find((c) => String(c.id) === formData.campusId),
-    [selectedCourse, formData.campusId]
+      selectedIntake?.campuses?.find((c) => String(c.id) === formData.campusId),
+    [selectedIntake, formData.campusId],
   );
 
   const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedCourse?.campuses ?? [];
+  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
 
   /* ---------- save flow ---------- */
   const handleSaveAndContinue = async () => {
@@ -220,68 +225,70 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   }
 
   return (
-    <div className="space-y-8 p-4 border rounded-lg">
-      <div className="grid-cols-3 grid gap-4">
-        {/* Course */}
-        <div className="space-y-2">
-          <Label>Course *</Label>
-          <Select
-            value={formData.courseId}
-            onValueChange={(v) => handleFieldChange("courseId", v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.course_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-8 p-4 border rounded-lg">
+        <div className="grid-cols-3 grid gap-4">
+          {/* Course */}
+          <div className="space-y-2">
+            <Label>Course *</Label>
+            <Select
+              value={formData.courseId}
+              onValueChange={(v) => handleFieldChange("courseId", v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.course_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Intake */}
-        <div className="space-y-2">
-          <Label>Intake *</Label>
-          <Select
-            value={formData.intakeId}
-            onValueChange={(v) => handleFieldChange("intakeId", v)}
-            disabled={!formData.courseId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select intake" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableIntakes.map((i) => (
-                <SelectItem key={i.id} value={String(i.id)}>
-                  {i.intake_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Intake */}
+          <div className="space-y-2">
+            <Label>Intake *</Label>
+            <Select
+              value={formData.intakeId}
+              onValueChange={(v) => handleFieldChange("intakeId", v)}
+              disabled={!formData.courseId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select intake" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableIntakes.map((i) => (
+                  <SelectItem key={i.id} value={String(i.id)}>
+                    {i.intake_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Campus */}
-        <div className="space-y-2">
-          <Label>Campus *</Label>
-          <Select
-            value={formData.campusId}
-            onValueChange={(v) => handleFieldChange("campusId", v)}
-            disabled={!formData.intakeId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select campus" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableCampuses.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Campus */}
+          <div className="space-y-2">
+            <Label>Campus *</Label>
+            <Select
+              value={formData.campusId}
+              onValueChange={(v) => handleFieldChange("campusId", v)}
+              disabled={!formData.intakeId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select campus" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCampuses.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

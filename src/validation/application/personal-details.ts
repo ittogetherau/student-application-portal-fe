@@ -40,9 +40,13 @@ export const personalDetailsSchema = z.object({
 
   phone: z
     .string()
+    .max(15, "Phone number must be at most 15 characters")
     .nullish()
     .refine((val) => !!val && val.trim().length > 0, "Phone number is required"),
-  home_phone: z.string().nullish(),
+  home_phone: z
+    .string()
+    .max(15, "Home phone must be at most 15 characters")
+    .nullish(),
 
   // Passport Details
   country_of_birth: z
@@ -111,7 +115,20 @@ export const personalDetailsSchema = z.object({
   postal_postcode: z.string().nullish(),
 
   // Overseas/Permanent Address
-  overseas_country: z.string().nullish().refine((val) => !!val && val.trim().length > 0, "Overseas country is required"),
+  overseas_country: z
+    .string()
+    .nullish()
+    .refine(
+      (val) => !!val && val.trim().length > 0,
+      "Overseas country is required"
+    ),
+  overseas_address: z
+    .string()
+    .nullish()
+    .refine(
+      (val) => !!val && val.trim().length > 0,
+      "Overseas address is required"
+    ),
 
 }).superRefine((data, ctx) => {
   // Visa details are only required if student_origin is "Overseas Student in Australia (Onshore)"
@@ -240,4 +257,5 @@ export const defaultPersonalDetailsValues: PersonalDetailsValues = {
   postal_state: "",
   postal_postcode: "",
   overseas_country: "",
+  overseas_address: "",
 };

@@ -8,6 +8,7 @@ interface FormRadioProps {
   label: string;
   options: string[] | { label: string; value: string }[];
   colMode?: boolean;
+  disabled?: boolean;
 }
 
 export function FormRadio({
@@ -15,6 +16,7 @@ export function FormRadio({
   label,
   options,
   colMode = false,
+  disabled = false,
 }: FormRadioProps) {
   const {
     control,
@@ -37,6 +39,7 @@ export function FormRadio({
             value={value as string}
             onValueChange={onChange}
             className="flex gap-1 flex-wrap"
+            disabled={disabled}
           >
             {options.map((option) => {
               const optValue =

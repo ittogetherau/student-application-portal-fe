@@ -76,6 +76,7 @@ export function StaffAssignmentSelect({
           role="combobox"
           aria-expanded={open}
           disabled={assignMutation.isPending}
+          id="1-sre"
           className="w-full h-8 justify-between text-sm"
         >
           {assignMutation.isPending ? (
@@ -87,7 +88,7 @@ export function StaffAssignmentSelect({
           ) : isStaffLoading ? (
             "Loading..."
           ) : (
-            <span className="text-foreground">Unassigned</span>
+            <span className="text-foreground">Assign To</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -107,7 +108,7 @@ export function StaffAssignmentSelect({
                     !currentStaffId ? "opacity-100" : "opacity-0"
                   }`}
                 />
-                <span className="text-foreground">Unassigned</span>
+                <span className="text-foreground">Assign To</span>
               </CommandItem>
               {staffMembers.map((staff) => {
                 const assignId = staff.staff_profile?.id || staff.id;

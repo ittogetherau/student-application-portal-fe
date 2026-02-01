@@ -164,9 +164,47 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       },
 
       populateFromApiResponse: (apiResponse: ApplicationDetailResponse) => {
+        console.log("[Store] populateFromApiResponse", {
+          applicationId: apiResponse.id,
+          hasPersonalDetails: !!apiResponse.personal_details,
+          hasEmergencyContacts: !!apiResponse.emergency_contacts?.length,
+          hasLanguageCultural: !!apiResponse.language_cultural_data,
+          hasDisabilitySupport: !!apiResponse.disability_support,
+          hasUsi: !!apiResponse.usi,
+          hasEnrollment: !!apiResponse.enrollment_data,
+        });
         set((state) => {
           // Clear previous data to prevent leaking between applications
           const newStepData: Record<number, unknown> = {};
+
+          // Step 0: Enrollment
+          if (apiResponse.enrollment_data) {
+            const enrollment = apiResponse.enrollment_data as Record<
+              string,
+              unknown
+            >;
+            const courseId =
+              (enrollment.courseId as number | undefined) ??
+              (enrollment.course_id as number | undefined) ??
+              (enrollment.course as number | undefined);
+            const intakeId =
+              (enrollment.intakeId as number | undefined) ??
+              (enrollment.intake_id as number | undefined) ??
+              (enrollment.intake as number | undefined);
+            const campusId =
+              (enrollment.campusId as number | undefined) ??
+              (enrollment.campus_id as number | undefined) ??
+              (enrollment.campus as number | undefined);
+
+            newStepData[0] = {
+              courseId,
+              intakeId,
+              campusId,
+              course: courseId,
+              intake: intakeId,
+              campus: campusId,
+            };
+          }
 
           // Map API response fields to step IDs
           // Step 1: Personal Details
@@ -179,10 +217,7 @@ export const useApplicationFormDataStore = create<FormDataState>()(
             newStepData[2] = { contacts: apiResponse.emergency_contacts };
           }
 
-          // Step 3: Health Cover
-          if (apiResponse.health_cover_policy) {
-            newStepData[3] = apiResponse.health_cover_policy;
-          }
+          // Step 3 (Health Cover) is hidden; skip prefilling.
 
           // Step 4: Language & Culture
           if (apiResponse.language_cultural_data) {
@@ -225,57 +260,42 @@ export const useApplicationFormDataStore = create<FormDataState>()(
             newStepData[5] = ds;
           }
 
-          // Step 6: Schooling History
-          if (
-            apiResponse.schooling_history &&
-            apiResponse.schooling_history.length > 0
-          ) {
-            newStepData[6] = apiResponse.schooling_history[0];
-          }
+          // Step 6 (Schooling) is hidden; skip prefilling.
 
           // Step 7: Qualifications
           if (apiResponse.qualifications) {
+            const qualificationsSource = apiResponse.qualifications as
+              | unknown[]
+              | Record<string, unknown>;
+            const qualifications = Array.isArray(qualificationsSource)
+              ? qualificationsSource
+              : Array.isArray(qualificationsSource?.qualifications)
+              ? (qualificationsSource.qualifications as unknown[])
+              : [];
             newStepData[7] = {
-              has_qualifications:
-                apiResponse.qualifications.length > 0 ? "Yes" : "No",
-              qualifications: apiResponse.qualifications,
+              has_qualifications: qualifications.length > 0 ? "Yes" : "No",
+              qualifications,
             };
           }
 
-          // Step 8: Employment History
-          if (
-            apiResponse.employment_history &&
-            apiResponse.employment_history.length > 0
-          ) {
-            newStepData[8] = apiResponse.employment_history[0];
-          }
+          // Step 8 (Employment) is hidden; skip prefilling.
 
           // Step 9: USI
           if (apiResponse.usi) {
             newStepData[9] = { usi: apiResponse.usi };
           }
 
-          // Step 10: Additional Services
-          if (apiResponse.additional_services) {
-            newStepData[10] = {
-              request_additional_services: apiResponse.additional_services
-                .services?.length
-                ? "Yes"
-                : "No",
-              services: apiResponse.additional_services.services || [],
-            };
-          }
+          // Step 10 (Additional Services) is hidden; skip prefilling.
 
-          // Step 11: Survey
-          if (
-            apiResponse.survey_responses &&
-            apiResponse.survey_responses.length > 0
-          ) {
-            newStepData[11] = apiResponse.survey_responses[0];
-          }
+          // Step 11 (Survey) is hidden; skip prefilling.
 
           // Also restore completed steps in the navigation store
           useApplicationStepStore.getState().restoreCompletedSteps(newStepData);
+
+          console.log("[Store] mapped stepData keys", {
+            keys: Object.keys(newStepData),
+            stepData: newStepData,
+          });
 
           return { stepData: newStepData };
         });
@@ -289,8 +309,13 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           // Map OCR sections to step IDs
           // Step 1: Personal Details
           if (ocrResult.sections.personal_details?.extracted_data) {
-            const extractedData = ocrResult.sections.personal_details.extracted_data;
-            if (extractedData && typeof extractedData === "object" && !Array.isArray(extractedData)) {
+            const extractedData =
+              ocrResult.sections.personal_details.extracted_data;
+            if (
+              extractedData &&
+              typeof extractedData === "object" &&
+              !Array.isArray(extractedData)
+            ) {
               const dataObj = extractedData as Record<string, unknown>;
               const transformedData: Record<string, unknown> = { ...dataObj };
 

@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -20,9 +19,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { UserRole } from "@/lib/auth";
 import { siteRoutes } from "@/constants/site-routes";
+import type { UserRole } from "@/lib/auth";
 import {
+  Calendar,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -31,6 +31,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -40,6 +41,7 @@ const ICONS = {
   agents: Users,
   queue: Inbox,
   tasks: ListTodo,
+  calendar: Calendar,
 };
 
 export type SidebarIconName = keyof typeof ICONS;

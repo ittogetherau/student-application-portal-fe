@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
   useApplicationRequestSignaturesMutation,
@@ -29,7 +28,6 @@ import {
   User,
 } from "lucide-react";
 import { memo, useEffect, useState } from "react";
-import toast from "react-hot-toast";
 
 const formatDateTime = (value: string | null) => {
   if (!value) return "N/A";
@@ -48,15 +46,25 @@ interface SignerRowProps {
   url: string;
   icon: React.ReactNode;
   signedAt?: string | null;
+  isInteractive?: boolean;
 }
 
 const SignerRow = memo(
-  ({ name, email, url, icon, signedAt }: SignerRowProps) => (
+  ({ name, email, url, signedAt, isInteractive = true }: SignerRowProps) => (
     <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-colors"
+      href={isInteractive ? url : "#"}
+      target={isInteractive ? "_blank" : undefined}
+      rel={isInteractive ? "noreferrer" : undefined}
+      aria-disabled={!isInteractive}
+      tabIndex={isInteractive ? 0 : -1}
+      onClick={(event) => {
+        if (!isInteractive) {
+          event.preventDefault();
+        }
+      }}
+      className={`flex items-center justify-between p-2 rounded-md transition-colors ${
+        isInteractive ? "hover:bg-muted/40" : "opacity-70"
+      }`}
     >
       <div className="flex items-center justify-between w-full gap-3 min-w-0">
         <div className="space-y-0.5 min-w-0">
@@ -76,13 +84,13 @@ const SignerRow = memo(
         </div>
 
         <div className="s">
-          <Button variant={"ghost"} size={"icon-sm"}>
+          <Button variant={"ghost"} size={"icon-sm"} disabled={!isInteractive}>
             <ExternalLink />
           </Button>
         </div>
       </div>
     </a>
-  )
+  ),
 );
 
 SignerRow.displayName = "SignerRow";
@@ -92,6 +100,8 @@ interface ApplicationSignDisplayProps {
   currentRole?: string;
   studentEmail?: string | null;
   cardBorderClass?: string;
+  handleStageChange: (val: APPLICATION_STAGE) => void;
+  isInteractive?: boolean;
 }
 
 const ApplicationSignDisplay = ({
@@ -99,6 +109,8 @@ const ApplicationSignDisplay = ({
   currentRole,
   studentEmail,
   cardBorderClass,
+  handleStageChange,
+  isInteractive = true,
 }: ApplicationSignDisplayProps) => {
   const {
     data,
@@ -118,7 +130,7 @@ const ApplicationSignDisplay = ({
 
   const handleResend = async () => {
     if (!studentEmail) return;
-    await sendOfferLetter({ student_email: studentEmail });
+    await sendOfferLetter({ student_email: studentEmail, student_name: "" });
     await requestSignatures();
     setConfirmOpen(false);
   };
@@ -128,7 +140,12 @@ const ApplicationSignDisplay = ({
       <div className={cardBorderClass}>
         <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
         <p className="text-sm font-medium">Signature data unavailable</p>
-        <Button variant="outline" size="sm" onClick={() => requestSignatures()}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => requestSignatures()}
+          disabled={!isInteractive}
+        >
           Retry
         </Button>
       </div>
@@ -157,9 +174,11 @@ const ApplicationSignDisplay = ({
             if (i === 0)
               return (
                 <div key={item.id} className="space-y-1">
-                  <h4 className="text-sm font-semibold flex items-center gap-2">
-                    {item.document_title}
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      {item.document_title}
+                    </h4>
+                  </div>
 
                   <div>
                     <SignerRow
@@ -168,6 +187,7 @@ const ApplicationSignDisplay = ({
                       url={item.student.signing_url}
                       icon={<User className="h-4 w-4" />}
                       signedAt={item.student.signed_at}
+                      isInteractive={true}
                     />
                     <SignerRow
                       name={item.agent.name}
@@ -175,6 +195,7 @@ const ApplicationSignDisplay = ({
                       url={item.agent.signing_url}
                       icon={<ShieldCheck className="h-4 w-4" />}
                       signedAt={item.agent.signed_at}
+                      isInteractive={true}
                     />
                   </div>
 
@@ -242,18 +263,29 @@ const ApplicationSignDisplay = ({
         </div>
       )}
 
-      {/* <Separator className="mb-2" /> */}
-
-      {currentRole === USER_ROLE.STAFF &&
-        data?.items[0].student.signed_at &&
-        data?.items[0].agent.signed_at && (
-          <div className="px-2">
-            <Button className="w-full">
-              Start GS Documentation
-              <ArrowRight />
-            </Button>
-          </div>
-        )}
+      {currentRole === USER_ROLE.STAFF && (
+        <>
+          {data && data.items.length > 0 && (
+            <>
+              {data?.items[0].student.signed_at &&
+                data?.items[0].agent.signed_at && (
+                  <div className="px-2">
+                    <Button
+                      onClick={() =>
+                        handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)
+                      }
+                      className="w-full text-xs"
+                      disabled={!isInteractive}
+                    >
+                      Start GS Documentation
+                      <ArrowRight />
+                    </Button>
+                  </div>
+                )}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 };

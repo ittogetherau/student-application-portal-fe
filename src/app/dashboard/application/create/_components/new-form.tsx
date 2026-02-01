@@ -10,7 +10,7 @@ import { useApplicationFormDataStore } from "@/store/useApplicationFormData.stor
 import { useApplicationStepStore } from "@/store/useApplicationStep.store";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useAutoFill from "../_hooks/useAutoFill";
 import { useStepNavigation } from "../_hooks/useStepNavigation";
 import { FORM_COMPONENTS } from "../_utils/form-step-components";
@@ -38,11 +38,11 @@ const NewForm = ({
   } = useApplicationStepStore();
 
   const storedApplicationId = useApplicationFormDataStore(
-    (state) => state.applicationId
+    (state) => state.applicationId,
   );
   const stepData = useApplicationFormDataStore((state) => state.stepData);
   const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData
+    (state) => state.clearAllData,
   );
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
@@ -52,10 +52,10 @@ const NewForm = ({
   const [isInitialized, setIsInitialized] = useState(false);
 
   const hasHydratedData = useApplicationFormDataStore(
-    (state) => state._hasHydrated
+    (state) => state._hasHydrated,
   );
   const hasHydratedSteps = useApplicationStepStore(
-    (state) => state._hasHydrated
+    (state) => state._hasHydrated,
   );
   const isHydrated = hasHydratedData && hasHydratedSteps;
 
@@ -66,15 +66,11 @@ const NewForm = ({
   const { canNavigateToStep } = useStepNavigation(isEditMode);
   const hasStoredStepData = useMemo(
     () => Object.keys(stepData).length > 0,
-    [stepData]
+    [stepData],
   );
   const hasCompletedSteps = completedSteps.length > 0;
 
-  const shouldFetchEditData =
-    isEditMode &&
-    (!storedApplicationId ||
-      storedApplicationId !== applicationId ||
-      !hasStoredStepData);
+  const fetchedEditApplicationRef = useRef<string | null>(null);
 
   // Initialize form
   useEffect(() => {
@@ -86,7 +82,7 @@ const NewForm = ({
       // If we are in create mode but have stale data from a previous session, clear it
       if (storedApplicationId || hasStoredStepData || hasCompletedSteps) {
         console.log(
-          "[NewForm] Clearing stale application data for new session"
+          "[NewForm] Clearing stale application data for new session",
         );
         clearAllData();
         resetNavigation();
@@ -95,7 +91,10 @@ const NewForm = ({
       setIsInitialized(true);
     } else if (isEditMode) {
       // --- EDIT / CONTINUE MODE ---
-      if (shouldFetchEditData) {
+      const hasFetchedThisSession =
+        fetchedEditApplicationRef.current === applicationId;
+
+      if (applicationId && !hasFetchedThisSession) {
         // Load fresh data from API
         getApplication(undefined, {
           onSuccess: (res) => {
@@ -103,10 +102,13 @@ const NewForm = ({
               // Initialize step navigation with loaded data
               const stepData = useApplicationFormDataStore.getState().stepData;
               initializeStep(applicationId, stepData);
+              setAutoFillKey((prev) => prev + 1);
             }
+            fetchedEditApplicationRef.current = applicationId;
             setIsInitialized(true);
           },
           onError: () => {
+            fetchedEditApplicationRef.current = applicationId;
             setIsInitialized(true);
           },
         });
@@ -130,7 +132,6 @@ const NewForm = ({
     goToStep,
     getApplication,
     initializeStep,
-    shouldFetchEditData,
     isHydrated,
     storedApplicationId,
     hasStoredStepData,
@@ -147,6 +148,7 @@ const NewForm = ({
       </div>
     );
   }
+
   return (
     <>
       <ContainerLayout className="mb-4">
@@ -181,7 +183,7 @@ const NewForm = ({
           <Card>
             <CardContent className="flex flex-col gap-1 p-2">
               {FORM_STEPS.filter(
-                (step) => !HIDDEN_STEP_IDS.includes(step.id)
+                (step) => !HIDDEN_STEP_IDS.includes(step.id),
               ).map((step, index) => {
                 const canNavigate = canNavigateToStep(step.id, currentStep);
                 const isCompleted = isStepCompleted(step.id);
@@ -198,9 +200,9 @@ const NewForm = ({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : canNavigate
-                        ? "hover:bg-muted"
-                        : "cursor-not-allowed",
-                      !canNavigate && "pointer-events-none"
+                          ? "hover:bg-muted"
+                          : "cursor-not-allowed",
+                      !canNavigate && "pointer-events-none",
                     )}
                     title={
                       !canNavigate && isCreateMode
@@ -214,10 +216,10 @@ const NewForm = ({
                         isCurrent
                           ? "bg-primary-foreground text-primary font-bold"
                           : isCompleted
-                          ? "bg-emerald-100 text-emerald-700"
-                          : canNavigate
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-muted/50 text-muted-foreground/50"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : canNavigate
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-muted/50 text-muted-foreground/50",
                       )}
                     >
                       {isCompleted && !isCurrent ? (
@@ -229,7 +231,7 @@ const NewForm = ({
                     <span
                       className={cn(
                         "text-sm hidden lg:block",
-                        !canNavigate && "text-muted-foreground/50"
+                        !canNavigate && "text-muted-foreground/50",
                       )}
                     >
                       {step.title}

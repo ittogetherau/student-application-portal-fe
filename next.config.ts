@@ -20,7 +20,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/",
-        destination: "/dashboard",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/api/v1/auth/microsoft/callback",
+        destination: "/login",
         permanent: false,
       },
     ];

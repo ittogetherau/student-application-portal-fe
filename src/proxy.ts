@@ -36,12 +36,12 @@ const isAllowedPath = (pathname: string, role: string): boolean => {
   if (role === "admin") return true;
 
   const isSharedPath = SHARED_PATHS.some((route) =>
-    matchesRoute(pathname, route)
+    matchesRoute(pathname, route),
   );
   if (isSharedPath) return true;
 
   const isStaffOnlyPath = STAFF_ONLY_PATHS.some((route) =>
-    matchesRoute(pathname, route)
+    matchesRoute(pathname, route),
   );
 
   if (role === "staff") return isStaffOnlyPath;
@@ -61,15 +61,13 @@ export async function proxy(request: NextRequest) {
     secret: AUTH_SECRET,
   });
 
-  console.log(token);
-
   if (
     token &&
     (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
   ) {
     const redirectUrl = new URL(
       getDefaultRedirect(token.role as string),
-      request.url
+      request.url,
     );
     return NextResponse.redirect(redirectUrl);
   }
@@ -80,7 +78,6 @@ export async function proxy(request: NextRequest) {
 
   if (!token) {
     const loginUrl = new URL(siteRoutes.auth.login, request.url);
-    loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -88,7 +85,6 @@ export async function proxy(request: NextRequest) {
 
   if (role === "student") {
     const loginUrl = new URL(siteRoutes.auth.login, request.url);
-    loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

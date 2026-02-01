@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Download, Eye, FileText, Loader2 } from "lucide-react";
 import { useApplicationDocumentsQuery } from "@/hooks/document.hook";
+import {
+  Download,
+  Eye,
+  FileText,
+  Loader2,
+} from "lucide-react";
 
 //
 export interface Document {
@@ -44,15 +48,48 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
     useApplicationDocumentsQuery(applicationId);
   const documents = (documentsResponse?.data || []) as Document[];
 
+  // const { data: signaturesResponse } = useApplicationRequestSignaturesQuery(applicationId);
+  // const offerLetter = signaturesResponse?.items?.[0];
+
   return (
     <Card>
       <CardHeader className="py-3 px-4">
-        <CardTitle className="text-base">Application Documents</CardTitle>
-        <CardDescription className="text-xs">
-          All documents submitted with this application
-        </CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Application Documents</CardTitle>
+            <CardDescription className="text-xs">
+              All documents submitted with this application
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
+        {/* {offerLetter?.status === "pending" &&
+        offerLetter?.student?.signed_at &&
+        offerLetter?.agent?.signed_at ? (
+          <div className="mb-3 rounded-lg border bg-muted/20 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">
+                    Offer Letter
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {offerLetter.document_title}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-medium rounded-full bg-primary px-1.5 flex items-center gap-1 py-0.5 text-white">
+                <Loader size={12} className="animate-spin" />
+                Processing
+              </span>
+            </div>
+          </div>
+        ) : null} */}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -91,19 +128,19 @@ const DocumentCard = ({ doc }: DocumentCardProps) => (
         </p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <span>{formatBytes(doc.file_size_bytes)}</span>
-          <span>•</span>
+          {/* <span>•</span>
           <Badge
             variant={
               doc.status === "approved"
                 ? "default"
                 : doc.status === "rejected"
-                ? "destructive"
-                : "secondary"
+                  ? "destructive"
+                  : "secondary"
             }
             className="h-4 text-[9px] px-1 font-medium uppercase"
           >
             {doc.status}
-          </Badge>
+          </Badge> */}
         </div>
       </div>
     </div>
