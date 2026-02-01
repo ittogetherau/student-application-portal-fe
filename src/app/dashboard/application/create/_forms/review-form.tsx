@@ -10,7 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { USER_ROLE } from "@/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/constants/types";
 import {
   useGalaxySyncDeclarationMutation,
   useGalaxySyncDisabilityMutation,
@@ -317,25 +317,29 @@ const ReviewForm = ({
         </div>
       ) : null}
 
-      {showSync && !isUpToDate ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1 px-2 text-xs"
-            onClick={handleSync}
-            disabled={isSyncing}
-          >
-            {isSyncing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
-            Sync To Galaxy
-          </Button>
-        </div>
-      ) : null}
+      {application.current_stage !== APPLICATION_STAGE.DRAFT && (
+        <>
+          {showSync && !isUpToDate ? (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1 px-2 text-xs"
+                onClick={handleSync}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Sync To Galaxy
+              </Button>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <Accordion
         type="multiple"
@@ -435,7 +439,7 @@ const ReviewForm = ({
               <span className="text-sm font-semibold">Documents</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sync status</span>
+              {/* <span className="text-xs text-muted-foreground">Sync status</span> */}
 
               {showSync && isStaffOrAdmin && !documentsUpToDate ? (
                 <div className="flex items-center gap-1">

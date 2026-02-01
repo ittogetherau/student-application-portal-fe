@@ -244,6 +244,7 @@ type UploadFilesTableProps = {
   onRemoveLocalFile: (documentTypeId: string, fileKey: string) => void;
   onDeleteApiDocument: (doc: ApiDocument) => void;
   isDeleting: boolean;
+  isLoadingUploadedDocuments: boolean;
 };
 
 const UploadFilesTable = ({
@@ -252,7 +253,19 @@ const UploadFilesTable = ({
   onRemoveLocalFile,
   onDeleteApiDocument,
   isDeleting,
+  isLoadingUploadedDocuments,
 }: UploadFilesTableProps) => {
+  if (!state && !isLoadingUploadedDocuments) return null;
+
+  if (isLoadingUploadedDocuments) {
+    return (
+      <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Fetching uploaded files...</span>
+      </div>
+    );
+  }
+
   if (!state) return null;
 
   const knownPreviewUrls = new Set(
@@ -319,9 +332,13 @@ const UploadFilesTable = ({
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => onRemoveLocalFile(state.documentTypeId, f.key)}
+                    onClick={() =>
+                      onRemoveLocalFile(state.documentTypeId, f.key)
+                    }
                     disabled={f.uploading}
-                    title={f.uploading ? "Can't remove while uploading" : "Remove"}
+                    title={
+                      f.uploading ? "Can't remove while uploading" : "Remove"
+                    }
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -455,8 +472,11 @@ export default function DocumentsUploadForm() {
     error: documentTypesError,
   } = useDocumentTypesQuery();
 
-  const { data: documentsResponse } =
-    useApplicationDocumentsQuery(applicationId);
+  const {
+    data: documentsResponse,
+    isLoading: isLoadingUploadedDocuments,
+    isFetching: isFetchingUploadedDocuments,
+  } = useApplicationDocumentsQuery(applicationId);
 
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const markStepCompleted = useApplicationStepStore(
@@ -560,6 +580,8 @@ export default function DocumentsUploadForm() {
 
   const isAnyFileUploading = uploadingFiles.size > 0;
   const isDeleting = deleteDocument.isPending;
+  const isLoadingApiDocuments =
+    isLoadingUploadedDocuments || isFetchingUploadedDocuments;
 
   const handleRemoveLocalFile = useCallback(
     (documentTypeId: string, fileKey: string) => {
@@ -824,8 +846,7 @@ export default function DocumentsUploadForm() {
       // Backend behavior:
       // - "replace" (default): creates a new version if doc type already exists
       // - "new": always creates a new document entry (multi-doc)
-      const uploadMode: "replace" | "new" =
-        files.length > 1 ? "new" : "replace";
+      const uploadMode = "new";
 
       const validFiles = files.filter((file) => {
         if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -1079,6 +1100,7 @@ export default function DocumentsUploadForm() {
                       onRemoveLocalFile={handleRemoveLocalFile}
                       onDeleteApiDocument={handleDeleteApiDocument}
                       isDeleting={isDeleting}
+                      isLoadingUploadedDocuments={isLoadingApiDocuments}
                     />
                   </div>
                 </CardContent>

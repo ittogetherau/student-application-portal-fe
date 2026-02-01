@@ -223,7 +223,7 @@ export default function AgentApplicationDetail() {
       <ThreadMessagesPanel />
 
       <ContainerLayout>
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex items-start gap-3">
             <Button
               variant="ghost"
@@ -234,7 +234,7 @@ export default function AgentApplicationDetail() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
 
-            <section className="grid grid-cols-3 gap-6 items-end">
+            <section className="grid lg:  grid-cols-3 gap-6 items-end">
               <div className="space-y-2 min-w-0">
                 <h1 className="text-xl sm:text-2xl font-medium truncate">
                   {studentName()}
@@ -326,20 +326,14 @@ export default function AgentApplicationDetail() {
 
             {ROLE === "staff" && IS_ADMIN_STAFF && (
               <>
-                <div className="w-full sm:w-56 min-w-0 shrink">
+                <div className="w-56 min-w-0 shrink">
                   <StaffAssignmentSelect
                     assignedStaffId={application.assigned_staff_id}
                     applicationId={application.id}
                   />
                 </div>
 
-                <GuidedTooltip
-                  storageKey="staff:application-detail:actions"
-                  text="Assign, accept, reject, or archive this application."
-                  enabled={ROLE === "staff" && IS_ADMIN_STAFF}
-                >
-                  <ApplicationActionsMenu applicationId={application.id} />
-                </GuidedTooltip>
+                <ApplicationActionsMenu applicationId={application.id} />
               </>
             )}
 
