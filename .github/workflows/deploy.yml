@@ -1,0 +1,51 @@
+name: Deploy Frontend to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.AWS_VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/churchill-portal/application-portal-fe
+            
+            # Update to latest code from main branch
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Build and restart frontend container
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+            
+            # Wait for frontend to be healthy
+            echo "Waiting for frontend to start..."
+            for i in {1..30}; do
+              if curl -f http://localhost:3005 > /dev/null 2>&1; then
+                echo "Frontend is healthy!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 2
+            done
+            
+            # Reload nginx to reconnect to frontend
+            cd /opt/nginx-proxy
+            docker compose restart nginx
+            echo "Nginx reloaded"
+            
+            # Clean up old images
+            docker image prune -f
+            
+            # Show status
+            cd /opt/churchill-portal/application-portal-fe
+            docker compose ps
