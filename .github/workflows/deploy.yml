@@ -13,7 +13,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.AWS_VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: ${{ secrets.AWS_VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/churchill-portal/application-portal-fe
