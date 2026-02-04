@@ -1,0 +1,58 @@
+[
+  {
+    "id": "65650ddc-5818-4d06-9f6d-3ab21512e9d4",
+    "email": "staff@churchill.com",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-12-09T15:34:54.845800",
+    "updated_at": "2025-12-09T15:35:05.424387"
+  },
+  {
+    "id": "757be32e-3de8-4ca7-bb98-835629db5881",
+    "email": "staff@cihe.com",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2026-01-01T07:04:39.540462",
+    "updated_at": "2026-01-01T07:04:46.073049"
+  },
+  {
+    "id": "a5d641b2-fe11-44a8-ab68-eab139e4b6ce",
+    "email": "test@staff.com",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-12-02T14:57:42.543373",
+    "updated_at": "2026-01-01T07:29:07.530161"
+  },
+  {
+    "id": "f2c3c1ce-77c7-4703-9efb-16fece3b786e",
+    "email": "stff@itt.com",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-11-26T10:44:54.310625",
+    "updated_at": "2025-11-26T10:44:54.310630"
+  },
+  {
+    "id": "074c8183-386e-4d8c-a6dd-ae4e8aadeba3",
+    "email": "exam@churchill.edu.au",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-12-04T06:55:04.945940",
+    "updated_at": "2025-12-04T06:55:04.945946"
+  },
+  {
+    "id": "2e3a8ad9-d5e5-4f5a-92cf-fcd782ba877f",
+    "email": "staff@test.com",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-12-02T23:59:46.860382",
+    "updated_at": "2026-01-01T06:38:44.326524"
+  },
+  {
+    "id": "a0504207-6d1b-4480-a9bc-5c68684806b6",
+    "email": "om@ittogether.com.au",
+    "role": "staff",
+    "status": "active",
+    "created_at": "2025-12-26T09:15:10.828391",
+    "updated_at": "2026-01-01T06:45:35.150339"
+  }
+]
