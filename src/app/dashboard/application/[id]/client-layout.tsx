@@ -339,10 +339,7 @@ export default function ClientApplicationLayout({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
-            <ApplicationStagePill
-              stage={stage}
-              role={ROLE}
-            />
+            <ApplicationStagePill stage={stage} role={ROLE} />
 
             {stage &&
               [

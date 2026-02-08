@@ -1,5 +1,5 @@
+import NewForm from "@/features/application-form/components/new-form";
 import { Suspense } from "react";
-import NewForm from "../../../../features/application-form/components/new-form";
 
 const page = async () => {
   return (

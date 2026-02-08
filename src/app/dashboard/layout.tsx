@@ -1,10 +1,10 @@
 "use client";
 import type { ReactNode } from "react";
 
-import AppToolbar from "@/features/dashboard/components/app-toolbar";
-import SidebarNav from "@/features/dashboard/components/sidebar-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import NAV_LINKS from "@/data/navlink.data";
+import AppToolbar from "@/features/dashboard/components/app-toolbar";
+import SidebarNav from "@/features/dashboard/components/sidebar-nav";
 import type { UserRole } from "@/shared/lib/auth";
 import { useSession } from "next-auth/react";
 

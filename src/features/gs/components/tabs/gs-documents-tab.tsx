@@ -455,7 +455,7 @@ export default function GSDocumentsTab({
                 {applicationId ? (
                   <CreateThreadForm
                     applicationId={applicationId}
-                    currentRole="staff"
+                    currentRole="agent"
                     defaultTitle={
                       requestChangeDocument?.title
                         ? `Changes requested for - ${requestChangeDocument.title}`

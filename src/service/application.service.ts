@@ -127,6 +127,12 @@ export interface BulkUnarchiveResponse {
   [key: string]: unknown;
 }
 
+export interface ApplicationDeleteResponse {
+  success?: boolean;
+  application_id?: string;
+  [key: string]: unknown;
+}
+
 export interface TimelineResponse {
   id: string;
   entry_type: string;
@@ -648,6 +654,26 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to restore applications");
+    }
+  };
+
+  // Permanently delete application (staff/admin only)
+  deleteApplication = async (
+    applicationId: string,
+  ): Promise<ServiceResponse<ApplicationDeleteResponse>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.delete<ApplicationDeleteResponse>(
+        `${this.basePath}/${applicationId}`,
+        true,
+      );
+      return {
+        success: true,
+        message: "Application deleted successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to delete application");
     }
   };
 }

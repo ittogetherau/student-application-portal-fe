@@ -19,6 +19,7 @@ import type { PendingAction } from "./agent/PendingActions";
 import { PendingActions } from "./agent/PendingActions";
 import { RecentActivity } from "./agent/RecentActivity";
 import { StatusDonutChart } from "./agent/StatusDonutChart";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 
 const kpiStyleByKey: Record<
   string,
@@ -154,8 +155,8 @@ export default function AgentDashboard() {
   const agentApplications = applications;
 
   return (
-    <div className="bg-background p-4">
-      <main className="wrapper py-8 space-y-8">
+    <ContainerLayout className="p-4">
+      <main className="space-y-8">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {agentKpis.map((kpi) => (
@@ -191,6 +192,6 @@ export default function AgentDashboard() {
         {/* Draft Applications */}
         <DraftApplications draftApplications={draftApplications} />
       </main>
-    </div>
+    </ContainerLayout>
   );
 }

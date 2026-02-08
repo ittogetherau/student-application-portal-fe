@@ -1,15 +1,14 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
-import type { PropsWithChildren } from "react";
-import { useEffect } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ChevronLeft } from "lucide-react";
+import type { PropsWithChildren } from "react";
+import { useEffect } from "react";
 import { useApplicationStepStore } from "../store/use-application-step.store";
 
 type StepHeaderProps = PropsWithChildren<{

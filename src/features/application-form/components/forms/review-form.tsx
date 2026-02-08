@@ -333,7 +333,9 @@ const ReviewForm = ({
                     queryClient.invalidateQueries({
                       queryKey: ["application-get", applicationId],
                     });
-                    queryClient.invalidateQueries({ queryKey: ["application-list"] });
+                    queryClient.invalidateQueries({
+                      queryKey: ["application-list"],
+                    });
                   },
                 })
               }

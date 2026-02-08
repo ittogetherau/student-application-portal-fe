@@ -1,5 +1,3 @@
-import { useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
 import applicationStepsService from "@/service/application-steps.service";
 import type {
   AdditionalServicesValues,
@@ -8,6 +6,8 @@ import type {
   SchoolingHistoryValues,
   SurveyValues,
 } from "@/shared/validation/application.validation";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 const DEFAULT_HEALTH_COVER: HealthCoverValues = {
   arrange_OSHC: false,

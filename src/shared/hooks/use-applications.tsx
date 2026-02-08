@@ -8,6 +8,7 @@ import type {
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
+  ApplicationDeleteResponse,
   BulkArchiveResponse,
   BulkDeleteResponse,
   BulkUnarchiveResponse,
@@ -707,6 +708,24 @@ export const useBulkUnarchiveApplicationsMutation = () => {
       return await applicationService.bulkUnarchiveApplications(applicationIds);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Delete application permanently
+export const useDeleteApplicationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceResponse<ApplicationDeleteResponse>, Error, string>({
+    mutationFn: async (applicationId: string) => {
+      return await applicationService.deleteApplication(applicationId);
+    },
+    onSuccess: (_, applicationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
     },

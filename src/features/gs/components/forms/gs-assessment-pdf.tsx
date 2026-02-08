@@ -110,14 +110,14 @@ async function loadLogoPngDataUrl(): Promise<string | null> {
   }
 }
 
-const BORDER_COLOR = "#808285";
-const LABEL_FILL = "#D0CECE";
-const LIGHT_FILL = "#f8fafc";
+const BORDER_COLOR = "#3A7BD5";
+const LABEL_FILL = "#6FA8FF55";
+const LIGHT_FILL = "#F2F7FF";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 70,
-    paddingBottom: 46,
+    paddingTop: 52,
+    paddingBottom: 30,
     paddingHorizontal: 32,
     fontSize: 8,
     color: "#0f172a",
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 32,
     right: 32,
-    top: 24,
+    top: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 32,
     right: 32,
-    bottom: 18,
+    bottom: 12,
     fontSize: 7,
     color: "#475569",
   },
@@ -163,20 +163,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: "left",
     fontWeight: "bold",
-    marginBottom: 6,
+    marginBottom: 3,
     textTransform: "uppercase",
   },
   sectionTitle: {
     fontSize: 9,
     fontWeight: "bold",
-    marginTop: 8,
-    marginBottom: 6,
+    marginTop: 5,
+    marginBottom: 3,
     textTransform: "uppercase",
   },
   applicantDetailsTable: {
     borderWidth: 1,
     borderColor: BORDER_COLOR,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   applicantDetailsRow: {
     flexDirection: "row",
@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
   },
   applicantDetailsCell: {
     flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 4,
     borderRightWidth: 1,
     borderRightColor: BORDER_COLOR,
   },
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   table: {
     borderWidth: 1,
     borderColor: BORDER_COLOR,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   tableHeaderRow: {
     flexDirection: "row",
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   tableCell: {
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 4,
     borderRightWidth: 1,
     borderRightColor: BORDER_COLOR,
   },
@@ -262,18 +262,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
-    textAlign: "center",
+    textAlign: "left",
   },
   statusHeaderText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
-    textAlign: "center",
+    textAlign: "left",
   },
   checkboxBox: {
-    width: 12,
-    height: 12,
+    width: 10,
+    height: 10,
     borderWidth: 1,
     borderColor: "#0f172a",
     alignItems: "center",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxMark: {
-    fontSize: 8,
+    fontSize: 7,
     lineHeight: 1,
     marginTop: -1,
   },
@@ -300,21 +300,21 @@ const styles = StyleSheet.create({
   approvalOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 2,
+    gap: 3,
+    marginBottom: 0,
   },
   compactTable: {
     fontSize: 8,
   },
   compactTableCell: {
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 3,
   },
   compactHeaderText: {
     fontSize: 8,
   },
   compactApprovalOption: {
-    gap: 4,
+    gap: 3,
     marginBottom: 1,
   },
   compactApprovalLabel: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   footerNote: {
     fontSize: 7,
     color: "#475569",
-    marginTop: 8,
+    marginTop: 4,
   },
 });
 

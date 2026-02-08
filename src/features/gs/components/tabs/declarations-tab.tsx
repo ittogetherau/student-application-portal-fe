@@ -208,24 +208,7 @@ export default function GSDeclarationsTab({
 
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                {/* {studentStatus === "submitted" && (
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={() =>
-                      resendMutation.mutate({ rotate_token: true })
-                    }
-                    disabled={resendMutation.isPending}
-                  >
-                    {resendMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    Resend Form
-                  </Button>
-                )} */}
-                {ROLE === USER_ROLE.AGENT && !isStudentVerified && (
+                {!isStudentVerified && (
                   <Button
                     className="w-full gap-2"
                     variant={"secondary"}
@@ -237,6 +220,7 @@ export default function GSDeclarationsTab({
                     Fill on Behalf of Student
                   </Button>
                 )}
+
                 <Button
                   variant="outline"
                   className="w-full gap-2"
@@ -290,7 +274,7 @@ export default function GSDeclarationsTab({
 
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2">
-                {!isAgentVerified && ROLE === USER_ROLE.AGENT && (
+                {!isAgentVerified && (
                   <Button
                     className="w-full gap-2"
                     onClick={() =>

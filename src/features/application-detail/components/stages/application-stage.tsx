@@ -17,24 +17,27 @@ import {
 } from "@/components/ui/dialog";
 import { GS_STEPS } from "@/constants/gs-assessment";
 import { siteRoutes } from "@/constants/site-routes";
+import { isSyncMetadataComplete } from "@/features/application-form/components/sync/sync-all-to-galaxy";
+import {
+  transformGSAssessmentData,
+  useGSAssessmentProgress,
+  useGSAssessmentQuery,
+} from "@/hooks/useGSAssessment.hook";
+import type { ApplicationDetailResponse } from "@/service/application.service";
+import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationChangeStageMutation,
   useApplicationEnrollGalaxyCourseMutation,
   useApplicationGetQuery,
   useApplicationSendOfferLetterMutation,
 } from "@/shared/hooks/use-applications";
-import {
-  transformGSAssessmentData,
-  useGSAssessmentProgress,
-  useGSAssessmentQuery,
-} from "@/hooks/useGSAssessment.hook";
-import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
+import type { ServiceResponse } from "@/shared/types/service";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   BadgeCheck,
   CircleQuestionMark,
   ClipboardCheck,
-  Eye,
   ListTodo,
   Loader2,
   LucideIcon,
@@ -47,10 +50,6 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import ApplicationSignStage from "./application-sign-stage";
-import { isSyncMetadataComplete } from "@/features/application-form/components/sync/sync-all-to-galaxy";
-import { useQueryClient } from "@tanstack/react-query";
-import type { ApplicationDetailResponse } from "@/service/application.service";
-import type { ServiceResponse } from "@/shared/types/service";
 
 interface ApplicationStageProps {
   currentStatus: APPLICATION_STAGE;

@@ -27,6 +27,7 @@ export const siteRoutes = {
       root: "/dashboard/agents",
     },
     tasks: "/dashboard/tasks",
+    notifications: "/dashboard/notifications",
     gsInterviews: "/dashboard/gs-interviews",
   },
   track: {

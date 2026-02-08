@@ -1,15 +1,14 @@
 "use client";
 
-import FullCalendar from "@fullcalendar/react";
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
-
-import React from "react";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
 
 const Page = () => {
   return (
-    <div className="p-4 bg-background min-h-screen">
+    <ContainerLayout className="p-4 ">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
         initialView="timeGridWeek"
@@ -30,7 +29,7 @@ const Page = () => {
         height="auto"
         expandRows
       />
-    </div>
+    </ContainerLayout>
   );
 };
 

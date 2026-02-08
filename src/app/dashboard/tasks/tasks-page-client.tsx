@@ -17,17 +17,23 @@ import {
 } from "@/components/ui/select";
 import { siteRoutes } from "@/constants/site-routes";
 import {
+  EmptyState,
+  MessageBubble,
+  ThreadListItem,
+} from "@/features/threads/components/threads-utils";
+import {
   useAddThreadMessageMutation,
   useApplicationThreadsQuery,
   useStaffThreadsQuery,
   useUpdateThreadPriorityMutation,
   useUpdateThreadStatusMutation,
 } from "@/features/threads/hooks/application-threads.hook";
-import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import type { StaffThreadSummary } from "@/service/application-threads.service";
 import { CommunicationThread } from "@/service/application-threads.service";
 import { USER_ROLE } from "@/shared/constants/types";
+import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import {
+  Dot,
   Eye,
   Filter,
   ListRestart,
@@ -42,11 +48,6 @@ import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import {
-  EmptyState,
-  MessageBubble,
-  ThreadListItem,
-} from "@/features/threads/components/threads-utils";
 
 const formatContactName = (name?: string | null, email?: string | null) => {
   if (name) return name;
@@ -326,9 +327,9 @@ export default function TasksPageClient() {
                     <h3 className="font-semibold text-base mb-1 truncate">
                       {selectedThread.subject}
                     </h3>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
                       <span>{selectedThread.issue_type || "Thread"}</span>
-                      <span>Aú</span>
+                      <Dot size={16} />
                       <span>
                         {selectedThread.target_section ||
                           selectedThread.application_id ||

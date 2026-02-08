@@ -33,10 +33,10 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { useSession } from "next-auth/react";
 
 import {
   createGSScreeningSchema,
@@ -179,10 +179,7 @@ export function GSScreeningForm({
     }
   }, [initialData, reset]);
 
-  const todayForInput = useMemo(
-    () => formatLocalDateForInput(new Date()),
-    [],
-  );
+  const todayForInput = useMemo(() => formatLocalDateForInput(new Date()), []);
 
   useEffect(() => {
     if (currentView !== "agent" || readOnly) return;
@@ -412,9 +409,9 @@ export function GSScreeningForm({
           toast.success("Student declaration submitted successfully!");
           handleBack?.();
         } else {
-           toast.error("Application ID or authentication token is missing.");
-           return;
-         }
+          toast.error("Application ID or authentication token is missing.");
+          return;
+        }
       } else if (currentView === "agent") {
         if (!applicationId) {
           toast.error("Application ID is missing.");
@@ -1082,11 +1079,12 @@ export function GSScreeningForm({
                     <p className="text-xs text-blue-900 dark:text-blue-100">
                       Applicants must refer to the{" "}
                       <strong>Churchill Institute of Higher Education</strong>{" "}
-                      Genuine Student (GS) Checklist (<strong>Appendix A</strong>
-                      ) for prescribed supporting documentation required to
-                      evidence financial capacity, sponsorship arrangements, and
-                      family circumstances, as mandated under the Department of
-                      Home Affairs student visa requirements.
+                      Genuine Student (GS) Checklist (
+                      <strong>Appendix A</strong>) for prescribed supporting
+                      documentation required to evidence financial capacity,
+                      sponsorship arrangements, and family circumstances, as
+                      mandated under the Department of Home Affairs student visa
+                      requirements.
                     </p>
                   </div>
                 </CardContent>
@@ -1111,13 +1109,13 @@ export function GSScreeningForm({
                     placeholder="Enter full name"
                     disabled={readOnly}
                   />
-                    <FormInput
-                      name="applicantDate"
-                      label="Date"
-                      type="date"
-                      disabled
-                    />
-                  </div>
+                  <FormInput
+                    name="applicantDate"
+                    label="Date"
+                    type="date"
+                    disabled
+                  />
+                </div>
 
                 {applicantSignature && (
                   <div className="space-y-2">

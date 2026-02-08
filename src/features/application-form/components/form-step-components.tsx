@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import AdditionalServicesForm from "./forms/additional-services-form";
+import DisabilityForm from "./forms/disability-form";
+import DocumentsUploadForm from "./forms/documents-upload-form";
+import EmergencyContactForm from "./forms/emergency-contact-form";
+import EmploymentForm from "./forms/employment-form";
+import EnrollmentForm from "./forms/enrollment-form";
 import HealthCoverForm from "./forms/health-cover-form";
 import LanguageCulturalForm from "./forms/language-cultural-form";
-import QualificationsForm from "./forms/qualifications-form";
-import SchoolingForm from "./forms/schooling-form";
-import EnrollmentForm from "./forms/enrollment-form";
 import PersonalDetailsForm from "./forms/personal-details-form";
-import EmergencyContactForm from "./forms/emergency-contact-form";
-import UsiForm from "./forms/usi-form";
-import SurveyForm from "./forms/survey-form";
-import AdditionalServicesForm from "./forms/additional-services-form";
-import DocumentsUploadForm from "./forms/documents-upload-form";
-import EmploymentForm from "./forms/employment-form";
-import DisabilityForm from "./forms/disability-form";
+import QualificationsForm from "./forms/qualifications-form";
 import ReviewForm from "./forms/review-form";
+import SchoolingForm from "./forms/schooling-form";
+import SurveyForm from "./forms/survey-form";
+import UsiForm from "./forms/usi-form";
 
 interface IFormComponent {
   id: number;

@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, ClipboardCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
+import { Check, ClipboardCheck } from "lucide-react";
 
 interface ExtractedDataPreviewProps {
   data: Record<string, any>;

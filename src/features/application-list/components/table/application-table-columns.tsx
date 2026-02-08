@@ -23,6 +23,7 @@ import { StaffAssignmentSelect } from "@/features/application-detail/components/
 import { ApplicationTableRow, USER_ROLE } from "@/shared/constants/types";
 import {
   useArchiveApplicationMutation,
+  useDeleteApplicationMutation,
   useUnarchiveApplicationMutation,
 } from "@/shared/hooks/use-applications";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
@@ -38,6 +39,7 @@ const ActionCell = ({
 }) => {
   const archiveMutation = useArchiveApplicationMutation();
   const unarchiveMutation = useUnarchiveApplicationMutation();
+  const deleteMutation = useDeleteApplicationMutation();
 
   const handleArchive = async () => {
     try {
@@ -62,6 +64,19 @@ const ActionCell = ({
       }
     } catch (error) {
       toast.error("Failed to restore application.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await deleteMutation.mutateAsync(row.original.id);
+      if (response.success) {
+        toast.success("Application deleted permanently.");
+      } else {
+        toast.error(response.message || "Failed to delete application.");
+      }
+    } catch (error) {
+      toast.error("Failed to delete application.");
     }
   };
 
@@ -125,9 +140,8 @@ const ActionCell = ({
                 <DialogClose asChild>
                   <Button
                     variant="destructive"
-                    onClick={() => {
-                      toast.success("Application deleted permanently.");
-                    }}
+                    disabled={deleteMutation.isPending}
+                    onClick={handleDelete}
                   >
                     Delete
                   </Button>

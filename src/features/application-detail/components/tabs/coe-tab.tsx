@@ -14,13 +14,17 @@ import {
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { siteRoutes } from "@/constants/site-routes";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
-import { USER_ROLE } from "@/shared/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationDocumentsQuery,
   useDocumentTypesQuery,
   useUploadDocument,
   useVerifyDocument,
 } from "@/shared/hooks/document.hook";
+import {
+  useApplicationChangeStageMutation,
+  useApplicationGetQuery,
+} from "@/shared/hooks/use-applications";
 import {
   DROPZONE_ACCEPT,
   MAX_FILE_SIZE_BYTES,
@@ -327,6 +331,11 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   // mutations
   const uploadMutation = useUploadDocument();
   const verifyMutation = useVerifyDocument();
+  const changeStage = useApplicationChangeStageMutation(applicationId ?? "");
+
+  const handleStageChange = (str: APPLICATION_STAGE) => {
+    changeStage.mutateAsync({ to_stage: str });
+  };
 
   // get all documents
   const {
@@ -342,6 +351,12 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const staffCoeItem = appDocsResponse?.data?.find(
     (e) => e.document_type_code === "COE_DOCUMENTS",
   );
+
+  const { data: applicationResponse } = useApplicationGetQuery(
+    applicationId || null,
+  );
+  const isCoeStage =
+    applicationResponse?.data?.current_stage === APPLICATION_STAGE.COE_ISSUED;
 
   // get doc types
   const {
@@ -508,6 +523,16 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {isCoeStage ? (
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleStageChange(APPLICATION_STAGE.ACCEPTED)
+                    }
+                  >
+                    Accept
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"
