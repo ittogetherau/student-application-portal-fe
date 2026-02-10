@@ -212,64 +212,66 @@ const NewForm = ({
         sticky={true}
         sidebar={
           <Card>
-            <CardContent className="flex flex-col gap-1 p-2">
-              {FORM_STEPS.filter(
-                (step) => !HIDDEN_STEP_IDS.includes(step.id),
-              ).map((step, index) => {
-                const canNavigate = canNavigateToStep(step.id, currentStep);
-                const isCompleted = isStepCompleted(step.id);
-                const isCurrent = currentStep === step.id;
+            <CardContent className="py-0">
+              <div className="flex w-full overflow-x-scroll lg:flex-col gap-1 px-2 lg:px-0 py-3">
+                {FORM_STEPS.filter(
+                  (step) => !HIDDEN_STEP_IDS.includes(step.id),
+                ).map((step, index) => {
+                  const canNavigate = canNavigateToStep(step.id, currentStep);
+                  const isCompleted = isStepCompleted(step.id);
+                  const isCurrent = currentStep === step.id;
 
-                return (
-                  <button
-                    key={step.id}
-                    type="button"
-                    disabled={!canNavigate}
-                    onClick={() => handleStepNavigation(step.id, canNavigate)}
-                    className={cn(
-                      "flex items-center justify-center lg:justify-start gap-2 rounded-lg px-2 py-2.5 text-left transition-colors shrink-0",
-                      isCurrent
-                        ? "bg-primary text-primary-foreground"
-                        : canNavigate
-                          ? "hover:bg-muted"
-                          : "cursor-not-allowed",
-                      !canNavigate && "pointer-events-none",
-                    )}
-                    title={
-                      !canNavigate && isCreateMode
-                        ? "Complete previous steps to unlock"
-                        : step.title
-                    }
-                  >
-                    <div
+                  return (
+                    <button
+                      key={step.id}
+                      type="button"
+                      disabled={!canNavigate}
+                      onClick={() => handleStepNavigation(step.id, canNavigate)}
                       className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                        "flex items-center justify-center lg:justify-start gap-2 rounded-lg px-2 py-2.5 text-left transition-colors shrink-0",
                         isCurrent
-                          ? "bg-primary-foreground text-primary font-bold"
-                          : isCompleted
-                            ? "bg-emerald-100 text-emerald-700"
-                            : canNavigate
-                              ? "bg-muted text-muted-foreground"
-                              : "bg-muted/50 text-muted-foreground/50",
+                          ? "bg-primary text-primary-foreground"
+                          : canNavigate
+                            ? "hover:bg-muted"
+                            : "cursor-not-allowed",
+                        !canNavigate && "pointer-events-none",
                       )}
+                      title={
+                        !canNavigate && isCreateMode
+                          ? "Complete previous steps to unlock"
+                          : step.title
+                      }
                     >
-                      {isCompleted && !isCurrent ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        index + 1
-                      )}
-                    </div>
-                    <span
-                      className={cn(
-                        "text-sm hidden lg:block",
-                        !canNavigate && "text-muted-foreground/50",
-                      )}
-                    >
-                      {step.title}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div
+                        className={cn(
+                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                          isCurrent
+                            ? "bg-primary-foreground text-primary font-bold"
+                            : isCompleted
+                              ? "bg-emerald-100 text-emerald-700"
+                              : canNavigate
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-muted/50 text-muted-foreground/50",
+                        )}
+                      >
+                        {isCompleted && !isCurrent ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-sm",
+                          !canNavigate && "text-muted-foreground/50",
+                        )}
+                      >
+                        {step.title}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         }

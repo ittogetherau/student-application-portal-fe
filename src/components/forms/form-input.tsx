@@ -41,10 +41,17 @@ export function FormInput({
             type={type}
             placeholder={placeholder}
             aria-invalid={!!error}
-            value={value ?? ""}
+            value={
+              type === "number" && typeof value === "number" && Number.isNaN(value)
+                ? ""
+                : (value ?? "")
+            }
             onChange={(e) => {
-              const val = type === "number" ? e.target.valueAsNumber : e.target.value;
-              onChange(val);
+              if (type === "number") {
+                onChange(e.target.value === "" ? undefined : e.target.valueAsNumber);
+              } else {
+                onChange(e.target.value);
+              }
             }}
             onBlur={onBlur}
             disabled={disabled}
