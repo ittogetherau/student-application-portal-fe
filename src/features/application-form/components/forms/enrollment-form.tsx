@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormTextarea } from "@/components/forms/form-textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -14,27 +14,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import type { EnrollmentValues } from "@/features/application-form/utils/validations/enrollment";
 import { Campus, Intake } from "@/service/course.service";
+import { USER_ROLE } from "@/shared/constants/types";
 import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
 } from "@/shared/hooks/use-applications";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
-import {
-  defaultEnrollmentFormValues,
-  enrollmentFormSchema,
-  type EnrollmentFormValues,
-} from "@/features/application-form/utils/validations/enrollment";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { toast } from "react-hot-toast";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
+import { z } from "zod";
 import {
   useCoursesQuery,
   useSaveEnrollmentMutation,
 } from "../../hooks/course.hook";
+import { useApplicationStepQuery } from "../../hooks/use-application-steps.hook";
 import { useApplicationFormDataStore } from "../../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../../store/use-application-step.store";
 
@@ -132,7 +132,173 @@ const normalizeYesNoNa = (value: unknown) => {
   return value;
 };
 
-const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
+const toApiYesNo = (value: "Yes" | "No") => (value === "Yes" ? "yes" : "no");
+const toApiYesNoNa = (value: "Yes" | "No" | "N/A") =>
+  value === "N/A" ? "na" : toApiYesNo(value);
+
+const coerceYesNo = (value: unknown) => {
+  const normalized = normalizeYesNo(value);
+  return normalized === "Yes" || normalized === "No" ? normalized : null;
+};
+
+const coerceYesNoNa = (value: unknown) => {
+  const normalized = normalizeYesNoNa(value);
+  return normalized === "Yes" || normalized === "No" || normalized === "N/A"
+    ? normalized
+    : null;
+};
+
+const coerceClassType = (value: unknown) =>
+  value === "classroom" || value === "hybrid" || value === "online"
+    ? value
+    : null;
+
+const yesNoSchema = z.enum(["Yes", "No"], {
+  message: "Please select Yes or No",
+});
+const yesNoNaSchema = z.enum(["Yes", "No", "N/A"], {
+  message: "Please select Yes, No, or N/A",
+});
+const classTypeSchema = z.enum(["classroom", "hybrid", "online"]);
+
+const requiredSelectId = (message: string) =>
+  z
+    .number()
+    .int()
+    .min(1, message)
+    .optional()
+    .refine((value) => value !== undefined, message);
+
+const requiredNonNegativeNumber = (message: string) =>
+  z
+    .number()
+    .min(0, "Must be 0 or more")
+    .optional()
+    .refine((value) => value !== undefined, message);
+
+const staffEnrollmentFormSchema = z
+  .object({
+    course: requiredSelectId("Please select a course"),
+    intake: requiredSelectId("Please select an intake"),
+    campus: requiredSelectId("Please select a campus"),
+
+    preferred_start_date: z.string().min(1, "Preferred start date is required"),
+    advanced_standing_credit: yesNoSchema,
+    number_of_subjects: z
+      .number()
+      .int()
+      .min(1, "Please select number of subjects")
+      .max(12, "Please select number of subjects")
+      .optional(),
+    no_of_weeks: z.number().int().min(1, "Number of weeks is required"),
+    course_end_date: z.string().min(1, "Course end date is required"),
+
+    offer_issued_date: z.string().min(1, "Offer issued date is required"),
+
+    study_reason: z.enum(
+      ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "@@"],
+      { message: "Please select a study reason" },
+    ),
+
+    course_actual_fee: requiredNonNegativeNumber(
+      "Course actual fee is required",
+    ),
+    course_upfront_fee: requiredNonNegativeNumber(
+      "Course upfront fee is required",
+    ),
+    enrollment_fee: requiredNonNegativeNumber("Enrollment fee is required"),
+    material_fee: requiredNonNegativeNumber("Material fee is required"),
+
+    inclue_material_fee_in_initial_payment: yesNoSchema,
+    receiving_scholarship: yesNoSchema,
+    scholarship_percentage: z.number().min(0).max(100).optional(),
+    work_integrated_learning: yesNoNaSchema,
+    third_party_provider: yesNoNaSchema,
+    class_type: classTypeSchema,
+
+    application_request: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.advanced_standing_credit === "Yes" && !data.number_of_subjects) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select number of subjects",
+        path: ["number_of_subjects"],
+      });
+    }
+
+    if (
+      data.receiving_scholarship === "Yes" &&
+      data.scholarship_percentage == null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Scholarship percentage is required",
+        path: ["scholarship_percentage"],
+      });
+    }
+  });
+
+const agentEnrollmentFormSchema = z
+  .object({
+    course: requiredSelectId("Please select a course"),
+    intake: requiredSelectId("Please select an intake"),
+    campus: requiredSelectId("Please select a campus"),
+    advanced_standing_credit: yesNoSchema,
+    number_of_subjects: z
+      .number()
+      .int()
+      .min(1, "Please select number of subjects")
+      .max(12, "Please select number of subjects")
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.advanced_standing_credit === "Yes" && !data.number_of_subjects) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select number of subjects",
+        path: ["number_of_subjects"],
+      });
+    }
+  });
+
+type StaffEnrollmentFormValues = z.infer<typeof staffEnrollmentFormSchema>;
+type AgentEnrollmentFormValues = z.infer<typeof agentEnrollmentFormSchema>;
+type EnrollmentFormValues =
+  | StaffEnrollmentFormValues
+  | AgentEnrollmentFormValues;
+
+const staffDefaultValues: Omit<StaffEnrollmentFormValues, "offer_issued_date"> =
+  {
+    course: undefined,
+    intake: undefined,
+    campus: undefined,
+    preferred_start_date: "",
+    advanced_standing_credit: "No",
+    number_of_subjects: undefined,
+    no_of_weeks: undefined as unknown as number,
+    course_end_date: "",
+    study_reason: "@@",
+    course_actual_fee: undefined,
+    course_upfront_fee: undefined,
+    enrollment_fee: undefined,
+    material_fee: undefined,
+    inclue_material_fee_in_initial_payment: "No",
+    receiving_scholarship: "No",
+    scholarship_percentage: undefined,
+    work_integrated_learning: "No",
+    third_party_provider: "No",
+    class_type: "classroom",
+    application_request: "",
+  };
+
+const EnrollmentFormInner = ({
+  applicationId,
+  isAgent,
+}: {
+  applicationId?: string;
+  isAgent: boolean;
+}) => {
   const { goToNext, markStepCompleted, clearStepDirty } =
     useApplicationStepStore();
   const { setApplicationId, _hasHydrated } = useApplicationFormDataStore();
@@ -153,11 +319,21 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const methods = useForm<EnrollmentFormValues>({
-    resolver: zodResolver(enrollmentFormSchema),
-    defaultValues: {
-      ...defaultEnrollmentFormValues,
-      offer_issued_date: todayIso,
-    },
+    resolver: zodResolver(
+      isAgent ? agentEnrollmentFormSchema : staffEnrollmentFormSchema,
+    ),
+    defaultValues: isAgent
+      ? {
+          course: undefined,
+          intake: undefined,
+          campus: undefined,
+          advanced_standing_credit: "No",
+          number_of_subjects: undefined,
+        }
+      : {
+          ...staffDefaultValues,
+          offer_issued_date: todayIso,
+        },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
@@ -167,6 +343,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const searchParams = useSearchParams();
 
   const hasRestoredRef = useRef(false);
+
+  useApplicationStepQuery(applicationId ?? null, 0);
 
   const { saveOnSubmit } = useFormPersistence({
     applicationId: applicationId ?? "draft",
@@ -202,36 +380,123 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       const adv = normalizeYesNo(
         (saved as Record<string, unknown>).advanced_standing_credit,
       );
-      if ((adv === "Yes" || adv === "No") && methods.getValues("advanced_standing_credit") !== adv) {
-        methods.setValue("advanced_standing_credit", adv, { shouldDirty: false });
+      if (
+        (adv === "Yes" || adv === "No") &&
+        methods.getValues("advanced_standing_credit") !== adv
+      ) {
+        methods.setValue("advanced_standing_credit", adv, {
+          shouldDirty: false,
+        });
       }
 
-      const includeMat = normalizeYesNo(
-        (saved as Record<string, unknown>).include_material_fee_in_initial_payment,
-      );
-      if ((includeMat === "Yes" || includeMat === "No") && methods.getValues("include_material_fee_in_initial_payment") !== includeMat) {
-        methods.setValue("include_material_fee_in_initial_payment", includeMat, { shouldDirty: false });
+      const preferredStart =
+        (saved as Record<string, unknown>).preferred_start_date ??
+        (saved as Record<string, unknown>).intake_start;
+      if (
+        typeof preferredStart === "string" &&
+        preferredStart.length > 0 &&
+        methods.getValues("preferred_start_date") !== preferredStart
+      ) {
+        methods.setValue("preferred_start_date", preferredStart, {
+          shouldDirty: false,
+        });
       }
 
-      const scholarship = normalizeYesNo(
-        (saved as Record<string, unknown>).receiving_scholarship_bursary,
-      );
-      if ((scholarship === "Yes" || scholarship === "No") && methods.getValues("receiving_scholarship_bursary") !== scholarship) {
-        methods.setValue("receiving_scholarship_bursary", scholarship, { shouldDirty: false });
+      const subjectCount =
+        (saved as Record<string, unknown>).number_of_subjects ??
+        (saved as Record<string, unknown>).credit_subject_count;
+      if (typeof subjectCount === "number" && Number.isFinite(subjectCount)) {
+        methods.setValue("number_of_subjects", subjectCount, {
+          shouldDirty: false,
+        });
       }
 
-      const wil = normalizeYesNoNa(
-        (saved as Record<string, unknown>).wil_requirements,
-      );
-      if ((wil === "Yes" || wil === "No" || wil === "N/A") && methods.getValues("wil_requirements") !== wil) {
-        methods.setValue("wil_requirements", wil, { shouldDirty: false });
+      const noOfWeeks = (saved as Record<string, unknown>).no_of_weeks;
+      if (typeof noOfWeeks === "number" && Number.isFinite(noOfWeeks)) {
+        methods.setValue("no_of_weeks", noOfWeeks, { shouldDirty: false });
       }
 
-      const thirdParty = normalizeYesNoNa(
-        (saved as Record<string, unknown>).third_party_providers_application_request,
+      const courseEnd = (saved as Record<string, unknown>).course_end_date;
+      if (typeof courseEnd === "string" && courseEnd.length > 0) {
+        methods.setValue("course_end_date", courseEnd, { shouldDirty: false });
+      }
+
+      const includeMatValue = coerceYesNo(
+        (saved as Record<string, unknown>)
+          .inclue_material_fee_in_initial_payment ??
+          (saved as Record<string, unknown>)
+            .include_material_fee_in_initial_payment,
       );
-      if ((thirdParty === "Yes" || thirdParty === "No" || thirdParty === "N/A") && methods.getValues("third_party_providers_application_request") !== thirdParty) {
-        methods.setValue("third_party_providers_application_request", thirdParty, { shouldDirty: false });
+      if (
+        includeMatValue &&
+        methods.getValues("inclue_material_fee_in_initial_payment") !==
+          includeMatValue
+      ) {
+        methods.setValue(
+          "inclue_material_fee_in_initial_payment",
+          includeMatValue,
+          {
+            shouldDirty: false,
+          },
+        );
+      }
+
+      const scholarshipValue = coerceYesNo(
+        (saved as Record<string, unknown>).receiving_scholarship ??
+          (saved as Record<string, unknown>).receiving_scholarship_bursary,
+      );
+      if (
+        scholarshipValue &&
+        methods.getValues("receiving_scholarship") !== scholarshipValue
+      ) {
+        methods.setValue("receiving_scholarship", scholarshipValue, {
+          shouldDirty: false,
+        });
+      }
+
+      const scholarshipPercentage = (saved as Record<string, unknown>)
+        .scholarship_percentage;
+      if (
+        typeof scholarshipPercentage === "number" &&
+        Number.isFinite(scholarshipPercentage)
+      ) {
+        methods.setValue("scholarship_percentage", scholarshipPercentage, {
+          shouldDirty: false,
+        });
+      }
+
+      const wilValue = coerceYesNoNa(
+        (saved as Record<string, unknown>).work_integrated_learning ??
+          (saved as Record<string, unknown>).wil_requirements,
+      );
+      if (
+        wilValue &&
+        methods.getValues("work_integrated_learning") !== wilValue
+      ) {
+        methods.setValue("work_integrated_learning", wilValue, {
+          shouldDirty: false,
+        });
+      }
+
+      const thirdPartyValue = coerceYesNoNa(
+        (saved as Record<string, unknown>).third_party_provider ??
+          (saved as Record<string, unknown>)
+            .third_party_providers_application_request,
+      );
+      if (
+        thirdPartyValue &&
+        methods.getValues("third_party_provider") !== thirdPartyValue
+      ) {
+        methods.setValue("third_party_provider", thirdPartyValue, {
+          shouldDirty: false,
+        });
+      }
+
+      const classType = coerceClassType(
+        (saved as Record<string, unknown>).class_type,
+      );
+      if (classType && methods.getValues("class_type") !== classType) {
+        methods.setValue("class_type", classType, { shouldDirty: false });
       }
 
       hasRestoredRef.current = true;
@@ -243,6 +508,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const intakeValue = watch("intake");
   const campusValue = watch("campus");
   const advancedStandingValue = watch("advanced_standing_credit");
+  const receivingScholarshipValue = watch("receiving_scholarship");
 
   /* ---------- deterministic updates ---------- */
   const handleFieldChange = (
@@ -293,10 +559,39 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   useEffect(() => {
     if (advancedStandingValue !== "Yes") {
-      setValue("credit_subject_count", undefined, { shouldDirty: true });
-      clearErrors("credit_subject_count");
+      setValue("number_of_subjects", undefined, { shouldDirty: true });
+      clearErrors("number_of_subjects");
     }
   }, [advancedStandingValue, clearErrors, setValue]);
+
+  useEffect(() => {
+    const startDate = selectedIntake?.intake_start ?? "";
+    if (startDate) {
+      setValue("preferred_start_date", startDate, { shouldDirty: true });
+    }
+
+    const weeks =
+      parseWeeksFromDurationText(selectedCourse?.duration_text) ?? undefined;
+    if (weeks) {
+      setValue("no_of_weeks", weeks, { shouldDirty: true });
+    }
+
+    if (intakeEndDate) {
+      setValue("course_end_date", intakeEndDate, { shouldDirty: true });
+    }
+  }, [
+    intakeEndDate,
+    selectedCourse?.duration_text,
+    selectedIntake?.intake_start,
+    setValue,
+  ]);
+
+  useEffect(() => {
+    if (receivingScholarshipValue !== "Yes") {
+      setValue("scholarship_percentage", undefined, { shouldDirty: true });
+      clearErrors("scholarship_percentage");
+    }
+  }, [clearErrors, receivingScholarshipValue, setValue]);
 
   /* ---------- save flow ---------- */
   const onSubmit = async (values: EnrollmentFormValues) => {
@@ -322,36 +617,59 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
 
+      const commonPayload = {
+        course: Number(values.course),
+        course_name: selectedCourse?.course_name ?? "",
+        intake: Number(values.intake),
+        intake_name: selectedIntake?.intake_name ?? "",
+        campus: Number(values.campus),
+        campus_name: selectedCampus?.name ?? "",
+        advanced_standing_credit: toApiYesNo(values.advanced_standing_credit),
+        number_of_subjects:
+          values.advanced_standing_credit === "Yes"
+            ? values.number_of_subjects
+            : undefined,
+      };
+
+      const staffValues = values as StaffEnrollmentFormValues;
+
+      const payload: EnrollmentValues = isAgent
+        ? (commonPayload as EnrollmentValues)
+        : ({
+            ...commonPayload,
+            preferred_start_date: staffValues.preferred_start_date,
+            no_of_weeks: staffValues.no_of_weeks,
+            course_end_date: staffValues.course_end_date,
+            offer_issued_date: staffValues.offer_issued_date,
+            study_reason: staffValues.study_reason,
+            course_actual_fee: staffValues.course_actual_fee as number,
+            course_upfront_fee: staffValues.course_upfront_fee as number,
+            enrollment_fee: staffValues.enrollment_fee as number,
+            material_fee: staffValues.material_fee as number,
+            inclue_material_fee_in_initial_payment: toApiYesNo(
+              staffValues.inclue_material_fee_in_initial_payment,
+            ),
+            receiving_scholarship: toApiYesNo(
+              staffValues.receiving_scholarship,
+            ),
+            scholarship_percentage:
+              staffValues.receiving_scholarship === "Yes"
+                ? staffValues.scholarship_percentage
+                : undefined,
+            work_integrated_learning: toApiYesNoNa(
+              staffValues.work_integrated_learning,
+            ),
+            third_party_provider: toApiYesNoNa(
+              staffValues.third_party_provider,
+            ),
+            class_type: staffValues.class_type,
+            application_request:
+              staffValues.application_request?.trim() || undefined,
+          } as EnrollmentValues);
+
       await saveEnrollment({
         applicationId: currentApplicationId!,
-        values: {
-          course: Number(values.course),
-          course_name: selectedCourse?.course_name ?? "",
-          intake: Number(values.intake),
-          intake_name: selectedIntake?.intake_name ?? "",
-          campus: Number(values.campus),
-          campus_name: selectedCampus?.name ?? "",
-
-          advanced_standing_credit: values.advanced_standing_credit,
-          credit_subject_count:
-            values.advanced_standing_credit === "Yes"
-              ? values.credit_subject_count
-              : undefined,
-
-          offer_issued_date: values.offer_issued_date,
-          study_reason: values.study_reason,
-          course_actual_fee: values.course_actual_fee as number,
-          course_upfront_fee: values.course_upfront_fee as number,
-          enrollment_fee: values.enrollment_fee as number,
-          material_fee: values.material_fee as number,
-          include_material_fee_in_initial_payment:
-            values.include_material_fee_in_initial_payment,
-          receiving_scholarship_bursary: values.receiving_scholarship_bursary,
-          wil_requirements: values.wil_requirements,
-          third_party_providers_application_request:
-            values.third_party_providers_application_request,
-          application_request: values.application_request?.trim() || undefined,
-        },
+        values: payload,
       });
 
       saveOnSubmit(values);
@@ -526,7 +844,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               <div className="space-y-2 max-w-sm">
                 <Label>How many subject are you calming for credit? *</Label>
                 <Controller
-                  name="credit_subject_count"
+                  name="number_of_subjects"
                   control={methods.control}
                   render={({ field: { onChange, value } }) => (
                     <Select
@@ -535,7 +853,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                     >
                       <SelectTrigger
                         aria-invalid={
-                          !!methods.formState.errors.credit_subject_count
+                          !!methods.formState.errors.number_of_subjects
                         }
                       >
                         <SelectValue placeholder="Select (1-12)" />
@@ -552,10 +870,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                     </Select>
                   )}
                 />
-                {methods.formState.errors.credit_subject_count?.message && (
+                {methods.formState.errors.number_of_subjects?.message && (
                   <p className="text-sm text-red-500">
                     {
-                      methods.formState.errors.credit_subject_count
+                      methods.formState.errors.number_of_subjects
                         .message as string
                     }
                   </p>
@@ -563,101 +881,142 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormInput
-                name="offer_issued_date"
-                label="Offer Issued Date *"
-                type="date"
-              />
+            {!isAgent && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormInput
+                    name="preferred_start_date"
+                    label="Preferred Start Date *"
+                    disabled={true}
+                  />
+                  <FormInput
+                    name="no_of_weeks"
+                    label="No. of Weeks *"
+                    type="number"
+                    disabled={true}
+                  />
+                  <FormInput
+                    name="course_end_date"
+                    label="Course End Date *"
+                    disabled={true}
+                  />
 
-              <FormSelect
-                name="study_reason"
-                label="Study Reason *"
-                options={STUDY_REASON_OPTIONS}
-              />
+                  <FormInput
+                    name="offer_issued_date"
+                    label="Offer Issued Date *"
+                    type="date"
+                  />
 
-              <FormInput
-                name="course_actual_fee"
-                label="Course Actual Fee *"
-                type="number"
-              />
-              <FormInput
-                name="course_upfront_fee"
-                label="Course Upfront Fee *"
-                type="number"
-              />
-              <FormInput
-                name="enrollment_fee"
-                label="Enrollment Fee *"
-                type="number"
-              />
-              <FormInput
-                name="material_fee"
-                label="Material Fee *"
-                type="number"
-              />
-            </div>
+                  <FormSelect
+                    name="study_reason"
+                    label="Study Reason *"
+                    options={STUDY_REASON_OPTIONS}
+                  />
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Include material fee in initial payment? *</Label>
-              <FormRadio
-                name="include_material_fee_in_initial_payment"
-                label=""
-                options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" },
-                  ]}
-              />
-              </div>
+                  <FormInput
+                    name="course_actual_fee"
+                    label="Course Actual Fee *"
+                    type="number"
+                  />
+                  <FormInput
+                    name="course_upfront_fee"
+                    label="Course Upfront Fee *"
+                    type="number"
+                  />
+                  <FormInput
+                    name="enrollment_fee"
+                    label="Enrollment Fee *"
+                    type="number"
+                  />
+                  <FormInput
+                    name="material_fee"
+                    label="Material Fee *"
+                    type="number"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Are you receiving any scholarship/bursary ? *</Label>
-              <FormRadio
-                name="receiving_scholarship_bursary"
-                label=""
-                options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" },
-                  ]}
-              />
-              </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Include material fee in initial payment? *</Label>
+                    <FormRadio
+                      name="inclue_material_fee_in_initial_payment"
+                      label=""
+                      options={[
+                        { value: "Yes", label: "Yes" },
+                        { value: "No", label: "No" },
+                      ]}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Work Integrated Learning (WIL) Requirements *</Label>
-              <FormRadio
-                name="wil_requirements"
-                label=""
-                options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" },
-                    { value: "N/A", label: "N/A" },
-                  ]}
-              />
-              </div>
+                  <div className="space-y-2">
+                    <Label>Are you receiving any scholarship/bursary ? *</Label>
+                    <FormRadio
+                      name="receiving_scholarship"
+                      label=""
+                      options={[
+                        { value: "Yes", label: "Yes" },
+                        { value: "No", label: "No" },
+                      ]}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label>
-                  Third-Party Providers engaged by college to deliver / support
-                  the course Application Request *
-                </Label>
-              <FormRadio
-                name="third_party_providers_application_request"
-                label=""
-                options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" },
-                    { value: "N/A", label: "N/A" },
-                  ]}
-              />
-              </div>
+                  {receivingScholarshipValue === "Yes" && (
+                    <FormInput
+                      name="scholarship_percentage"
+                      label="Scholarship Percentage *"
+                      type="number"
+                    />
+                  )}
 
-              <FormTextarea
-                name="application_request"
-                label="Application Request"
-                placeholder="Enter request (optional)"
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label>Work Integrated Learning (WIL) Requirements *</Label>
+                    <FormRadio
+                      name="work_integrated_learning"
+                      label=""
+                      options={[
+                        { value: "Yes", label: "Yes" },
+                        { value: "No", label: "No" },
+                        { value: "N/A", label: "N/A" },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>
+                      Third-Party Providers engaged by college to deliver /
+                      support the course Application Request *
+                    </Label>
+                    <FormRadio
+                      name="third_party_provider"
+                      label=""
+                      options={[
+                        { value: "Yes", label: "Yes" },
+                        { value: "No", label: "No" },
+                        { value: "N/A", label: "N/A" },
+                      ]}
+                    />
+                  </div>
+
+                  <FormTextarea
+                    name="application_request"
+                    label="Application Request"
+                    placeholder="Enter request (optional)"
+                  />
+
+                  <div className="md:grid md:grid-cols-2">
+                    <FormSelect
+                      name="class_type"
+                      label="Class Type *"
+                      options={[
+                        { value: "classroom", label: "Classroom" },
+                        { value: "hybrid", label: "Hybrid" },
+                        { value: "online", label: "Online" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -678,6 +1037,23 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         </div>
       </form>
     </FormProvider>
+  );
+};
+
+const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
+  const { data: session, status } = useSession();
+  const isAgent = session?.user?.role === USER_ROLE.AGENT;
+
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <EnrollmentFormInner applicationId={applicationId} isAgent={isAgent} />
   );
 };
 

@@ -14,6 +14,7 @@ import {
   DisabilitySupportValues,
   EmergencyContactValues,
   EmploymentHistoryValues,
+  EnrollmentValues,
   HealthCoverValues,
   LanguageCulturalValues,
   PersonalDetailsValues,
@@ -94,7 +95,7 @@ const useStepMutation = <TInput>(
 };
 
 export const useApplicationStepMutations = (applicationId: string | null) => ({
-  0: useStepMutation<any>(
+  0: useStepMutation<EnrollmentValues>(
     0,
     (id, payload) => applicationStepsService.updateEnrollment(id, payload),
     applicationId,

@@ -1,75 +1,33 @@
 import { z } from "zod";
 
-const yesNoSchema = z.enum(["Yes", "No"]);
-const yesNoNaSchema = z.enum(["Yes", "No", "N/A"]);
+const yesNoApiSchema = z.enum(["yes", "no"]);
+const yesNoNaApiSchema = z.enum(["yes", "no", "na"]);
+const classTypeSchema = z.enum(["classroom", "hybrid", "online"]);
 
-const requiredSelectId = (message: string) =>
-  z
-    .number()
-    .int()
-    .min(1, message)
-    .optional()
-    .refine((value) => value !== undefined, message);
-
-const requiredNonNegativeNumber = (message: string) =>
-  z
-    .number()
-    .min(0, "Must be 0 or more")
-    .optional()
-    .refine((value) => value !== undefined, message);
-
-export const enrollmentFormSchema = z
+const agentEnrollmentSchema = z
   .object({
-    course: requiredSelectId("Please select a course"),
-    intake: requiredSelectId("Please select an intake"),
-    campus: requiredSelectId("Please select a campus"),
+    course: z.number().int().min(1),
+    course_name: z.string().min(1),
+    intake: z.number().int().min(1),
+    intake_name: z.string().min(1),
+    campus: z.number().int().min(1),
+    campus_name: z.string().min(1),
 
-    advanced_standing_credit: yesNoSchema,
-    credit_subject_count: z
-      .number()
-      .int()
-      .min(1, "Please select number of subjects")
-      .max(12, "Please select number of subjects")
-      .optional(),
-
-    offer_issued_date: z.string().min(1, "Offer issued date is required"),
-
-    study_reason: z.enum(
-      ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "@@"],
-      { message: "Please select a study reason" },
-    ),
-
-    course_actual_fee: requiredNonNegativeNumber(
-      "Course actual fee is required",
-    ),
-    course_upfront_fee: requiredNonNegativeNumber(
-      "Course upfront fee is required",
-    ),
-    enrollment_fee: requiredNonNegativeNumber("Enrollment fee is required"),
-    material_fee: requiredNonNegativeNumber("Material fee is required"),
-
-    include_material_fee_in_initial_payment: yesNoSchema,
-    receiving_scholarship_bursary: yesNoSchema,
-    wil_requirements: yesNoNaSchema,
-    third_party_providers_application_request: yesNoNaSchema,
-
-    application_request: z.string().optional(),
+    advanced_standing_credit: yesNoApiSchema,
+    number_of_subjects: z.number().int().min(1).max(12).optional(),
   })
+  .strict()
   .superRefine((data, ctx) => {
-    if (data.advanced_standing_credit === "Yes") {
-      if (!data.credit_subject_count) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Please select number of subjects",
-          path: ["credit_subject_count"],
-        });
-      }
+    if (data.advanced_standing_credit === "yes" && !data.number_of_subjects) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "number_of_subjects is required when advanced_standing_credit is yes",
+        path: ["number_of_subjects"],
+      });
     }
   });
 
-export type EnrollmentFormValues = z.infer<typeof enrollmentFormSchema>;
-
-export const enrollmentSchema = z.object({
+const staffEnrollmentSchema = z.object({
   course: z.number(),
   course_name: z.string(),
   intake: z.number(),
@@ -77,40 +35,29 @@ export const enrollmentSchema = z.object({
   campus: z.number(),
   campus_name: z.string(),
 
-  advanced_standing_credit: yesNoSchema,
-  credit_subject_count: z.number().int().min(1).max(12).optional(),
+  advanced_standing_credit: yesNoApiSchema,
+  preferred_start_date: z.string().min(1),
+  number_of_subjects: z.number().int().min(1).max(12).optional(),
+  no_of_weeks: z.number().int().min(1),
+  course_end_date: z.string().min(1),
   offer_issued_date: z.string().min(1),
   study_reason: z.string().min(1),
   course_actual_fee: z.number().min(0),
   course_upfront_fee: z.number().min(0),
   enrollment_fee: z.number().min(0),
   material_fee: z.number().min(0),
-  include_material_fee_in_initial_payment: yesNoSchema,
-  receiving_scholarship_bursary: yesNoSchema,
-  wil_requirements: yesNoNaSchema,
-  third_party_providers_application_request: yesNoNaSchema,
+  inclue_material_fee_in_initial_payment: yesNoApiSchema,
+  receiving_scholarship: yesNoApiSchema,
+  scholarship_percentage: z.number().min(0).max(100).optional(),
+  work_integrated_learning: yesNoNaApiSchema,
+  third_party_provider: yesNoNaApiSchema,
+  class_type: classTypeSchema,
   application_request: z.string().optional(),
 });
 
-export type EnrollmentValues = z.infer<typeof enrollmentSchema>;
+export const enrollmentSchema = z.union([
+  staffEnrollmentSchema.strict(),
+  agentEnrollmentSchema,
+]);
 
-export const defaultEnrollmentFormValues: Omit<
-  EnrollmentFormValues,
-  "offer_issued_date"
-> = {
-  course: undefined,
-  intake: undefined,
-  campus: undefined,
-  advanced_standing_credit: "No",
-  credit_subject_count: undefined,
-  study_reason: "@@",
-  course_actual_fee: undefined,
-  course_upfront_fee: undefined,
-  enrollment_fee: undefined,
-  material_fee: undefined,
-  include_material_fee_in_initial_payment: "No",
-  receiving_scholarship_bursary: "No",
-  wil_requirements: "N/A",
-  third_party_providers_application_request: "N/A",
-  application_request: "",
-};
+export type EnrollmentValues = z.infer<typeof enrollmentSchema>;
