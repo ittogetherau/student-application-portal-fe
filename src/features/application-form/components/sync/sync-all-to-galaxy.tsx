@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
-  useGalaxySyncDeclarationMutation,
   useGalaxySyncDisabilityMutation,
   useGalaxySyncDocumentsMutation,
   useGalaxySyncEmergencyContactMutation,
@@ -43,6 +42,25 @@ interface SyncTaskConfig {
   upToDate: boolean;
 }
 
+const SYNC_METADATA_LABELS: Record<string, string> = {
+  enrollment_data: "Enrollment",
+  personal_details: "Personal details",
+  emergency_contacts: "Emergency contacts",
+  health_cover_policy: "Health cover",
+  language_cultural_data: "Language & cultural",
+  disability_support: "Disability support",
+  schooling_history: "Schooling history",
+  qualifications: "Qualifications",
+  employment_history: "Employment",
+  usi: "USI",
+  documents: "Documents",
+  additional_services: "Additional services",
+  survey_responses: "Survey/Declaration",
+  declaration: "Declaration",
+};
+
+let lastSyncMetadataIncompleteLogSignature: string | null = null;
+
 export const isSyncMetadataComplete = (
   syncMetadata: ApplicationSyncMetadata | null,
   options?: {
@@ -59,14 +77,44 @@ export const isSyncMetadataComplete = (
 
   if (!entries.length) return false;
 
-  const values = entries.map(([, value]) => value).filter(Boolean);
-  if (!values.length) return false;
+  const valuesWithKeys = entries
+    .map(([key, value]) => ({ key, value }))
+    .filter(({ value }) => Boolean(value));
 
-  return values.every((entry) => {
-    if (!entry) return false;
-    if (options?.requireNoErrors && entry.last_error) return false;
-    return entry.uptodate === true && !!entry.last_synced_at;
+  if (!valuesWithKeys.length) return false;
+
+  const incomplete = valuesWithKeys.flatMap(({ key, value }) => {
+    const label = SYNC_METADATA_LABELS[key] ?? key;
+    if (!value) return [{ key, label, reasons: ["missing"] }];
+
+    const reasons: string[] = [];
+    if (options?.requireNoErrors && value.last_error) reasons.push("has_error");
+    if (value.uptodate !== true) reasons.push("not_uptodate");
+    if (!value.last_synced_at) reasons.push("never_synced");
+
+    return reasons.length
+      ? [{ key, label, reasons }]
+      : [];
   });
+
+  const complete = incomplete.length === 0;
+
+  if (!complete) {
+    const signature = JSON.stringify({
+      ignoredKeys: options?.ignoredKeys ?? [],
+      requireNoErrors: options?.requireNoErrors ?? false,
+      incomplete,
+    });
+
+    if (signature !== lastSyncMetadataIncompleteLogSignature) {
+      lastSyncMetadataIncompleteLogSignature = signature;
+      console.warn("[isSyncMetadataComplete] Incomplete sync sections:", {
+        incomplete,
+      });
+    }
+  }
+
+  return complete;
 };
 
 export interface SyncToGalaxyButtonProps {
@@ -94,7 +142,7 @@ const SyncToGalaxyButton = ({
   const syncQualifications = useGalaxySyncQualificationsMutation(applicationId);
   const syncEmployment = useGalaxySyncEmploymentMutation(applicationId);
   const syncUsi = useGalaxySyncUsiMutation(applicationId);
-  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
+  // const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
   const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
 
@@ -110,7 +158,6 @@ const SyncToGalaxyButton = ({
     employment,
     usi,
     documents,
-    survey,
   } = availability ?? {};
 
   const tasks: SyncTaskConfig[] = [
@@ -191,13 +238,13 @@ const SyncToGalaxyButton = ({
       upToDate: syncMetadata?.documents?.uptodate === true,
       run: () => syncDocuments.mutateAsync(),
     },
-    {
-      label: "Survey/Declaration",
-      metaKey: "survey_responses",
-      enabled: survey === true,
-      upToDate: syncMetadata?.survey_responses?.uptodate === true,
-      run: () => syncDeclaration.mutateAsync(),
-    },
+    // {
+    //   label: "Survey/Declaration",
+    //   metaKey: "survey_responses",
+    //   enabled: survey === true,
+    //   upToDate: syncMetadata?.survey_responses?.uptodate === true,
+    //   run: () => syncDeclaration.mutateAsync(),
+    // },
   ];
 
   const runnable = tasks.filter((task) => task.enabled && !task.upToDate);
@@ -213,8 +260,8 @@ const SyncToGalaxyButton = ({
     syncEnrollment.isPending ||
     syncEmployment.isPending ||
     syncDocuments.isPending ||
-    syncUsi.isPending ||
-    syncDeclaration.isPending;
+    syncUsi.isPending;
+  // || syncDeclaration.isPending;
 
   const handleSync = async () => {
     try {

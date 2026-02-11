@@ -20,6 +20,22 @@ import type {
   SurveyValues,
 } from "@/shared/validation/application.validation";
 
+export interface ApplicationEnrollmentData {
+  status?: string | null;
+  offer_signed_at?: string | null;
+  fee_received_at?: string | null;
+  coe_uploaded_at?: string | null;
+
+  course?: number | null;
+  course_name?: string | null;
+  intake?: number | null;
+  intake_name?: string | null;
+  campus?: number | null;
+  campus_name?: string | null;
+
+  [key: string]: unknown;
+}
+
 export interface ApplicationDetailResponse {
   id: string;
   tracking_code?: string | null;
@@ -44,7 +60,7 @@ export interface ApplicationDetailResponse {
   employment_history?: EmploymentHistoryValues[] | null;
   additional_services?: AdditionalServicesValues | null;
   survey_responses?: SurveyValues[] | null;
-  enrollment_data?: unknown | null;
+  enrollment_data?: ApplicationEnrollmentData | null;
   gs_assessment?: unknown | null;
   signature_data?: unknown | null;
   sync_metadata?: ApplicationSyncMetadata | null;

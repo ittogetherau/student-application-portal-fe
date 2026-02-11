@@ -50,6 +50,7 @@ export const useFormPersistence = <T extends FieldValues>({
   const isInitialLoadRef = useRef(true);
   const hasLoadedPersistedDataRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastWatchedValueRef = useRef<T | null>(null);
   const lastOcrDataRef = useRef<string | null>(null);
   const lastLoadedDataRef = useRef<string | null>(null);
 
@@ -213,6 +214,8 @@ export const useFormPersistence = <T extends FieldValues>({
     (data: T) => {
       if (!enabled || !applicationId) return;
 
+      lastWatchedValueRef.current = data;
+
       // Clear existing timeout
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
@@ -241,6 +244,13 @@ export const useFormPersistence = <T extends FieldValues>({
       subscription.unsubscribe();
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+
+        // Flush any pending debounced save so quick navigation doesn't lose changes.
+        const lastValue = lastWatchedValueRef.current;
+        if (lastValue) {
+          setStepData(stepId, lastValue);
+        }
       }
     };
   }, [
@@ -248,6 +258,7 @@ export const useFormPersistence = <T extends FieldValues>({
     applicationId,
     form,
     saveStepDataDebounced,
+    setStepData,
     stepId,
     _hasHydrated,
   ]);

@@ -72,6 +72,9 @@ export function useGSAssessmentQuery(applicationId: string | null) {
       return response;
     },
     enabled: !!applicationId,
+    retry: 2,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5,
   });
 }
 

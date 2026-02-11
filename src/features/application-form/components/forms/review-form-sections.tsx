@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
   CalendarDays,
+  ClipboardCheck,
   CheckCircle2,
   Contact2,
   FileText,
@@ -89,6 +90,183 @@ export function EnrollmentSection(props: {
         <Field
           label="Intake"
           value={enrollmentData.intake_name ?? enrollmentData.intake}
+          icon={CalendarDays}
+        />
+        <Field
+          label="Preferred Start Date"
+          value={enrollmentData.preferred_start_date}
+          icon={CalendarDays}
+        />
+        <Field
+          label="Course End Date"
+          value={enrollmentData.course_end_date}
+          icon={CalendarDays}
+        />
+        <Field
+          label="No. of Weeks"
+          value={enrollmentData.no_of_weeks}
+          icon={CalendarDays}
+        />
+        <Field
+          label="Offer Issued Date"
+          value={enrollmentData.offer_issued_date}
+          icon={CalendarDays}
+        />
+        <Field
+          label="Study Reason"
+          value={enrollmentData.study_reason}
+          icon={ClipboardCheck}
+        />
+        <Field
+          label="Class Type"
+          value={enrollmentData.class_type}
+          icon={Briefcase}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            return s
+              .split(/[\s_-]+/g)
+              .filter(Boolean)
+              .map((p) => p[0]?.toUpperCase() + p.slice(1))
+              .join(" ");
+          }}
+        />
+        <Field
+          label="Advanced Standing / Credit"
+          value={enrollmentData.advanced_standing_credit}
+          icon={CheckCircle2}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            const lower = s.toLowerCase();
+            if (lower === "yes") return "Yes";
+            if (lower === "no") return "No";
+            return s;
+          }}
+        />
+        <Field
+          label="No. of Subjects"
+          value={enrollmentData.number_of_subjects}
+          icon={GraduationCap}
+        />
+        <Field
+          label="Receiving Scholarship"
+          value={enrollmentData.receiving_scholarship}
+          icon={CheckCircle2}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            const lower = s.toLowerCase();
+            if (lower === "yes") return "Yes";
+            if (lower === "no") return "No";
+            return s;
+          }}
+        />
+        <Field
+          label="Scholarship %"
+          value={enrollmentData.scholarship_percentage}
+          icon={CheckCircle2}
+        />
+        <Field
+          label="Include Material Fee in Initial Payment"
+          value={enrollmentData.inclue_material_fee_in_initial_payment}
+          icon={CheckCircle2}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            const lower = s.toLowerCase();
+            if (lower === "yes") return "Yes";
+            if (lower === "no") return "No";
+            return s;
+          }}
+        />
+        <Field
+          label="WIL Requirements"
+          value={enrollmentData.work_integrated_learning}
+          icon={CheckCircle2}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            const lower = s.toLowerCase();
+            if (lower === "yes") return "Yes";
+            if (lower === "no") return "No";
+            if (lower === "na" || lower === "n/a") return "N/A";
+            return s;
+          }}
+        />
+        <Field
+          label="Third Party Provider"
+          value={enrollmentData.third_party_provider}
+          icon={CheckCircle2}
+          format={(v) => {
+            const s = toText(v);
+            if (!s) return "";
+            const lower = s.toLowerCase();
+            if (lower === "yes") return "Yes";
+            if (lower === "no") return "No";
+            if (lower === "na" || lower === "n/a") return "N/A";
+            return s;
+          }}
+        />
+        <Field
+          label="Course Actual Fee"
+          value={enrollmentData.course_actual_fee}
+          icon={FileText}
+          format={formatMoney}
+        />
+        <Field
+          label="Course Upfront Fee"
+          value={enrollmentData.course_upfront_fee}
+          icon={FileText}
+          format={formatMoney}
+        />
+        <Field
+          label="Enrollment Fee"
+          value={enrollmentData.enrollment_fee}
+          icon={FileText}
+          format={formatMoney}
+        />
+        <Field
+          label="Material Fee"
+          value={enrollmentData.material_fee}
+          icon={FileText}
+          format={formatMoney}
+        />
+        <Field
+          label="Application Request"
+          value={enrollmentData.application_request}
+          icon={FileText}
+        />
+        <Field
+          label="Status"
+          value={enrollmentData.status}
+          icon={FileText}
+        />
+        <Field
+          label="Offer Signed At"
+          value={
+            enrollmentData.offer_signed_at
+              ? formatUtcToFriendlyLocal(String(enrollmentData.offer_signed_at))
+              : null
+          }
+          icon={CalendarDays}
+        />
+        <Field
+          label="Fee Received At"
+          value={
+            enrollmentData.fee_received_at
+              ? formatUtcToFriendlyLocal(String(enrollmentData.fee_received_at))
+              : null
+          }
+          icon={CalendarDays}
+        />
+        <Field
+          label="COE Uploaded At"
+          value={
+            enrollmentData.coe_uploaded_at
+              ? formatUtcToFriendlyLocal(String(enrollmentData.coe_uploaded_at))
+              : null
+          }
           icon={CalendarDays}
         />
       </FieldsGrid>
@@ -463,12 +641,27 @@ export function LanguageCulturalSection({
     />
   );
 
+  const aboriginalOrIslander =
+    data.is_aus_aboriginal_or_islander ?? data.aboriginal_torres_strait ?? null;
+
   const hasAny =
+    aboriginalOrIslander ||
+    data.is_english_main_language ||
+    data.main_language ||
+    data.english_speaking_proficiency ||
+    data.english_instruction_previous_studies ||
+    data.completed_english_test ||
+    data.english_test_type ||
+    data.english_test_date ||
+    data.english_test_score ||
     data.first_language ||
+    data.english_proficiency ||
     (data.other_languages && data.other_languages.length > 0) ||
     data.indigenous_status ||
     data.country_of_birth ||
-    data.citizenship_status;
+    data.citizenship_status ||
+    data.visa_type ||
+    data.visa_expiry;
 
   return (
     <Section
@@ -480,9 +673,69 @@ export function LanguageCulturalSection({
     >
       <FieldsGrid>
         <Field
-          label="First Language"
-          value={data.first_language}
+          label="Aboriginal/Torres Strait"
+          value={aboriginalOrIslander}
+          icon={Shield}
+        />
+        <Field
+          label="English Main Language"
+          value={data.is_english_main_language}
           icon={Languages}
+        />
+        <Field
+          label="Main Language"
+          value={data.main_language ?? data.first_language}
+          icon={Languages}
+        />
+        <Field
+          label="English Proficiency"
+          value={data.english_speaking_proficiency ?? data.english_proficiency}
+          icon={Languages}
+        />
+        <Field
+          label="English Instruction (Previous Studies)"
+          value={data.english_instruction_previous_studies}
+          icon={Languages}
+        />
+        <Field
+          label="Completed English Test"
+          value={data.completed_english_test}
+          icon={FileText}
+        />
+        <Field
+          label="English Test Type"
+          value={data.english_test_type}
+          icon={FileText}
+        />
+        <Field
+          label="English Test Date"
+          value={data.english_test_date}
+          icon={CalendarDays}
+        />
+        <Field
+          label="English Test (Overall)"
+          value={data.english_test_overall ?? data.english_test_score}
+          icon={FileText}
+        />
+        <Field
+          label="English Test (Listening)"
+          value={data.english_test_listening}
+          icon={FileText}
+        />
+        <Field
+          label="English Test (Reading)"
+          value={data.english_test_reading}
+          icon={FileText}
+        />
+        <Field
+          label="English Test (Writing)"
+          value={data.english_test_writing}
+          icon={FileText}
+        />
+        <Field
+          label="English Test (Speaking)"
+          value={data.english_test_speaking}
+          icon={FileText}
         />
         <Field
           label="Other Languages"
@@ -507,6 +760,12 @@ export function LanguageCulturalSection({
           label="Citizenship Status"
           value={data.citizenship_status}
           icon={Shield}
+        />
+        <Field label="Visa Type" value={data.visa_type} icon={Shield} />
+        <Field
+          label="Visa Expiry"
+          value={data.visa_expiry}
+          icon={CalendarDays}
         />
       </FieldsGrid>
 

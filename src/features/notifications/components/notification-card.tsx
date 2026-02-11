@@ -3,8 +3,13 @@
 import {
   getNotificationColor,
   normalizeNotificationType,
-  NotificationTypeIcon,
 } from "@/features/notifications/components/notification-ui";
+import {
+  DEFAULT_NOTIFICATION_TITLE_ICON,
+  normalizeNotificationTitle,
+  NOTIFICATION_TITLE_ICON_MAP,
+  NOTIFICATION_TITLE_ICON_MAP_NORMALIZED,
+} from "@/features/notifications/components/notification-title-icon-map";
 import { useMarkNotificationReadMutation } from "@/features/notifications/hooks/use-notifications.hook";
 import type { NotificationItem } from "@/features/notifications/service/notifications.service";
 import { cn } from "@/shared/lib/utils";
@@ -17,11 +22,14 @@ type props = {
 export default function NotificationCard({ notification, className }: props) {
   const markReadMutation = useMarkNotificationReadMutation();
 
-  console.log(notification);
-
   const type = normalizeNotificationType(notification.type);
   const iconColor = getNotificationColor(type);
   const isRead = notification.is_read;
+  const normalizedTitle = normalizeNotificationTitle(notification.title);
+  const TitleIcon =
+    NOTIFICATION_TITLE_ICON_MAP[notification.title] ??
+    NOTIFICATION_TITLE_ICON_MAP_NORMALIZED[normalizedTitle] ??
+    DEFAULT_NOTIFICATION_TITLE_ICON;
 
   return (
     <div
@@ -37,7 +45,7 @@ export default function NotificationCard({ notification, className }: props) {
     >
       <div className="flex gap-3">
         <div className={cn("shrink-0 mt-0.5", iconColor)}>
-          <NotificationTypeIcon type={type} className="h-4 w-4" />
+          <TitleIcon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">

@@ -108,11 +108,15 @@ const languageOptions = [
 // Test type options
 const testTypeOptions = [
   {
-    value: "ielts",
+    value: "IELTS",
     label: "INTERNATIONAL ENGLISH LANGUAGE TESTING SYSTEM (IELTS)",
   },
   { value: "pte", label: "PEARSON TEST OF ENGLISH (PTE)" },
-  { value: "toefl", label: "TEST OF ENGLISH AS A FOREIGN LANGUAGE (TOEFL)" },
+  { value: "TOFEL", label: "TEST OF ENGLISH AS A FOREIGN LANGUAGE (TOEFL)" },
+  {
+    value: "TOEIC",
+    label: "TEST OF ENGLISH FOR INTERNATIONAL COMMUNICATION (TOEIC)",
+  },
   { value: "cambridge", label: "CAMBRIDGE ENGLISH" },
   { value: "oet", label: "OCCUPATIONAL ENGLISH TEST (OET)" },
   { value: "other", label: "OTHER" },

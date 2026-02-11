@@ -175,37 +175,44 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           hasUsi: !!apiResponse.usi,
           hasEnrollment: !!apiResponse.enrollment_data,
         });
-        set((state) => {
+        set(() => {
           // Clear previous data to prevent leaking between applications
           const newStepData: Record<number, unknown> = {};
 
           // Step 0: Enrollment
           if (apiResponse.enrollment_data) {
-            const enrollment = apiResponse.enrollment_data as Record<
-              string,
-              unknown
-            >;
-            const courseId =
-              (enrollment.courseId as number | undefined) ??
-              (enrollment.course_id as number | undefined) ??
-              (enrollment.course as number | undefined);
-            const intakeId =
-              (enrollment.intakeId as number | undefined) ??
-              (enrollment.intake_id as number | undefined) ??
-              (enrollment.intake as number | undefined);
-            const campusId =
-              (enrollment.campusId as number | undefined) ??
-              (enrollment.campus_id as number | undefined) ??
-              (enrollment.campus as number | undefined);
+            const enrollment =
+              typeof apiResponse.enrollment_data === "object" &&
+              apiResponse.enrollment_data !== null &&
+              !Array.isArray(apiResponse.enrollment_data)
+                ? (apiResponse.enrollment_data as Record<string, unknown>)
+                : null;
 
-            newStepData[0] = {
-              courseId,
-              intakeId,
-              campusId,
-              course: courseId,
-              intake: intakeId,
-              campus: campusId,
-            };
+            if (enrollment) {
+              const courseId =
+                (enrollment.courseId as number | undefined) ??
+                (enrollment.course_id as number | undefined) ??
+                (enrollment.course as number | undefined);
+              const intakeId =
+                (enrollment.intakeId as number | undefined) ??
+                (enrollment.intake_id as number | undefined) ??
+                (enrollment.intake as number | undefined);
+              const campusId =
+                (enrollment.campusId as number | undefined) ??
+                (enrollment.campus_id as number | undefined) ??
+                (enrollment.campus as number | undefined);
+
+              // Preserve all enrollment fields so edit mode can prefill the full form.
+              newStepData[0] = {
+                ...enrollment,
+                courseId,
+                intakeId,
+                campusId,
+                course: courseId ?? (enrollment.course as number | undefined),
+                intake: intakeId ?? (enrollment.intake as number | undefined),
+                campus: campusId ?? (enrollment.campus as number | undefined),
+              };
+            }
           }
 
           // Map API response fields to step IDs

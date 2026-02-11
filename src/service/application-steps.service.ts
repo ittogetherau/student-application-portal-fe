@@ -68,12 +68,12 @@ class ApplicationStepsService extends ApiService {
   getStepData = async (
     applicationId: string,
     stepId: number,
-  ): Promise<ServiceResponse<any>> => {
+  ): Promise<ServiceResponse<{ data?: unknown }>> => {
     try {
       const stepName = this.stepNameMap[stepId];
       if (!stepName) throw new Error(`Invalid step ID: ${stepId}`);
 
-      const data = await this.get<any>(
+      const data = await this.get<{ data?: unknown }>(
         `${this.basePath}/${applicationId}/steps/${stepName}`,
         true,
       );

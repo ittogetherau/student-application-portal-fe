@@ -355,25 +355,47 @@ const EnrollmentFormInner = ({
       if (hasRestoredRef.current) return;
 
       const saved = data as unknown as {
-        courseId?: number;
-        intakeId?: number;
-        campusId?: number;
-        course?: number;
-        intake?: number;
-        campus?: number;
+        courseId?: number | string;
+        intakeId?: number | string;
+        campusId?: number | string;
+        course_id?: number | string;
+        intake_id?: number | string;
+        campus_id?: number | string;
+        course?: number | string;
+        intake?: number | string;
+        campus?: number | string;
       };
 
-      const legacyCourse = saved.courseId ?? saved.course;
-      const legacyIntake = saved.intakeId ?? saved.intake;
-      const legacyCampus = saved.campusId ?? saved.campus;
+      const coerceId = (value?: number | string) => {
+        if (typeof value === "number" && Number.isFinite(value)) return value;
+        if (typeof value === "string" && value.trim().length > 0) {
+          const parsed = Number(value);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return undefined;
+      };
 
-      if (legacyCourse && !methods.getValues("course")) {
+      const legacyCourse = coerceId(saved.courseId ?? saved.course_id ?? saved.course);
+      const legacyIntake = coerceId(saved.intakeId ?? saved.intake_id ?? saved.intake);
+      const legacyCampus = coerceId(saved.campusId ?? saved.campus_id ?? saved.campus);
+
+      const currentCourse = coerceId(
+        methods.getValues("course") as unknown as number | string | undefined,
+      );
+      const currentIntake = coerceId(
+        methods.getValues("intake") as unknown as number | string | undefined,
+      );
+      const currentCampus = coerceId(
+        methods.getValues("campus") as unknown as number | string | undefined,
+      );
+
+      if (legacyCourse && currentCourse !== legacyCourse) {
         methods.setValue("course", legacyCourse, { shouldDirty: false });
       }
-      if (legacyIntake && !methods.getValues("intake")) {
+      if (legacyIntake && currentIntake !== legacyIntake) {
         methods.setValue("intake", legacyIntake, { shouldDirty: false });
       }
-      if (legacyCampus && !methods.getValues("campus")) {
+      if (legacyCampus && currentCampus !== legacyCampus) {
         methods.setValue("campus", legacyCampus, { shouldDirty: false });
       }
 
@@ -515,22 +537,78 @@ const EnrollmentFormInner = ({
     field: "course" | "intake" | "campus",
     value: string,
   ) => {
+    const coerceId = (val: unknown) => {
+      if (typeof val === "number" && Number.isFinite(val)) return val;
+      if (typeof val === "string" && val.trim().length > 0) {
+        const parsed = Number(val);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return undefined;
+    };
+
+    const nextId = coerceId(value);
+    if (!nextId || nextId <= 0) return;
+
+    const currentCourse = coerceId(methods.getValues("course"));
+    const currentIntake = coerceId(methods.getValues("intake"));
+    const currentCampus = coerceId(methods.getValues("campus"));
+
     if (field === "course") {
-      setValue("course", Number(value), { shouldDirty: true });
-      resetField("intake", { defaultValue: undefined });
-      resetField("campus", { defaultValue: undefined });
+      setValue("course", nextId, { shouldDirty: true });
+
+      const nextCourse = courses.find((c) => c.id === nextId);
+      const intakeStillValid = !!(
+        nextCourse &&
+        currentIntake &&
+        nextCourse.intakes?.some((i) => i.id === currentIntake)
+      );
+
+      if (!intakeStillValid) {
+        resetField("intake", { defaultValue: undefined });
+        resetField("campus", { defaultValue: undefined });
+      } else {
+        const nextIntake = nextCourse?.intakes?.find(
+          (i) => i.id === currentIntake,
+        );
+        const campusStillValid = !!(
+          nextIntake &&
+          currentCampus &&
+          nextIntake.campuses?.some((c) => c.id === currentCampus)
+        );
+        if (!campusStillValid) {
+          resetField("campus", { defaultValue: undefined });
+        }
+      }
+
       clearErrors(["course", "intake", "campus"]);
       return;
     }
 
     if (field === "intake") {
-      setValue("intake", Number(value), { shouldDirty: true });
-      resetField("campus", { defaultValue: undefined });
+      if (!currentCourse) return;
+
+      setValue("intake", nextId, { shouldDirty: true });
+
+      const currentCourseEntity = courses.find((c) => c.id === currentCourse);
+      const nextIntake = currentCourseEntity?.intakes?.find(
+        (i) => i.id === nextId,
+      );
+      const campusStillValid = !!(
+        nextIntake &&
+        currentCampus &&
+        nextIntake.campuses?.some((c) => c.id === currentCampus)
+      );
+      if (!campusStillValid) {
+        resetField("campus", { defaultValue: undefined });
+      }
+
       clearErrors(["intake", "campus"]);
       return;
     }
 
-    setValue("campus", Number(value), { shouldDirty: true });
+    if (!currentIntake) return;
+
+    setValue("campus", nextId, { shouldDirty: true });
     clearErrors("campus");
   };
 

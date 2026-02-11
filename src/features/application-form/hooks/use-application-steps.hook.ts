@@ -170,7 +170,48 @@ export const useApplicationStepQuery = (
 ) => {
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
 
-  const query = useQuery<ServiceResponse<any>, Error>({
+  const normalizeEnrollmentPayload = (input: unknown) => {
+    if (
+      !input ||
+      typeof input !== "object" ||
+      Array.isArray(input) ||
+      Object.keys(input as Record<string, unknown>).length === 0
+    ) {
+      return input;
+    }
+
+    const data = input as Record<string, unknown>;
+
+    const normalizeYesNo = (value: unknown) => {
+      if (typeof value !== "string") return value;
+      const lower = value.trim().toLowerCase();
+      if (lower === "yes") return "Yes";
+      if (lower === "no") return "No";
+      return value;
+    };
+
+    const normalizeYesNoNa = (value: unknown) => {
+      if (typeof value !== "string") return value;
+      const lower = value.trim().toLowerCase();
+      if (lower === "yes") return "Yes";
+      if (lower === "no") return "No";
+      if (lower === "na" || lower === "n/a") return "N/A";
+      return value;
+    };
+
+    return {
+      ...data,
+      advanced_standing_credit: normalizeYesNo(data.advanced_standing_credit),
+      inclue_material_fee_in_initial_payment: normalizeYesNo(
+        data.inclue_material_fee_in_initial_payment,
+      ),
+      receiving_scholarship: normalizeYesNo(data.receiving_scholarship),
+      work_integrated_learning: normalizeYesNoNa(data.work_integrated_learning),
+      third_party_provider: normalizeYesNoNa(data.third_party_provider),
+    };
+  };
+
+  const query = useQuery<ServiceResponse<{ data?: unknown }>, Error>({
     queryKey: ["application-step-data", applicationId, stepId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
@@ -187,9 +228,23 @@ export const useApplicationStepQuery = (
   });
 
   useEffect(() => {
-    if (query.data?.data?.data) {
-      setStepData(stepId, query.data.data.data);
+    const payload = query.data?.data?.data;
+    if (!payload) return;
+
+    if (Array.isArray(payload) && payload.length === 0) return;
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      !Array.isArray(payload) &&
+      Object.keys(payload as Record<string, unknown>).length === 0
+    ) {
+      return;
     }
+
+    const normalizedPayload =
+      stepId === 0 ? normalizeEnrollmentPayload(payload) : payload;
+
+    setStepData(stepId, normalizedPayload);
   }, [query.data, stepId, setStepData]);
 
   return query;

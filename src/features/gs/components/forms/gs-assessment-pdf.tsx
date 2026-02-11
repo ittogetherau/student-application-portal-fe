@@ -110,14 +110,15 @@ async function loadLogoPngDataUrl(): Promise<string | null> {
   }
 }
 
-const BORDER_COLOR = "#3A7BD5";
-const LABEL_FILL = "#6FA8FF55";
-const LIGHT_FILL = "#F2F7FF";
+const PRIMARY_ORANGE = "#E59725";
+const BORDER_COLOR = PRIMARY_ORANGE;
+const LABEL_FILL = "#E5972522";
+const LIGHT_FILL = "#FFF7EB";
 
 const styles = StyleSheet.create({
   page: {
     paddingTop: 52,
-    paddingBottom: 30,
+    paddingBottom: 54,
     paddingHorizontal: 32,
     fontSize: 8,
     color: "#0f172a",
@@ -154,6 +155,39 @@ const styles = StyleSheet.create({
   footerLeft: {
     flex: 1,
     paddingRight: 10,
+  },
+  footerPageText: {
+    fontSize: 7,
+    color: "#475569",
+    marginBottom: 4,
+  },
+  footerContactList: {
+    gap: 2,
+  },
+  footerContactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  footerBadge: {
+    width: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: LIGHT_FILL,
+  },
+  footerBadgeText: {
+    fontSize: 6,
+    lineHeight: 1,
+    color: "#0f172a",
+    fontWeight: "bold",
+  },
+  footerContactText: {
+    fontSize: 7,
+    color: "#475569",
   },
   footerRight: {
     width: 110,
@@ -251,7 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cellApproval: {
-    width: 150,
+    width: 80,
   },
   statusCellLabel: {
     width: "50%",
@@ -344,12 +378,36 @@ export async function generateGsAssessmentPdfBlob({
   const renderFooter = () => (
     <View style={styles.footerContainer} fixed>
       <View style={styles.footerRow}>
-        <Text
-          style={styles.footerLeft}
-          render={({ pageNumber }) =>
-            `Page | ${pageNumber} Churchill Institute of Higher Education Staff GS Assessment`
-          }
-        />
+        <View style={styles.footerLeft}>
+          <Text
+            style={styles.footerPageText}
+            render={({ pageNumber }) =>
+              `Page | ${pageNumber} Churchill Institute of Higher Education Staff GS Assessment`
+            }
+          />
+          <View style={styles.footerContactList}>
+            <View style={styles.footerContactRow}>
+              <View style={styles.footerBadge}>
+                <Text style={styles.footerBadgeText}>P</Text>
+              </View>
+              <Text style={styles.footerContactText}>+61 (0) 2 88562997</Text>
+            </View>
+            <View style={styles.footerContactRow}>
+              <View style={styles.footerBadge}>
+                <Text style={styles.footerBadgeText}>W</Text>
+              </View>
+              <Text style={styles.footerContactText}>www.churchill.edu.au</Text>
+            </View>
+            <View style={styles.footerContactRow}>
+              <View style={styles.footerBadge}>
+                <Text style={styles.footerBadgeText}>A</Text>
+              </View>
+              <Text style={styles.footerContactText}>
+                Level 1, 16-18 Wentworth Street Parramatta NSW 2150 Australia
+              </Text>
+            </View>
+          </View>
+        </View>
         <Text style={styles.footerRight}>February 2026</Text>
       </View>
     </View>
@@ -627,6 +685,14 @@ export async function generateGsAssessmentPdfBlob({
           stage2.map((q, index) => {
             const answer = getString(q.answer);
             const status = formatApprovalStatus(q.approval_status);
+            const statusLabel =
+              status === "approved"
+                ? "Approved"
+                : status === "not-approved"
+                  ? "Not Approved"
+                  : status === "not-applicable"
+                    ? "Not Applicable"
+                    : "";
             const rowIsLast = index === stage2.length - 1;
             return (
               <View
@@ -683,54 +749,11 @@ export async function generateGsAssessmentPdfBlob({
                     styles.tableCellLast,
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.approvalOption,
-                      styles.compactApprovalOption,
-                    ]}
+                  <Text
+                    style={[styles.approvalLabel, styles.compactApprovalLabel]}
                   >
-                    <CheckboxMarkSmall checked={status === "approved"} />
-                    <Text
-                      style={[
-                        styles.approvalLabel,
-                        styles.compactApprovalLabel,
-                      ]}
-                    >
-                      Approved
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.approvalOption,
-                      styles.compactApprovalOption,
-                    ]}
-                  >
-                    <CheckboxMarkSmall checked={status === "not-approved"} />
-                    <Text
-                      style={[
-                        styles.approvalLabel,
-                        styles.compactApprovalLabel,
-                      ]}
-                    >
-                      Not Approved
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.approvalOption,
-                      styles.compactApprovalOption,
-                    ]}
-                  >
-                    <CheckboxMarkSmall checked={status === "not-applicable"} />
-                    <Text
-                      style={[
-                        styles.approvalLabel,
-                        styles.compactApprovalLabel,
-                      ]}
-                    >
-                      Not Applicable
-                    </Text>
-                  </View>
+                    {statusLabel || " "}
+                  </Text>
                 </View>
               </View>
             );
@@ -794,36 +817,21 @@ export async function generateGsAssessmentPdfBlob({
         <Text style={styles.sectionTitle}>Stage 2</Text>
         <Stage2Table />
 
-        <Text style={styles.sectionTitle}>Student GS Status</Text>
         <View style={styles.table}>
-          <View style={styles.tableHeaderRow}>
-            <View style={[styles.tableCell, styles.statusCellLabel]}>
-              <Text style={styles.statusHeaderText}>Status</Text>
-            </View>
-            <View style={[styles.tableCell, styles.statusCellOption]}>
-              <Text style={styles.statusHeaderText}>Approved</Text>
-            </View>
-            <View
-              style={[
-                styles.tableCell,
-                styles.statusCellOption,
-                styles.tableCellLast,
-              ]}
-            >
-              <Text style={styles.statusHeaderText}>Not Approved</Text>
-            </View>
-          </View>
           <View style={[styles.tableRow, styles.tableRowLast]}>
             <View style={[styles.tableCell, styles.statusCellLabel]}>
               <Text>Student GS Status</Text>
             </View>
             <View style={[styles.tableCell, styles.statusCellOption]}>
-              <CheckboxMark
-                checked={
-                  formatApprovalStatus(data.recommendation) === "approved" ||
-                  getString(data.recommendation).toLowerCase() === "approved"
-                }
-              />
+              <View style={styles.approvalOption}>
+                <CheckboxMark
+                  checked={
+                    formatApprovalStatus(data.recommendation) === "approved" ||
+                    getString(data.recommendation).toLowerCase() === "approved"
+                  }
+                />
+                <Text style={styles.approvalLabel}>Approved</Text>
+              </View>
             </View>
             <View
               style={[
@@ -832,16 +840,19 @@ export async function generateGsAssessmentPdfBlob({
                 styles.tableCellLast,
               ]}
             >
-              <CheckboxMark
-                checked={
-                  formatApprovalStatus(data.recommendation) ===
-                    "not-approved" ||
-                  getString(data.recommendation).toLowerCase() ===
-                    "not_approved" ||
-                  getString(data.recommendation).toLowerCase() ===
-                    "not approved"
-                }
-              />
+              <View style={styles.approvalOption}>
+                <CheckboxMark
+                  checked={
+                    formatApprovalStatus(data.recommendation) ===
+                      "not-approved" ||
+                    getString(data.recommendation).toLowerCase() ===
+                      "not_approved" ||
+                    getString(data.recommendation).toLowerCase() ===
+                      "not approved"
+                  }
+                />
+                <Text style={styles.approvalLabel}>Not Approved</Text>
+              </View>
             </View>
           </View>
         </View>
