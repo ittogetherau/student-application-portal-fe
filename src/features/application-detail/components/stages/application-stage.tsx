@@ -105,6 +105,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           "survey_responses",
           "declaration",
           "enrollment_data",
+          "employment_history",
         ],
         requireNoErrors: true,
       }),

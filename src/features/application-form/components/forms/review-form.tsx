@@ -79,6 +79,7 @@ const ReviewForm = ({
           "additional_services",
           "survey_responses",
           "declaration",
+          "employment_history",
           "enrollment_data",
         ],
       }),
