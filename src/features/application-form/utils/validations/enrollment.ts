@@ -3,6 +3,11 @@ import { z } from "zod";
 const yesNoApiSchema = z.enum(["yes", "no"]);
 const yesNoNaApiSchema = z.enum(["yes", "no", "na"]);
 const classTypeSchema = z.enum(["classroom", "hybrid", "online"]);
+const requiredYmdDateSchema = (requiredMessage: string) =>
+  z
+    .string()
+    .min(1, requiredMessage)
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format");
 
 const agentEnrollmentSchema = z
   .object({
@@ -36,11 +41,11 @@ const staffEnrollmentSchema = z.object({
   campus_name: z.string(),
 
   advanced_standing_credit: yesNoApiSchema,
-  preferred_start_date: z.string().min(1),
+  preferred_start_date: requiredYmdDateSchema("preferred_start_date is required"),
   number_of_subjects: z.number().int().min(1).max(12).optional(),
   no_of_weeks: z.number().int().min(1),
-  course_end_date: z.string().min(1),
-  offer_issued_date: z.string().min(1),
+  course_end_date: requiredYmdDateSchema("course_end_date is required"),
+  offer_issued_date: requiredYmdDateSchema("offer_issued_date is required"),
   study_reason: z.string().min(1),
   course_actual_fee: z.number().min(0),
   course_upfront_fee: z.number().min(0),

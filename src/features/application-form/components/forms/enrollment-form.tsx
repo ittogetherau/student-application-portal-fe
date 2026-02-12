@@ -96,22 +96,27 @@ const parseStartDateToUtcDate = (input: string) => {
   return null;
 };
 
-const formatDateLikeInput = (original: string, date: Date) => {
+const formatUtcDateToYmd = (date: Date) => {
   const yyyy = String(date.getUTCFullYear());
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
-
-  if (original.includes("/")) return `${dd}/${mm}/${yyyy}`;
   return `${yyyy}-${mm}-${dd}`;
 };
 
-const addWeeksToDateString = (startDateRaw: string, weeks: number) => {
+const normalizeDateStringToYmd = (input: unknown) => {
+  if (typeof input !== "string") return null;
+  const parsed = parseStartDateToUtcDate(input);
+  if (!parsed) return null;
+  return formatUtcDateToYmd(parsed);
+};
+
+const addWeeksToYmdDateString = (startDateRaw: string, weeks: number) => {
   const startDate = parseStartDateToUtcDate(startDateRaw);
   if (!startDate) return null;
 
   const endDate = new Date(startDate);
   endDate.setUTCDate(endDate.getUTCDate() + weeks * 7);
-  return formatDateLikeInput(startDateRaw, endDate);
+  return formatUtcDateToYmd(endDate);
 };
 
 const normalizeYesNo = (value: unknown) => {
@@ -160,6 +165,11 @@ const yesNoNaSchema = z.enum(["Yes", "No", "N/A"], {
   message: "Please select Yes, No, or N/A",
 });
 const classTypeSchema = z.enum(["classroom", "hybrid", "online"]);
+const requiredYmdDateSchema = (requiredMessage: string) =>
+  z
+    .string()
+    .min(1, requiredMessage)
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format");
 
 const requiredSelectId = (message: string) =>
   z
@@ -182,7 +192,9 @@ const staffEnrollmentFormSchema = z
     intake: requiredSelectId("Please select an intake"),
     campus: requiredSelectId("Please select a campus"),
 
-    preferred_start_date: z.string().min(1, "Preferred start date is required"),
+    preferred_start_date: requiredYmdDateSchema(
+      "Preferred start date is required",
+    ),
     advanced_standing_credit: yesNoSchema,
     number_of_subjects: z
       .number()
@@ -191,9 +203,9 @@ const staffEnrollmentFormSchema = z
       .max(12, "Please select number of subjects")
       .optional(),
     no_of_weeks: z.number().int().min(1, "Number of weeks is required"),
-    course_end_date: z.string().min(1, "Course end date is required"),
+    course_end_date: requiredYmdDateSchema("Course end date is required"),
 
-    offer_issued_date: z.string().min(1, "Offer issued date is required"),
+    offer_issued_date: requiredYmdDateSchema("Offer issued date is required"),
 
     study_reason: z.enum(
       ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "@@"],
@@ -414,12 +426,12 @@ const EnrollmentFormInner = ({
       const preferredStart =
         (saved as Record<string, unknown>).preferred_start_date ??
         (saved as Record<string, unknown>).intake_start;
+      const preferredStartYmd = normalizeDateStringToYmd(preferredStart);
       if (
-        typeof preferredStart === "string" &&
-        preferredStart.length > 0 &&
-        methods.getValues("preferred_start_date") !== preferredStart
+        preferredStartYmd &&
+        methods.getValues("preferred_start_date") !== preferredStartYmd
       ) {
-        methods.setValue("preferred_start_date", preferredStart, {
+        methods.setValue("preferred_start_date", preferredStartYmd, {
           shouldDirty: false,
         });
       }
@@ -439,8 +451,22 @@ const EnrollmentFormInner = ({
       }
 
       const courseEnd = (saved as Record<string, unknown>).course_end_date;
-      if (typeof courseEnd === "string" && courseEnd.length > 0) {
-        methods.setValue("course_end_date", courseEnd, { shouldDirty: false });
+      const courseEndYmd = normalizeDateStringToYmd(courseEnd);
+      if (courseEndYmd && methods.getValues("course_end_date") !== courseEndYmd) {
+        methods.setValue("course_end_date", courseEndYmd, {
+          shouldDirty: false,
+        });
+      }
+
+      const offerIssued = (saved as Record<string, unknown>).offer_issued_date;
+      const offerIssuedYmd = normalizeDateStringToYmd(offerIssued);
+      if (
+        offerIssuedYmd &&
+        methods.getValues("offer_issued_date") !== offerIssuedYmd
+      ) {
+        methods.setValue("offer_issued_date", offerIssuedYmd, {
+          shouldDirty: false,
+        });
       }
 
       const includeMatValue = coerceYesNo(
@@ -632,7 +658,7 @@ const EnrollmentFormInner = ({
     if (!selectedIntake?.intake_start) return null;
     const weeks = parseWeeksFromDurationText(selectedCourse?.duration_text);
     if (!weeks) return null;
-    return addWeeksToDateString(selectedIntake.intake_start, weeks);
+    return addWeeksToYmdDateString(selectedIntake.intake_start, weeks);
   }, [selectedCourse?.duration_text, selectedIntake?.intake_start]);
 
   useEffect(() => {
@@ -643,7 +669,7 @@ const EnrollmentFormInner = ({
   }, [advancedStandingValue, clearErrors, setValue]);
 
   useEffect(() => {
-    const startDate = selectedIntake?.intake_start ?? "";
+    const startDate = normalizeDateStringToYmd(selectedIntake?.intake_start) ?? "";
     if (startDate) {
       setValue("preferred_start_date", startDate, { shouldDirty: true });
     }
@@ -710,15 +736,34 @@ const EnrollmentFormInner = ({
       };
 
       const staffValues = values as StaffEnrollmentFormValues;
+      const preferredStartYmd = normalizeDateStringToYmd(
+        staffValues.preferred_start_date,
+      );
+      const courseEndYmd = normalizeDateStringToYmd(staffValues.course_end_date);
+      const offerIssuedYmd = normalizeDateStringToYmd(
+        staffValues.offer_issued_date,
+      );
+
+      if (!isAgent) {
+        if (!preferredStartYmd) {
+          throw new Error("Preferred start date must be YYYY-MM-DD");
+        }
+        if (!courseEndYmd) {
+          throw new Error("Course end date must be YYYY-MM-DD");
+        }
+        if (!offerIssuedYmd) {
+          throw new Error("Offer issued date must be YYYY-MM-DD");
+        }
+      }
 
       const payload: EnrollmentValues = isAgent
         ? (commonPayload as EnrollmentValues)
         : ({
             ...commonPayload,
-            preferred_start_date: staffValues.preferred_start_date,
+            preferred_start_date: preferredStartYmd!,
             no_of_weeks: staffValues.no_of_weeks,
-            course_end_date: staffValues.course_end_date,
-            offer_issued_date: staffValues.offer_issued_date,
+            course_end_date: courseEndYmd!,
+            offer_issued_date: offerIssuedYmd!,
             study_reason: staffValues.study_reason,
             course_actual_fee: staffValues.course_actual_fee as number,
             course_upfront_fee: staffValues.course_upfront_fee as number,
@@ -750,10 +795,19 @@ const EnrollmentFormInner = ({
         values: payload,
       });
 
-      saveOnSubmit(values);
+      const valuesToPersist = isAgent
+        ? values
+        : ({
+            ...values,
+            preferred_start_date: preferredStartYmd!,
+            course_end_date: courseEndYmd!,
+            offer_issued_date: offerIssuedYmd!,
+          } as EnrollmentFormValues);
+
+      saveOnSubmit(valuesToPersist);
 
       toast.success("Enrollment saved", { id: "application-flow" });
-      methods.reset(methods.getValues());
+      methods.reset(valuesToPersist);
       clearStepDirty(0);
       markStepCompleted(0);
       goToNext();
