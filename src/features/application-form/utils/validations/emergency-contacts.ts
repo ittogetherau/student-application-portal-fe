@@ -21,7 +21,10 @@ export const contactSchema = z.object({
       (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
       "Enter a valid email address"
     ),
-  address: z.string().nullish(),
+  address: z
+    .string()
+    .nullish()
+    .refine((val) => !!val && val.trim().length > 0, "Address is required"),
   is_primary: z.boolean().nullable(),
 });
 

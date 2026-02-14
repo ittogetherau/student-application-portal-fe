@@ -199,6 +199,54 @@ export const useApplicationStepQuery = (
       return value;
     };
 
+    const normalizeClassType = (value: unknown) => {
+      if (typeof value !== "string") return value;
+      const normalized = value.trim().toLowerCase();
+      if (
+        normalized === "classroom" ||
+        normalized === "hybrid" ||
+        normalized === "online"
+      ) {
+        return normalized;
+      }
+      return value;
+    };
+
+    const normalizeStudyReason = (value: unknown) => {
+      if (typeof value !== "string" && typeof value !== "number") return value;
+
+      const raw = String(value).trim();
+      if (!raw) return value;
+
+      const validCodes = new Set([
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "11",
+        "12",
+        "@@",
+      ]);
+
+      if (validCodes.has(raw)) return raw;
+      if (/^\d$/.test(raw)) {
+        const padded = raw.padStart(2, "0");
+        return validCodes.has(padded) ? padded : value;
+      }
+
+      const prefix = raw.match(/^(\d{1,2})\b/)?.[1];
+      if (prefix) {
+        const padded = prefix.padStart(2, "0");
+        return validCodes.has(padded) ? padded : value;
+      }
+
+      return value;
+    };
+
     return {
       ...data,
       advanced_standing_credit: normalizeYesNo(data.advanced_standing_credit),
@@ -208,6 +256,8 @@ export const useApplicationStepQuery = (
       receiving_scholarship: normalizeYesNo(data.receiving_scholarship),
       work_integrated_learning: normalizeYesNoNa(data.work_integrated_learning),
       third_party_provider: normalizeYesNoNa(data.third_party_provider),
+      class_type: normalizeClassType(data.class_type ?? data.classType),
+      study_reason: normalizeStudyReason(data.study_reason ?? data.studyReason),
     };
   };
 

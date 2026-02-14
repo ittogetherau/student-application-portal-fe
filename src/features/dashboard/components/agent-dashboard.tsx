@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAgentDashboardQuery } from "../hooks/useDashboard.hook";
+import { normalizeDashboardStatusItems } from "../utils/application-status";
 import { ApplicationsTable } from "./agent/ApplicationsTable";
 import { DraftApplications } from "./agent/DraftApplications";
 import { KPICard } from "./agent/KPICard";
@@ -51,15 +52,6 @@ const defaultKpiStyle = {
   icon: FileText,
   iconColor: "text-neutral-600",
   iconBgColor: "bg-neutral-100 dark:bg-neutral-800",
-};
-
-const statusColorByName: Record<string, string> = {
-  Draft: "#9CA3AF",
-  Submitted: "#3B82F6",
-  "Under Review": "#8B5CF6",
-  "Offer Issued": "#10B981",
-  Accepted: "#059669",
-  Rejected: "#EF4444",
 };
 
 const activityStyleByType: Record<
@@ -120,11 +112,12 @@ export default function AgentDashboard() {
     ...(kpiStyleByKey[kpi.key] ?? defaultKpiStyle),
   }));
 
-  const agentStatusBreakdown = statusBreakdown.map((item) => ({
-    name: item.status,
-    value: item.count,
-    color: statusColorByName[item.status] ?? "#6B7280",
-  }));
+  const agentStatusBreakdown = normalizeDashboardStatusItems(
+    statusBreakdown.map((item) => ({
+      name: item.status,
+      value: item.count,
+    })),
+  );
 
   const agentRecentActivity = recentActivity.map((activity, index) => {
     const style = activityStyleByType[activity.type] ?? defaultActivityStyle;

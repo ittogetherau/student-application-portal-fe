@@ -65,6 +65,7 @@ export const isSyncMetadataComplete = (
   syncMetadata: ApplicationSyncMetadata | null,
   options?: {
     ignoredKeys?: (keyof ApplicationSyncMetadata)[];
+    allowNullKeys?: (keyof ApplicationSyncMetadata)[];
     requireNoErrors?: boolean;
   },
 ) => {
@@ -79,12 +80,25 @@ export const isSyncMetadataComplete = (
 
   const valuesWithKeys = entries
     .map(([key, value]) => ({ key, value }))
-    .filter(({ value }) => Boolean(value));
+    .filter(
+      ({ key, value }) =>
+        Boolean(value) ||
+        (value == null &&
+          options?.allowNullKeys?.includes(
+            key as keyof ApplicationSyncMetadata,
+          )),
+    );
 
   if (!valuesWithKeys.length) return false;
 
   const incomplete = valuesWithKeys.flatMap(({ key, value }) => {
     const label = SYNC_METADATA_LABELS[key] ?? key;
+    if (
+      value == null &&
+      options?.allowNullKeys?.includes(key as keyof ApplicationSyncMetadata)
+    ) {
+      return [];
+    }
     if (!value) return [{ key, label, reasons: ["missing"] }];
 
     const reasons: string[] = [];
@@ -92,9 +106,7 @@ export const isSyncMetadataComplete = (
     if (value.uptodate !== true) reasons.push("not_uptodate");
     if (!value.last_synced_at) reasons.push("never_synced");
 
-    return reasons.length
-      ? [{ key, label, reasons }]
-      : [];
+    return reasons.length ? [{ key, label, reasons }] : [];
   });
 
   const complete = incomplete.length === 0;

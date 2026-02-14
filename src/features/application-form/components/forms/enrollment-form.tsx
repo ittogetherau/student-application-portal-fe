@@ -31,6 +31,7 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
 import {
+  useCourseIntakesQuery,
   useCoursesQuery,
   useSaveEnrollmentMutation,
 } from "../../hooks/course.hook";
@@ -57,6 +58,21 @@ const STUDY_REASON_OPTIONS = [
   },
   { value: "@@", label: "@@ -Not specified" },
 ];
+
+const STUDY_REASON_CODES = [
+  "01",
+  "02",
+  "03",
+  "04",
+  "05",
+  "06",
+  "07",
+  "08",
+  "11",
+  "12",
+  "@@",
+] as const;
+type StudyReasonCode = (typeof STUDY_REASON_CODES)[number];
 
 const parseWeeksFromDurationText = (durationText?: string) => {
   if (!durationText) return null;
@@ -154,9 +170,42 @@ const coerceYesNoNa = (value: unknown) => {
 };
 
 const coerceClassType = (value: unknown) =>
-  value === "classroom" || value === "hybrid" || value === "online"
-    ? value
+  typeof value === "string"
+    ? (() => {
+        const normalized = value.trim().toLowerCase();
+        if (
+          normalized === "classroom" ||
+          normalized === "hybrid" ||
+          normalized === "online"
+        ) {
+          return normalized;
+        }
+        return null;
+      })()
     : null;
+
+const isStudyReasonCode = (value: string): value is StudyReasonCode =>
+  STUDY_REASON_CODES.includes(value as StudyReasonCode);
+
+const coerceStudyReason = (value: unknown): StudyReasonCode | null => {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  if (isStudyReasonCode(raw)) return raw;
+  if (/^\d$/.test(raw)) {
+    const padded = raw.padStart(2, "0");
+    return isStudyReasonCode(padded) ? padded : null;
+  }
+
+  const prefix = raw.match(/^(\d{1,2})\b/)?.[1];
+  if (prefix) {
+    const padded = prefix.padStart(2, "0");
+    return isStudyReasonCode(padded) ? padded : null;
+  }
+
+  return null;
+};
 
 const yesNoSchema = z.enum(["Yes", "No"], {
   message: "Please select Yes or No",
@@ -207,10 +256,9 @@ const staffEnrollmentFormSchema = z
 
     offer_issued_date: requiredYmdDateSchema("Offer issued date is required"),
 
-    study_reason: z.enum(
-      ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "@@"],
-      { message: "Please select a study reason" },
-    ),
+    study_reason: z.enum(STUDY_REASON_CODES, {
+      message: "Please select a study reason",
+    }),
 
     course_actual_fee: requiredNonNegativeNumber(
       "Course actual fee is required",
@@ -359,7 +407,7 @@ const EnrollmentFormInner = ({
   useApplicationStepQuery(applicationId ?? null, 0);
 
   const { saveOnSubmit } = useFormPersistence({
-    applicationId: applicationId ?? "draft",
+    applicationId: applicationId ?? null,
     stepId: 0,
     form: methods,
     enabled: true,
@@ -387,9 +435,15 @@ const EnrollmentFormInner = ({
         return undefined;
       };
 
-      const legacyCourse = coerceId(saved.courseId ?? saved.course_id ?? saved.course);
-      const legacyIntake = coerceId(saved.intakeId ?? saved.intake_id ?? saved.intake);
-      const legacyCampus = coerceId(saved.campusId ?? saved.campus_id ?? saved.campus);
+      const legacyCourse = coerceId(
+        saved.courseId ?? saved.course_id ?? saved.course,
+      );
+      const legacyIntake = coerceId(
+        saved.intakeId ?? saved.intake_id ?? saved.intake,
+      );
+      const legacyCampus = coerceId(
+        saved.campusId ?? saved.campus_id ?? saved.campus,
+      );
 
       const currentCourse = coerceId(
         methods.getValues("course") as unknown as number | string | undefined,
@@ -452,7 +506,10 @@ const EnrollmentFormInner = ({
 
       const courseEnd = (saved as Record<string, unknown>).course_end_date;
       const courseEndYmd = normalizeDateStringToYmd(courseEnd);
-      if (courseEndYmd && methods.getValues("course_end_date") !== courseEndYmd) {
+      if (
+        courseEndYmd &&
+        methods.getValues("course_end_date") !== courseEndYmd
+      ) {
         methods.setValue("course_end_date", courseEndYmd, {
           shouldDirty: false,
         });
@@ -541,10 +598,19 @@ const EnrollmentFormInner = ({
       }
 
       const classType = coerceClassType(
-        (saved as Record<string, unknown>).class_type,
+        (saved as Record<string, unknown>).class_type ??
+          (saved as Record<string, unknown>).classType,
       );
       if (classType && methods.getValues("class_type") !== classType) {
         methods.setValue("class_type", classType, { shouldDirty: false });
+      }
+
+      const studyReason = coerceStudyReason(
+        (saved as Record<string, unknown>).study_reason ??
+          (saved as Record<string, unknown>).studyReason,
+      );
+      if (studyReason && methods.getValues("study_reason") !== studyReason) {
+        methods.setValue("study_reason", studyReason, { shouldDirty: false });
       }
 
       hasRestoredRef.current = true;
@@ -557,6 +623,23 @@ const EnrollmentFormInner = ({
   const campusValue = watch("campus");
   const advancedStandingValue = watch("advanced_standing_credit");
   const receivingScholarshipValue = watch("receiving_scholarship");
+  const selectedCourse = courses.find((c) => c.id === courseValue);
+  const {
+    data: intakesResponse,
+    isLoading: isLoadingIntakes,
+    error: intakesError,
+  } = useCourseIntakesQuery(selectedCourse?.course_code, {
+    campus: campusValue,
+    includeExpiredIntakes: 0,
+  });
+  const availableIntakes: Intake[] = useMemo(
+    () => intakesResponse?.data ?? [],
+    [intakesResponse?.data],
+  );
+  const availableCampuses: Campus[] = useMemo(
+    () => selectedCourse?.campuses ?? [],
+    [selectedCourse?.campuses],
+  );
 
   /* ---------- deterministic updates ---------- */
   const handleFieldChange = (
@@ -582,28 +665,26 @@ const EnrollmentFormInner = ({
     if (field === "course") {
       setValue("course", nextId, { shouldDirty: true });
 
-      const nextCourse = courses.find((c) => c.id === nextId);
+      if (currentCourse !== nextId) {
+        resetField("intake", { defaultValue: undefined });
+        resetField("campus", { defaultValue: undefined });
+        clearErrors(["course", "intake", "campus"]);
+        return;
+      }
+
       const intakeStillValid = !!(
-        nextCourse &&
-        currentIntake &&
-        nextCourse.intakes?.some((i) => i.id === currentIntake)
+        currentIntake && availableIntakes.some((i) => i.id === currentIntake)
       );
 
       if (!intakeStillValid) {
         resetField("intake", { defaultValue: undefined });
+      }
+
+      const campusStillValid = !!(
+        currentCampus && availableCampuses.some((c) => c.id === currentCampus)
+      );
+      if (!campusStillValid) {
         resetField("campus", { defaultValue: undefined });
-      } else {
-        const nextIntake = nextCourse?.intakes?.find(
-          (i) => i.id === currentIntake,
-        );
-        const campusStillValid = !!(
-          nextIntake &&
-          currentCampus &&
-          nextIntake.campuses?.some((c) => c.id === currentCampus)
-        );
-        if (!campusStillValid) {
-          resetField("campus", { defaultValue: undefined });
-        }
       }
 
       clearErrors(["course", "intake", "campus"]);
@@ -615,44 +696,29 @@ const EnrollmentFormInner = ({
 
       setValue("intake", nextId, { shouldDirty: true });
 
-      const currentCourseEntity = courses.find((c) => c.id === currentCourse);
-      const nextIntake = currentCourseEntity?.intakes?.find(
-        (i) => i.id === nextId,
-      );
-      const campusStillValid = !!(
-        nextIntake &&
-        currentCampus &&
-        nextIntake.campuses?.some((c) => c.id === currentCampus)
-      );
-      if (!campusStillValid) {
-        resetField("campus", { defaultValue: undefined });
-      }
-
       clearErrors(["intake", "campus"]);
       return;
     }
 
-    if (!currentIntake) return;
+    if (!currentCourse) return;
 
+    if (currentCampus !== nextId) {
+      resetField("intake", { defaultValue: undefined });
+    }
     setValue("campus", nextId, { shouldDirty: true });
-    clearErrors("campus");
+    clearErrors(["campus", "intake"]);
   };
 
   /* ---------- derived entities ---------- */
-  const selectedCourse = courses.find((c) => c.id === courseValue);
-
   const selectedIntake = useMemo(
-    () => selectedCourse?.intakes?.find((i) => i.id === intakeValue),
-    [selectedCourse, intakeValue],
+    () => availableIntakes.find((i) => i.id === intakeValue),
+    [availableIntakes, intakeValue],
   );
 
   const selectedCampus = useMemo(
-    () => selectedIntake?.campuses?.find((c) => c.id === campusValue),
-    [selectedIntake, campusValue],
+    () => availableCampuses.find((c) => c.id === campusValue),
+    [availableCampuses, campusValue],
   );
-
-  const availableIntakes: Intake[] = selectedCourse?.intakes ?? [];
-  const availableCampuses: Campus[] = selectedIntake?.campuses ?? [];
 
   const intakeEndDate = useMemo(() => {
     if (!selectedIntake?.intake_start) return null;
@@ -669,7 +735,8 @@ const EnrollmentFormInner = ({
   }, [advancedStandingValue, clearErrors, setValue]);
 
   useEffect(() => {
-    const startDate = normalizeDateStringToYmd(selectedIntake?.intake_start) ?? "";
+    const startDate =
+      normalizeDateStringToYmd(selectedIntake?.intake_start) ?? "";
     if (startDate) {
       setValue("preferred_start_date", startDate, { shouldDirty: true });
     }
@@ -739,7 +806,9 @@ const EnrollmentFormInner = ({
       const preferredStartYmd = normalizeDateStringToYmd(
         staffValues.preferred_start_date,
       );
-      const courseEndYmd = normalizeDateStringToYmd(staffValues.course_end_date);
+      const courseEndYmd = normalizeDateStringToYmd(
+        staffValues.course_end_date,
+      );
       const offerIssuedYmd = normalizeDateStringToYmd(
         staffValues.offer_issued_date,
       );
@@ -838,6 +907,17 @@ const EnrollmentFormInner = ({
     );
   }
 
+  if (intakesError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <FormProvider {...methods}>
       <form className="space-y-4" onSubmit={methods.handleSubmit(onSubmit)}>
@@ -882,6 +962,40 @@ const EnrollmentFormInner = ({
               )}
             </div>
 
+            {/* Campus */}
+            <div className="space-y-2">
+              <Label>Campus *</Label>
+              <Controller
+                name="campus"
+                control={methods.control}
+                render={({ field: { value } }) => (
+                  <Select
+                    value={value ? String(value) : ""}
+                    onValueChange={(v) => handleFieldChange("campus", v)}
+                    disabled={!courseValue}
+                  >
+                    <SelectTrigger
+                      aria-invalid={!!methods.formState.errors.campus}
+                    >
+                      <SelectValue placeholder="Select campus" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCampuses.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {methods.formState.errors.campus?.message && (
+                <p className="text-sm text-red-500">
+                  {methods.formState.errors.campus.message as string}
+                </p>
+              )}
+            </div>
+
             {/* Intake */}
             <div className="space-y-2">
               <Label>Intake *</Label>
@@ -892,12 +1006,18 @@ const EnrollmentFormInner = ({
                   <Select
                     value={value ? String(value) : ""}
                     onValueChange={(v) => handleFieldChange("intake", v)}
-                    disabled={!courseValue}
+                    disabled={!courseValue || !campusValue || isLoadingIntakes}
                   >
                     <SelectTrigger
                       aria-invalid={!!methods.formState.errors.intake}
                     >
-                      <SelectValue placeholder="Select intake" />
+                      <SelectValue
+                        placeholder={
+                          isLoadingIntakes
+                            ? "Loading intakes..."
+                            : "Select intake"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {availableIntakes.map((i) => (
@@ -923,95 +1043,64 @@ const EnrollmentFormInner = ({
                 </p>
               )}
             </div>
-
-            {/* Campus */}
-            <div className="space-y-2">
-              <Label>Campus *</Label>
-              <Controller
-                name="campus"
-                control={methods.control}
-                render={({ field: { value } }) => (
-                  <Select
-                    value={value ? String(value) : ""}
-                    onValueChange={(v) => handleFieldChange("campus", v)}
-                    disabled={!intakeValue}
-                  >
-                    <SelectTrigger
-                      aria-invalid={!!methods.formState.errors.campus}
-                    >
-                      <SelectValue placeholder="Select campus" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCampuses.map((c) => (
-                        <SelectItem key={c.id} value={String(c.id)}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {methods.formState.errors.campus?.message && (
-                <p className="text-sm text-red-500">
-                  {methods.formState.errors.campus.message as string}
-                </p>
-              )}
-            </div>
           </div>
 
           <div className="pt-2 space-y-6">
-            <div className="space-y-2">
-              <Label>Are you applying for advanced standing/ credit? *</Label>
-              <FormRadio
-                name="advanced_standing_credit"
-                label=""
-                options={[
-                  { value: "Yes", label: "Yes" },
-                  { value: "No", label: "No" },
-                ]}
-              />
-            </div>
-
-            {advancedStandingValue === "Yes" && (
-              <div className="space-y-2 max-w-sm">
-                <Label>How many subject are you calming for credit? *</Label>
-                <Controller
-                  name="number_of_subjects"
-                  control={methods.control}
-                  render={({ field: { onChange, value } }) => (
-                    <Select
-                      value={typeof value === "number" ? String(value) : ""}
-                      onValueChange={(v) => onChange(Number(v))}
-                    >
-                      <SelectTrigger
-                        aria-invalid={
-                          !!methods.formState.errors.number_of_subjects
-                        }
-                      >
-                        <SelectValue placeholder="Select (1-12)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                          (count) => (
-                            <SelectItem key={count} value={String(count)}>
-                              {count}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Are you applying for advanced standing/ credit? *</Label>
+                <FormRadio
+                  name="advanced_standing_credit"
+                  label=""
+                  options={[
+                    { value: "Yes", label: "Yes" },
+                    { value: "No", label: "No" },
+                  ]}
                 />
-                {methods.formState.errors.number_of_subjects?.message && (
-                  <p className="text-sm text-red-500">
-                    {
-                      methods.formState.errors.number_of_subjects
-                        .message as string
-                    }
-                  </p>
-                )}
               </div>
-            )}
+
+              {advancedStandingValue === "Yes" && (
+                <div className="space-y-2">
+                  <Label>How many subject are you calming for credit? *</Label>
+
+                  <Controller
+                    name="number_of_subjects"
+                    control={methods.control}
+                    render={({ field: { onChange, value } }) => (
+                      <Select
+                        value={typeof value === "number" ? String(value) : ""}
+                        onValueChange={(v) => onChange(Number(v))}
+                      >
+                        <SelectTrigger
+                          aria-invalid={
+                            !!methods.formState.errors.number_of_subjects
+                          }
+                        >
+                          <SelectValue placeholder="Select (1-12)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                            (count) => (
+                              <SelectItem key={count} value={String(count)}>
+                                {count}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {methods.formState.errors.number_of_subjects?.message && (
+                    <p className="text-sm text-red-500">
+                      {
+                        methods.formState.errors.number_of_subjects
+                          .message as string
+                      }
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {!isAgent && (
               <>

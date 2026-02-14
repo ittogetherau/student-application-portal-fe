@@ -507,8 +507,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
     );
   }
 
-  const showAgentUploadCard =
-    !agentCoeItem && !isStaff && agentUploadRequiredDoc;
+  const showAgentUploadCard = !agentCoeItem && agentUploadRequiredDoc;
 
   return (
     <div className="space-y-4">

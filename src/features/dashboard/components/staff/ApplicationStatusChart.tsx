@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   Bar,
   BarChart,
@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { normalizeDashboardStatusItems } from "../../utils/application-status";
 
 export interface ApplicationStatusItem {
   name: string;
@@ -23,11 +24,13 @@ interface ApplicationStatusChartProps {
 }
 
 export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const chartData = useMemo(() => normalizeDashboardStatusItems(data), [data]);
 
   return (
     <div className="bg-card rounded-xl border border-neutral-200 dark:border-neutral-800 p-4 sm:p-6 shadow-sm overflow-hidden h-full">
@@ -45,7 +48,7 @@ export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
         {isMounted ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={chartData}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             >
               <CartesianGrid
@@ -85,7 +88,7 @@ export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
                 }}
               />
               <Bar dataKey="value" name="Applications" radius={[6, 6, 0, 0]}>
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.color}

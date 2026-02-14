@@ -123,59 +123,96 @@ export interface Course {
   fee_currency_gst: string;
 }
 
-export interface CourseListResponse {
-  code: number;
-  success: number;
-  status: string;
-  message: string;
-  data: Course[];
-}
+type CourseListApiResponse =
+  | Course[]
+  | {
+      code?: number;
+      success?: number;
+      status?: string;
+      message?: string;
+      data?: Course[];
+    };
 
-export interface EnrollmentPayload {
-  course: number;
-  intake: number;
-  campus: number;
-}
+type IntakeListApiResponse =
+  | Intake[]
+  | Intake
+  | {
+      data?: Intake[] | Intake;
+      message?: string;
+      success?: number;
+    };
 
 class CourseService extends ApiService {
   private readonly coursesUrl =
     "https://churchill.galaxy360.com.au/api/v3/courses";
 
+  private normalizeCourseList = (response: CourseListApiResponse): Course[] => {
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.data)) return response.data;
+    return [];
+  };
+
+  private normalizeIntakes = (response: IntakeListApiResponse): Intake[] => {
+    if (Array.isArray(response)) return response;
+    if (response && "data" in response) {
+      if (Array.isArray(response.data)) return response.data;
+      if (response.data && typeof response.data === "object") {
+        return [response.data];
+      }
+    }
+    if (response && typeof response === "object") return [response as Intake];
+    return [];
+  };
+
   listCourses = async (): Promise<ServiceResponse<Course[]>> => {
     try {
-      // Since this is a full URL, we might need a custom approach or see if ApiService handles it
-      // For now, I'll use the full URL directly if possible, or assume it's proxied.
-      // Given the user request, I'll fetch it.
-      const response = await this.get<CourseListResponse>(
-        this.coursesUrl,
-        false,
-      );
+      const response = await this.get<CourseListApiResponse>(this.coursesUrl);
+      const courses = this.normalizeCourseList(response);
 
       return {
-        success: response.success === 1,
-        message: response.message,
-        data: response.data,
+        success: true,
+        message: "Courses fetched.",
+        data: courses,
       };
     } catch (error) {
       return handleApiError(error, "Failed to fetch courses", []);
     }
   };
 
-  saveEnrollment = async (
-    applicationId: string,
-    payload: EnrollmentPayload,
-  ): Promise<ServiceResponse<any>> => {
-    if (!applicationId) throw new Error("Application ID is required");
+  listCourseIntakes = async (
+    courseCode: string,
+    options?: {
+      campus?: string | number | null;
+      includeExpiredIntakes?: 0 | 1 | boolean;
+    },
+  ): Promise<ServiceResponse<Intake[]>> => {
+    if (!courseCode) throw new Error("Course code is required");
     try {
-      const path = `applications/${applicationId}/steps/0/enrollment`;
-      const data = await this.post<any>(path, { ...payload, campus: 1 }, true);
+      const query = new URLSearchParams();
+      if (options?.campus !== undefined && options?.campus !== null) {
+        query.set("campus", String(options.campus));
+      }
+      const includeExpiredIntakes =
+        options?.includeExpiredIntakes === 1 ||
+        options?.includeExpiredIntakes === true
+          ? 1
+          : 0;
+      query.set(
+        "include_expired_intakes",
+        String(includeExpiredIntakes),
+      );
+
+      const response = await this.get<IntakeListApiResponse>(
+        `${this.coursesUrl}/${encodeURIComponent(courseCode)}/intakes?${query.toString()}`,
+      );
+      const intakes = this.normalizeIntakes(response);
       return {
         success: true,
-        message: "Enrollment saved successfully.",
-        data,
+        message: "Course intakes fetched.",
+        data: intakes,
       };
     } catch (error) {
-      return handleApiError(error, "Failed to save enrollment");
+      return handleApiError(error, "Failed to fetch course intakes", []);
     }
   };
 }

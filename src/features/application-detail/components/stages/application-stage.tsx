@@ -23,7 +23,10 @@ import {
   useGSAssessmentProgress,
   useGSAssessmentQuery,
 } from "@/hooks/useGSAssessment.hook";
-import type { ApplicationDetailResponse } from "@/service/application.service";
+import type {
+  ApplicationDetailResponse,
+  ApplicationSyncMetadata,
+} from "@/service/application.service";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationChangeStageMutation,
@@ -46,6 +49,7 @@ import {
   Signature,
   User,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -65,6 +69,36 @@ const IconMap: Record<string, LucideIcon> = {
   [APPLICATION_STAGE.GS_ASSESSMENT]: ListTodo,
   [APPLICATION_STAGE.COE_ISSUED]: CircleQuestionMark,
 };
+
+const SYNC_SECTION_LABELS: Record<string, string> = {
+  enrollment_data: "Enrollment",
+  personal_details: "Personal details",
+  emergency_contacts: "Emergency contacts",
+  health_cover_policy: "Health cover",
+  language_cultural_data: "Language & cultural",
+  disability_support: "Disability support",
+  schooling_history: "Schooling history",
+  qualifications: "Qualifications",
+  employment_history: "Employment",
+  usi: "USI",
+  documents: "Documents",
+  additional_services: "Additional services",
+  survey_responses: "Survey/Declaration",
+  declaration: "Declaration",
+};
+
+const SYNC_IGNORED_KEYS: (keyof ApplicationSyncMetadata)[] = [
+  "additional_services",
+  "survey_responses",
+  "declaration",
+  "enrollment_data",
+  "employment_history",
+  "usi",
+];
+
+const SYNC_ALLOW_NULL_KEYS: (keyof ApplicationSyncMetadata)[] = [
+  "qualifications",
+];
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const { data: response, isLoading } = useApplicationGetQuery(id);
@@ -100,18 +134,37 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const isAllStagesSynced = useMemo(
     () =>
       isSyncMetadataComplete(application?.sync_metadata ?? null, {
-        ignoredKeys: [
-          "additional_services",
-          "survey_responses",
-          "declaration",
-          "enrollment_data",
-          "employment_history",
-          "qualifications",
-        ],
+        ignoredKeys: SYNC_IGNORED_KEYS,
+        allowNullKeys: SYNC_ALLOW_NULL_KEYS,
         requireNoErrors: true,
       }),
     [application?.sync_metadata],
   );
+
+  const unsyncedSectionKeys = useMemo(() => {
+    const metadata = application?.sync_metadata ?? null;
+    if (!metadata) return [];
+
+    return Object.entries(metadata)
+      .filter(
+        ([key]) =>
+          !SYNC_IGNORED_KEYS.includes(key as keyof ApplicationSyncMetadata),
+      )
+      .filter(([key, value]) => {
+        if (
+          value == null &&
+          SYNC_ALLOW_NULL_KEYS.includes(key as keyof ApplicationSyncMetadata)
+        ) {
+          return false;
+        }
+        if (!value) return true;
+        if (value.uptodate !== true) return true;
+        if (!value.last_synced_at) return true;
+        if (value.last_error) return true;
+        return false;
+      })
+      .map(([key]) => key);
+  }, [application?.sync_metadata]);
 
   const ensureSynced = () => {
     const ok = isAllStagesSynced === true;
@@ -446,63 +499,81 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   };
 
   return (
-    <div>
-      {stages.map((el, i) => {
-        if (i < 1) return null;
+    <>
+      <div>
+        {stages.map((el, i) => {
+          if (i < 1) return null;
 
-        const Icon = IconMap[el] ?? User;
-        const isCurrent = i === currentIndex;
-        const isActive = activeStage === el;
-        const isInteractive = isCurrent && isActive;
-        const stageLabel =
-          getRoleStageLabel(el, current_role) ??
-          STAGE_PILL_CONFIG[el]?.label ??
-          formatStageLabel(el);
+          const Icon = IconMap[el] ?? User;
+          const isCurrent = i === currentIndex;
+          const isActive = activeStage === el;
+          const isInteractive = isCurrent && isActive;
+          const stageLabel =
+            getRoleStageLabel(el, current_role) ??
+            STAGE_PILL_CONFIG[el]?.label ??
+            formatStageLabel(el);
 
-        const cardBorderClass = `
+          const cardBorderClass = `
           p-3 border-x-2 last:border-b-2  flex flex-col  gap-0
           ${isCurrent ? "bg-primary/5 border-primary" : ""}
           border-b-2 last:rounded-bg-lg
         `;
 
-        return (
-          <React.Fragment key={el}>
-            <button
-              type="button"
-              onClick={() => handleStageClick(el)}
-              aria-expanded={isActive}
-              className={`w-full text-left p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg flex items-center justify-between gap-2.5 ${
-                isCurrent ? "bg-primary/5 border-primary" : "last:border-b"
-              }`}
-            >
-              <span className="flex items-center gap-2.5">
-                <span className="p-1.5 bg-primary/10 outline-2 outline-primary/30 text-primary rounded-sm dark:text-white">
-                  <Icon size={17} />
+          return (
+            <React.Fragment key={el}>
+              <button
+                type="button"
+                onClick={() => handleStageClick(el)}
+                aria-expanded={isActive}
+                className={`w-full text-left p-2 first:rounded-t-lg border-x-2 border-t-2 last:rounded-b-lg flex items-center justify-between gap-2.5 ${
+                  isCurrent ? "bg-primary/5 border-primary" : "last:border-b"
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className="p-1.5 bg-primary/10 outline-2 outline-primary/30 text-primary rounded-sm dark:text-white">
+                    <Icon size={17} />
+                  </span>
+                  {stageLabel}
                 </span>
-                {stageLabel}
-              </span>
 
-              {i < currentIndex && (
-                <BadgeCheck fill="#2a52be" className="text-white" />
-              )}
-            </button>
+                {i < currentIndex && (
+                  <BadgeCheck fill="#2a52be" className="text-white" />
+                )}
+              </button>
 
-            {renderStageAction({
-              stage: el,
-              isActive,
-              isInteractive,
-              cardBorderClass,
-            })}
-          </React.Fragment>
-        );
-      })}
+              {renderStageAction({
+                stage: el,
+                isActive,
+                isInteractive,
+                cardBorderClass,
+              })}
+            </React.Fragment>
+          );
+        })}
+      </div>
 
-      {/* <Button
-        className="mt-4"
-        onClick={() => handleStageChange(APPLICATION_STAGE.OFFER_LETTER)}
-      >
-        Change stage
-      </Button> */}
+      {application.current_stage !== APPLICATION_STAGE.DRAFT &&
+        !isAllStagesSynced &&
+        unsyncedSectionKeys.length > 0 && (
+          <div className="mt-3 rounded-md border border-destructive bg-destructive/20 p-3 text-sm text-destructive-foreground">
+            <p className="font-medium">
+              The following sections are not synced:
+            </p>
+            <p className="my-1.5">
+              {unsyncedSectionKeys
+                .map((key) => SYNC_SECTION_LABELS[key] ?? key)
+                .join(", ")}
+            </p>
+            Please{" "}
+            <Link
+              className="text-primary-foreground underline"
+              href={siteRoutes.dashboard.application.edit(id)}
+            >
+              update the form
+            </Link>{" "}
+            if you can{"'"}t see the section.
+          </div>
+        )}
 
       <Dialog open={syncAlertOpen} onOpenChange={setSyncAlertOpen}>
         <DialogContent className="max-w-md">
@@ -525,7 +596,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

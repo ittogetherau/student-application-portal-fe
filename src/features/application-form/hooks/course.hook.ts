@@ -19,6 +19,40 @@ export const useCoursesQuery = () => {
   });
 };
 
+export const useCourseIntakesQuery = (
+  courseCode?: string,
+  options?: {
+    campus?: string | number | null;
+    includeExpiredIntakes?: 0 | 1;
+  },
+) => {
+  const hasCampusFilter = !!options && "campus" in options;
+  const hasCampusValue =
+    options?.campus !== undefined &&
+    options?.campus !== null &&
+    String(options.campus).trim().length > 0;
+
+  return useQuery({
+    queryKey: [
+      "course-intakes",
+      courseCode,
+      options?.campus ?? null,
+      options?.includeExpiredIntakes ?? 0,
+    ],
+    enabled: !!courseCode && (!hasCampusFilter || hasCampusValue),
+    queryFn: async () => {
+      const response = await courseService.listCourseIntakes(
+        courseCode as string,
+        options,
+      );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+  });
+};
+
 export const useSaveEnrollmentMutation = () => {
   const queryClient = useQueryClient();
 

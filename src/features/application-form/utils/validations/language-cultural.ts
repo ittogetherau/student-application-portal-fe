@@ -121,8 +121,8 @@ export type LanguageAndCultureFormValues = z.input<
 
 export const defaultLanguageAndCultureValues: LanguageAndCultureFormValues = {
   // New fields
-  is_aus_aboriginal_or_islander: "",
-  is_english_main_language: "",
+  is_aus_aboriginal_or_islander: "4",
+  is_english_main_language: "No",
   main_language: "",
   english_speaking_proficiency: "",
   english_instruction_previous_studies: "",

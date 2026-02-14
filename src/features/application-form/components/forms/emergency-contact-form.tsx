@@ -18,6 +18,33 @@ import { useApplicationStepMutations } from "../../hooks/use-application-steps.h
 
 const STEP_ID = 2;
 
+const sanitizeEmergencyContacts = (input: unknown): EmergencyContactsValues => {
+  const source = input as
+    | { contacts?: Array<Record<string, unknown>> }
+    | Array<Record<string, unknown>>
+    | undefined;
+
+  const rawContacts = Array.isArray(source)
+    ? source
+    : Array.isArray(source?.contacts)
+      ? source.contacts
+      : [];
+
+  const contacts = rawContacts.map((contact) => ({
+    name: typeof contact?.name === "string" ? contact.name : "",
+    relationship:
+      typeof contact?.relationship === "string" ? contact.relationship : "",
+    phone: typeof contact?.phone === "string" ? contact.phone : "",
+    email: typeof contact?.email === "string" ? contact.email : "",
+    address: typeof contact?.address === "string" ? contact.address : "",
+    is_primary: Boolean(contact?.is_primary),
+  }));
+
+  return {
+    contacts: contacts.length ? contacts : [createEmptyContact()],
+  };
+};
+
 const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
   const emergencyContactMutation =
     useApplicationStepMutations(applicationId)[STEP_ID];
@@ -42,6 +69,9 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
     stepId: STEP_ID,
     form: methods,
     enabled: !!applicationId,
+    onDataLoaded: (data) => {
+      methods.reset(sanitizeEmergencyContacts(data));
+    },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -59,13 +89,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
       <form
         className="space-y-6"
         onSubmit={handleSubmit((values) => {
-          const normalizedValues = {
-            ...values,
-            contacts: values.contacts.map((contact) => ({
-              ...createEmptyContact(),
-              ...contact,
-            })),
-          };
+          const normalizedValues = sanitizeEmergencyContacts(values);
 
           if (applicationId) saveOnSubmit(normalizedValues);
           emergencyContactMutation.mutate(normalizedValues);

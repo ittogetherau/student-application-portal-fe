@@ -959,19 +959,21 @@ export function SchoolingSection({
 export function QualificationsSection({
   applicationId,
   qualifications,
+  hasQualifications,
   showSync,
   isStaffOrAdmin,
   syncMeta,
 }: {
   applicationId: string;
   qualifications: any[];
+  hasQualifications?: string | null;
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
 }) {
   const queryClient = useQueryClient();
   const syncQualifications = useGalaxySyncQualificationsMutation(applicationId);
-  if (!qualifications.length) return null;
+  if (!qualifications.length && !hasQualifications) return null;
   const invalidateApplication = () => {
     queryClient.invalidateQueries({
       queryKey: ["application-get", applicationId],
@@ -1010,28 +1012,44 @@ export function QualificationsSection({
       }
       footer={syncNote}
     >
-      <Group>
-        <CompactTable
-          headers={[
-            "Name",
-            "Institution",
-            "Field",
-            "Completion",
-            "Grade",
-            "Certificate No.",
-          ]}
-          rows={qualifications.map((qual: any) => [
-            qual.qualification_name,
-            qual.institution,
-            qual.field_of_study,
-            qual.completion_date
-              ? formatUtcToFriendlyLocal(String(qual.completion_date))
-              : "",
-            qual.grade,
-            qual.certificate_number,
-          ])}
-        />
-      </Group>
+      {hasQualifications ? (
+        <FieldsGrid>
+          <Field
+            label="Has Previous Qualifications"
+            value={hasQualifications}
+            icon={CheckCircle2}
+          />
+        </FieldsGrid>
+      ) : null}
+
+      {!qualifications.length && hasQualifications === "No" ? (
+        <EmptyNote>No previous qualifications added.</EmptyNote>
+      ) : null}
+
+      {qualifications.length ? (
+        <Group>
+          <CompactTable
+            headers={[
+              "Name",
+              "Institution",
+              "Field",
+              "Completion",
+              "Grade",
+              "Certificate No.",
+            ]}
+            rows={qualifications.map((qual: any) => [
+              qual.qualification_name,
+              qual.institution,
+              qual.field_of_study,
+              qual.completion_date
+                ? formatUtcToFriendlyLocal(String(qual.completion_date))
+                : "",
+              qual.grade,
+              qual.certificate_number,
+            ])}
+          />
+        </Group>
+      ) : null}
     </Section>
   );
 }

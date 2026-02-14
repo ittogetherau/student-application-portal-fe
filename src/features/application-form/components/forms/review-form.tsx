@@ -81,6 +81,7 @@ const ReviewForm = ({
           "declaration",
           "employment_history",
           "enrollment_data",
+          "usi",
         ],
       }),
     [syncMetadata],
@@ -101,9 +102,16 @@ const ReviewForm = ({
 
   const enrollmentData: any = application?.enrollment_data;
   const emergencyContacts = application?.emergency_contacts || [];
-  const qualificationsArray = Array.isArray(application?.qualifications)
-    ? application?.qualifications
-    : (application?.qualifications as any)?.qualifications || [];
+  const qualificationsData = Array.isArray(application?.qualifications)
+    ? { qualifications: application.qualifications, has_qualifications: null }
+    : ((application?.qualifications as any) ?? null);
+  const qualificationsArray = Array.isArray(qualificationsData?.qualifications)
+    ? qualificationsData.qualifications
+    : [];
+  const hasQualificationsAnswer =
+    qualificationsData?.has_qualifications ?? null;
+  const hasQualificationsSection =
+    qualificationsArray.length > 0 || !!hasQualificationsAnswer;
   const hasEmploymentHistory = Array.isArray(application?.employment_history)
     ? application?.employment_history.length > 0
     : !!application?.employment_history;
@@ -126,9 +134,9 @@ const ReviewForm = ({
       language: !!application?.language_cultural_data,
       disability: !!application?.disability_support,
       schooling: !!application?.schooling_history,
-      qualifications: qualificationsArray.length > 0,
+      qualifications: hasQualificationsSection,
       employment: hasEmploymentHistory,
-      usi: !!application?.usi,
+      usi: false,
       survey: (application?.survey_responses?.length ?? 0) > 0,
       documents: true,
     };
@@ -138,12 +146,11 @@ const ReviewForm = ({
     application?.language_cultural_data,
     application?.personal_details,
     application?.schooling_history,
-    application?.usi,
     application?.survey_responses,
     emergencyContacts.length,
     hasEmploymentHistory,
     enrollmentData,
-    qualificationsArray.length,
+    hasQualificationsSection,
   ]);
 
   const sections = useMemo(() => {
@@ -155,7 +162,7 @@ const ReviewForm = ({
     if (application?.language_cultural_data) values.push("language-cultural");
     if (application?.disability_support) values.push("disability-support");
     if (application?.schooling_history) values.push("schooling");
-    if (qualificationsArray.length) values.push("qualifications");
+    if (hasQualificationsSection) values.push("qualifications");
     if (hasEmploymentHistory) values.push("employment");
     if (application?.usi) values.push("usi");
     if (hasAdditionalServices) values.push("additional-services");
@@ -173,7 +180,7 @@ const ReviewForm = ({
     hasEmploymentHistory,
     hasAdditionalServices,
     enrollmentData,
-    qualificationsArray.length,
+    hasQualificationsSection,
   ]);
 
   const defaultOpenValues = useMemo(() => {
@@ -288,6 +295,7 @@ const ReviewForm = ({
         <QualificationsSection
           applicationId={applicationId}
           qualifications={qualificationsArray}
+          hasQualifications={hasQualificationsAnswer}
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.qualifications}

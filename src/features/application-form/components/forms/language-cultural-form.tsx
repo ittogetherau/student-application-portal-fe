@@ -122,7 +122,8 @@ const testTypeOptions = [
   { value: "other", label: "OTHER" },
 ];
 
-const stepId = 4; // Language & Culture is step 4
+const stepId = 4;
+
 const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const languageMutation = useApplicationStepMutations(applicationId)[stepId];
 

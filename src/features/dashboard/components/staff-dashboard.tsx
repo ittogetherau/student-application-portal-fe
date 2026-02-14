@@ -1,6 +1,7 @@
 "use client";
 
 import ContainerLayout from "@/components/ui-kit/layout/container-layout";
+import { normalizeDashboardStatusItems } from "../utils/application-status";
 import { useStaffDashboardQuery } from "../hooks/useDashboard.hook";
 import {
   AlertsPanel,
@@ -9,15 +10,6 @@ import {
   StaffWorkloadSection as WorkloadSection,
 } from "./staff";
 import { Application } from "./staff/StaffApplicationsTable";
-
-const statusColorByName: Record<string, string> = {
-  "Under Review": "#FF7A00",
-  "Pending Decision": "#FFB800",
-  Approved: "#10B981",
-  Rejected: "#EF4444",
-  Waitlisted: "#8B5CF6",
-  Withdrawn: "#6B7280",
-};
 
 export default function StaffDashboard() {
   const { data } = useStaffDashboardQuery();
@@ -31,11 +23,12 @@ export default function StaffDashboard() {
   const staffPerformance = dashboardData?.staffPerformance ?? [];
   const priorityApplications = dashboardData?.priorityApplications ?? [];
 
-  const staffStatusDistribution = statusDistribution.map((item) => ({
-    name: item.status,
-    value: item.count,
-    color: statusColorByName[item.status] ?? "#6B7280",
-  }));
+  const staffStatusDistribution = normalizeDashboardStatusItems(
+    statusDistribution.map((item) => ({
+      name: item.status,
+      value: item.count,
+    })),
+  );
 
   const staffPriorityApplications: Application[] = priorityApplications.map(
     (application) => ({
