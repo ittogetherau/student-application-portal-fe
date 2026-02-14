@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ComponentType } from "react";
+import { APPLICATION_FORM_STEPS } from "../constants/form-step-config";
 import AdditionalServicesForm from "./forms/additional-services-form";
 import DisabilityForm from "./forms/disability-form";
 import DocumentsUploadForm from "./forms/documents-upload-form";
@@ -14,24 +15,36 @@ import SchoolingForm from "./forms/schooling-form";
 import SurveyForm from "./forms/survey-form";
 import UsiForm from "./forms/usi-form";
 
-interface IFormComponent {
+type FormStepComponent = {
   id: number;
-  component: any;
-}
+  component: ComponentType<FormStepProps>;
+};
 
-export const FORM_COMPONENTS: IFormComponent[] = [
-  { id: 0, component: EnrollmentForm },
-  { id: 1, component: PersonalDetailsForm },
-  { id: 2, component: EmergencyContactForm },
-  { id: 3, component: HealthCoverForm },
-  { id: 4, component: LanguageCulturalForm },
-  { id: 5, component: DisabilityForm },
-  { id: 6, component: SchoolingForm },
-  { id: 7, component: QualificationsForm },
-  { id: 8, component: EmploymentForm },
-  { id: 9, component: UsiForm },
-  { id: 10, component: AdditionalServicesForm },
-  { id: 11, component: SurveyForm },
-  { id: 12, component: DocumentsUploadForm },
-  { id: 13, component: ReviewForm },
-];
+type FormStepProps = {
+  applicationId?: string;
+  showDetails?: boolean;
+};
+
+const COMPONENT_BY_STEP_ID: Record<number, ComponentType<FormStepProps>> = {
+  0: EnrollmentForm as ComponentType<FormStepProps>,
+  1: PersonalDetailsForm as ComponentType<FormStepProps>,
+  2: EmergencyContactForm as ComponentType<FormStepProps>,
+  3: HealthCoverForm as ComponentType<FormStepProps>,
+  4: LanguageCulturalForm as ComponentType<FormStepProps>,
+  5: DisabilityForm as ComponentType<FormStepProps>,
+  6: SchoolingForm as ComponentType<FormStepProps>,
+  7: QualificationsForm as ComponentType<FormStepProps>,
+  8: EmploymentForm as ComponentType<FormStepProps>,
+  9: UsiForm as ComponentType<FormStepProps>,
+  10: AdditionalServicesForm as ComponentType<FormStepProps>,
+  11: SurveyForm as ComponentType<FormStepProps>,
+  12: DocumentsUploadForm as ComponentType<FormStepProps>,
+  13: ReviewForm as ComponentType<FormStepProps>,
+};
+
+export const FORM_COMPONENTS: FormStepComponent[] = APPLICATION_FORM_STEPS.map(
+  (step) => ({
+    id: step.id,
+    component: COMPONENT_BY_STEP_ID[step.id],
+  }),
+);

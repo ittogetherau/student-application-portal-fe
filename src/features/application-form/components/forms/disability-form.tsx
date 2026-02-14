@@ -4,49 +4,23 @@ import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormRadio } from "@/components/forms/form-radio";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   defaultDisabilityValues,
   disabilitySchema,
   type DisabilityFormValues,
-  type DisabilityValues,
-} from "@/features/application-form/utils/validations/disability";
+} from "@/features/application-form/validations/disability";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight } from "lucide-react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useWatch } from "react-hook-form";
 
 const stepId = 5;
 
 const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
-  const disabilityMutation = useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<DisabilityFormValues>({
-    resolver: zodResolver(disabilitySchema),
-    defaultValues: defaultDisabilityValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId,
-    stepId,
-    form: methods,
-    enabled: !!applicationId,
-  });
-
-  const hasDisability = useWatch({
-    control: methods.control,
-    name: "has_disability",
-  });
-
-  const onSubmit = (values: DisabilityFormValues) => {
-    // Create a copy of values to modify
+  const normalizeDisabilityValues = (
+    values: DisabilityFormValues,
+  ): DisabilityFormValues => {
     const cleanedValues = { ...values };
-
-    // If "No" is selected, ensure all specific disability flags are false
-    // This cleans up data for both persistence and API submission
     if (cleanedValues.has_disability === "No") {
       cleanedValues.disability_hearing = false;
       cleanedValues.disability_physical = false;
@@ -58,13 +32,26 @@ const DisabilityForm = ({ applicationId }: { applicationId: string }) => {
       cleanedValues.disability_medical_condition = false;
       cleanedValues.disability_other = false;
     }
-
-    if (applicationId) {
-      saveOnSubmit(cleanedValues);
-    }
-    const payload: DisabilityValues = disabilitySchema.parse(cleanedValues);
-    disabilityMutation.mutate(payload);
+    return disabilitySchema.parse(cleanedValues);
   };
+
+  const {
+    methods,
+    mutation: disabilityMutation,
+    onSubmit,
+  } = useStepForm<DisabilityFormValues>({
+    applicationId,
+    stepId,
+    resolver: zodResolver(disabilitySchema),
+    defaultValues: defaultDisabilityValues,
+    enabled: !!applicationId,
+    normalizeBeforeSave: normalizeDisabilityValues,
+  });
+
+  const hasDisability = useWatch({
+    control: methods.control,
+    name: "has_disability",
+  });
 
   return (
     <FormProvider {...methods}>

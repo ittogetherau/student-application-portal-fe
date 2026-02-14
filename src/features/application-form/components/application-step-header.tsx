@@ -29,6 +29,9 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
   const clearUnsavedMessage = useApplicationStepStore(
     (state) => state.clearUnsavedMessage,
   );
+  const getNavigationBlockMessage = useApplicationStepStore(
+    (state) => state.getNavigationBlockMessage,
+  );
 
   useEffect(() => {
     if (!isStepDirty(currentStep)) {
@@ -47,10 +50,12 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
           size="sm"
           onClick={() => {
             if (currentStep === 0) return;
-            if (isStepDirty(currentStep)) {
-              setUnsavedMessage(
-                "You have unsaved changes. Please save before going back.",
-              );
+            const navigationMessage = getNavigationBlockMessage(
+              currentStep,
+              currentStep - 1,
+            );
+            if (navigationMessage) {
+              setUnsavedMessage(navigationMessage);
               return;
             }
             clearUnsavedMessage();

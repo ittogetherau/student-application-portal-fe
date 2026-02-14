@@ -3,53 +3,38 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   surveySchema,
   type SurveyValues,
-} from "@/features/application-form/utils/validations/survey";
+} from "@/features/application-form/validations/survey";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight } from "lucide-react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import {
-  useApplicationStepMutations,
-  useSurveyAvailabilityCodes,
-} from "../../hooks/use-application-steps.hook";
+import { Controller, FormProvider } from "react-hook-form";
+import { useSurveyAvailabilityCodes } from "../../hooks/use-application-steps.hook";
 import ApplicationStepHeader from "../application-step-header";
 
 const stepId = 11;
 
 const SurveyForm = ({ applicationId }: { applicationId: string }) => {
-  const surveyMutation = useApplicationStepMutations(applicationId)[stepId];
-  const { data: availabilityCodesData, isLoading: isLoadingCodes } =
-    useSurveyAvailabilityCodes();
-
-  const methods = useForm<SurveyValues>({
+  const {
+    methods,
+    mutation: surveyMutation,
+    onSubmit,
+  } = useStepForm<SurveyValues>({
+    applicationId,
+    stepId,
     resolver: zodResolver(surveySchema),
     defaultValues: {
       availability_status: "",
     },
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId,
-    stepId,
-    form: methods,
     enabled: !!applicationId,
   });
 
-  const { handleSubmit } = methods;
+  const { data: availabilityCodesData, isLoading: isLoadingCodes } =
+    useSurveyAvailabilityCodes();
 
-  const onSubmit = (values: SurveyValues) => {
-    // Save to Zustand store before submitting to API
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    surveyMutation.mutate(values);
-  };
+  const { handleSubmit } = methods;
 
   return (
     <FormProvider {...methods}>

@@ -1,7 +1,7 @@
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { ApplicationTableRow, USER_ROLE } from "@/shared/constants/types";
 import { cn } from "@/shared/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";

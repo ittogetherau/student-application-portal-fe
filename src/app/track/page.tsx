@@ -12,7 +12,7 @@ import {
 import Link from "next/link";
 import React, { useState } from "react";
 
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import studentService from "@/service/student.service";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 

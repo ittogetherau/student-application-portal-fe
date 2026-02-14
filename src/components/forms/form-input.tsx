@@ -10,6 +10,7 @@ interface FormInputProps {
   type?: string;
   description?: string;
   disabled?: boolean;
+  readOnly?: boolean;
 }
 
 export function FormInput({
@@ -19,6 +20,7 @@ export function FormInput({
   type = "text",
   description,
   disabled = false,
+  readOnly = false,
 }: FormInputProps) {
   const {
     control,
@@ -55,6 +57,7 @@ export function FormInput({
             }}
             onBlur={onBlur}
             disabled={disabled}
+            readOnly={readOnly}
           />
         )}
       />

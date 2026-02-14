@@ -1,17 +1,22 @@
 {
-    "$schema": "https://unpkg.com/knip@5/schema.json",
-    "entry": [
-        "app/**/page.{js,jsx,ts,tsx}",
-        "app/**/layout.{js,jsx,ts,tsx}",
-        "pages/**/*.{js,jsx,ts,tsx}"
-    ],
-    "project": [
-        "**/*.{js,jsx,ts,tsx}"
-    ],
-    "ignore": [
-        "**/*.test.{js,jsx,ts,tsx}",
-        "**/*.spec.{js,jsx,ts,tsx}",
-        "next-env.d.ts"
-    ],
-    "next": true
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/page.{js,jsx,ts,tsx}",
+    "src/app/**/layout.{js,jsx,ts,tsx}",
+    "src/app/**/route.{js,jsx,ts,tsx}",
+    "src/proxy.{js,jsx,ts,tsx}"
+  ],
+  "project": ["src/**/*.{js,jsx,ts,tsx}"],
+  "ignore": [
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    "next-env.d.ts",
+    "src/hooks/useStaff.hook.ts",
+    "src/features/notifications/hooks/use-notifications-ws.ts"
+  ],
+  "next": true,
+  "rules": {
+    "exports": "off",
+    "types": "off"
+  }
 }

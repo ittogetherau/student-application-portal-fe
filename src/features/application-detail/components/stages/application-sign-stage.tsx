@@ -2,15 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationRequestSignaturesMutation,
@@ -23,17 +14,14 @@ import {
   ExternalLink,
   Loader2,
   Mail,
-  RotateCw,
-  ShieldCheck,
-  User,
 } from "lucide-react";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect } from "react";
+import ResendOfferLetterAction from "./resend-offer-letter-action";
 
 interface SignerRowProps {
   name: string;
   email: string;
   url: string;
-  icon: React.ReactNode;
   signedAt?: string | null;
   isInteractive?: boolean;
 }
@@ -88,7 +76,6 @@ interface ApplicationSignStageProps {
   applicationId: string;
   currentRole?: string;
   studentEmail?: string | null;
-  cardBorderClass?: string;
   handleStageChange: (val: APPLICATION_STAGE) => void;
   isInteractive?: boolean;
   isAllStagesSynced?: boolean;
@@ -99,7 +86,6 @@ const ApplicationSignStage = ({
   applicationId,
   currentRole,
   studentEmail,
-  cardBorderClass,
   handleStageChange,
   isInteractive = true,
   isAllStagesSynced = false,
@@ -115,34 +101,27 @@ const ApplicationSignStage = ({
   const { mutateAsync: sendOfferLetter, isPending: isSending } =
     useApplicationSendOfferLetterMutation(applicationId);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
   useEffect(() => {
     requestSignatures().catch(() => {});
   }, [requestSignatures]);
 
   const handleResend = async () => {
-    if (!isAllStagesSynced) {
-      onSyncBlocked?.();
-      return;
-    }
     if (!studentEmail) return;
     await sendOfferLetter({ student_email: studentEmail, student_name: "" });
     await requestSignatures();
-    setConfirmOpen(false);
   };
 
-  const handleResendClick = () => {
+  const handleBeforeResendOpen = () => {
     if (!isAllStagesSynced) {
       onSyncBlocked?.();
-      return;
+      return false;
     }
-    setConfirmOpen(true);
+    return true;
   };
 
   if (error) {
     return (
-      <div className={cardBorderClass}>
+      <div className="space-y-2 text-center">
         <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
         <p className="text-sm font-medium">Signature data unavailable</p>
         <Button
@@ -157,8 +136,17 @@ const ApplicationSignStage = ({
     );
   }
 
+  const firstItem = data?.items?.[0];
+  const canShowResendOffer =
+    currentRole === USER_ROLE.STAFF && (data?.items?.length ?? 0) > 0;
+
+  const canStartGs =
+    currentRole === USER_ROLE.STAFF &&
+    !!firstItem?.student.signed_at &&
+    !!firstItem?.agent.signed_at;
+
   return (
-    <div className={`${cardBorderClass}`}>
+    <div>
       <div className=" flex items-center justify-between">
         {isPending && (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -174,122 +162,61 @@ const ApplicationSignStage = ({
           </p>
         </div>
       ) : (
-        <div className="">
-          {data.items.map((item, i) => {
-            if (i === 0)
-              return (
-                <div key={item.id} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      {item.document_title}
-                    </h4>
-                  </div>
+        <section className="">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                {firstItem?.document_title}
+              </h4>
+            </div>
 
-                  <div>
-                    <SignerRow
-                      name={item.student.name}
-                      email={item.student.email}
-                      url={item.student.signing_url}
-                      icon={<User className="h-4 w-4" />}
-                      signedAt={item.student.signed_at}
-                      isInteractive={true}
-                    />
-                    <SignerRow
-                      name={item.agent.name}
-                      email={item.agent.email}
-                      url={item.agent.signing_url}
-                      icon={<ShieldCheck className="h-4 w-4" />}
-                      signedAt={item.agent.signed_at}
-                      isInteractive={true}
-                    />
-                  </div>
+            <div>
+              <SignerRow
+                name={firstItem?.student.name ?? ""}
+                email={firstItem?.student.email ?? ""}
+                url={firstItem?.student.signing_url ?? "#"}
+                signedAt={firstItem?.student.signed_at}
+                isInteractive={true}
+              />
+              <SignerRow
+                name={firstItem?.agent.name ?? ""}
+                email={firstItem?.agent.email ?? ""}
+                url={firstItem?.agent.signing_url ?? "#"}
+                signedAt={firstItem?.agent.signed_at}
+                isInteractive={true}
+              />
+            </div>
+          </div>
 
-                  <p className="text-[10px] text-right text-muted-foreground">
-                    Initiated {formatUtcToFriendlyLocal(item.created_at)}
-                  </p>
-                </div>
-              );
-          })}
+          <p className="text-[10px] text-right text-muted-foreground mb-2">
+            Initiated{" "}
+            {firstItem?.created_at
+              ? formatUtcToFriendlyLocal(firstItem.created_at)
+              : "-"}
+          </p>
+        </section>
+      )}
+
+      <ResendOfferLetterAction
+        isVisible={canShowResendOffer}
+        hasStudentEmail={!!studentEmail}
+        isSending={isSending}
+        onBeforeOpen={handleBeforeResendOpen}
+        onConfirm={handleResend}
+      />
+
+      {canStartGs ? (
+        <div className="px-2">
+          <Button
+            onClick={() => handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)}
+            className="w-full text-xs"
+            disabled={!isInteractive}
+          >
+            Start GS Documentation
+            <ArrowRight />
+          </Button>
         </div>
-      )}
-
-      {currentRole === USER_ROLE.STAFF && (
-        <div className="p-2">
-          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <Button
-              className="w-full h-9 text-xs font-semibold"
-              variant="outline"
-              disabled={!studentEmail || isSending}
-              onClick={handleResendClick}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Processing
-                </>
-              ) : (
-                <>
-                  <RotateCw />
-                  Resend Offer Letter
-                </>
-              )}
-            </Button>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Reset signatures</DialogTitle>
-                <DialogDescription>
-                  Existing signatures will be invalidated. Both parties must
-                  sign again.
-                </DialogDescription>
-              </DialogHeader>
-
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="ghost">Cancel</Button>
-                </DialogClose>
-                <Button
-                  variant="destructive"
-                  onClick={handleResend}
-                  disabled={isSending}
-                >
-                  Confirm resend
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {!studentEmail && (
-            <p className="mt-2 text-[10px] text-center text-destructive font-medium">
-              Student email required
-            </p>
-          )}
-        </div>
-      )}
-
-      {currentRole === USER_ROLE.STAFF && (
-        <>
-          {data && data.items.length > 0 && (
-            <>
-              {data?.items[0].student.signed_at &&
-                data?.items[0].agent.signed_at && (
-                  <div className="px-2">
-                    <Button
-                      onClick={() =>
-                        handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)
-                      }
-                      className="w-full text-xs"
-                      disabled={!isInteractive}
-                    >
-                      Start GS Documentation
-                      <ArrowRight />
-                    </Button>
-                  </div>
-                )}
-            </>
-          )}
-        </>
-      )}
+      ) : null}
     </div>
   );
 };

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import NotificationCard from "@/features/notifications/components/notification-card";
 import {
   useMarkAllNotificationsReadMutation,

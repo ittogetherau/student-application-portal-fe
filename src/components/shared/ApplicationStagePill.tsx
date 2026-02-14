@@ -6,7 +6,7 @@ import {
   formatStageLabel,
   getRoleStageLabel,
   normalizeStage,
-} from "@/components/shared/applicationStageConfig";
+} from "@/shared/config/application-stage.config";
 
 export const applicationStageFilterOptions: DataTableFacetedFilterOption[] =
   Object.entries(STAGE_PILL_CONFIG).map(([stage, config]) => ({

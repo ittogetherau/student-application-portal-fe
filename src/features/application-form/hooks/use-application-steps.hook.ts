@@ -2,7 +2,7 @@
 import {
   APPLICATION_STEP_IDS,
   type ApplicationStepId,
-} from "@/constants/application-steps";
+} from "@/shared/constants/application-steps";
 import type {
   StepUpdateResponse,
   SurveyAvailabilityCode,
@@ -23,6 +23,7 @@ import {
   SurveyValues,
   UsiValues,
 } from "@/shared/validation/application.validation";
+import { normalizeEnrollmentPayload } from "../utils/enrollment-normalization";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "react-hot-toast";
@@ -169,97 +170,6 @@ export const useApplicationStepQuery = (
   stepId: number,
 ) => {
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
-
-  const normalizeEnrollmentPayload = (input: unknown) => {
-    if (
-      !input ||
-      typeof input !== "object" ||
-      Array.isArray(input) ||
-      Object.keys(input as Record<string, unknown>).length === 0
-    ) {
-      return input;
-    }
-
-    const data = input as Record<string, unknown>;
-
-    const normalizeYesNo = (value: unknown) => {
-      if (typeof value !== "string") return value;
-      const lower = value.trim().toLowerCase();
-      if (lower === "yes") return "Yes";
-      if (lower === "no") return "No";
-      return value;
-    };
-
-    const normalizeYesNoNa = (value: unknown) => {
-      if (typeof value !== "string") return value;
-      const lower = value.trim().toLowerCase();
-      if (lower === "yes") return "Yes";
-      if (lower === "no") return "No";
-      if (lower === "na" || lower === "n/a") return "N/A";
-      return value;
-    };
-
-    const normalizeClassType = (value: unknown) => {
-      if (typeof value !== "string") return value;
-      const normalized = value.trim().toLowerCase();
-      if (
-        normalized === "classroom" ||
-        normalized === "hybrid" ||
-        normalized === "online"
-      ) {
-        return normalized;
-      }
-      return value;
-    };
-
-    const normalizeStudyReason = (value: unknown) => {
-      if (typeof value !== "string" && typeof value !== "number") return value;
-
-      const raw = String(value).trim();
-      if (!raw) return value;
-
-      const validCodes = new Set([
-        "01",
-        "02",
-        "03",
-        "04",
-        "05",
-        "06",
-        "07",
-        "08",
-        "11",
-        "12",
-        "@@",
-      ]);
-
-      if (validCodes.has(raw)) return raw;
-      if (/^\d$/.test(raw)) {
-        const padded = raw.padStart(2, "0");
-        return validCodes.has(padded) ? padded : value;
-      }
-
-      const prefix = raw.match(/^(\d{1,2})\b/)?.[1];
-      if (prefix) {
-        const padded = prefix.padStart(2, "0");
-        return validCodes.has(padded) ? padded : value;
-      }
-
-      return value;
-    };
-
-    return {
-      ...data,
-      advanced_standing_credit: normalizeYesNo(data.advanced_standing_credit),
-      inclue_material_fee_in_initial_payment: normalizeYesNo(
-        data.inclue_material_fee_in_initial_payment,
-      ),
-      receiving_scholarship: normalizeYesNo(data.receiving_scholarship),
-      work_integrated_learning: normalizeYesNoNa(data.work_integrated_learning),
-      third_party_provider: normalizeYesNoNa(data.third_party_provider),
-      class_type: normalizeClassType(data.class_type ?? data.classType),
-      study_reason: normalizeStudyReason(data.study_reason ?? data.studyReason),
-    };
-  };
 
   const query = useQuery<ServiceResponse<{ data?: unknown }>, Error>({
     queryKey: ["application-step-data", applicationId, stepId],

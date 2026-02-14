@@ -1,16 +1,23 @@
 "use client";
 
 import applicationStepsService from "@/service/application-steps.service";
-import courseService, { Course } from "@/service/course.service";
+import courseService, {
+  Course,
+  type CourseListParams,
+} from "@/service/course.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import { EnrollmentValues } from "@/shared/validation/application.validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useCoursesQuery = () => {
+export const useCoursesQuery = (
+  params?: CourseListParams,
+  options?: { enabled?: boolean },
+) => {
   return useQuery<ServiceResponse<Course[]>, Error>({
-    queryKey: ["courses-list"],
+    queryKey: ["courses-list", params],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
-      const response = await courseService.listCourses();
+      const response = await courseService.listCourses(params);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -82,5 +89,21 @@ export const useSaveEnrollmentMutation = () => {
     onError: (error) => {
       console.error("[Enrollment] Save failed", error);
     },
+  });
+};
+
+export const useEnrollmentStepQuery = (applicationId: string | null) => {
+  return useQuery<ServiceResponse<{ data?: unknown }>, Error>({
+    queryKey: ["application-enrollments-step", applicationId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      const response =
+        await applicationStepsService.getEnrollmentDetails(applicationId);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to fetch enrollment step");
+      }
+      return response;
+    },
+    enabled: !!applicationId,
   });
 };

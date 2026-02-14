@@ -8,34 +8,28 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   defaultSchoolingValues,
   schoolingSchema,
   type SchoolingValues,
-} from "@/features/application-form/utils/validations/schooling";
+} from "@/features/application-form/validations/schooling";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Info } from "lucide-react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useWatch } from "react-hook-form";
 
 const stepId = 6;
 
 const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
-  const schoolingMutation = useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<SchoolingValues>({
-    resolver: zodResolver(schoolingSchema as any),
-    defaultValues: defaultSchoolingValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
+  const {
+    methods,
+    mutation: schoolingMutation,
+    onSubmit,
+  } = useStepForm<SchoolingValues>({
     applicationId,
     stepId,
-    form: methods,
+    resolver: zodResolver(schoolingSchema),
+    defaultValues: defaultSchoolingValues,
     enabled: !!applicationId,
   });
 
@@ -50,13 +44,6 @@ const SchoolingForm = ({ applicationId }: { applicationId: string }) => {
   });
 
   const didNotGoToSchool = highestSchoolLevel === "02 - Did not go to School";
-
-  const onSubmit = (values: SchoolingValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    schoolingMutation.mutate(values);
-  };
 
   return (
     <FormProvider {...methods}>

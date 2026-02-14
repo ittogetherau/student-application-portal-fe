@@ -1,11 +1,12 @@
 import {
-  FORM_STEPS,
+  APPLICATION_FORM_STEPS,
   HIDDEN_STEP_IDS,
-} from "@/features/application-form/constants/form-steps-data";
+} from "@/features/application-form/constants/form-step-config";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-const REVIEW_STEP_ID = FORM_STEPS[12].id;
+const REVIEW_STEP_ID =
+  APPLICATION_FORM_STEPS[APPLICATION_FORM_STEPS.length - 1].id;
 
 type StepData = Record<number, unknown>;
 
@@ -28,6 +29,10 @@ type ApplicationStepState = {
   isStepDirty: (step: number) => boolean;
   setUnsavedMessage: (message: string | null) => void;
   clearUnsavedMessage: () => void;
+  getNavigationBlockMessage: (
+    fromStep: number,
+    toStep: number,
+  ) => string | null;
   restoreCompletedSteps: (stepData: StepData) => void;
   resetNavigation: () => void;
   _hasHydrated: boolean;
@@ -106,7 +111,7 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
   persist(
     (set, get) => ({
       currentStep: 0,
-      totalSteps: FORM_STEPS.length,
+      totalSteps: APPLICATION_FORM_STEPS.length,
       completedSteps: [],
       dirtySteps: [],
       unsavedMessage: null,
@@ -186,6 +191,23 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       setUnsavedMessage: (message) => set({ unsavedMessage: message }),
 
       clearUnsavedMessage: () => set({ unsavedMessage: null }),
+
+      getNavigationBlockMessage: (fromStep, toStep) => {
+        const { dirtySteps } = get();
+
+        if (toStep > fromStep) {
+          const hasBlockingDirty = dirtySteps.some((stepId) => stepId < toStep);
+          if (hasBlockingDirty) {
+            return "Please save your changes before moving forward.";
+          }
+        }
+
+        if (toStep < fromStep && dirtySteps.includes(fromStep)) {
+          return "You have unsaved changes. Please save before going back.";
+        }
+
+        return null;
+      },
 
       restoreCompletedSteps: (stepData) => {
         const totalSteps = get().totalSteps;

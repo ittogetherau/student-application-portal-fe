@@ -1,14 +1,15 @@
-import { ensureValidApplicationId } from "@/shared/lib/validate-uuid";
 import GsClient from "./gs-client";
+import {
+  type ApplicationRouteParams,
+  getValidatedApplicationId,
+} from "@/features/application-detail/utils/application-route-params";
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  params: ApplicationRouteParams;
 };
 
 export default async function GSProcessPage({ params }: PageProps) {
-  const { id } = await params;
-
-  ensureValidApplicationId(id);
+  const id = await getValidatedApplicationId(params);
 
   return <GsClient applicationId={id} />;
 }

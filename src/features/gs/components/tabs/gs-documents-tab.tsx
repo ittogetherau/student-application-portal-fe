@@ -25,7 +25,7 @@ import {
   transformGSDocuments,
   type GSDocumentBackendStatus,
   type GSDocumentData,
-} from "@/constants/gs-assessment";
+} from "@/shared/constants/gs-assessment";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
 import {
   useGSDocumentAutoCompleteMutation,
@@ -256,7 +256,6 @@ export default function GSDocumentsTab({
     }
   };
 
-  // Handle status change (staff only)
   const handleStatusChange = async (
     documentNumber: number,
     status: "approved" | "rejected",

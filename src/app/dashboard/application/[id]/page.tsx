@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
 
-import { siteRoutes } from "@/constants/site-routes";
-import { ensureValidApplicationId } from "@/shared/lib/validate-uuid";
+import { siteRoutes } from "@/shared/constants/site-routes";
+import {
+  type ApplicationRouteParams,
+  getValidatedApplicationId,
+} from "@/features/application-detail/utils/application-route-params";
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  params: ApplicationRouteParams;
 };
 
 export default async function ApplicationDetailRedirect({ params }: PageProps) {
-  const { id } = await params;
-
-  ensureValidApplicationId(id);
+  const id = await getValidatedApplicationId(params);
 
   const destination = siteRoutes.dashboard.application.id.details(id);
 

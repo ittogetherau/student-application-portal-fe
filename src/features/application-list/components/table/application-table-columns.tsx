@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import { ApplicationTableRow, USER_ROLE } from "@/shared/constants/types";
 import {

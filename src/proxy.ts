@@ -1,8 +1,8 @@
+import { siteRoutes } from "@/shared/constants/site-routes";
+import { AUTH_SECRET } from "@/shared/lib/auth-options";
+import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
-import { AUTH_SECRET } from "@/shared/lib/auth-options";
-import { siteRoutes } from "@/constants/site-routes";
 
 const SHARED_PATHS = [
   siteRoutes.dashboard.root,

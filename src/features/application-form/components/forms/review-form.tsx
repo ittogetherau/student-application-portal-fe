@@ -9,20 +9,20 @@ import {
 import { Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
 } from "@/shared/hooks/use-applications";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useMemo } from "react";
 import toast from "react-hot-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { useGalaxySyncDocumentsMutation } from "../../hooks/galaxy-sync.hook";
 import { Section } from "../sync-review/section";
 import { SyncActionButton } from "../sync-review/sync-action-button";
@@ -43,7 +43,7 @@ import {
   SchoolingSection,
   SurveySection,
   UsiSection,
-} from "./review-form-sections";
+} from "../review-sections";
 
 const ReviewForm = ({
   applicationId,
@@ -55,8 +55,6 @@ const ReviewForm = ({
   showSync?: boolean;
   onNavigateToDocuments?: () => void;
 }) => {
-  // const [editMode] = useQueryState("edit");
-
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const {
@@ -396,61 +394,3 @@ const ReviewForm = ({
 };
 
 export default ReviewForm;
-
-/*
-
-      {showSync ? (
-        <div className="rounded-md border bg-card px-3 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="grid h-6 w-6 place-items-center rounded-md border bg-muted/30">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <span className="text-sm font-semibold">Documents</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* <span className="text-xs text-muted-foreground">Sync status</span> 
-
-              {showSync && isStaffOrAdmin && !documentsUpToDate ? (
-                <div className="flex items-center gap-1">
-                  <div className="animate-scale-pulse">
-                    {showDocumentsWarning ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-destructive"
-                          >
-                            <OctagonAlert />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {syncMetadata?.documents?.last_error}
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 px-2 text-xs"
-                    onClick={() => syncDocuments.mutate()}
-                    disabled={syncDocuments.isPending}
-                  >
-                    {syncDocuments.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    )}
-                    Sync to Galaxy
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-      ) : null}
-    
-*/

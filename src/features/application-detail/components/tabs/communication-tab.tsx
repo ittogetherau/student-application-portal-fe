@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { useApplicationThreadsQuery } from "@/features/threads/hooks/application-threads.hook";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import { Loader2, MessageSquare } from "lucide-react";

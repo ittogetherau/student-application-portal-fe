@@ -87,6 +87,25 @@ class ApplicationStepsService extends ApiService {
     }
   };
 
+  getEnrollmentDetails = async (
+    applicationId: string,
+  ): Promise<ServiceResponse<{ data?: unknown }>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.get<{ data?: unknown }>(
+        `${this.basePath}/${applicationId}/steps/enrollments`,
+        true,
+      );
+      return {
+        success: true,
+        message: "Enrollment details fetched.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch enrollment details");
+    }
+  };
+
   updateEnrollment = async (
     applicationId: string,
     input: EnrollmentValues,

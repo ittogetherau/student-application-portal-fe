@@ -4,24 +4,21 @@ import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   defaultHealthCoverValues,
   healthCoverSchema,
   type HealthCoverValues,
-} from "@/features/application-form/utils/validations/health-cover";
+} from "@/features/application-form/validations/health-cover";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useWatch } from "react-hook-form";
 import { useApplicationFormDataStore } from "../../store/use-application-form-data.store";
 
 const stepId = 3;
 
 const HealthCoverForm = ({ applicationId }: { applicationId: string }) => {
-  const healthCoverMutation =
-    useApplicationStepMutations(applicationId)[stepId];
   const getStepData = useApplicationFormDataStore((state) => state.getStepData);
 
   const initialValues = useMemo(() => {
@@ -33,25 +30,27 @@ const HealthCoverForm = ({ applicationId }: { applicationId: string }) => {
     return defaultHealthCoverValues;
   }, [applicationId, getStepData]);
 
-  const methods = useForm<HealthCoverValues>({
-    resolver: zodResolver(healthCoverSchema as any),
+  const {
+    methods,
+    mutation: healthCoverMutation,
+    onSubmit,
+  } = useStepForm<HealthCoverValues>({
+    applicationId,
+    stepId,
+    resolver: zodResolver(healthCoverSchema),
     defaultValues: initialValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
+    enabled: !!applicationId,
+    onDataLoaded: (data) => {
+      methods.reset({ ...defaultHealthCoverValues, ...data });
+    },
   });
+
   const { handleSubmit, control, setValue } = methods;
 
   // Watch the OSHC selection to conditionally show health cover fields
   const arrangeOSHC = useWatch({
     control,
     name: "arrange_OSHC",
-  });
-
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId,
-    stepId,
-    form: methods,
-    enabled: !!applicationId,
   });
 
   useEffect(() => {
@@ -65,16 +64,7 @@ const HealthCoverForm = ({ applicationId }: { applicationId: string }) => {
 
   return (
     <FormProvider {...methods}>
-      <form
-        className="space-y-6"
-        onSubmit={handleSubmit((values) => {
-          if (applicationId) {
-            saveOnSubmit(values);
-          }
-          // Data is already in API format
-          healthCoverMutation.mutate(values);
-        })}
-      >
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <section className="space-y-4 p-4 border rounded-lg">
           {/* OSHC Application Question */}
           <div className="space-y-4">

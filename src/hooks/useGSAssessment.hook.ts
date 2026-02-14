@@ -9,7 +9,7 @@ import {
   transformGSAssessmentData,
   type GSAssessmentData,
   type GSStepProgress,
-} from "@/constants/gs-assessment";
+} from "@/shared/constants/gs-assessment";
 import gsAssessmentService, {
   type GsAssessmentDetail,
   type GsDeclarationActor,

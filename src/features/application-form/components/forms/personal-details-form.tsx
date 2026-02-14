@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { getFieldError } from "@/components/forms/form-errors";
@@ -17,24 +16,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getCountriesList, getNationalitiesList } from "@/data/country-list";
+import { getCountriesList, getNationalitiesList } from "@/shared/data/country-list";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
+import { useOcrAutofillUpload } from "@/features/application-form/hooks/use-ocr-autofill-upload.hook";
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
 import {
   defaultPersonalDetailsValues,
   personalDetailsSchema,
   type PersonalDetailsValues,
-} from "@/features/application-form/utils/validations/personal-details";
-import usePlacesAutocomplete from "@/hooks/usePlacesAutocomplete.hook";
-import documentService from "@/service/document.service";
-import useDocuments, {
+} from "@/features/application-form/validations/personal-details";
+import { mapPassportOcrToPersonalDetails } from "@/features/application-form/utils/ocr-autofill-mappers";
+import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete.hook";
+import type { OcrResult } from "@/service/document.service";
+import {
+  useDocuments,
   useDocumentTypesQuery,
 } from "@/shared/hooks/document.hook";
 import {
   DROPZONE_ACCEPT,
   MAX_FILE_SIZE_BYTES,
   getDropzoneHelperText,
-  isAllowedFileType,
 } from "@/shared/lib/document-file-helpers";
 import { cn } from "@/shared/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -91,7 +92,6 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   });
 
   const {
-    query: addressQuery,
     setQuery: setAddressQuery,
     data: placePredictions,
     isLoading: isPlacesLoading,
@@ -102,14 +102,6 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   });
   const [isPlacesOpen, setIsPlacesOpen] = useState(false);
 
-  // Passport upload state
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [extractedSummary, setExtractedSummary] = useState<Record<
-    string,
-    any
-  > | null>(null);
   // Get document types and upload hook
   const { data: documentTypesResponse } = useDocumentTypesQuery();
   const { uploadDocument } = useDocuments(applicationId);
@@ -119,216 +111,40 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     (dt) => dt.code === "PASSPORT",
   );
 
-  // Handle file upload
-  const handleFileUpload = useCallback(
-    async (file: File) => {
-      if (!applicationId || !passportDocType) {
-        toast.error("Application not ready for upload");
-        return;
-      }
-
-      // Validate file type
-      if (!isAllowedFileType(file)) {
-        toast.error("Please upload a valid image (JPG, PNG) or PDF file");
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-
-      setUploadedFile(file);
-      setIsUploading(true);
-      setUploadSuccess(false);
-
-      try {
-        // Upload the document
-        await uploadDocument.mutateAsync({
-          application_id: applicationId,
-          document_type_id: passportDocType.id,
-          file,
-          process_ocr: true,
-        });
-
-        toast.success("Passport uploaded! Extracting data...");
-
-        // Poll for OCR results (max 30 seconds)
-        const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds
-        let attempts = 0;
-
-        const pollOcrResults = async (): Promise<void> => {
-          attempts++;
-
-          try {
-            console.log(
-              "[PersonalDetails] 🔍 Polling OCR results, attempt:",
-              attempts,
-            );
-            const ocrResponse =
-              await documentService.getOcrResults(applicationId);
-
-            console.log("[PersonalDetails] 📦 OCR Response:", {
-              success: ocrResponse.success,
-              hasData: !!ocrResponse.data,
-              response: ocrResponse,
-            });
-
-            if (ocrResponse.success && ocrResponse.data) {
-              console.log(
-                "[PersonalDetails] 📊 OCR Sections:",
-                ocrResponse.data.sections,
-              );
-              console.log(
-                "[PersonalDetails] 📋 Personal Details Section:",
-                ocrResponse.data.sections.personal_details,
-              );
-
-              let personalDetailsData =
-                ocrResponse.data.sections.personal_details?.extracted_data;
-
-              if (
-                personalDetailsData &&
-                typeof personalDetailsData === "object" &&
-                !Array.isArray(personalDetailsData)
-              ) {
-                // Transform data for form fields
-                const transformedData: Record<string, any> = {
-                  ...personalDetailsData,
-                };
-
-                // Map expiry_date to passport_expiry
-                if (
-                  transformedData.expiry_date &&
-                  !transformedData.passport_expiry
-                ) {
-                  transformedData.passport_expiry = transformedData.expiry_date;
-                }
-
-                // Normalize gender
-                if (transformedData.gender) {
-                  const gender = String(transformedData.gender).toUpperCase();
-                  if (gender === "M" || gender === "MALE") {
-                    transformedData.gender = "Male";
-                  } else if (gender === "F" || gender === "FEMALE") {
-                    transformedData.gender = "Female";
-                  }
-                }
-
-                personalDetailsData = transformedData;
-              }
-
-              console.log(
-                "[PersonalDetails] 🎯 Processed Data:",
-                personalDetailsData,
-              );
-
-              // Check if OCR is still pending
-              const pendingCount = ocrResponse.data.metadata?.ocr_pending || 0;
-              console.log(
-                "[PersonalDetails] ⏳ Pending OCR jobs:",
-                pendingCount,
-              );
-
-              if (personalDetailsData && pendingCount === 0) {
-                // OCR completed successfully
-                console.log("[PersonalDetails] ✅ OCR COMPLETE!");
-
-                // Get current form values
-                const currentFormValues = methods.getValues();
-
-                // Populate form fields with better error handling
-                let fieldsPopulated = 0;
-
-                Object.entries(personalDetailsData).forEach(([key, value]) => {
-                  try {
-                    const fieldKey = key as keyof PersonalDetailsValues;
-                    const currentValue = methods.getValues(fieldKey);
-
-                    // Skip if field already has a value
-                    if (currentValue) return;
-
-                    // Skip null/undefined/empty values
-                    if (value === null || value === undefined || value === "")
-                      return;
-
-                    // Set the value
-                    methods.setValue(fieldKey, value as any, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
-                    fieldsPopulated++;
-                  } catch (error) {
-                    console.error(
-                      `[PersonalDetails] ❌ Error setting field "${key}":`,
-                      error,
-                    );
-                  }
-                });
-
-                setExtractedSummary(personalDetailsData);
-                setUploadSuccess(true);
-                setIsUploading(false);
-                if (fieldsPopulated > 0) {
-                  toast.success(
-                    `Passport data extracted! ${fieldsPopulated} fields populated.`,
-                  );
-                } else {
-                  toast.success("Passport uploaded successfully!");
-                }
-                return;
-              }
-
-              // OCR still processing, continue polling
-              if (attempts < maxAttempts) {
-                setTimeout(() => pollOcrResults(), 2000); // Poll every 2 seconds
-              } else {
-                // Timeout
-                setUploadSuccess(false);
-                setIsUploading(false);
-                toast.error("OCR processing timed out. Please try again.");
-              }
-            } else {
-              // No OCR data yet, continue polling
-              if (attempts < maxAttempts) {
-                setTimeout(() => pollOcrResults(), 2000);
-              } else {
-                setUploadSuccess(false);
-                setIsUploading(false);
-                toast.error("Failed to extract data from passport");
-              }
-            }
-          } catch (error) {
-            console.error("OCR polling error:", error);
-            if (attempts < maxAttempts) {
-              setTimeout(() => pollOcrResults(), 2000);
-            } else {
-              setUploadSuccess(false);
-              setIsUploading(false);
-              toast.error("Failed to extract data from passport");
-            }
-          }
-        };
-
-        // Start polling after a short delay
-        setTimeout(() => pollOcrResults(), 2000);
-      } catch (error) {
-        console.error("Upload failed:", error);
-        toast.error("Failed to upload passport");
-        setUploadedFile(null);
-        setIsUploading(false);
-      }
+  const processPassportOcrData = useCallback(
+    (ocrData: OcrResult) => {
+      return mapPassportOcrToPersonalDetails(ocrData, {
+        getValue: (key) => methods.getValues(key),
+        setValue: (key, value) =>
+          methods.setValue(key, value, {
+            shouldValidate: true,
+            shouldDirty: true,
+          }),
+      });
     },
-    [applicationId, passportDocType, uploadDocument, methods],
+    [methods],
   );
 
-  // Remove uploaded file
-  const handleRemoveFile = () => {
-    setUploadedFile(null);
-    setUploadSuccess(false);
-    setExtractedSummary(null);
-  };
+  const {
+    uploadedFile,
+    isUploading,
+    uploadSuccess,
+    extractedSummary,
+    handleFileUpload,
+    handleRemoveFile,
+  } = useOcrAutofillUpload({
+    applicationId,
+    documentTypeId: passportDocType?.id,
+    uploadDocument,
+    onProcessOcrData: processPassportOcrData,
+    startSuccessMessage: "Passport uploaded! Extracting data...",
+    extractedWithFieldsMessage: (count) =>
+      `Passport data extracted! ${count} fields populated.`,
+    extractedWithoutFieldsMessage: "Passport uploaded successfully!",
+    uploadFailureMessage: "Failed to upload passport",
+    extractionFailureMessage: "Failed to extract data from passport",
+    processingTimeoutMessage: "OCR processing timed out. Please try again.",
+  });
 
   const onSubmit = (values: PersonalDetailsValues) => {
     console.log("submitting personal details", values);
@@ -352,101 +168,95 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     return undefined;
   };
 
-  const handlePlaceSelect = useCallback(
-    async (prediction: PlacePrediction) => {
-      const description = prediction.description;
-      methods.setValue("search_address", description, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setAddressQuery(description);
-      setIsPlacesOpen(false);
+  const handlePlaceSelect = async (prediction: PlacePrediction) => {
+    const description = prediction.description;
+    methods.setValue("search_address", description, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setAddressQuery(description);
+    setIsPlacesOpen(false);
 
-      if (!prediction.place_id) return;
+    if (!prediction.place_id) return;
 
-      try {
-        const response = await fetch(
-          `/api/google-places/details?placeId=${encodeURIComponent(
-            prediction.place_id,
-          )}`,
-        );
+    try {
+      const response = await fetch(
+        `/api/google-places/details?placeId=${encodeURIComponent(
+          prediction.place_id,
+        )}`,
+      );
 
-        if (!response.ok) {
-          const message = await response.text();
-          throw new Error(message || "Failed to fetch address details.");
-        }
-
-        const payload = (await response.json()) as {
-          address_components?: AddressComponent[];
-          error?: string;
-        };
-
-        if (payload.error) {
-          throw new Error(payload.error);
-        }
-
-        const components = payload.address_components ?? [];
-        const country = getComponentByType(components, "country")?.long_name;
-        const streetNumber = getComponentByType(
-          components,
-          "street_number",
-        )?.long_name;
-        const streetName = getComponentByType(components, "route")?.long_name;
-        const suburb = getComponentByPriority(components, [
-          "locality",
-          "postal_town",
-          "sublocality",
-          "sublocality_level_1",
-        ])?.long_name;
-        const state = getComponentByPriority(components, [
-          "administrative_area_level_1",
-          "administrative_area_level_2",
-        ])?.long_name;
-        const postcode = getComponentByType(
-          components,
-          "postal_code",
-        )?.long_name;
-
-        if (country)
-          methods.setValue("country", country, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        if (streetNumber)
-          methods.setValue("street_number", streetNumber, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        if (streetName)
-          methods.setValue("street_name", streetName, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        if (suburb)
-          methods.setValue("suburb", suburb, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        if (state)
-          methods.setValue("state", state, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        if (postcode)
-          methods.setValue("postcode", postcode, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch address details.",
-        );
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Failed to fetch address details.");
       }
-    },
-    [methods, setAddressQuery],
-  );
+
+      const payload = (await response.json()) as {
+        address_components?: AddressComponent[];
+        error?: string;
+      };
+
+      if (payload.error) {
+        throw new Error(payload.error);
+      }
+
+      const components = payload.address_components ?? [];
+      const country = getComponentByType(components, "country")?.long_name;
+      const streetNumber = getComponentByType(
+        components,
+        "street_number",
+      )?.long_name;
+      const streetName = getComponentByType(components, "route")?.long_name;
+      const suburb = getComponentByPriority(components, [
+        "locality",
+        "postal_town",
+        "sublocality",
+        "sublocality_level_1",
+      ])?.long_name;
+      const state = getComponentByPriority(components, [
+        "administrative_area_level_1",
+        "administrative_area_level_2",
+      ])?.long_name;
+      const postcode = getComponentByType(components, "postal_code")?.long_name;
+
+      if (country)
+        methods.setValue("country", country, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      if (streetNumber)
+        methods.setValue("street_number", streetNumber, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      if (streetName)
+        methods.setValue("street_name", streetName, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      if (suburb)
+        methods.setValue("suburb", suburb, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      if (state)
+        methods.setValue("state", state, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      if (postcode)
+        methods.setValue("postcode", postcode, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch address details.",
+      );
+    }
+  };
 
   const {
     formState: { errors },

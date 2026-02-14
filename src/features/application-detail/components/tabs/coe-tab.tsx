@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {

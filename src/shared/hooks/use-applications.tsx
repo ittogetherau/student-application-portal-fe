@@ -1,14 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-
-import { siteRoutes } from "@/constants/site-routes";
+import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
 import type {
+  ApplicationDeleteResponse,
   ApplicationDetailResponse,
   ApplicationListParams,
   ApplicationResponse,
-  ApplicationDeleteResponse,
   BulkArchiveResponse,
   BulkDeleteResponse,
   BulkUnarchiveResponse,
@@ -21,10 +18,12 @@ import signatureService, {
   type SendOfferLetterResponse,
   type SignatureRequestResponse,
 } from "@/service/signature.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import type { Application, APPLICATION_STAGE } from "@/shared/constants/types";
 import type { ServiceResponse } from "@/shared/types/service";
 import type { ApplicationCreateValues } from "@/shared/validation/application.validation";
-import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 const GC_TIME_MS = 5 * 60 * 1000;
 
@@ -718,16 +717,18 @@ export const useBulkUnarchiveApplicationsMutation = () => {
 export const useDeleteApplicationMutation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ServiceResponse<ApplicationDeleteResponse>, Error, string>({
-    mutationFn: async (applicationId: string) => {
-      return await applicationService.deleteApplication(applicationId);
+  return useMutation<ServiceResponse<ApplicationDeleteResponse>, Error, string>(
+    {
+      mutationFn: async (applicationId: string) => {
+        return await applicationService.deleteApplication(applicationId);
+      },
+      onSuccess: (_, applicationId) => {
+        queryClient.invalidateQueries({
+          queryKey: ["application-get", applicationId],
+        });
+        queryClient.invalidateQueries({ queryKey: ["application-list"] });
+        queryClient.invalidateQueries({ queryKey: ["applications"] });
+      },
     },
-    onSuccess: (_, applicationId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["application-get", applicationId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["application-list"] });
-      queryClient.invalidateQueries({ queryKey: ["applications"] });
-    },
-  });
+  );
 };

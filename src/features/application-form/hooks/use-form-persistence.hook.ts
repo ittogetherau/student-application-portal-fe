@@ -301,4 +301,3 @@ export const useFormPersistence = <T extends FieldValues>({
   };
 };
 
-export default useFormPersistence;

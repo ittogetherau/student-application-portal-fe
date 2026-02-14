@@ -133,6 +133,18 @@ type CourseListApiResponse =
       data?: Course[];
     };
 
+export type CourseListParams = {
+  campus?: number | null;
+  city?: string | null;
+  date?: string | null;
+  include_expired_intakes?: boolean | null;
+  mode?: "online" | "offline" | "facetoface" | "hybrid" | "blended" | null;
+  page?: string | null;
+  search?: string | null;
+  student_id?: string | null;
+  type?: 17 | null;
+};
+
 type IntakeListApiResponse =
   | Intake[]
   | Intake
@@ -164,9 +176,33 @@ class CourseService extends ApiService {
     return [];
   };
 
-  listCourses = async (): Promise<ServiceResponse<Course[]>> => {
+  listCourses = async (
+    params?: CourseListParams,
+  ): Promise<ServiceResponse<Course[]>> => {
     try {
-      const response = await this.get<CourseListApiResponse>(this.coursesUrl);
+      const query = new URLSearchParams();
+      if (typeof params?.campus === "number") {
+        query.set("campus", String(params.campus));
+      }
+      if (params?.city) query.set("city", params.city);
+      if (params?.date) query.set("date", params.date);
+      if (typeof params?.include_expired_intakes === "boolean") {
+        query.set(
+          "include_expired_intakes",
+          params.include_expired_intakes ? "1" : "0",
+        );
+      }
+      if (params?.mode) query.set("mode", params.mode);
+      if (params?.page) query.set("page", params.page);
+      if (params?.search) query.set("search", params.search);
+      if (params?.student_id) query.set("student_id", params.student_id);
+      if (params?.type) query.set("type", String(params.type));
+
+      const endpoint = query.toString()
+        ? `${this.coursesUrl}?${query.toString()}`
+        : this.coursesUrl;
+
+      const response = await this.get<CourseListApiResponse>(endpoint);
       const courses = this.normalizeCourseList(response);
 
       return {

@@ -10,13 +10,13 @@ import {
   useGalaxySyncDocumentsMutation,
   useGalaxySyncEmergencyContactMutation,
   useGalaxySyncEmploymentMutation,
+  useGalaxySyncEnrollmentMutation,
   useGalaxySyncLanguageMutation,
   useGalaxySyncOshcMutation,
   useGalaxySyncPersonalDetailsMutation,
   useGalaxySyncQualificationsMutation,
   useGalaxySyncSchoolingMutation,
   useGalaxySyncUsiMutation,
-  useGalaxySyncEnrollmentMutation,
 } from "../../hooks/galaxy-sync.hook";
 
 export type SyncSectionAvailability = {
@@ -250,13 +250,6 @@ const SyncToGalaxyButton = ({
       upToDate: syncMetadata?.documents?.uptodate === true,
       run: () => syncDocuments.mutateAsync(),
     },
-    // {
-    //   label: "Survey/Declaration",
-    //   metaKey: "survey_responses",
-    //   enabled: survey === true,
-    //   upToDate: syncMetadata?.survey_responses?.uptodate === true,
-    //   run: () => syncDeclaration.mutateAsync(),
-    // },
   ];
 
   const runnable = tasks.filter((task) => task.enabled && !task.upToDate);
@@ -273,7 +266,6 @@ const SyncToGalaxyButton = ({
     syncEmployment.isPending ||
     syncDocuments.isPending ||
     syncUsi.isPending;
-  // || syncDeclaration.isPending;
 
   const handleSync = async () => {
     try {

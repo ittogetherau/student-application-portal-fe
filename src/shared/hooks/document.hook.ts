@@ -206,4 +206,3 @@ export const useDocuments = (applicationId: string | null) => {
   };
 };
 
-export default useDocuments;

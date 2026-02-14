@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormTextarea } from "@/components/forms/form-textarea";
@@ -9,7 +10,6 @@ import {
   threadCreateSchema,
 } from "@/shared/validation/application.validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import {
   useApplicationThreadsQuery,
@@ -41,12 +41,12 @@ const TARGET_SECTIONS = [
 
 const PRIORITIES = ["low", "medium", "high"] as const;
 
-export function CreateThreadForm({
+const CreateThreadForm = ({
   applicationId,
   onSuccess,
   currentRole,
   defaultTitle,
-}: CreateThreadFormProps) {
+}: CreateThreadFormProps) => {
   const isStaff = currentRole === "staff";
   const form = useForm<ThreadCreateValues>({
     resolver: zodResolver(threadCreateSchema),
@@ -161,6 +161,6 @@ export function CreateThreadForm({
       </form>
     </FormProvider>
   );
-}
+};
 
 export default CreateThreadForm;

@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import NotificationCard from "@/features/notifications/components/notification-card";
 import {
   useMarkAllNotificationsReadMutation,

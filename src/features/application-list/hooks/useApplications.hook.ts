@@ -3,6 +3,7 @@
 import applicationService, {
   type ApplicationListParams,
 } from "@/service/application.service";
+import { normalizeStage } from "@/shared/config/application-stage.config";
 import {
   APPLICATION_STAGE,
   type ApplicationTableRow,
@@ -21,12 +22,10 @@ type UseApplicationsOptions = {
   storeKey?: string;
 };
 
-const normalizeStage = (value?: string): APPLICATION_STAGE => {
+const normalizeStageOrFallback = (value?: string): APPLICATION_STAGE => {
   if (!value) return APPLICATION_STAGE.DRAFT;
-  const stage = value as APPLICATION_STAGE;
-  if (Object.values(APPLICATION_STAGE).includes(stage)) {
-    return stage;
-  }
+  const stage = normalizeStage(value);
+  if (stage) return stage;
   return APPLICATION_STAGE.DRAFT;
 };
 
@@ -39,7 +38,7 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       (item.stage as string) ||
       (item.current_stage as string) ||
       (item.status as string);
-    const normalizedStage = normalizeStage(rawStage);
+    const normalizedStage = normalizeStageOrFallback(rawStage);
 
     const mapped: ApplicationTableRow = {
       id: String(item.id ?? index),
@@ -238,4 +237,3 @@ export const useApplications = ({
   };
 };
 
-export default useApplications;

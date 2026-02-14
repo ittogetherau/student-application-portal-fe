@@ -4,23 +4,17 @@ import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   additionalServicesSchema,
   createEmptyAdditionalService,
   defaultAdditionalServicesValues,
   type AdditionalServicesValues,
-} from "@/features/application-form/utils/validations/additional-services";
+} from "@/features/application-form/validations/additional-services";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Plus } from "lucide-react";
 import { useEffect } from "react";
-import {
-  FormProvider,
-  useFieldArray,
-  useForm,
-  useWatch,
-} from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useFieldArray, useWatch } from "react-hook-form";
 
 const stepId = 10;
 
@@ -29,21 +23,15 @@ const AdditionalServicesForm = ({
 }: {
   applicationId: string;
 }) => {
-  const additionalServicesMutation =
-    useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<AdditionalServicesValues>({
-    resolver: zodResolver(additionalServicesSchema as any),
-    defaultValues: defaultAdditionalServicesValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
+  const {
+    methods,
+    mutation: additionalServicesMutation,
+    onSubmit,
+  } = useStepForm<AdditionalServicesValues>({
     applicationId,
     stepId,
-    form: methods,
+    resolver: zodResolver(additionalServicesSchema as any),
+    defaultValues: defaultAdditionalServicesValues,
     enabled: !!applicationId,
   });
 
@@ -79,13 +67,6 @@ const AdditionalServicesForm = ({
     .reduce((sum, s) => sum + (Number(s?.student_price_per_service) || 0), 0);
 
   const canAddMore = (fields?.length || 0) < 10;
-
-  const onSubmit = (values: AdditionalServicesValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    additionalServicesMutation.mutate(values);
-  };
 
   return (
     <FormProvider {...methods}>

@@ -5,16 +5,15 @@ import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   createEmptyContact,
   emergencyContactsSchema,
   type EmergencyContactsValues,
-} from "@/features/application-form/utils/validations/emergency-contacts";
+} from "@/features/application-form/validations/emergency-contacts";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Plus } from "lucide-react";
-import { FormProvider, useFieldArray, useForm } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useFieldArray } from "react-hook-form";
 
 const STEP_ID = 2;
 
@@ -46,33 +45,29 @@ const sanitizeEmergencyContacts = (input: unknown): EmergencyContactsValues => {
 };
 
 const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
-  const emergencyContactMutation =
-    useApplicationStepMutations(applicationId)[STEP_ID];
-
-  const methods = useForm<EmergencyContactsValues>({
+  const {
+    methods,
+    mutation: emergencyContactMutation,
+    onSubmit,
+  } = useStepForm<EmergencyContactsValues>({
+    applicationId,
+    stepId: STEP_ID,
     resolver: zodResolver(emergencyContactsSchema),
     defaultValues: {
       contacts: [createEmptyContact()],
     },
-    mode: "onSubmit",
-    reValidateMode: "onChange",
+    enabled: !!applicationId,
+    normalizeBeforeSave: sanitizeEmergencyContacts,
+    onDataLoaded: (data) => {
+      methods.reset(sanitizeEmergencyContacts(data));
+    },
   });
+
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = methods;
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId,
-    stepId: STEP_ID,
-    form: methods,
-    enabled: !!applicationId,
-    onDataLoaded: (data) => {
-      methods.reset(sanitizeEmergencyContacts(data));
-    },
-  });
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -86,15 +81,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
 
   return (
     <FormProvider {...methods}>
-      <form
-        className="space-y-6"
-        onSubmit={handleSubmit((values) => {
-          const normalizedValues = sanitizeEmergencyContacts(values);
-
-          if (applicationId) saveOnSubmit(normalizedValues);
-          emergencyContactMutation.mutate(normalizedValues);
-        })}
-      >
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           {fields.map((field, index) => {
             const contactError = errors.contacts?.[index];

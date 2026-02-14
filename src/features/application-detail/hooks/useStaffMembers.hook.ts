@@ -26,4 +26,3 @@ export const useStaffMembersQuery = (options: UseStaffMembersOptions = {}) => {
   });
 };
 
-export default useStaffMembersQuery;

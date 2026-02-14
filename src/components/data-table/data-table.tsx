@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { ApplicationTableRow } from "@/shared/constants/types";
 import { useRouter } from "next/navigation";
 import { ApplicationKanban } from "../../features/application-list/components/kanban/application-kanban";

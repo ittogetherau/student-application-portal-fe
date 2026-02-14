@@ -3,48 +3,33 @@
 import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormInput } from "@/components/forms/form-input";
 import { Button } from "@/components/ui/button";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   defaultUSIValues,
   usiSchema,
   type USIValues,
-} from "@/features/application-form/utils/validations/usi";
+} from "@/features/application-form/validations/usi";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { FormProvider, useForm } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider } from "react-hook-form";
 import ApplicationStepHeader from "../application-step-header";
 
 const stepId = 9;
 
 const UsiForm = ({ applicationId }: { applicationId: string }) => {
-  const usiMutation = useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<USIValues>({
-    resolver: zodResolver(usiSchema),
-    defaultValues: defaultUSIValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  console.log(methods.getValues());
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
+  const {
+    methods,
+    mutation: usiMutation,
+    onSubmit,
+  } = useStepForm<USIValues>({
     applicationId,
     stepId,
-    form: methods,
+    resolver: zodResolver(usiSchema),
+    defaultValues: defaultUSIValues,
     enabled: !!applicationId,
   });
 
   const { handleSubmit } = methods;
-
-  const onSubmit = (values: USIValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    usiMutation.mutate(values);
-  };
 
   return (
     <FormProvider {...methods}>

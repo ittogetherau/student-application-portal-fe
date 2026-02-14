@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import NAV_LINKS from "@/data/navlink.data";
+import NAV_LINKS from "@/shared/data/navlink.data";
 import AppToolbar from "@/features/dashboard/components/app-toolbar";
 import SidebarNav from "@/features/dashboard/components/sidebar-nav";
 import type { UserRole } from "@/shared/lib/auth";

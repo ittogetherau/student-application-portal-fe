@@ -26,7 +26,7 @@ import {
   type Resolver,
 } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { GSAssessmentPdfDownloadButton } from "./gs-assessment-pdf-download-button";
 import {
   STAGE_1_QUESTIONS,

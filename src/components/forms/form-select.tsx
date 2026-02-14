@@ -19,7 +19,7 @@ interface FormSelectProps {
   name: string;
   label: string;
   placeholder?: string;
-  options: Option[];
+  options: ReadonlyArray<Option>;
 }
 
 export function FormSelect({

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
@@ -8,23 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useOcrAutofillUpload } from "@/features/application-form/hooks/use-ocr-autofill-upload.hook";
+import { mapEnglishTestOcrToLanguageForm } from "@/features/application-form/utils/ocr-autofill-mappers";
 import {
   defaultLanguageAndCultureValues,
   languageAndCultureSchema,
   type LanguageAndCultureFormValues,
   type LanguageAndCultureValues,
-} from "@/features/application-form/utils/validations/language-cultural";
-import documentService from "@/service/document.service";
-import useDocuments, {
+} from "@/features/application-form/validations/language-cultural";
+import type { OcrResult } from "@/service/document.service";
+import {
+  useDocuments,
   useDocumentTypesQuery,
 } from "@/shared/hooks/document.hook";
 import {
   DROPZONE_ACCEPT,
-  MAX_FILE_SIZE_BYTES,
   getDropzoneHelperText,
-  isAllowedFileType,
+  MAX_FILE_SIZE_BYTES,
 } from "@/shared/lib/document-file-helpers";
 import { cn } from "@/shared/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,8 +36,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
 import { ExtractedDataPreview } from "../extracted-data-preview";
@@ -142,15 +142,6 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
     enabled: !!applicationId,
   });
 
-  // English test upload state
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [extractedSummary, setExtractedSummary] = useState<Record<
-    string,
-    any
-  > | null>(null);
-
   // Get document types and upload hook
   const { data: documentTypesResponse } = useDocumentTypesQuery();
   const { uploadDocument } = useDocuments(applicationId);
@@ -160,197 +151,54 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
     (dt) => dt.code === "ENGLISH_TEST",
   );
 
-  // Handle file upload
-  const handleFileUpload = useCallback(
-    async (file: File) => {
-      if (!applicationId || !englishTestDocType) {
-        toast.error("Application not ready for upload");
-        return;
-      }
-
-      if (!isAllowedFileType(file)) {
-        toast.error("Please upload a valid image (JPG, PNG) or PDF file");
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-
-      setUploadedFile(file);
-      setIsUploading(true);
-      setUploadSuccess(false);
-      setExtractedSummary(null);
-
-      try {
-        await uploadDocument.mutateAsync({
-          application_id: applicationId,
-          document_type_id: englishTestDocType.id,
-          file,
-          process_ocr: true,
-        });
-
-        toast.success("Test report uploaded! Extracting data...");
-
-        const maxAttempts = 15;
-        let attempts = 0;
-
-        const pollOcrResults = async (): Promise<void> => {
-          attempts++;
-
-          try {
-            const ocrResponse =
-              await documentService.getOcrResults(applicationId);
-
-            if (ocrResponse.success && ocrResponse.data) {
-              const data = ocrResponse.data as any;
-              const languageData =
-                data.language_cultural?.extracted_data ||
-                data.sections?.language_cultural?.extracted_data;
-              const pendingCount = data.metadata?.ocr_pending || 0;
-
-              if (languageData && pendingCount === 0) {
-                let fieldsPopulated = 0;
-
-                // Helper to set form value if not already set
-                const setIfEmpty = (
-                  key: keyof LanguageAndCultureFormValues,
-                  value: any,
-                ) => {
-                  const currentValue = methods.getValues(key);
-                  if (
-                    !currentValue &&
-                    value !== null &&
-                    value !== undefined &&
-                    value !== ""
-                  ) {
-                    methods.setValue(key, value, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
-                    fieldsPopulated++;
-                  }
-                };
-
-                // 1. Map top-level fields
-                if (languageData.test_type) {
-                  const testTypeStr = String(languageData.test_type)
-                    .toUpperCase()
-                    .trim();
-                  const matchedOption = testTypeOptions.find(
-                    (opt) =>
-                      opt.value.toUpperCase() === testTypeStr ||
-                      opt.label.toUpperCase().includes(testTypeStr),
-                  );
-                  if (matchedOption) {
-                    setIfEmpty("english_test_type", matchedOption.value);
-                  } else {
-                    setIfEmpty("english_test_type", "other");
-                  }
-                }
-
-                if (languageData.overall_score) {
-                  setIfEmpty(
-                    "english_test_overall",
-                    String(languageData.overall_score),
-                  );
-                }
-
-                // Handle date with multiple possible keys
-                const testDate =
-                  languageData.test_date ||
-                  languageData.date_of_test ||
-                  languageData.date;
-                if (testDate) {
-                  setIfEmpty("english_test_date", String(testDate));
-                }
-
-                // 2. Map nested component scores
-                const scores = languageData.component_scores;
-                if (scores && typeof scores === "object") {
-                  if (scores.listening)
-                    setIfEmpty(
-                      "english_test_listening",
-                      String(scores.listening),
-                    );
-                  if (scores.reading)
-                    setIfEmpty("english_test_reading", String(scores.reading));
-                  if (scores.writing)
-                    setIfEmpty("english_test_writing", String(scores.writing));
-                  if (scores.speaking)
-                    setIfEmpty(
-                      "english_test_speaking",
-                      String(scores.speaking),
-                    );
-                }
-
-                // 3. Mark test as completed
-                methods.setValue("completed_english_test", "Yes", {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                });
-
-                // Trigger a full form validation to clear previous errors
-                setTimeout(() => methods.trigger(), 100);
-
-                setExtractedSummary(languageData);
-                setUploadSuccess(true);
-                setIsUploading(false);
-
-                if (fieldsPopulated > 0) {
-                  toast.success(
-                    `Test data extracted! ${fieldsPopulated} fields populated.`,
-                  );
-                } else {
-                  toast.success("Test report uploaded successfully!");
-                }
-                return;
-              }
-
-              if (attempts < maxAttempts) {
-                setTimeout(() => pollOcrResults(), 2000);
-              } else {
-                setUploadSuccess(false);
-                setIsUploading(false);
-                toast.error("OCR processing timed out.");
-              }
-            } else {
-              if (attempts < maxAttempts) {
-                setTimeout(() => pollOcrResults(), 2000);
-              } else {
-                setUploadSuccess(false);
-                setIsUploading(false);
-                toast.error("Failed to extract data from test report");
-              }
-            }
-          } catch {
-            if (attempts < maxAttempts) {
-              setTimeout(() => pollOcrResults(), 2000);
-            } else {
-              setUploadSuccess(false);
-              setIsUploading(false);
-              toast.error("Failed to extract data from test report");
-            }
-          }
-        };
-
-        setTimeout(() => pollOcrResults(), 2000);
-      } catch (error) {
-        console.error("Upload failed:", error);
-        toast.error("Failed to upload test report");
-        setUploadedFile(null);
-        setIsUploading(false);
-      }
+  const processEnglishTestOcrData = useCallback(
+    (ocrData: OcrResult) => {
+      return mapEnglishTestOcrToLanguageForm(
+        ocrData,
+        {
+          getValue: (key) => methods.getValues(key),
+          setValue: (key, value) =>
+            methods.setValue(key, value, {
+              shouldValidate: true,
+              shouldDirty: true,
+            }),
+          markEnglishTestComplete: () =>
+            methods.setValue("completed_english_test", "Yes", {
+              shouldValidate: true,
+              shouldDirty: true,
+            }),
+          triggerValidation: () => {
+            setTimeout(() => {
+              void methods.trigger();
+            }, 100);
+          },
+        },
+        testTypeOptions,
+      );
     },
-    [applicationId, englishTestDocType, uploadDocument, methods],
+    [methods],
   );
 
-  const handleRemoveFile = () => {
-    setUploadedFile(null);
-    setUploadSuccess(false);
-    setExtractedSummary(null);
-  };
+  const {
+    uploadedFile,
+    isUploading,
+    uploadSuccess,
+    extractedSummary,
+    handleFileUpload,
+    handleRemoveFile,
+  } = useOcrAutofillUpload({
+    applicationId,
+    documentTypeId: englishTestDocType?.id,
+    uploadDocument,
+    onProcessOcrData: processEnglishTestOcrData,
+    startSuccessMessage: "Test report uploaded! Extracting data...",
+    extractedWithFieldsMessage: (count) =>
+      `Test data extracted! ${count} fields populated.`,
+    extractedWithoutFieldsMessage: "Test report uploaded successfully!",
+    uploadFailureMessage: "Failed to upload test report",
+    extractionFailureMessage: "Failed to extract data from test report",
+    processingTimeoutMessage: "OCR processing timed out.",
+  });
 
   const onSubmit = (values: LanguageAndCultureFormValues) => {
     if (applicationId) {
@@ -362,13 +210,18 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   };
 
   // Watch for conditional rendering
-  const isEnglishMain = methods.watch("is_english_main_language");
-  const completedEnglishTest = methods.watch("completed_english_test");
+  const isEnglishMain = useWatch({
+    control: methods.control,
+    name: "is_english_main_language",
+  });
+  const completedEnglishTest = useWatch({
+    control: methods.control,
+    name: "completed_english_test",
+  });
 
   return (
     <FormProvider {...methods}>
       <form className="space-y-10" onSubmit={methods.handleSubmit(onSubmit)}>
-        {/* English Test Upload Section */}
         <Card className="border-primary/20 bg-primary/5 shadow-sm">
           <CardContent className="p-4">
             <div className="space-y-3">

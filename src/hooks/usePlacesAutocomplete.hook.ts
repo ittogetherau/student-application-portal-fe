@@ -112,4 +112,3 @@ export const usePlacesAutocomplete = (
   };
 };
 
-export default usePlacesAutocomplete;

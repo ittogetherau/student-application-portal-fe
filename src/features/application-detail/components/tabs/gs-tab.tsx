@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { transformGSAssessmentData } from "@/constants/gs-assessment";
+import { transformGSAssessmentData } from "@/shared/constants/gs-assessment";
 import GSAssessmentTab from "@/features/gs/components/tabs/assessment-tab";
 import GSDeclarationsTab from "@/features/gs/components/tabs/declarations-tab";
 import GSDocumentsTab from "@/features/gs/components/tabs/gs-documents-tab";

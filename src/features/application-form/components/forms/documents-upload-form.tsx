@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
-import useDocuments, {
+import {
   useApplicationDocumentsQuery,
   useDocumentTypesQuery,
+  useDocuments,
 } from "@/shared/hooks/document.hook";
 import {
   ALLOWED_FILE_EXTENSIONS,

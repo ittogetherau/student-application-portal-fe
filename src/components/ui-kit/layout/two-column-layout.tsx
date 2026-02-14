@@ -24,7 +24,7 @@ const TwoColumnLayout: React.FC<TwoColumnLayoutProps> = ({
   isEqual = false,
 }) => {
   const stickyClass = sticky
-    ? "h-fit lg:sticky lg:top-8 lg:right-0 w-full"
+    ? "h-fit lg:sticky lg:top-18 lg:right-0 w-full"
     : "";
 
   const mainBaseCols = isEqual

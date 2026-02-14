@@ -23,7 +23,7 @@ import { useApplicationAssignMutation } from "@/shared/hooks/use-applications";
 import { Check, ChevronsUpDown, OctagonAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import useStaffMembersQuery from "../../hooks/useStaffMembers.hook";
+import { useStaffMembersQuery } from "../../hooks/useStaffMembers.hook";
 
 interface StaffAssignmentSelectProps {
   applicationId: string;

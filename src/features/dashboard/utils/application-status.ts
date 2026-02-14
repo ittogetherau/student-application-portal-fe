@@ -1,4 +1,4 @@
-import { STAGE_PILL_CONFIG, normalizeStage } from "@/components/shared/applicationStageConfig";
+import { STAGE_PILL_CONFIG, normalizeStage } from "@/shared/config/application-stage.config";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
 
 export type DashboardStatusDatum = {

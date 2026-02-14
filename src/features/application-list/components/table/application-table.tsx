@@ -5,7 +5,7 @@ import {
 } from "@/components/data-table/data-table";
 import { applicationStageFilterOptions } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { USER_ROLE, type ApplicationTableRow } from "@/shared/constants/types";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -35,7 +35,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import useStaffMembersQuery from "@/features/application-detail/hooks/useStaffMembers.hook";
+import { useStaffMembersQuery } from "@/features/application-detail/hooks/useStaffMembers.hook";
 import {
   useBulkArchiveApplicationsMutation,
   useBulkDeleteApplicationsMutation,
@@ -69,6 +69,8 @@ interface ApplicationTableProps {
   isSearchingOrFiltering?: boolean;
   filtersPopover?: React.ReactNode;
 }
+
+const APPLICATION_LIST_VIEW_KEY = "application-list:view";
 
 const BulkAssignPopover = ({ selectedCount }: { selectedCount: number }) => {
   const [open, setOpen] = React.useState(false);
@@ -183,6 +185,18 @@ export const ApplicationTable = ({
     () => getApplicationColumns(ROLE, isStaffAdmin, isArchived),
     [ROLE, isStaffAdmin, isArchived],
   );
+
+  React.useEffect(() => {
+    const savedView = localStorage.getItem(APPLICATION_LIST_VIEW_KEY);
+    if (savedView === "table" || savedView === "kanban") {
+      setView(savedView);
+    }
+  }, []);
+
+  const setPersistedView = React.useCallback((nextView: "table" | "kanban") => {
+    setView(nextView);
+    localStorage.setItem(APPLICATION_LIST_VIEW_KEY, nextView);
+  }, []);
 
   if (isLoading) {
     return (
@@ -410,9 +424,9 @@ export const ApplicationTable = ({
                 size="sm"
                 onClick={() => {
                   if (view === "kanban") {
-                    setView("table");
+                    setPersistedView("table");
                   } else {
-                    setView("kanban");
+                    setPersistedView("kanban");
                   }
                 }}
               >

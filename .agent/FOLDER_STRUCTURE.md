@@ -1,51 +1,86 @@
-# Suggested Folder Structure
+# Folder Structure Reference
 
-## Current Landscape
+Last updated: 2026-02-14
 
-- `src/app` continues to govern Next.js routes, but shared UI/hooks/logic are scattered across sibling directories (`hooks/`, `components/`, `lib/`, `data/`, `service/`), which dilutes ownership and makes it harder to reason about a specific feature (e.g., `application` vs. `tasks`).  
-- Many feature-specific hooks (such as `useApplicationGetQuery`, `useStaffMembers`, `usePlacesAutocomplete`) live at the top-level `hooks/` folder with other unrelated helpers, so tracing dependencies requires jumping between disparate folders.  
-- Constants, validators, and API services are flattened at the root, creating tight coupling between every feature and the shared folder; there is no explicit namespace for “dashboard feature X”.
+## Current `src` layout (audited)
 
-## Key Principles for Reorganization
+Top-level:
 
-1. **Feature folders**: Group components, hooks, utils, and styles around a single domain or flow (e.g., application management, task inbox, GS process).  
-2. **Shared modules**: Reserve `shared/` or `lib/` for genuine cross-cutting pieces (UI primitives, formatting helpers, API clients).  
-3. **App router stays in `src/app`**: Keep Next.js folders for routing/layout, but wire them to feature modules rather than importing directly from broad `hooks/`/`components/`.
+- `src/app` (Next.js App Router routes/layouts)
+- `src/features` (feature modules)
+- `src/shared` (cross-feature code)
+- `src/components` (reusable UI blocks)
+- `src/hooks` (legacy/global hooks)
+- `src/service` (API/service layer)
 
-## Suggested Structure
+Feature folders currently in use:
 
-```
-src/
-├── app/                         # Next.js route groups + layouts (existing)
-│   └── dashboard/
-│       └── application/          # keep route/layout clients, redirect shells
-├── features/
-│   ├── application/
-│   │   ├── components/           # UX fragments reused within the feature
-│   │   ├── hooks/                # React Query hooks scoped to applications
-│   │   ├── utils/                # stage utils, URLs, validation helpers
-│   │   └── pages/                # rerouted entry points if needed
-│   ├── tasks/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── helpers/
-│   └── communication/
-│       └── ...
-├── shared/
-│   ├── components/               # UI kit, buttons, cards, layout helpers
-│   ├── hooks/                    # truly shared hooks (nuqs, session)
-│   ├── constants/                # site routes, types, enums for entire app
-│   └── utils/                    # formatting, validation utilities
-├── services/                     # API clients (application.service, signature.service)
-├── store/                        # Zustand stores, if shared
-├── data/                         # static nav data, fixtures
-├── lib/                          # formatting functions reused across features
-└── validation/                   # zod schemas kept per feature when necessary
-```
+- `application-detail`
+- `application-form`
+- `application-list`
+- `auth`
+- `dashboard`
+- `gs`
+- `notifications`
+- `threads`
 
-## How This Helps
+Shared folders currently in use:
 
-- **Easier onboarding**: Developers can jump into `features/application` to see everything required for that flow rather than hunting in `components/`, `hooks/`, and `lib/`.  
-- **Scoped imports**: Route files under `src/app/dashboard/application` would import from `@/features/application/...`, making dependencies explicit and preventing accidental leakage from unrelated features.  
-- **Reduced noise**: Shared folders (like the proposed `shared/constants`) remain lean; feature-specific enums/types live next to their logic, while truly global constants stay in one place.  
-- **Evolution ready**: As new features (e.g., `gs`, `coe`, `students`) arrive, they simply get their own `features/<name>` folder, keeping the repo tidy.
+- `shared/config`
+- `shared/constants`
+- `shared/data`
+- `shared/hooks`
+- `shared/lib`
+- `shared/store`
+- `shared/types`
+- `shared/utils`
+- `shared/validation`
+
+## Canonical placement rules
+
+Use this order when deciding where a file should live:
+
+1. If code is used by exactly one feature, place it in `src/features/<feature>/...`.
+2. If code is used by multiple features, place it in `src/shared/...`.
+3. If it is a reusable UI building block, place it in `src/components/...`.
+4. Route files stay in `src/app/...` and should import from `features`/`shared` rather than owning business logic.
+
+## Folder responsibilities
+
+- `src/app`: route segments, layouts, pages, route-level wrappers only.
+- `src/features/<feature>/components`: feature-specific UI.
+- `src/features/<feature>/hooks`: feature-specific hooks/query logic.
+- `src/features/<feature>/utils`: feature-only helpers.
+- `src/features/<feature>/constants`: feature-only constants/config.
+- `src/shared/constants`: app-wide enums, route constants, global types/constants.
+- `src/shared/config`: app-wide configuration maps/rules.
+- `src/shared/data`: static cross-feature datasets.
+- `src/shared/hooks`: genuinely shared hooks only.
+- `src/service`: API client/service functions shared by multiple features.
+
+## Existing duplication and direction
+
+- `src/constants` and `src/data` have been consolidated into:
+  - `src/shared/constants`
+  - `src/shared/data`
+- Continue this direction: do not recreate root-level `src/constants` or `src/data`.
+- `src/hooks` still exists as a legacy/global area; new hooks should prefer:
+  - `src/features/<feature>/hooks` (default)
+  - `src/shared/hooks` (only if cross-feature)
+
+## Import conventions
+
+- Prefer alias imports with `@/`.
+- For global constants/config/data, use:
+  - `@/shared/constants/...`
+  - `@/shared/config/...`
+  - `@/shared/data/...`
+- For domain logic, import from feature modules:
+  - `@/features/<feature>/...`
+
+## Guardrails for future PRs
+
+- Do not add new business logic directly under `src/app`.
+- Do not place feature-specific code in `src/shared`.
+- Do not create parallel folders for the same concern (example: avoid both `src/shared/constants` and `src/constants`).
+- Prefer small, explicit feature boundaries over generic global folders.

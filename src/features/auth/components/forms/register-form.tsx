@@ -26,7 +26,7 @@ import {
   registerSchema,
   type RegisterValues,
 } from "@/features/auth/utils/validations/register";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 
 const RegisterForm = () => {
   const router = useRouter();

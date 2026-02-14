@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { cn } from "@/shared/lib/utils";
 import type { LoginResponse } from "@/service/auth.service";
 import authService from "@/service/auth.service";

@@ -1,4 +1,4 @@
-import { axiosDataPrivate, axiosDataPublic } from "@/axios/axios";
+import { axiosDataPrivate, axiosDataPublic } from "@/shared/lib/axios";
 import type { AxiosRequestConfig } from "axios";
 
 export class ApiService {
@@ -9,7 +9,7 @@ export class ApiService {
   protected async get<T>(
     endpoint: string,
     usePrivate = false,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     try {
       const client = this.getClient(usePrivate);
@@ -24,7 +24,7 @@ export class ApiService {
     endpoint: string,
     data: unknown,
     usePrivate = false,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     try {
       const client = this.getClient(usePrivate);
@@ -39,7 +39,7 @@ export class ApiService {
     endpoint: string,
     data: unknown,
     usePrivate = false,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     try {
       const client = this.getClient(usePrivate);
@@ -54,7 +54,7 @@ export class ApiService {
     endpoint: string,
     data: unknown,
     usePrivate = false,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     try {
       const client = this.getClient(usePrivate);
@@ -68,7 +68,7 @@ export class ApiService {
   protected async delete<T>(
     endpoint: string,
     usePrivate = false,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     try {
       const client = this.getClient(usePrivate);
@@ -87,7 +87,7 @@ export class ApiService {
     return new Error(
       err?.response?.data?.message ||
         err?.message ||
-        "An unexpected error occurred."
+        "An unexpected error occurred.",
     );
   }
 }

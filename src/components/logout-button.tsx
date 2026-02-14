@@ -4,7 +4,7 @@ import { useCallback, type MouseEventHandler } from "react";
 import { signOut } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import type React from "react";
 
 type ButtonProps = React.ComponentProps<typeof Button>;

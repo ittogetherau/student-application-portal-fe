@@ -1,12 +1,20 @@
 "use client";
 
+import {
+  APPLICATION_KANBAN_STAGES,
+  getRoleStageLabel,
+  getStageKanbanBackground,
+  getStageKanbanColor,
+  getStageLabel,
+} from "@/shared/config/application-stage.config";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  ApplicationTableRow,
-  APPLICATION_STAGE,
-} from "@/shared/constants/types";
 import applicationService from "@/service/application.service";
+import {
+  APPLICATION_STAGE,
+  ApplicationTableRow,
+  USER_ROLE,
+} from "@/shared/constants/types";
 import {
   closestCorners,
   DndContext,
@@ -21,6 +29,7 @@ import {
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { KanbanColumns } from "./kanban-columns";
@@ -35,62 +44,24 @@ function isTouchDevice() {
   return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
-const STAGES: APPLICATION_STAGE[] = [
-  APPLICATION_STAGE.DRAFT,
-  APPLICATION_STAGE.SUBMITTED,
-  APPLICATION_STAGE.IN_REVIEW,
-  APPLICATION_STAGE.OFFER_LETTER,
-  APPLICATION_STAGE.GS_ASSESSMENT,
-  APPLICATION_STAGE.COE_ISSUED,
-];
-
-const STAGE_LABELS = {
-  [APPLICATION_STAGE.DRAFT]: "Draft",
-  [APPLICATION_STAGE.SUBMITTED]: "Submitted",
-  [APPLICATION_STAGE.IN_REVIEW]: "In Review",
-  [APPLICATION_STAGE.OFFER_LETTER]: "Offer Letter",
-  [APPLICATION_STAGE.GS_ASSESSMENT]: "GS Assessment",
-  [APPLICATION_STAGE.COE_ISSUED]: "COE Issued",
-} satisfies Partial<Record<APPLICATION_STAGE, string>>;
-
-const STAGE_COLORS = {
-  [APPLICATION_STAGE.DRAFT]: "bg-gray-500",
-  [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500",
-  [APPLICATION_STAGE.IN_REVIEW]: "bg-yellow-500",
-  [APPLICATION_STAGE.OFFER_LETTER]: "bg-orange-500",
-  [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500",
-  [APPLICATION_STAGE.COE_ISSUED]: "bg-emerald-500",
-} satisfies Partial<Record<APPLICATION_STAGE, string>>;
-
-const STAGE_BACKGROUNDS = {
-  [APPLICATION_STAGE.DRAFT]: "bg-gray-500/5",
-  [APPLICATION_STAGE.SUBMITTED]: "bg-blue-500/5",
-  [APPLICATION_STAGE.IN_REVIEW]: "bg-yellow-500/5",
-  [APPLICATION_STAGE.OFFER_LETTER]: "bg-orange-500/5",
-  [APPLICATION_STAGE.GS_ASSESSMENT]: "bg-cyan-500/5",
-  [APPLICATION_STAGE.COE_ISSUED]: "bg-emerald-500/5",
-} satisfies Partial<Record<APPLICATION_STAGE, string>>;
-
-const getStageLabel = (stage: APPLICATION_STAGE) =>
-  (STAGE_LABELS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
-  "Updated";
-
-const getStageColor = (stage: APPLICATION_STAGE) =>
-  (STAGE_COLORS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
-  "bg-slate-500";
-
-const getStageBackground = (stage: APPLICATION_STAGE) =>
-  (STAGE_BACKGROUNDS as Partial<Record<APPLICATION_STAGE, string>>)[stage] ??
-  "";
+const getKanbanStageLabel = (stage: APPLICATION_STAGE, role?: USER_ROLE | string) =>
+  getRoleStageLabel(stage, role) ?? getStageLabel(stage);
 
 export function ApplicationKanban({
   data,
   isallowMovingInKanban,
 }: ApplicationKanbanProps) {
+  const { data: session } = useSession();
   const [applications, setApplications] = useState<ApplicationTableRow[]>(data);
   const [activeApplication, setActiveApplication] =
     useState<ApplicationTableRow | null>(null);
   const queryClient = useQueryClient();
+  const role = useMemo(() => {
+    const value = session?.user.role;
+    return Object.values(USER_ROLE).includes(value as USER_ROLE)
+      ? (value as USER_ROLE)
+      : undefined;
+  }, [session?.user.role]);
 
   useEffect(() => {
     setApplications(data);
@@ -219,7 +190,7 @@ export function ApplicationKanban({
             queryKey: ["application-get", activeId],
           });
 
-          const stageLabel = getStageLabel(overStage);
+          const stageLabel = getStageLabel(overStage, role);
           toast.success(`Application moved to "${stageLabel}"`, {
             icon: "OK",
           });
@@ -237,13 +208,13 @@ export function ApplicationKanban({
 
       setActiveApplication(null);
     },
-    [applications, isallowMovingInKanban, data, queryClient],
+    [applications, isallowMovingInKanban, data, queryClient, role],
   );
 
   const applicationsByStage = useMemo(() => {
     const grouped: Record<APPLICATION_STAGE, ApplicationTableRow[]> =
       {} as Record<APPLICATION_STAGE, ApplicationTableRow[]>;
-    STAGES.forEach((stage) => {
+    APPLICATION_KANBAN_STAGES.forEach((stage) => {
       grouped[stage] = applications.filter((app) => app.stage === stage);
     });
     return grouped;
@@ -260,14 +231,14 @@ export function ApplicationKanban({
     >
       <div className="w-full overflow-x-auto pb-4 ">
         <div className="inline-flex gap-4 min-w-full ">
-          {STAGES.map((stage) => (
+          {APPLICATION_KANBAN_STAGES.map((stage) => (
             <KanbanColumns
               key={stage}
               stage={stage}
               applications={applicationsByStage[stage] || []}
-              statusLabel={getStageLabel(stage)}
-              statusColor={getStageColor(stage)}
-              statusBackground={getStageBackground(stage)}
+              statusLabel={getKanbanStageLabel(stage, role)}
+              statusColor={getStageKanbanColor(stage)}
+              statusBackground={getStageKanbanBackground(stage)}
               isallowMovingInKanban={isallowMovingInKanban}
             />
           ))}

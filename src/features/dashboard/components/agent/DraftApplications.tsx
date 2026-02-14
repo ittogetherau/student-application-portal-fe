@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
-import { siteRoutes } from "@/constants/site-routes";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { useRouter } from "next/navigation";
 
 export interface DraftApplication {

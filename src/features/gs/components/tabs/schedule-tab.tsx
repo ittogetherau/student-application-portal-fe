@@ -16,7 +16,6 @@ interface GSScheduleTabProps {
   onStageComplete?: () => Promise<void>;
 }
 
-// Helper to get default date/time (7 days from now) for separate inputs
 const getDefaultScheduledDateParts = () => {
   const date = new Date();
   date.setDate(date.getDate() + 7);

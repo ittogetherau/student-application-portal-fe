@@ -9,35 +9,30 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   createEmptyEmploymentEntry,
   defaultEmploymentValues,
   employmentSchema,
   type EmploymentFormValues,
-} from "@/features/application-form/utils/validations/employment";
+} from "@/features/application-form/validations/employment";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Info } from "lucide-react";
-import { FormProvider, useFieldArray, useForm } from "react-hook-form";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
+import { FormProvider, useFieldArray } from "react-hook-form";
 import ApplicationStepHeader from "../application-step-header";
 
 const stepId = 8;
 
 const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
-  const employmentMutation = useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<EmploymentFormValues>({
-    resolver: zodResolver(employmentSchema),
-    defaultValues: defaultEmploymentValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  const { saveOnSubmit } = useFormPersistence({
+  const {
+    methods,
+    mutation: employmentMutation,
+    onSubmit,
+  } = useStepForm<EmploymentFormValues>({
     applicationId,
     stepId,
-    form: methods,
+    resolver: zodResolver(employmentSchema),
+    defaultValues: defaultEmploymentValues,
     enabled: !!applicationId,
   });
 
@@ -52,13 +47,6 @@ const EmploymentForm = ({ applicationId }: { applicationId: string }) => {
 
   // Watch entries to handle conditional logic
   const watchEntries = watch("entries");
-
-  const onSubmit = (values: EmploymentFormValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    employmentMutation.mutate(values);
-  };
 
   return (
     <FormProvider {...methods}>

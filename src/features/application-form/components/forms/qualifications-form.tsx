@@ -4,43 +4,31 @@
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
-import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   createEmptyQualification,
   defaultQualificationsValues,
   qualificationsSchema,
   type QualificationsFormValues,
-} from "@/features/application-form/utils/validations/qualifications";
+} from "@/features/application-form/validations/qualifications";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Plus } from "lucide-react";
 import { useEffect } from "react";
-import {
-  FormProvider,
-  useFieldArray,
-  useForm,
-  useWatch,
-} from "react-hook-form";
+import { FormProvider, useFieldArray, useWatch } from "react-hook-form";
 import ApplicationStepHeader from "../application-step-header";
-import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
 
 const stepId = 7;
 
 const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
-  const qualificationsMutation =
-    useApplicationStepMutations(applicationId)[stepId];
-
-  const methods = useForm<QualificationsFormValues>({
-    resolver: zodResolver(qualificationsSchema),
-    defaultValues: defaultQualificationsValues,
-    mode: "onSubmit",
-    reValidateMode: "onChange",
-  });
-
-  // Enable automatic form persistence
-  const { saveOnSubmit } = useFormPersistence({
+  const {
+    methods,
+    mutation: qualificationsMutation,
+    onSubmit,
+  } = useStepForm<QualificationsFormValues>({
     applicationId,
     stepId,
-    form: methods,
+    resolver: zodResolver(qualificationsSchema),
+    defaultValues: defaultQualificationsValues,
     enabled: !!applicationId,
   });
 
@@ -66,13 +54,6 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
   }, [hasQualifications, methods, fields.length, append]);
 
   const canAddMore = fields.length < 10;
-
-  const onSubmit = (values: QualificationsFormValues) => {
-    if (applicationId) {
-      saveOnSubmit(values);
-    }
-    qualificationsMutation.mutate(values);
-  };
 
   return (
     <FormProvider {...methods}>

@@ -24,9 +24,31 @@ export const isRejectedStage = (
   stage?: APPLICATION_STAGE | null,
 ): stage is APPLICATION_STAGE.REJECTED => stage === APPLICATION_STAGE.REJECTED;
 
-export const shouldShowGsRoute = (stage?: APPLICATION_STAGE | null): boolean =>
-  isRejectedStage(stage) ||
-  isStageAtLeast(stage, APPLICATION_STAGE.GS_ASSESSMENT);
+const normalizeStage = (
+  stage?: string | APPLICATION_STAGE | null,
+): APPLICATION_STAGE | null => {
+  if (!stage) return null;
+  return Object.values(APPLICATION_STAGE).includes(stage as APPLICATION_STAGE)
+    ? (stage as APPLICATION_STAGE)
+    : null;
+};
 
-export const shouldShowCoeRoute = (stage?: APPLICATION_STAGE | null): boolean =>
-  isRejectedStage(stage) || isStageAtLeast(stage, APPLICATION_STAGE.COE_ISSUED);
+export const shouldShowGsRoute = (
+  stage?: string | APPLICATION_STAGE | null,
+): boolean => {
+  const normalizedStage = normalizeStage(stage);
+  return (
+    isRejectedStage(normalizedStage) ||
+    isStageAtLeast(normalizedStage, APPLICATION_STAGE.GS_ASSESSMENT)
+  );
+};
+
+export const shouldShowCoeRoute = (
+  stage?: string | APPLICATION_STAGE | null,
+): boolean => {
+  const normalizedStage = normalizeStage(stage);
+  return (
+    isRejectedStage(normalizedStage) ||
+    isStageAtLeast(normalizedStage, APPLICATION_STAGE.COE_ISSUED)
+  );
+};

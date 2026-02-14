@@ -3,60 +3,60 @@ import { z } from "zod";
 import {
   additionalServicesSchema,
   type AdditionalServicesValues,
-} from "../../features/application-form/utils/validations/additional-services";
+} from "@/features/application-form/validations/additional-services";
 import {
   enrollmentSchema,
   type EnrollmentValues,
-} from "../../features/application-form/utils/validations/enrollment";
+} from "@/features/application-form/validations/enrollment";
 import {
   disabilitySchema,
   type DisabilityValues,
-} from "../../features/application-form/utils/validations/disability";
+} from "@/features/application-form/validations/disability";
 import {
   documentsSchema,
   type DocumentsFormValues,
   type DocumentType,
-} from "../../features/application-form/utils/validations/documents";
+} from "@/features/application-form/validations/documents";
 import {
   emergencyContactsSchema,
   type EmergencyContactsValues,
-} from "../../features/application-form/utils/validations/emergency-contacts";
+} from "@/features/application-form/validations/emergency-contacts";
 import {
   employmentSchema,
   type EmploymentFormValues,
-} from "../../features/application-form/utils/validations/employment";
+} from "@/features/application-form/validations/employment";
 import {
   healthCoverSchema,
   type HealthCoverValues,
-} from "../../features/application-form/utils/validations/health-cover";
+} from "@/features/application-form/validations/health-cover";
 import {
   languageAndCultureSchema,
   type LanguageAndCultureValues,
-} from "../../features/application-form/utils/validations/language-cultural";
+} from "@/features/application-form/validations/language-cultural";
 import {
   personalDetailsSchema,
   type PersonalDetailsValues,
-} from "../../features/application-form/utils/validations/personal-details";
+} from "@/features/application-form/validations/personal-details";
 import {
   qualificationsSchema,
   type QualificationsFormValues,
-} from "../../features/application-form/utils/validations/qualifications";
+} from "@/features/application-form/validations/qualifications";
 import {
   schoolingSchema,
   type SchoolingValues,
-} from "../../features/application-form/utils/validations/schooling";
+} from "@/features/application-form/validations/schooling";
 import {
   surveySchema,
   type SurveyValues,
-} from "../../features/application-form/utils/validations/survey";
+} from "@/features/application-form/validations/survey";
 import {
   usiSchema,
   type USIValues,
-} from "../../features/application-form/utils/validations/usi";
+} from "@/features/application-form/validations/usi";
 import {
   threadCreateSchema,
   type ThreadCreateValues,
-} from "../../features/application-form/utils/validations/thread";
+} from "@/features/application-form/validations/thread";
 
 // Application creation schema
 export const applicationCreateSchema = z.object({

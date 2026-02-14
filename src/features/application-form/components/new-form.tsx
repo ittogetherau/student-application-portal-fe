@@ -9,11 +9,14 @@ import { cn } from "@/shared/lib/utils";
 import { Check, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FORM_STEPS, HIDDEN_STEP_IDS } from "../constants/form-steps-data";
+import {
+  APPLICATION_FORM_STEPS,
+  HIDDEN_STEP_IDS,
+} from "../constants/form-step-config";
 import useAutoFill from "../hooks/use-auto-fill";
-import { useStepNavigation } from "../hooks/use-step-navigation";
 import { useApplicationFormDataStore } from "../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../store/use-application-step.store";
+import { useStepNavigation } from "../utils/use-step-navigation";
 import { FORM_COMPONENTS } from "./form-step-components";
 
 const NewForm = ({
@@ -36,10 +39,9 @@ const NewForm = ({
     isStepCompleted,
     resetNavigation,
     completedSteps,
-    isStepDirty,
-    dirtySteps,
     setUnsavedMessage,
     clearUnsavedMessage,
+    getNavigationBlockMessage,
   } = useApplicationStepStore();
 
   const storedApplicationId = useApplicationFormDataStore(
@@ -80,16 +82,12 @@ const NewForm = ({
   const handleStepNavigation = (targetStep: number, canNavigate: boolean) => {
     if (!canNavigate) return;
 
-    const hasBlockingDirty = dirtySteps.some((stepId) => stepId < targetStep);
-    if (hasBlockingDirty) {
-      setUnsavedMessage("Please save your changes before moving forward.");
-      return;
-    }
-
-    if (isStepDirty(currentStep) && targetStep < currentStep) {
-      setUnsavedMessage(
-        "You have unsaved changes. Please save before going back.",
-      );
+    const navigationMessage = getNavigationBlockMessage(
+      currentStep,
+      targetStep,
+    );
+    if (navigationMessage) {
+      setUnsavedMessage(navigationMessage);
       return;
     }
 
@@ -214,7 +212,7 @@ const NewForm = ({
           <Card>
             <CardContent className="py-0">
               <div className="flex w-full overflow-x-scroll lg:flex-col gap-1 px-2 lg:px-0 py-3">
-                {FORM_STEPS.filter(
+                {APPLICATION_FORM_STEPS.filter(
                   (step) => !HIDDEN_STEP_IDS.includes(step.id),
                 ).map((step, index) => {
                   const canNavigate = canNavigateToStep(step.id, currentStep);
@@ -278,9 +276,9 @@ const NewForm = ({
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-semibold">
-            {FORM_STEPS[currentStep].title}
+            {APPLICATION_FORM_STEPS[currentStep].title}
           </h2>
-          {/* <span className="text-sm text-muted-foreground"> Step {currentStep + 1} of {FORM_STEPS.length} </span> */}
+          {/* <span className="text-sm text-muted-foreground"> Step {currentStep + 1} of {APPLICATION_FORM_STEPS.length} </span> */}
         </div>
 
         {StepComponent && (
