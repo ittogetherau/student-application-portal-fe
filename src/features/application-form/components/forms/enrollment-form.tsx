@@ -51,6 +51,15 @@ const enrollmentCoreSchema = z.object({
 
 type EnrollmentCoreFormValues = z.infer<typeof enrollmentCoreSchema>;
 
+const toId = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+};
+
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { goToNext, markStepCompleted, clearStepDirty } =
     useApplicationStepStore();
@@ -108,22 +117,13 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         campus?: number | string;
       };
 
-      const coerceId = (value?: number | string) => {
-        if (typeof value === "number" && Number.isFinite(value)) return value;
-        if (typeof value === "string" && value.trim().length > 0) {
-          const parsed = Number(value);
-          if (Number.isFinite(parsed)) return parsed;
-        }
-        return undefined;
-      };
-
-      const legacyCourse = coerceId(
+      const legacyCourse = toId(
         saved.courseId ?? saved.course_id ?? saved.course,
       );
-      const legacyIntake = coerceId(
+      const legacyIntake = toId(
         saved.intakeId ?? saved.intake_id ?? saved.intake,
       );
-      const legacyCampus = coerceId(
+      const legacyCampus = toId(
         saved.campusId ?? saved.campus_id ?? saved.campus,
       );
 
@@ -145,7 +145,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const courseValue = useWatch({ control: methods.control, name: "course" });
   const intakeValue = useWatch({ control: methods.control, name: "intake" });
   const campusValue = useWatch({ control: methods.control, name: "campus" });
-  const selectedCourse = courses.find((c) => c.id === courseValue);
+  const selectedCourseId = toId(courseValue);
+  const selectedCourse = useMemo(
+    () =>
+      courses.find((course) => toId(course.id) === selectedCourseId) ?? null,
+    [courses, selectedCourseId],
+  );
 
   const {
     data: intakesResponse,
@@ -153,7 +158,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     error: intakesError,
   } = useCourseIntakesQuery(selectedCourse?.course_code, {
     campus: campusValue,
-    includeExpiredIntakes: 0,
   });
 
   const availableIntakes = useMemo(
@@ -161,30 +165,22 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     [intakesResponse?.data],
   );
 
-  const availableCampuses = useMemo(
-    () => selectedCourse?.campuses ?? [],
-    [selectedCourse?.campuses],
-  );
+  const availableCampuses = useMemo(() => {
+    if (!selectedCourseId) return [];
+    const course = courses.find((item) => toId(item.id) === selectedCourseId);
+    return course?.campuses ?? [];
+  }, [courses, selectedCourseId]);
 
   const handleFieldChange = (
     field: "course" | "intake" | "campus",
     value: string,
   ) => {
-    const coerceId = (val: unknown) => {
-      if (typeof val === "number" && Number.isFinite(val)) return val;
-      if (typeof val === "string" && val.trim().length > 0) {
-        const parsed = Number(val);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return undefined;
-    };
-
-    const nextId = coerceId(value);
+    const nextId = toId(value);
     if (!nextId || nextId <= 0) return;
 
-    const currentCourse = coerceId(methods.getValues("course"));
-    const currentIntake = coerceId(methods.getValues("intake"));
-    const currentCampus = coerceId(methods.getValues("campus"));
+    const currentCourse = toId(methods.getValues("course"));
+    const currentIntake = toId(methods.getValues("intake"));
+    const currentCampus = toId(methods.getValues("campus"));
 
     if (field === "course") {
       setValue("course", nextId, { shouldDirty: true });
@@ -197,14 +193,16 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       }
 
       const intakeStillValid = !!(
-        currentIntake && availableIntakes.some((i) => i.id === currentIntake)
+        currentIntake &&
+        availableIntakes.some((intake) => toId(intake.id) === currentIntake)
       );
       if (!intakeStillValid) {
         resetField("intake", { defaultValue: undefined });
       }
 
       const campusStillValid = !!(
-        currentCampus && availableCampuses.some((c) => c.id === currentCampus)
+        currentCampus &&
+        availableCampuses.some((campus) => toId(campus.id) === currentCampus)
       );
       if (!campusStillValid) {
         resetField("campus", { defaultValue: undefined });
@@ -231,7 +229,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   };
 
   const selectedIntake = useMemo(
-    () => availableIntakes.find((i) => i.id === intakeValue),
+    () =>
+      availableIntakes.find((intake) => toId(intake.id) === toId(intakeValue)),
     [availableIntakes, intakeValue],
   );
 
@@ -273,7 +272,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         campus: Number(values.campus),
         campus_name:
           selectedCourse?.campuses?.find(
-            (campus) => campus.id === values.campus,
+            (campus) => toId(campus.id) === toId(values.campus),
           )?.name ?? "",
         advanced_standing_credit: "no",
       };

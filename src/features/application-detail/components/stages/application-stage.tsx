@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { siteRoutes } from "@/shared/constants/site-routes";
 import {
   CoeIssuedCard,
   GSAssessmentProgressCard,
@@ -23,11 +22,11 @@ import {
 import { isSyncMetadataComplete } from "@/features/application-form/components/sync/sync-all-to-galaxy";
 import type { ApplicationSyncMetadata } from "@/service/application.service";
 import {
-  STAGE_PILL_CONFIG,
   formatStageLabel,
-  getRoleStageLabel,
+  getStageLabel,
   getStageIcon,
 } from "@/shared/config/application-stage.config";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
 import { BadgeCheck, Loader2, OctagonAlert } from "lucide-react";
@@ -168,12 +167,16 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       stage !== APPLICATION_STAGE.ACCEPTED &&
       stage !== APPLICATION_STAGE.REJECTED,
   );
+  const displayStage =
+    currentStage === APPLICATION_STAGE.ACCEPTED
+      ? APPLICATION_STAGE.COE_ISSUED
+      : currentStage;
   const currentStageForIndex =
-    currentStage && stages.includes(currentStage as (typeof stages)[number])
-      ? (currentStage as (typeof stages)[number])
+    displayStage && stages.includes(displayStage as (typeof stages)[number])
+      ? (displayStage as (typeof stages)[number])
       : stages[0];
   const currentIndex = stages.indexOf(currentStageForIndex);
-  const selectedOrCurrentStage = activeStage ?? currentStage ?? null;
+  const selectedOrCurrentStage = activeStage ?? displayStage ?? null;
 
   const renderStageAction = ({
     stage,
@@ -227,9 +230,15 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       case APPLICATION_STAGE.GS_ASSESSMENT: {
         return <GSAssessmentProgressCard applicationId={id} />;
       }
+
       case APPLICATION_STAGE.COE_ISSUED: {
-        return <CoeIssuedCard />;
+        return <CoeIssuedCard stage={currentStage} applicationId={id} />;
       }
+
+      case APPLICATION_STAGE.ACCEPTED: {
+        return <CoeIssuedCard stage={currentStage} applicationId={id} />;
+      }
+
       default:
         return null;
     }
@@ -245,10 +254,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           const isCurrent = i === currentIndex;
           const isActive = selectedOrCurrentStage === el;
           const isInteractive = isCurrent && isActive;
-          const stageLabel =
-            getRoleStageLabel(el, current_role) ??
-            STAGE_PILL_CONFIG[el]?.label ??
-            formatStageLabel(el);
+          const stageLabel = getStageLabel(el, current_role) ?? formatStageLabel(el);
 
           return (
             <React.Fragment key={el}>

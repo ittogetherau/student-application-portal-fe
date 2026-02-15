@@ -4,6 +4,7 @@ import {
 } from "@/shared/hooks/use-applications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dispatch, SetStateAction, useCallback, useMemo } from "react";
+import type { EnrollmentValues } from "@/shared/validation/application.validation";
 import { DEFAULT_AUTO_FILL_DATA } from "../constants/autofill-data";
 import { useApplicationFormDataStore } from "../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../store/use-application-step.store";
@@ -45,21 +46,41 @@ const useAutoFill = ({
   } = DEFAULT_AUTO_FILL_DATA;
 
   // Resolve dynamic enrollment data based on available courses
-  const enrollmentData = useMemo(() => {
+  const enrollmentData = useMemo<EnrollmentValues>(() => {
+    const toNumericId = (value: unknown): number | null => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return null;
+    };
+
     if (courses.length > 0) {
       const firstCourse = courses[0];
       const firstIntake = firstCourse.intakes?.[0];
       const firstCampus =
         firstIntake?.campuses?.[0] || firstCourse.campuses?.[0];
 
-      if (firstCourse && firstIntake && firstCampus) {
+      const courseId = toNumericId(firstCourse?.id);
+      const intakeId = toNumericId(firstIntake?.id);
+      const campusId = toNumericId(firstCampus?.id);
+
+      if (
+        firstCourse &&
+        firstIntake &&
+        firstCampus &&
+        courseId &&
+        intakeId &&
+        campusId
+      ) {
         return {
           ...baseEnrollmentData,
-          course: firstCourse.id,
+          course: courseId,
           course_name: firstCourse.course_name,
-          intake: firstIntake.id,
+          intake: intakeId,
           intake_name: firstIntake.intake_name,
-          campus: firstCampus.id,
+          campus: campusId,
           campus_name: firstCampus.name,
         };
       }

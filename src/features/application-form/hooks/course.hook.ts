@@ -2,6 +2,7 @@
 
 import applicationStepsService from "@/service/application-steps.service";
 import courseService, {
+  type CourseIntakeListParams,
   Course,
   type CourseListParams,
 } from "@/service/course.service";
@@ -28,10 +29,7 @@ export const useCoursesQuery = (
 
 export const useCourseIntakesQuery = (
   courseCode?: string,
-  options?: {
-    campus?: string | number | null;
-    includeExpiredIntakes?: 0 | 1;
-  },
+  options?: CourseIntakeListParams,
 ) => {
   const hasCampusFilter = !!options && "campus" in options;
   const hasCampusValue =
@@ -44,7 +42,12 @@ export const useCourseIntakesQuery = (
       "course-intakes",
       courseCode,
       options?.campus ?? null,
-      options?.includeExpiredIntakes ?? 0,
+      options?.fromdate ?? null,
+      options?.intake ?? null,
+      options?.page ?? null,
+      options?.show ?? null,
+      options?.student_id ?? null,
+      options?.todate ?? null,
     ],
     enabled: !!courseCode && (!hasCampusFilter || hasCampusValue),
     queryFn: async () => {

@@ -7,7 +7,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Loader2, OctagonAlert, RefreshCw } from "lucide-react";
-import type { SyncMetadataItem } from "./sync-metadata-note";
+import {
+  formatSyncError,
+  type SyncMetadataItem,
+} from "./sync-metadata-note";
 
 export function SyncActionButton({
   showSync,
@@ -25,7 +28,8 @@ export function SyncActionButton({
   if (!showSync || !isStaffOrAdmin) return null;
   if (!syncMeta) return null;
   const isUpToDate = syncMeta.uptodate === true;
-  const hasError = !!syncMeta.last_error;
+  const errorText = formatSyncError(syncMeta.last_error);
+  const hasError = !!errorText;
   const hasSyncedAt = !!syncMeta.last_synced_at;
   const hasEverAttempted = (syncMeta.attempt_count ?? 0) > 0;
   const hasEverSynced = hasSyncedAt || hasEverAttempted;
@@ -42,9 +46,8 @@ export function SyncActionButton({
 
   // Show an alert icon when out-of-date OR errored.
   const showAlertIcon = !isUpToDate || hasError;
-  const alertText = hasError
-    ? syncMeta.last_error
-    : "Out of date in Galaxy. Please sync to Galaxy.";
+  const alertText =
+    errorText ?? "Out of date in Galaxy. Please sync to Galaxy.";
 
   return (
     <section className="flex items-center">

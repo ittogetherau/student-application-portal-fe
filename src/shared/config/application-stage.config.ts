@@ -17,111 +17,136 @@ type StageRoleLabels = {
 };
 
 type StageConfig = {
-  label: string;
   className: string;
   roleLabels: StageRoleLabels;
+  statusLabels: StageRoleLabels;
   kanbanColor: string;
   kanbanBackground: string;
   icon: LucideIcon;
 };
 
-export const APPLICATION_STAGE_CONFIG: Record<APPLICATION_STAGE, StageConfig> = {
-  [APPLICATION_STAGE.DRAFT]: {
-    label: "Draft",
-    className:
-      "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100",
-    roleLabels: {
-      agent: "Draft",
-      staff: "Draft",
+export const APPLICATION_STAGE_CONFIG: Record<APPLICATION_STAGE, StageConfig> =
+  {
+    [APPLICATION_STAGE.DRAFT]: {
+      className:
+        "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100",
+      roleLabels: {
+        agent: "Draft",
+        staff: "Draft",
+      },
+      statusLabels: {
+        agent: "Draft",
+        staff: "Draft",
+      },
+      kanbanColor: "bg-gray-500",
+      kanbanBackground: "bg-gray-500/5",
+      icon: User,
     },
-    kanbanColor: "bg-gray-500",
-    kanbanBackground: "bg-gray-500/5",
-    icon: User,
-  },
-  [APPLICATION_STAGE.SUBMITTED]: {
-    label: "Submitted",
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
-    roleLabels: {
-      agent: "Application Submitted",
-      staff: "Application Received",
+    [APPLICATION_STAGE.SUBMITTED]: {
+      className:
+        "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
+      roleLabels: {
+        agent: "Application Submitted",
+        staff: "Application Received",
+      },
+      statusLabels: {
+        agent: "Application Submitted",
+        staff: "Application Received",
+      },
+      kanbanColor: "bg-blue-500",
+      kanbanBackground: "bg-blue-500/5",
+      icon: ClipboardCheck,
     },
-    kanbanColor: "bg-blue-500",
-    kanbanBackground: "bg-blue-500/5",
-    icon: ClipboardCheck,
-  },
-  [APPLICATION_STAGE.IN_REVIEW]: {
-    label: "In Review",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
-    roleLabels: {
-      agent: "Application Under Review",
-      staff: "Application Under Review",
+    [APPLICATION_STAGE.IN_REVIEW]: {
+      className:
+        "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
+      roleLabels: {
+        agent: "Application Under Review",
+        staff: "Application Under Review",
+      },
+      statusLabels: {
+        agent: "Application Under Review",
+        staff: "Application Under Review",
+      },
+      kanbanColor: "bg-yellow-500",
+      kanbanBackground: "bg-yellow-500/5",
+      icon: ScanSearch,
     },
-    kanbanColor: "bg-yellow-500",
-    kanbanBackground: "bg-yellow-500/5",
-    icon: ScanSearch,
-  },
-  [APPLICATION_STAGE.OFFER_LETTER]: {
-    label: "Offer Letter",
-    className:
-      "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
-    roleLabels: {
-      agent: "Sign Offer Letter",
-      staff: "Awaiting Offer Signature",
+    [APPLICATION_STAGE.OFFER_LETTER]: {
+      className:
+        "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200",
+      roleLabels: {
+        agent: "Sign Offer Letter",
+        staff: "Awaiting Offer Signature",
+      },
+      statusLabels: {
+        agent: "Sign Offer Letter",
+        staff: "Awaiting Offer Signature",
+      },
+      kanbanColor: "bg-orange-500",
+      kanbanBackground: "bg-orange-500/5",
+      icon: Signature,
     },
-    kanbanColor: "bg-orange-500",
-    kanbanBackground: "bg-orange-500/5",
-    icon: Signature,
-  },
-  [APPLICATION_STAGE.GS_ASSESSMENT]: {
-    label: "GS Assessment",
-    className:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
-    roleLabels: {
-      agent: "GS Process",
-      staff: "GS Process",
+    [APPLICATION_STAGE.GS_ASSESSMENT]: {
+      className:
+        "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200",
+      roleLabels: {
+        agent: "GS Process",
+        staff: "GS Process",
+      },
+      statusLabels: {
+        agent: "GS Process",
+        staff: "GS Process",
+      },
+      kanbanColor: "bg-cyan-500",
+      kanbanBackground: "bg-cyan-500/5",
+      icon: ListTodo,
     },
-    kanbanColor: "bg-cyan-500",
-    kanbanBackground: "bg-cyan-500/5",
-    icon: ListTodo,
-  },
-  [APPLICATION_STAGE.COE_ISSUED]: {
-    label: "Confirmation of Enrollment",
-    className:
-      "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
-    roleLabels: {
-      agent: "Confirmation of Enrollment",
-      staff: "Confirmation of Enrollment",
+    [APPLICATION_STAGE.COE_ISSUED]: {
+      className:
+        "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200",
+      roleLabels: {
+        agent: "Confirmation of Enrollment",
+        staff: "Confirmation of Enrollment",
+      },
+      statusLabels: {
+        agent: "CoE Pending",
+        staff: "CoE Pending",
+      },
+      kanbanColor: "bg-emerald-500",
+      kanbanBackground: "bg-emerald-500/5",
+      icon: CircleQuestionMark,
     },
-    kanbanColor: "bg-emerald-500",
-    kanbanBackground: "bg-emerald-500/5",
-    icon: CircleQuestionMark,
-  },
-  [APPLICATION_STAGE.ACCEPTED]: {
-    label: "Accepted",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
-    roleLabels: {
-      agent: "Accepted",
-      staff: "Accepted",
+    [APPLICATION_STAGE.ACCEPTED]: {
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
+      roleLabels: {
+        agent: "Confirmation of Enrollment",
+        staff: "Confirmation of Enrollment",
+      },
+      statusLabels: {
+        agent: "CoE Issued",
+        staff: "CoE Issued",
+      },
+      kanbanColor: "bg-lime-600",
+      kanbanBackground: "bg-lime-500/5",
+      icon: BadgeCheck,
     },
-    kanbanColor: "bg-lime-600",
-    kanbanBackground: "bg-lime-500/5",
-    icon: BadgeCheck,
-  },
-  [APPLICATION_STAGE.REJECTED]: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
-    roleLabels: {
-      agent: "Rejected",
-      staff: "Rejected",
+    [APPLICATION_STAGE.REJECTED]: {
+      className: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
+      roleLabels: {
+        agent: "Rejected",
+        staff: "Rejected",
+      },
+      statusLabels: {
+        agent: "Rejected",
+        staff: "Rejected",
+      },
+      kanbanColor: "bg-rose-600",
+      kanbanBackground: "bg-rose-500/5",
+      icon: CircleX,
     },
-    kanbanColor: "bg-rose-600",
-    kanbanBackground: "bg-rose-500/5",
-    icon: CircleX,
-  },
-};
+  };
 
 export const APPLICATION_KANBAN_STAGES: APPLICATION_STAGE[] = [
   APPLICATION_STAGE.DRAFT,
@@ -140,15 +165,23 @@ export const STAGE_PILL_CONFIG: Record<
 > = Object.fromEntries(
   Object.entries(APPLICATION_STAGE_CONFIG).map(([stage, config]) => [
     stage,
-    { label: config.label, className: config.className },
+    { label: config.roleLabels.staff, className: config.className },
   ]),
 ) as Record<APPLICATION_STAGE, { label: string; className: string }>;
+
+export const ROLE_STAGE_LABELS: Record<APPLICATION_STAGE, StageRoleLabels> =
+  Object.fromEntries(
+    Object.entries(APPLICATION_STAGE_CONFIG).map(([stage, config]) => [
+      stage,
+      config.roleLabels,
+    ]),
+  ) as Record<APPLICATION_STAGE, StageRoleLabels>;
 
 export const ROLE_STATUS_LABELS: Record<APPLICATION_STAGE, StageRoleLabels> =
   Object.fromEntries(
     Object.entries(APPLICATION_STAGE_CONFIG).map(([stage, config]) => [
       stage,
-      config.roleLabels,
+      config.statusLabels,
     ]),
   ) as Record<APPLICATION_STAGE, StageRoleLabels>;
 
@@ -177,11 +210,21 @@ export const getRoleStageLabel = (
   role?: USER_ROLE | string,
 ) => {
   const roleVariant = getRoleVariant(role);
+  return roleVariant ? ROLE_STAGE_LABELS[stage]?.[roleVariant] : undefined;
+};
+
+export const getRoleStatusLabel = (
+  stage: APPLICATION_STAGE,
+  role?: USER_ROLE | string,
+) => {
+  const roleVariant = getRoleVariant(role);
   return roleVariant ? ROLE_STATUS_LABELS[stage]?.[roleVariant] : undefined;
 };
 
-export const getStageLabel = (stage: APPLICATION_STAGE, role?: USER_ROLE | string) =>
-  getRoleStageLabel(stage, role) ?? APPLICATION_STAGE_CONFIG[stage].label;
+export const getStageLabel = (
+  stage: APPLICATION_STAGE,
+  role?: USER_ROLE | string,
+) => getRoleStageLabel(stage, role) ?? ROLE_STAGE_LABELS[stage].staff;
 
 export const getStageKanbanColor = (stage: APPLICATION_STAGE) =>
   APPLICATION_STAGE_CONFIG[stage].kanbanColor;

@@ -92,8 +92,8 @@ export const DEFAULT_AUTO_FILL_DATA: AutoFillData = {
   enrollmentData: {
     course: 8,
     course_name: "Bachelor Of Business- Major In Information System",
-    intake: 50,
-    intake_name: "CIHE2023 SEM 2",
+    intake: 67,
+    intake_name: "CIHE 2026 Sem 1",
     campus: 1,
     campus_name: "CIHE Parramatta Campus",
     preferred_start_date: "2026-02-10",

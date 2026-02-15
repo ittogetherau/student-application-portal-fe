@@ -1,11 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { Filter } from "lucide-react";
 
-import {
-  ApplicationStagePill,
-  applicationStageFilterOptions,
-} from "@/components/shared/ApplicationStagePill";
+import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getRoleStatusLabel,
+} from "@/shared/config/application-stage.config";
+import { APPLICATION_STAGE } from "@/shared/constants/types";
 import type { StaffMember } from "@/service/staff-members.service";
 import type { ApplicationListFilterDraft } from "@/features/application-list/hooks/useApplicationListFilters.hook";
 
@@ -59,6 +61,17 @@ export default function ApplicationListFiltersPopover({
   onApply,
   canClear,
 }: ApplicationListFiltersPopoverProps) {
+  const stageOptions = useMemo(
+    () =>
+      (Object.values(APPLICATION_STAGE) as string[]).map((stage) => ({
+        value: stage,
+        label:
+          getRoleStatusLabel(stage as APPLICATION_STAGE, role) ??
+          String(stage).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      })),
+    [role],
+  );
+
   return (
     <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
       <PopoverTrigger asChild>
@@ -92,7 +105,7 @@ export default function ApplicationListFiltersPopover({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All stages</SelectItem>
-                {applicationStageFilterOptions.map((option) => (
+                {stageOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

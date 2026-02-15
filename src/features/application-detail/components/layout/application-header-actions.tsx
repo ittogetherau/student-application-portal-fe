@@ -95,7 +95,10 @@ export default function ApplicationHeaderActions({
         open={isEnrollmentDialogOpen}
         onOpenChange={setIsEnrollmentDialogOpen}
       >
-        <DialogContent className="max-w-4xl h-[85vh] overflow-hidden p-0 flex flex-col">
+        <DialogContent
+          isXlWidth={true}
+          className="max-w-4xl h-[85vh] overflow-hidden p-0 flex flex-col"
+        >
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>Manage Student Enrollment</DialogTitle>
           </DialogHeader>

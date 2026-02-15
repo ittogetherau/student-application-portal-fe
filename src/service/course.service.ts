@@ -4,71 +4,76 @@ import { handleApiError } from "@/shared/utils/handle-api-error";
 import type { ServiceResponse } from "@/shared/types/service";
 
 export interface Campus {
-  id: number;
+  id: string | number;
   name: string;
-  venue_code: string;
-  venue_name: string;
-  building_name: string;
-  unit_detail: string;
-  street_no: string;
-  street_name: string;
-  sub_urb: string;
-  country: number;
-  state: string;
-  set_active: number;
-  postcode: string;
-  contact_no: string;
-  abn: string;
+  venue_code?: string | null;
+  venue_name?: string | null;
+  building_name?: string | null;
+  unit_detail?: string | null;
+  street_no?: string | null;
+  street_name?: string | null;
+  sub_urb?: string | null;
+  country?: string | number | null;
+  state?: string | null;
+  set_active?: string | number | null;
+  postcode?: string | null;
+  contact_no?: string | null;
+  abn?: string | null;
+  [key: string]: unknown;
 }
 
 export interface Intake {
-  id: number;
-  course_type: number;
-  course_id: number;
-  intake_year: number;
+  id: string | number;
+  course_type: string | number;
+  course_id: string | number;
+  intake_year: string | number;
   intake_name: string;
   intake_start: string;
   intake_end: string;
-  intake_duration: number | null;
+  intake_duration: string | number | null;
   intake_receiver: string;
-  active: number;
+  active: string | number;
   delivery_target: string;
   delivery_target_text: string;
   course_delivery_mode: string | null;
   course_delivery_mode_text: string;
   study_mode: string;
-  online_hours: number;
-  face_to_face_hours: number;
+  online_hours: number | string;
+  face_to_face_hours: number | string;
   class_start_date: string | null;
   class_end_date: string | null;
   class_start_time: string | null;
   class_end_time: string | null;
-  intake_seats: number;
-  restrict_enrollments_to_seats: boolean;
-  total_applications: number;
-  total_enrollments: number;
-  pending_enrollments: number;
-  can_accept_enrolments: boolean;
-  remaining_seats: number;
-  campuses_location: { short_name: string; name: string }[];
+  intake_seats: string | number;
+  restrict_enrollments_to_seats: string | number | boolean;
+  total_applications: string | number;
+  total_enrollments: string | number;
+  pending_enrollments: string | number;
+  can_accept_enrolments: string | number | boolean;
+  remaining_seats: string | number;
+  this_student_applications?: string | number | null;
+  this_student_enrolled?: string | number | null;
+  campuses_location: Array<{ short_name: string; name: string } | string>;
   campuses: Campus[];
-  tuition_fee: number | null;
-  domestic_fee: number | null;
-  facetoface_fee: number;
-  online_fee: number;
-  international_offshore_fee: number;
-  international_onshore_fee: number;
-  fee_categorization: any[];
-  fee_target_text: string;
-  fee_text: string;
-  fee_currency: string;
-  currency_symbol: string;
-  gst_included: number;
-  fee_currency_gst: string;
+  tuition_fee?: number | string | null;
+  domestic_fee?: number | string | null;
+  facetoface_fee?: number | string;
+  online_fee?: number | string;
+  international_offshore_fee?: number | string;
+  international_onshore_fee?: number | string;
+  fee_categorization?: any[];
+  fee_target_text?: string;
+  fee_text?: string;
+  fee_currency?: string;
+  currency_symbol?: string;
+  gst_included?: number | string;
+  fee_currency_gst?: string;
+  [key: string]: unknown;
 }
 
 export interface Course {
-  id: number;
+  id: string | number;
+  course_type_text?: string | null;
   is_superseded: boolean;
   superseded_date: string | null;
   national_code: string;
@@ -79,48 +84,52 @@ export interface Course {
   course_summary: string | null;
   delivery_target_text: string;
   course_duration: number;
-  couse_duration_type: number;
+  couse_duration_type: string | number;
   duration_text: string;
   course_delivery_mode: string;
   course_delivery_mode_text: string;
   study_mode: string;
-  online_hours: number;
-  face_to_face_hours: number;
-  maximum_weekly_study: number;
+  online_hours: number | string;
+  face_to_face_hours: number | string;
+  maximum_weekly_study: number | string;
   effective_start: string;
   effective_end: string;
   campus_list: string;
-  activated_now: number;
-  is_fee_recurring: number;
+  activated_now: string | number;
+  is_fee_recurring: string | number;
   fee_recurring_type: string;
-  is_seat_fixed: number;
+  is_seat_fixed: string | number;
   seat_limit: string;
   has_all_information: boolean;
+  superseededinfo?: Record<string, unknown>;
   campuses: Campus[];
-  campuses_location: { short_name: string; name: string }[];
+  campuses_location: Array<{ short_name: string; name: string } | string>;
   intakes: Intake[];
   cover_image: string;
-  total_applications_count: number;
-  total_enrollments_count: number;
+  total_applications_count: string | number;
+  total_enrollments_count: string | number;
+  this_student_applications?: string | number | null;
+  this_student_enrolled?: string | number | null;
   course_accrediation_type: string;
-  tuition_fee: number;
-  domestic_fee: number;
-  facetoface_fee: number;
-  online_fee: number;
-  international_offshore_fee: number;
-  international_onshore_fee: number;
+  tuition_fee: number | string;
+  domestic_fee: number | string;
+  facetoface_fee: number | string;
+  online_fee: number | string;
+  international_offshore_fee: number | string;
+  international_onshore_fee: number | string;
   fee_categorization: {
     [key: string]: {
       label: string;
-      value: number;
+      value: number | string;
     };
   };
   fee_target_text: string;
   fee_text: string;
   fee_currency: string;
   currency_symbol: string;
-  gst_included: number;
+  gst_included: number | string;
   fee_currency_gst: string;
+  [key: string]: unknown;
 }
 
 type CourseListApiResponse =
@@ -142,7 +151,17 @@ export type CourseListParams = {
   page?: string | null;
   search?: string | null;
   student_id?: string | null;
-  type?: 17 | null;
+  type?: number | null;
+};
+
+export type CourseIntakeListParams = {
+  campus?: string | number | null;
+  fromdate?: string | null;
+  intake?: string | number | null;
+  page?: number | null;
+  show?: number | null;
+  student_id?: string | null;
+  todate?: string | null;
 };
 
 type IntakeListApiResponse =
@@ -150,8 +169,10 @@ type IntakeListApiResponse =
   | Intake
   | {
       data?: Intake[] | Intake;
+      code?: number | string;
+      status?: string;
       message?: string;
-      success?: number;
+      success?: number | boolean | string;
     };
 
 class CourseService extends ApiService {
@@ -165,14 +186,29 @@ class CourseService extends ApiService {
   };
 
   private normalizeIntakes = (response: IntakeListApiResponse): Intake[] => {
-    if (Array.isArray(response)) return response;
-    if (response && "data" in response) {
-      if (Array.isArray(response.data)) return response.data;
-      if (response.data && typeof response.data === "object") {
-        return [response.data];
-      }
+    const isIntake = (value: unknown): value is Intake => {
+      if (!value || typeof value !== "object") return false;
+      const record = value as Record<string, unknown>;
+      return (
+        ("id" in record && record.id !== null && record.id !== undefined) ||
+        ("intake_name" in record &&
+          typeof record.intake_name === "string" &&
+          record.intake_name.trim().length > 0)
+      );
+    };
+
+    if (Array.isArray(response)) {
+      return response.filter(isIntake);
     }
-    if (response && typeof response === "object") return [response as Intake];
+
+    if (response && typeof response === "object" && "data" in response) {
+      const payload = response.data;
+      if (Array.isArray(payload)) return payload.filter(isIntake);
+      if (isIntake(payload)) return [payload];
+      return [];
+    }
+
+    if (isIntake(response)) return [response];
     return [];
   };
 
@@ -217,10 +253,7 @@ class CourseService extends ApiService {
 
   listCourseIntakes = async (
     courseCode: string,
-    options?: {
-      campus?: string | number | null;
-      includeExpiredIntakes?: 0 | 1 | boolean;
-    },
+    options?: CourseIntakeListParams,
   ): Promise<ServiceResponse<Intake[]>> => {
     if (!courseCode) throw new Error("Course code is required");
     try {
@@ -228,15 +261,18 @@ class CourseService extends ApiService {
       if (options?.campus !== undefined && options?.campus !== null) {
         query.set("campus", String(options.campus));
       }
-      const includeExpiredIntakes =
-        options?.includeExpiredIntakes === 1 ||
-        options?.includeExpiredIntakes === true
-          ? 1
-          : 0;
-      query.set(
-        "include_expired_intakes",
-        String(includeExpiredIntakes),
-      );
+      if (options?.fromdate) query.set("fromdate", options.fromdate);
+      if (options?.intake !== undefined && options?.intake !== null) {
+        query.set("intake", String(options.intake));
+      }
+      if (typeof options?.page === "number") {
+        query.set("page", String(options.page));
+      }
+      if (typeof options?.show === "number") {
+        query.set("show", String(options.show));
+      }
+      if (options?.student_id) query.set("student_id", options.student_id);
+      if (options?.todate) query.set("todate", options.todate);
 
       const response = await this.get<IntakeListApiResponse>(
         `${this.coursesUrl}/${encodeURIComponent(courseCode)}/intakes?${query.toString()}`,

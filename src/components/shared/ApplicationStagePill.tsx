@@ -4,7 +4,7 @@ import { cn } from "@/shared/lib/utils";
 import {
   STAGE_PILL_CONFIG,
   formatStageLabel,
-  getRoleStageLabel,
+  getRoleStatusLabel,
   normalizeStage,
 } from "@/shared/config/application-stage.config";
 
@@ -35,7 +35,7 @@ export function ApplicationStagePill({
   const normalizedStage = normalizeStage(stage);
   const roleLabel =
     normalizedStage && roleVariant
-      ? getRoleStageLabel(normalizedStage, role)
+      ? getRoleStatusLabel(normalizedStage, role)
       : undefined;
   const config = normalizedStage ? STAGE_PILL_CONFIG[normalizedStage] : null;
   const formattedStage =

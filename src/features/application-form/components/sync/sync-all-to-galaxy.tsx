@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
+  useGalaxySyncDeclarationMutation,
   useGalaxySyncDisabilityMutation,
   useGalaxySyncDocumentsMutation,
   useGalaxySyncEmergencyContactMutation,
@@ -41,6 +42,12 @@ interface SyncTaskConfig {
   run: () => Promise<unknown>;
   upToDate: boolean;
 }
+
+const hasSyncError = (value: unknown): boolean => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
+};
 
 const SYNC_METADATA_LABELS: Record<string, string> = {
   enrollment_data: "Enrollment",
@@ -154,7 +161,7 @@ const SyncToGalaxyButton = ({
   const syncQualifications = useGalaxySyncQualificationsMutation(applicationId);
   const syncEmployment = useGalaxySyncEmploymentMutation(applicationId);
   const syncUsi = useGalaxySyncUsiMutation(applicationId);
-  // const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
+  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
   const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
 
@@ -170,6 +177,7 @@ const SyncToGalaxyButton = ({
     employment,
     usi,
     documents,
+    survey,
   } = availability ?? {};
 
   const tasks: SyncTaskConfig[] = [
@@ -250,9 +258,32 @@ const SyncToGalaxyButton = ({
       upToDate: syncMetadata?.documents?.uptodate === true,
       run: () => syncDocuments.mutateAsync(),
     },
+    {
+      label: "Declaration",
+      metaKey: "declaration",
+      enabled: survey === true,
+      upToDate: syncMetadata?.declaration?.uptodate === true,
+      run: () => syncDeclaration.mutateAsync(),
+    },
   ];
 
-  const runnable = tasks.filter((task) => task.enabled && !task.upToDate);
+  const declarationTask = tasks.find((task) => task.metaKey === "declaration");
+  const declarationPrerequisitesMet = tasks
+    .filter((task) => task.enabled && task.metaKey !== "declaration")
+    .every((task) => {
+      const meta = syncMetadata?.[task.metaKey];
+      return (
+        meta?.uptodate === true &&
+        !!meta?.last_synced_at &&
+        !hasSyncError(meta?.last_error)
+      );
+    });
+
+  const runnable = tasks.filter((task) => {
+    if (!task.enabled || task.upToDate) return false;
+    if (task.metaKey === "declaration") return declarationPrerequisitesMet;
+    return true;
+  });
 
   const isSyncing =
     syncPersonalDetails.isPending ||
@@ -265,11 +296,25 @@ const SyncToGalaxyButton = ({
     syncEnrollment.isPending ||
     syncEmployment.isPending ||
     syncDocuments.isPending ||
+    syncDeclaration.isPending ||
     syncUsi.isPending;
 
   const handleSync = async () => {
     try {
       if (!runnable.length) {
+        if (
+          declarationTask?.enabled &&
+          declarationTask.upToDate !== true &&
+          !declarationPrerequisitesMet
+        ) {
+          toast(
+            "Declaration will sync after all other sections are up to date.",
+            {
+              id: SYNC_TOAST_ID,
+            },
+          );
+          return;
+        }
         toast("Everything is already synced.", { id: SYNC_TOAST_ID });
         return;
       }

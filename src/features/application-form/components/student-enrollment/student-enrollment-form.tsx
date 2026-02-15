@@ -178,7 +178,6 @@ const StudentEnrollmentForm = ({
   const { data: intakesResponse, isLoading: isLoadingIntakes } =
     useCourseIntakesQuery(selectedCourse?.course_code, {
       campus: enrollmentCore?.campus ?? null,
-      includeExpiredIntakes: 1,
     });
   const intakes = intakesResponse?.data ?? [];
   const selectedIntake = useMemo(

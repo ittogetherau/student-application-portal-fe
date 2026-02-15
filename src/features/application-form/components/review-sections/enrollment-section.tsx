@@ -11,16 +11,19 @@ import {
   Group,
   Section,
 } from "@/features/application-form/components/sync-review/section";
+import { SyncActionButton } from "@/features/application-form/components/sync-review/sync-action-button";
 import {
   SyncMetadataNote,
   type SyncMetadataItem,
 } from "@/features/application-form/components/sync-review/sync-metadata-note";
+import { useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import {
   formatClassType,
   formatYesNo,
   formatYesNoNa,
 } from "@/features/application-form/constants/formatters";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
   CalendarDays,
@@ -38,10 +41,18 @@ export function EnrollmentSection(props: {
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
 }) {
-  const { enrollmentData, showSync, isStaffOrAdmin, syncMeta } = props;
-  // const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
+  const { applicationId, enrollmentData, showSync, isStaffOrAdmin, syncMeta } =
+    props;
+  const queryClient = useQueryClient();
+  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
   if (!enrollmentData) return null;
   const enrollments = enrollmentData?.enrollments || [];
+  const invalidateApplication = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["application-get", applicationId],
+    });
+    queryClient.invalidateQueries({ queryKey: ["application-list"] });
+  };
   const syncNote = (
     <SyncMetadataNote
       syncMeta={syncMeta}
@@ -50,22 +61,24 @@ export function EnrollmentSection(props: {
     />
   );
 
-  // const action = (
-  //   <SyncActionButton
-  //     showSync={showSync}
-  //     isStaffOrAdmin={isStaffOrAdmin}
-  //     onClick={() => syncEnrollment.mutate()}
-  //     isPending={syncEnrollment.isPending}
-  //     syncMeta={syncMeta}
-  //   />
-  // );
+  const action = (
+    <SyncActionButton
+      showSync={showSync}
+      isStaffOrAdmin={isStaffOrAdmin}
+      onClick={() =>
+        syncEnrollment.mutate(undefined, { onSettled: invalidateApplication })
+      }
+      isPending={syncEnrollment.isPending}
+      syncMeta={syncMeta}
+    />
+  );
 
   return (
     <Section
       value="enrollment"
       title="Enrollment"
       icon={FileText}
-      action={<></>}
+      action={action}
       footer={syncNote}
     >
       <FieldsGrid>

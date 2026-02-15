@@ -114,7 +114,8 @@ export default function CommunicationTab({
                 <Link
                   href={`${communicationBasePath}?${new URLSearchParams({
                     view: "message",
-                    threadId: thread.id,
+                    applicationId: String(applicationId),
+                    threadId: String(thread.id),
                   }).toString()}`}
                 >
                   <Button size="sm" variant="secondary" className="h-7 text-xs">

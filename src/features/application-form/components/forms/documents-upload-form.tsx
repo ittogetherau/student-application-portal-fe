@@ -242,7 +242,6 @@ const DocumentTypeOption = ({
 type UploadFilesTableProps = {
   state: DocumentState | null;
   uploadedDocuments: ApiDocument[];
-  onRemoveLocalFile: (documentTypeId: string, fileKey: string) => void;
   onDeleteApiDocument: (doc: ApiDocument) => void;
   isDeleting: boolean;
   isLoadingUploadedDocuments: boolean;
@@ -251,7 +250,6 @@ type UploadFilesTableProps = {
 const UploadFilesTable = ({
   state,
   uploadedDocuments,
-  onRemoveLocalFile,
   onDeleteApiDocument,
   isDeleting,
   isLoadingUploadedDocuments,
@@ -269,27 +267,11 @@ const UploadFilesTable = ({
 
   if (!state) return null;
 
-  const knownPreviewUrls = new Set(
-    (state.uploadedFiles ?? [])
-      .map((file) => file.previewUrl)
-      .filter(Boolean) as string[],
-  );
-
   const apiUploaded = uploadedDocuments
     .filter((doc) => getDocumentTypeId(doc) === state.documentTypeId)
-    .filter((doc) => {
-      // Avoid duplicate rows when we already have a locally-tracked preview url.
-      if (!doc.view_url) return true;
-      return !knownPreviewUrls.has(doc.view_url);
-    });
+    .filter((doc) => Boolean(doc.id));
 
-  const hasRows =
-    (state.uploadedFiles?.length ?? 0) > 0 || (state.files?.length ?? 0) > 0;
-  const hasApiRows = apiUploaded.length > 0;
-
-  if (!hasRows && !hasApiRows) return null;
-
-  const pendingFiles = state.files?.filter((f) => f.uploading || f.error) ?? [];
+  if (apiUploaded.length === 0) return null;
 
   return (
     <div className="mt-6">
@@ -303,108 +285,6 @@ const UploadFilesTable = ({
           </tr>
         </thead>
         <tbody>
-          {pendingFiles.map((f, index) => (
-            <tr
-              key={`local-${index}`}
-              className="border-b last:border-0 opacity-70"
-            >
-              <td className="py-3 text-sm">{f.file.name}</td>
-              <td className="py-3 text-sm">{humanFileSize(f.file.size)}</td>
-              <td className="py-3">
-                <div className="flex items-center gap-2">
-                  {f.uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-primary font-medium">
-                        Uploading...
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-destructive font-medium">
-                      {f.error}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="py-3 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() =>
-                      onRemoveLocalFile(state.documentTypeId, f.key)
-                    }
-                    disabled={f.uploading}
-                    title={
-                      f.uploading ? "Can't remove while uploading" : "Remove"
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-
-          {state.uploadedFiles?.map((file, index) => (
-            <tr key={`uploaded-${index}`} className="border-b last:border-0">
-              <td className="py-3 text-sm">{file.fileName}</td>
-              <td className="py-3 text-sm">{humanFileSize(file.fileSize)}</td>
-              <td className="py-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-primary">Uploaded</span>
-                </div>
-              </td>
-              <td className="py-3 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  {file.previewUrl && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                      onClick={() => window.open(file.previewUrl, "_blank")}
-                      title="View"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      const match = file.previewUrl
-                        ? uploadedDocuments.find(
-                            (doc) =>
-                              getDocumentTypeId(doc) === state.documentTypeId &&
-                              doc.view_url === file.previewUrl,
-                          )
-                        : undefined;
-
-                      if (!match) {
-                        toast.error(
-                          "Couldn't identify this document on the server. Refresh and try again.",
-                        );
-                        return;
-                      }
-
-                      onDeleteApiDocument(match);
-                    }}
-                    disabled={isDeleting}
-                    title="Delete"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-
           {apiUploaded.map((doc, index) => (
             <tr
               key={`api-uploaded-${index}`}
@@ -584,24 +464,6 @@ export default function DocumentsUploadForm() {
   const isLoadingApiDocuments =
     isLoadingUploadedDocuments || isFetchingUploadedDocuments;
 
-  const handleRemoveLocalFile = useCallback(
-    (documentTypeId: string, fileKey: string) => {
-      setStepDirty(STEP_ID, true);
-      setDocumentStates((prev) => {
-        const current = prev[documentTypeId];
-        if (!current) return prev;
-        return {
-          ...prev,
-          [documentTypeId]: {
-            ...current,
-            files: (current.files ?? []).filter((f) => f.key !== fileKey),
-          },
-        };
-      });
-    },
-    [setStepDirty],
-  );
-
   const handleDeleteApiDocument = useCallback(
     async (doc: ApiDocument) => {
       if (!applicationId || !doc?.id) return;
@@ -715,7 +577,6 @@ export default function DocumentsUploadForm() {
       documentTypeId: string,
       file: File,
       fileKey: string,
-      process_ocr?: boolean,
       upload_mode?: "replace" | "new",
     ): Promise<void> => {
       if (!applicationId) return;
@@ -837,11 +698,7 @@ export default function DocumentsUploadForm() {
   );
 
   const handleFiles = useCallback(
-    async (
-      documentTypeId: string,
-      files: File[] | null,
-      accepts_ocr?: boolean,
-    ) => {
+    async (documentTypeId: string, files: File[] | null) => {
       if (!files || files.length === 0 || !applicationId) return;
 
       // Backend behavior:
@@ -904,7 +761,6 @@ export default function DocumentsUploadForm() {
             documentTypeId,
             entry.file,
             entry.key,
-            accepts_ocr ?? false,
             uploadMode,
           );
         }
@@ -1044,11 +900,7 @@ export default function DocumentsUploadForm() {
                     {/* Upload Area */}
                     <Dropzone
                       onDrop={(acceptedFiles) =>
-                        handleFiles(
-                          selectedDocument.id,
-                          acceptedFiles,
-                          selectedDocument.accepts_ocr,
-                        )
+                        handleFiles(selectedDocument.id, acceptedFiles)
                       }
                       onError={(error) => {
                         if (error?.message) {
@@ -1098,7 +950,6 @@ export default function DocumentsUploadForm() {
                     <UploadFilesTable
                       state={selectedState}
                       uploadedDocuments={uploadedDocuments}
-                      onRemoveLocalFile={handleRemoveLocalFile}
                       onDeleteApiDocument={handleDeleteApiDocument}
                       isDeleting={isDeleting}
                       isLoadingUploadedDocuments={isLoadingApiDocuments}

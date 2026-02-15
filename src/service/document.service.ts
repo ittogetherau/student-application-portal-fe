@@ -103,7 +103,7 @@ class DocumentService extends ApiService {
     application_id: string,
     document_type_id: string,
     file: File,
-    process_ocr?: boolean,
+    process_ocr: boolean = false,
     upload_mode?: "replace" | "new",
   ): Promise<ServiceResponse<{ process_ocr: boolean }>> {
     try {
@@ -115,8 +115,7 @@ class DocumentService extends ApiService {
       formData.append("application_id", application_id);
       formData.append("document_type_id", document_type_id);
       formData.append("file", file);
-      if (process_ocr)
-        formData.append("process_ocr", process_ocr ? "true" : "false");
+      formData.append("process_ocr", process_ocr ? "true" : "false");
       if (upload_mode) formData.append("upload_mode", upload_mode);
 
       return resolveServiceCall<{ process_ocr: boolean }>(
