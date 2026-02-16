@@ -12,14 +12,61 @@ import {
 } from "@/features/notifications/components/notification-title-icon-map";
 import { useMarkNotificationReadMutation } from "@/features/notifications/hooks/use-notifications.hook";
 import type { NotificationItem } from "@/features/notifications/service/notifications.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { cn } from "@/shared/lib/utils";
+import { useRouter } from "next/navigation";
 
 type props = {
   notification: NotificationItem;
   className?: string;
 };
 
+const GS_NOTIFICATION_TITLES = new Set([
+  normalizeNotificationTitle("GS process in progress"),
+  normalizeNotificationTitle("Offer letter signed"),
+]);
+
+const COMMUNICATION_NOTIFICATION_TITLES = new Set([
+  normalizeNotificationTitle("Thread created"),
+]);
+
+function resolveNotificationDestination(notification: NotificationItem): string {
+  const applicationId = notification.related_id;
+  if (!applicationId) return siteRoutes.dashboard.notifications;
+
+  const normalizedTitle = normalizeNotificationTitle(notification.title);
+  if (GS_NOTIFICATION_TITLES.has(normalizedTitle)) {
+    return siteRoutes.dashboard.application.id.gs(applicationId);
+  }
+  if (COMMUNICATION_NOTIFICATION_TITLES.has(normalizedTitle)) {
+    return siteRoutes.dashboard.application.id.communication(applicationId);
+  }
+
+  const searchableText =
+    `${notification.title} ${notification.message} ${notification.type}`.toLowerCase();
+
+  if (searchableText.includes("gs")) {
+    return siteRoutes.dashboard.application.id.gs(applicationId);
+  }
+  if (searchableText.includes("coe")) {
+    return siteRoutes.dashboard.application.id.coe(applicationId);
+  }
+  if (
+    searchableText.includes("thread") ||
+    searchableText.includes("communication") ||
+    searchableText.includes("message")
+  ) {
+    return siteRoutes.dashboard.application.id.communication(applicationId);
+  }
+  if (searchableText.includes("timeline")) {
+    return siteRoutes.dashboard.application.id.timeline(applicationId);
+  }
+
+  return siteRoutes.dashboard.application.id.details(applicationId);
+}
+
 export default function NotificationCard({ notification, className }: props) {
+  const router = useRouter();
   const markReadMutation = useMarkNotificationReadMutation();
 
   const type = normalizeNotificationType(notification.type);
@@ -38,9 +85,18 @@ export default function NotificationCard({ notification, className }: props) {
         !isRead && "bg-accent/50",
         className,
       )}
-      onClick={() => {
-        if (isRead || markReadMutation.isPending) return;
-        markReadMutation.mutate(notification.id);
+      onClick={async () => {
+        const destination = resolveNotificationDestination(notification);
+
+        if (!isRead && !markReadMutation.isPending) {
+          try {
+            await markReadMutation.mutateAsync(notification.id);
+          } catch {
+            // Navigate even if marking as read fails.
+          }
+        }
+
+        router.push(destination);
       }}
     >
       <div className="flex gap-3">

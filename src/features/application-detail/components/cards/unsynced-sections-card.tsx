@@ -15,7 +15,7 @@ export default function UnsyncedSectionsCard({
   sectionLabels,
 }: UnsyncedSectionsCardProps) {
   if (sectionKeys.length === 0) return null;
-
+  return null;
   return (
     <div className="mt-3 rounded-md border border-destructive bg-destructive/20 p-3 text-sm text-destructive-foreground">
       <p className="font-medium">The following sections are not synced:</p>

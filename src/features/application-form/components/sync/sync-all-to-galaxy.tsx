@@ -368,3 +368,197 @@ const SyncToGalaxyButton = ({
 };
 
 export default SyncToGalaxyButton;
+
+/*
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { ApplicationSyncMetadata } from "@/service/application.service";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+
+export type SyncSectionAvailability = {
+  enrollment?: boolean;
+  personalDetails?: boolean;
+  emergencyContacts?: boolean;
+  healthCover?: boolean;
+  language?: boolean;
+  disability?: boolean;
+  schooling?: boolean;
+  qualifications?: boolean;
+  employment?: boolean;
+  usi?: boolean;
+  documents?: boolean;
+  survey?: boolean;
+};
+
+const SYNC_METADATA_LABELS: Record<string, string> = {
+  enrollment_data: "Enrollment",
+  personal_details: "Personal details",
+  emergency_contacts: "Emergency contacts",
+  health_cover_policy: "Health cover",
+  language_cultural_data: "Language & cultural",
+  disability_support: "Disability support",
+  schooling_history: "Schooling history",
+  qualifications: "Qualifications",
+  employment_history: "Employment",
+  usi: "USI",
+  documents: "Documents",
+  additional_services: "Additional services",
+  survey_responses: "Survey/Declaration",
+  declaration: "Declaration",
+};
+
+let lastSyncMetadataIncompleteLogSignature: string | null = null;
+
+export const isSyncMetadataComplete = (
+  syncMetadata: ApplicationSyncMetadata | null,
+  options?: {
+    ignoredKeys?: (keyof ApplicationSyncMetadata)[];
+    allowNullKeys?: (keyof ApplicationSyncMetadata)[];
+    requireNoErrors?: boolean;
+  },
+) => {
+  if (!syncMetadata) return false;
+
+  const entries = Object.entries(syncMetadata).filter(
+    ([key]) =>
+      !options?.ignoredKeys?.includes(key as keyof ApplicationSyncMetadata),
+  );
+
+  if (!entries.length) return false;
+
+  const valuesWithKeys = entries
+    .map(([key, value]) => ({ key, value }))
+    .filter(
+      ({ key, value }) =>
+        Boolean(value) ||
+        (value == null &&
+          options?.allowNullKeys?.includes(
+            key as keyof ApplicationSyncMetadata,
+          )),
+    );
+
+  if (!valuesWithKeys.length) return false;
+
+  const incomplete = valuesWithKeys.flatMap(({ key, value }) => {
+    const label = SYNC_METADATA_LABELS[key] ?? key;
+    if (
+      value == null &&
+      options?.allowNullKeys?.includes(key as keyof ApplicationSyncMetadata)
+    ) {
+      return [];
+    }
+    if (!value) return [{ key, label, reasons: ["missing"] }];
+
+    const reasons: string[] = [];
+    if (options?.requireNoErrors && value.last_error) reasons.push("has_error");
+    if (value.uptodate !== true) reasons.push("not_uptodate");
+    if (!value.last_synced_at) reasons.push("never_synced");
+
+    return reasons.length ? [{ key, label, reasons }] : [];
+  });
+
+  const complete = incomplete.length === 0;
+
+  if (!complete) {
+    const signature = JSON.stringify({
+      ignoredKeys: options?.ignoredKeys ?? [],
+      requireNoErrors: options?.requireNoErrors ?? false,
+      incomplete,
+    });
+
+    if (signature !== lastSyncMetadataIncompleteLogSignature) {
+      lastSyncMetadataIncompleteLogSignature = signature;
+      console.warn("[isSyncMetadataComplete] Incomplete sync sections:", {
+        incomplete,
+      });
+    }
+  }
+
+  return complete;
+};
+
+export interface SyncToGalaxyButtonProps {
+  applicationId: string;
+  syncMetadata: ApplicationSyncMetadata | null;
+  availability?: SyncSectionAvailability;
+}
+
+const SYNC_TOAST_ID = "sync-application";
+
+const SyncToGalaxyButton = ({ applicationId }: SyncToGalaxyButtonProps) => {
+  const queryClient = useQueryClient();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncAllSections = async () => {
+    const response = await fetch(
+      `/api/galaxy-sync/${applicationId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          success?: boolean;
+          message?: string;
+          data?: unknown;
+        }
+      | null;
+
+    if (!response.ok || payload?.success === false) {
+      throw new Error(payload?.message || "Failed to sync section.");
+    }
+
+    return payload?.data;
+  };
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+
+    setIsSyncing(true);
+    try {
+      toast.loading("Syncing application to Galaxy...", { id: SYNC_TOAST_ID });
+      await syncAllSections();
+      toast.success("Application synced to Galaxy.", { id: SYNC_TOAST_ID });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to sync application.";
+      toast.error(message, { id: SYNC_TOAST_ID });
+    } finally {
+      setIsSyncing(false);
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="gap-1 px-2 text-xs"
+      onClick={handleSync}
+      disabled={isSyncing}
+    >
+      {isSyncing ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <RefreshCw className="h-3.5 w-3.5" />
+      )}
+      Sync All To Galaxy
+    </Button>
+  );
+};
+
+export default SyncToGalaxyButton;
+
+*/

@@ -9,8 +9,8 @@ import {
 import { Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { siteRoutes } from "@/shared/constants/site-routes";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationGetQuery,
@@ -21,14 +21,7 @@ import { FileText, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useMemo } from "react";
-import toast from "react-hot-toast";
 import { useGalaxySyncDocumentsMutation } from "../../hooks/galaxy-sync.hook";
-import { Section } from "../sync-review/section";
-import { SyncActionButton } from "../sync-review/sync-action-button";
-import SyncAllToGalaxyButton, {
-  isSyncMetadataComplete,
-  SyncSectionAvailability,
-} from "../sync/sync-all-to-galaxy";
 import {
   AdditionalServicesSection,
   DisabilitySupportSection,
@@ -43,6 +36,12 @@ import {
   SurveySection,
   UsiSection,
 } from "../review-sections";
+import { Section } from "../sync-review/section";
+import { SyncActionButton } from "../sync-review/sync-action-button";
+import SyncAllToGalaxyButton, {
+  isSyncMetadataComplete,
+  SyncSectionAvailability,
+} from "../sync/sync-all-to-galaxy";
 
 const ReviewForm = ({
   applicationId,

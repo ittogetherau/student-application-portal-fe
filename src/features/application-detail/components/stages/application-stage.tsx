@@ -23,8 +23,8 @@ import { isSyncMetadataComplete } from "@/features/application-form/components/s
 import type { ApplicationSyncMetadata } from "@/service/application.service";
 import {
   formatStageLabel,
-  getStageLabel,
   getStageIcon,
+  getStageLabel,
 } from "@/shared/config/application-stage.config";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
@@ -254,7 +254,8 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           const isCurrent = i === currentIndex;
           const isActive = selectedOrCurrentStage === el;
           const isInteractive = isCurrent && isActive;
-          const stageLabel = getStageLabel(el, current_role) ?? formatStageLabel(el);
+          const stageLabel =
+            getStageLabel(el, current_role) ?? formatStageLabel(el);
 
           return (
             <React.Fragment key={el}>
