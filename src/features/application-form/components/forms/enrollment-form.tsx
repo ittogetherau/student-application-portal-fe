@@ -11,14 +11,18 @@ import {
 } from "@/components/ui/select";
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
 import type { EnrollmentValues } from "@/features/application-form/validations/enrollment";
+import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
+  useApplicationGetQuery,
 } from "@/shared/hooks/use-applications";
+import { cn } from "@/shared/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
@@ -34,6 +38,7 @@ import {
 import { useApplicationStepQuery } from "../../hooks/use-application-steps.hook";
 import { useApplicationFormDataStore } from "../../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../../store/use-application-step.store";
+import StudentEnrollmentForm from "../student-enrollment/student-enrollment-form";
 
 const requiredSelectId = (message: string) =>
   z
@@ -61,9 +66,32 @@ const toId = (value: unknown): number | undefined => {
 };
 
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
+  const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
+  const [resolvedApplicationId, setResolvedApplicationId] = useState<
+    string | undefined
+  >(applicationId);
+
   const { goToNext, markStepCompleted, clearStepDirty } =
     useApplicationStepStore();
-  const { setApplicationId } = useApplicationFormDataStore();
+  const setApplicationId = useApplicationFormDataStore(
+    (state) => state.setApplicationId,
+  );
+  const setStepData = useApplicationFormDataStore((state) => state.setStepData);
+  const persistedEnrollmentData = useApplicationFormDataStore(
+    (state) => state.stepData[0],
+  );
+  const currentApplicationId = resolvedApplicationId ?? applicationId;
+  const { data: session } = useSession();
+  const { data: applicationResponse } = useApplicationGetQuery(
+    currentApplicationId ?? null,
+  );
+  const isStaffOrAdmin =
+    session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
+  const currentStage = applicationResponse?.data?.current_stage;
+  const shouldShowManageEnrollment =
+    !!currentApplicationId &&
+    isStaffOrAdmin &&
+    currentStage !== APPLICATION_STAGE.DRAFT;
 
   const {
     data: coursesResponse,
@@ -95,13 +123,20 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const hasRestoredRef = useRef(false);
 
-  useApplicationStepQuery(applicationId ?? null, 0);
+  useEffect(() => {
+    if (applicationId && applicationId !== resolvedApplicationId) {
+      setResolvedApplicationId(applicationId);
+    }
+  }, [applicationId, resolvedApplicationId]);
 
-  const { saveOnSubmit } = useFormPersistence({
-    applicationId: applicationId ?? null,
+  useApplicationStepQuery(currentApplicationId ?? null, 0);
+
+  useFormPersistence({
+    applicationId: currentApplicationId ?? null,
     stepId: 0,
     form: methods,
     enabled: true,
+    autoSave: false,
     onDataLoaded: (data) => {
       if (hasRestoredRef.current) return;
 
@@ -233,6 +268,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       availableIntakes.find((intake) => toId(intake.id) === toId(intakeValue)),
     [availableIntakes, intakeValue],
   );
+  const selectedCampus = useMemo(
+    () =>
+      availableCampuses.find((campus) => toId(campus.id) === toId(campusValue)),
+    [availableCampuses, campusValue],
+  );
 
   const intakeEndDate = (() => {
     if (!selectedIntake?.intake_start) return null;
@@ -241,26 +281,32 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     return addWeeksToYmdDateString(selectedIntake.intake_start, weeks);
   })();
 
+  const ensureApplicationId = async () => {
+    if (currentApplicationId) return currentApplicationId;
+
+    toast.loading("Creating application draft...", {
+      id: "application-flow",
+    });
+
+    const res = await createApplication(DEFAULT_CREATE_PAYLOAD_temp);
+    const createdId = res.application.id;
+
+    setResolvedApplicationId(createdId);
+    setApplicationId(createdId);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("id", createdId);
+    router.replace(`${pathname}?${params.toString()}`, {
+      scroll: false,
+    });
+
+    toast.dismiss("application-flow");
+    return createdId;
+  };
+
   const onSubmit = async (values: EnrollmentCoreFormValues) => {
-    let currentApplicationId = applicationId;
-
     try {
-      if (!currentApplicationId) {
-        toast.loading("Creating application draft...", {
-          id: "application-flow",
-        });
-
-        const res = await createApplication(DEFAULT_CREATE_PAYLOAD_temp);
-        currentApplicationId = res.application.id;
-
-        setApplicationId(currentApplicationId);
-
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("id", currentApplicationId);
-        router.replace(`${pathname}?${params.toString()}`, {
-          scroll: false,
-        });
-      }
+      const ensuredApplicationId = await ensureApplicationId();
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
 
@@ -278,11 +324,21 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       };
 
       await saveEnrollment({
-        applicationId: currentApplicationId,
+        applicationId: ensuredApplicationId,
         values: payload,
       });
 
-      saveOnSubmit(values);
+      const existingData =
+        persistedEnrollmentData &&
+        typeof persistedEnrollmentData === "object" &&
+        !Array.isArray(persistedEnrollmentData)
+          ? (persistedEnrollmentData as Record<string, unknown>)
+          : {};
+
+      setStepData(0, {
+        ...existingData,
+        ...payload,
+      });
 
       toast.success("Enrollment saved", { id: "application-flow" });
       methods.reset(values);
@@ -295,6 +351,34 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       toast.error(message, {
         id: "application-flow",
       });
+    }
+  };
+
+  const handleManagedEnrollmentSuccess = (savedPayload?: EnrollmentValues) => {
+    if (savedPayload) {
+      setStepData(0, savedPayload);
+    }
+    setIsEnrollmentDialogOpen(false);
+    clearStepDirty(0);
+    markStepCompleted(0);
+    goToNext();
+  };
+
+  const handleManageEnrollmentClick = async () => {
+    if (isEnrollmentDialogOpen) {
+      setIsEnrollmentDialogOpen(false);
+      return;
+    }
+
+    try {
+      await ensureApplicationId();
+      setIsEnrollmentDialogOpen(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare enrollment management.";
+      toast.error(message, { id: "application-flow" });
     }
   };
 
@@ -319,8 +403,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   return (
     <FormProvider {...methods}>
-      <form className="space-y-4" onSubmit={methods.handleSubmit(onSubmit)}>
-        <div className="space-y-8 p-4 border rounded-lg">
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
+        <div className={cn("space-y-8 p-4 border rounded-lg mb-6")}>
           <div className="grid-cols-3 grid gap-4">
             <div className="space-y-2">
               <Label>Course *</Label>
@@ -442,22 +526,68 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSaving || isCreating}>
-            {isSaving || isCreating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                Save & Continue
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </div>
+        {shouldShowManageEnrollment && (
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleManageEnrollmentClick}
+              disabled={isCreating}
+            >
+              {isEnrollmentDialogOpen
+                ? "Close Enrollment Management"
+                : "Manage Enrollment"}
+            </Button>
+          </div>
+        )}
+
+        {!isEnrollmentDialogOpen && (
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSaving || isCreating}>
+              {isSaving || isCreating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Save & Continue
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </form>
+
+      {isEnrollmentDialogOpen && (
+        <div className="mt-6">
+          <StudentEnrollmentForm
+            applicationId={currentApplicationId}
+            initialData={persistedEnrollmentData}
+            selectedCore={
+              selectedCourse && selectedIntake && selectedCampus
+                ? {
+                    course: Number(selectedCourse.id),
+                    course_name: selectedCourse.course_name,
+                    intake: Number(selectedIntake.id),
+                    intake_name: selectedIntake.intake_name,
+                    campus: Number(selectedCampus.id),
+                    campus_name: selectedCampus.name,
+                    course_duration_text: selectedCourse.duration_text,
+                    intake_start: selectedIntake.intake_start,
+                    intake_end: selectedIntake.intake_end,
+                    class_start_date: selectedIntake.class_start_date,
+                    class_end_date: selectedIntake.class_end_date,
+                    intake_duration: selectedIntake.intake_duration,
+                  }
+                : null
+            }
+            onSubmitSuccess={handleManagedEnrollmentSuccess}
+          />
+        </div>
+      )}
     </FormProvider>
   );
 };

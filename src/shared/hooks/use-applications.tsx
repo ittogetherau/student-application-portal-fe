@@ -146,6 +146,7 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
 
       // Invalidate list and detail queries
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({
         queryKey: ["application-get", applicationId],
       });

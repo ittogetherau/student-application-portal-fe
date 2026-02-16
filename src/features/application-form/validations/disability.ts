@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const optionalNullableString = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((val) => val ?? undefined);
+
 export const disabilitySchema = z
   .object({
     // Main question: "Yes" or "No"
@@ -18,10 +24,10 @@ export const disabilitySchema = z
 
     // Keep legacy fields optional to avoid breaking existing data structure if needed
     disability_type: z.string().optional(),
-    disability_details: z.string().optional(),
-    support_required: z.string().optional(),
+    disability_details: optionalNullableString,
+    support_required: optionalNullableString,
     has_documentation: z.boolean().optional(),
-    documentation_status: z.string().optional(),
+    documentation_status: optionalNullableString,
     adjustments_needed: z.any().optional(), // permissive for now
   })
   .superRefine((data, ctx) => {

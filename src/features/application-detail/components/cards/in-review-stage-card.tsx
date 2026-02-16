@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useGalaxySyncDeclarationMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
 import {
   useApplicationChangeStageMutation,
-  useApplicationEnrollGalaxyCourseMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/shared/hooks/use-applications";
 import { ArrowRight, Loader2 } from "lucide-react";
@@ -19,6 +19,17 @@ type InReviewStageCardProps = {
   studentName: string;
 };
 
+const getSafeSyncToastMessage = (data: unknown) => {
+  if (typeof data === "string" && data.trim()) return data;
+  if (data && typeof data === "object") {
+    const maybeMessage = (data as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+  }
+  return "Declaration synced to Galaxy.";
+};
+
 export default function InReviewStageCard({
   applicationId,
   isInteractive,
@@ -27,11 +38,11 @@ export default function InReviewStageCard({
   studentEmail,
   studentName,
 }: InReviewStageCardProps) {
-  const enrollGalaxyCourse = useApplicationEnrollGalaxyCourseMutation(applicationId);
+  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
   const changeStage = useApplicationChangeStageMutation(applicationId);
 
-  const isPending = enrollGalaxyCourse.isPending || sendOfferLetter.isPending;
+  const isPending = syncDeclaration.isPending || sendOfferLetter.isPending;
 
   const handleSendOfferLetter = () => {
     if (!studentEmail) {
@@ -69,13 +80,13 @@ export default function InReviewStageCard({
       return;
     }
 
-    enrollGalaxyCourse.mutate(undefined, {
+    syncDeclaration.mutate(undefined, {
       onSuccess: (data) => {
-        toast.success(data?.message || "Course enrollment in Galaxy completed.");
+        toast.success(getSafeSyncToastMessage(data));
         handleSendOfferLetter();
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to enroll course in Galaxy");
+        toast.error(error.message || "Failed to sync declaration to Galaxy");
       },
     });
   };

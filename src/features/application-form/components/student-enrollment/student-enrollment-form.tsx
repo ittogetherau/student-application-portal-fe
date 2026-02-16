@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
 import { FormSelect } from "@/components/forms/form-select";
@@ -15,10 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { EnrollmentValues } from "@/features/application-form/validations/enrollment";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import { STUDY_REASON_OPTIONS } from "../../constants/enrollment-constants";
@@ -27,18 +29,11 @@ import {
   normalizeDateStringToYmd,
   parseWeeksFromDurationText,
 } from "../../constants/enrollment-date-utils";
-import {
-  useCourseIntakesQuery,
-  useCoursesQuery,
-  useEnrollmentStepQuery,
-  useSaveEnrollmentMutation,
-} from "../../hooks/course.hook";
+import { useSaveEnrollmentMutation } from "../../hooks/course.hook";
 import {
   studentEnrollmentFormSchema,
   type StudentEnrollmentFormValues,
 } from "../../utils/student-enrollment-form.validation";
-import Link from "next/link";
-import { siteRoutes } from "@/shared/constants/site-routes";
 
 const defaultValues: StudentEnrollmentFormValues = {
   preferred_start_date: "",
@@ -69,21 +64,44 @@ const todayYmd = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
 type StudentEnrollmentFormProps = {
   isDialogMode?: boolean;
   applicationId?: string;
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (payload?: EnrollmentValues) => void;
+  initialData?: unknown;
+  selectedCore?: {
+    course: number;
+    intake: number;
+    campus: number;
+    course_name?: string;
+    intake_name?: string;
+    campus_name?: string;
+    course_duration_text?: string;
+    intake_start?: string | null;
+    intake_end?: string | null;
+    class_start_date?: string | null;
+    class_end_date?: string | null;
+    intake_duration?: number | string | null;
+  } | null;
 };
 
 const StudentEnrollmentForm = ({
   isDialogMode = false,
   applicationId,
   onSubmitSuccess,
+  initialData,
+  selectedCore = null,
 }: StudentEnrollmentFormProps) => {
-  const hasPrefilledRef = useRef(false);
-  const hasAutoFilledDatesRef = useRef(false);
   const queryClient = useQueryClient();
-
   const methods = useForm<StudentEnrollmentFormValues>({
     resolver: zodResolver(studentEnrollmentFormSchema),
     defaultValues: {
@@ -93,10 +111,9 @@ const StudentEnrollmentForm = ({
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
+
   const { mutateAsync: saveEnrollment, isPending: isSavingEnrollment } =
     useSaveEnrollmentMutation();
-  const { data: enrollmentStepResponse, isLoading: isLoadingEnrollmentStep } =
-    useEnrollmentStepQuery(applicationId ?? null);
 
   const advancedStandingValue = useWatch({
     control: methods.control,
@@ -107,106 +124,36 @@ const StudentEnrollmentForm = ({
     name: "receiving_scholarship",
   });
 
-  const enrollmentPayload = useMemo(() => {
-    const raw = enrollmentStepResponse?.data?.data;
-    if (!raw) return null;
-
-    if (Array.isArray(raw)) {
-      return raw[0] as Record<string, unknown> | undefined;
-    }
-
-    if (typeof raw !== "object" || raw === null) return null;
-
-    const maybeData = (raw as { data?: unknown }).data;
-    if (Array.isArray(maybeData)) {
-      return maybeData[0] as Record<string, unknown> | undefined;
-    }
-
-    const maybeEnrollments = (raw as { enrollments?: unknown }).enrollments;
-    if (Array.isArray(maybeEnrollments)) {
-      return maybeEnrollments[0] as Record<string, unknown> | undefined;
-    }
-
-    return raw as Record<string, unknown>;
-  }, [enrollmentStepResponse]);
-
   const enrollmentCore = useMemo(() => {
-    if (!enrollmentPayload) return null;
-
-    const coerceNumber = (value: unknown) => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      if (typeof value === "string" && value.trim().length > 0) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return undefined;
-    };
-
-    const course = coerceNumber(enrollmentPayload.course);
-    const intake = coerceNumber(enrollmentPayload.intake);
-    const campus = coerceNumber(enrollmentPayload.campus);
-
-    if (!course || !intake || !campus) return null;
-
+    if (!selectedCore) return null;
     return {
-      course,
-      course_name: String(enrollmentPayload.course_name ?? ""),
-      intake,
-      intake_name: String(enrollmentPayload.intake_name ?? ""),
-      campus,
-      campus_name: String(enrollmentPayload.campus_name ?? ""),
+      course: selectedCore.course,
+      course_name: selectedCore.course_name ?? "",
+      intake: selectedCore.intake,
+      intake_name: selectedCore.intake_name ?? "",
+      campus: selectedCore.campus,
+      campus_name: selectedCore.campus_name ?? "",
+      course_duration_text: selectedCore.course_duration_text ?? "",
+      intake_start: selectedCore.intake_start ?? null,
+      intake_end: selectedCore.intake_end ?? null,
+      class_start_date: selectedCore.class_start_date ?? null,
+      class_end_date: selectedCore.class_end_date ?? null,
+      intake_duration: selectedCore.intake_duration ?? null,
     };
-  }, [enrollmentPayload]);
-
-  const { data: coursesResponse, isLoading: isLoadingCourses } =
-    useCoursesQuery(
-      enrollmentCore
-        ? {
-            campus: enrollmentCore.campus,
-            include_expired_intakes: true,
-            type: 17,
-          }
-        : undefined,
-      { enabled: !!enrollmentCore },
-    );
-  const courses = coursesResponse?.data ?? [];
-  const selectedCourse = useMemo(
-    () => courses.find((course) => course.id === enrollmentCore?.course),
-    [courses, enrollmentCore?.course],
-  );
-
-  const { data: intakesResponse, isLoading: isLoadingIntakes } =
-    useCourseIntakesQuery(selectedCourse?.course_code, {
-      campus: enrollmentCore?.campus ?? null,
-    });
-  const intakes = intakesResponse?.data ?? [];
-  const selectedIntake = useMemo(
-    () => intakes.find((intake) => intake.id === enrollmentCore?.intake),
-    [intakes, enrollmentCore?.intake],
-  );
-  const isFetchingEnrollmentData =
-    isLoadingEnrollmentStep ||
-    (!!enrollmentCore && (isLoadingCourses || isLoadingIntakes));
+  }, [selectedCore]);
 
   useEffect(() => {
-    if (hasPrefilledRef.current || !enrollmentPayload) return;
+    if (!initialData || typeof initialData !== "object" || Array.isArray(initialData)) {
+      return;
+    }
 
-    const coerceNumber = (value: unknown) => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      if (typeof value === "string" && value.trim().length > 0) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return undefined;
-    };
-
+    const raw = initialData as Record<string, unknown>;
     const readYesNo = (value: unknown): "Yes" | "No" => {
       const normalized = String(value ?? "")
         .trim()
         .toLowerCase();
       return normalized === "yes" ? "Yes" : "No";
     };
-
     const readYesNoNa = (value: unknown): "Yes" | "No" | "N/A" => {
       const normalized = String(value ?? "")
         .trim()
@@ -216,121 +163,92 @@ const StudentEnrollmentForm = ({
       return "No";
     };
 
-    const classType = String(
-      enrollmentPayload.class_type ?? defaultValues.class_type,
-    ).toLowerCase();
+    const classTypeRaw = String(raw.class_type ?? defaultValues.class_type).toLowerCase();
+    const classType =
+      classTypeRaw === "hybrid" || classTypeRaw === "online"
+        ? classTypeRaw
+        : "classroom";
 
     methods.reset({
-      preferred_start_date: String(
-        enrollmentPayload.preferred_start_date ??
-          defaultValues.preferred_start_date,
-      ),
-      advanced_standing_credit: readYesNo(
-        enrollmentPayload.advanced_standing_credit ??
-          defaultValues.advanced_standing_credit,
-      ),
-      number_of_subjects: coerceNumber(enrollmentPayload.number_of_subjects),
-      no_of_weeks:
-        coerceNumber(enrollmentPayload.no_of_weeks) ??
-        defaultValues.no_of_weeks,
-      course_end_date: String(
-        enrollmentPayload.course_end_date ?? defaultValues.course_end_date,
-      ),
-      offer_issued_date: String(
-        enrollmentPayload.offer_issued_date ||
-          defaultValues.offer_issued_date ||
-          todayYmd(),
-      ),
-      study_reason: String(
-        enrollmentPayload.study_reason ?? defaultValues.study_reason,
-      ),
+      preferred_start_date:
+        typeof raw.preferred_start_date === "string"
+          ? raw.preferred_start_date
+          : defaultValues.preferred_start_date,
+      advanced_standing_credit: readYesNo(raw.advanced_standing_credit),
+      number_of_subjects: toNumber(raw.number_of_subjects) ?? undefined,
+      no_of_weeks: toNumber(raw.no_of_weeks) ?? defaultValues.no_of_weeks,
+      course_end_date:
+        typeof raw.course_end_date === "string"
+          ? raw.course_end_date
+          : defaultValues.course_end_date,
+      offer_issued_date:
+        typeof raw.offer_issued_date === "string" && raw.offer_issued_date
+          ? raw.offer_issued_date
+          : todayYmd(),
+      study_reason:
+        typeof raw.study_reason === "string"
+          ? raw.study_reason
+          : defaultValues.study_reason,
       course_actual_fee:
-        coerceNumber(enrollmentPayload.course_actual_fee) ??
-        defaultValues.course_actual_fee,
+        toNumber(raw.course_actual_fee) ?? defaultValues.course_actual_fee,
       course_upfront_fee:
-        coerceNumber(enrollmentPayload.course_upfront_fee) ??
-        defaultValues.course_upfront_fee,
-      enrollment_fee:
-        coerceNumber(enrollmentPayload.enrollment_fee) ??
-        defaultValues.enrollment_fee,
-      material_fee:
-        coerceNumber(enrollmentPayload.material_fee) ??
-        defaultValues.material_fee,
+        toNumber(raw.course_upfront_fee) ?? defaultValues.course_upfront_fee,
+      enrollment_fee: toNumber(raw.enrollment_fee) ?? defaultValues.enrollment_fee,
+      material_fee: toNumber(raw.material_fee) ?? defaultValues.material_fee,
       inclue_material_fee_in_initial_payment: readYesNo(
-        enrollmentPayload.inclue_material_fee_in_initial_payment ??
-          defaultValues.inclue_material_fee_in_initial_payment,
+        raw.inclue_material_fee_in_initial_payment,
       ),
-      receiving_scholarship: readYesNo(
-        enrollmentPayload.receiving_scholarship ??
-          defaultValues.receiving_scholarship,
-      ),
-      scholarship_percentage: coerceNumber(
-        enrollmentPayload.scholarship_percentage,
-      ),
-      work_integrated_learning: readYesNoNa(
-        enrollmentPayload.work_integrated_learning ??
-          defaultValues.work_integrated_learning,
-      ),
-      third_party_provider: readYesNoNa(
-        enrollmentPayload.third_party_provider ??
-          defaultValues.third_party_provider,
-      ),
-      class_type:
-        classType === "hybrid" || classType === "online"
-          ? classType
-          : "classroom",
-      application_request: String(enrollmentPayload.application_request ?? ""),
+      receiving_scholarship: readYesNo(raw.receiving_scholarship),
+      scholarship_percentage: toNumber(raw.scholarship_percentage) ?? undefined,
+      work_integrated_learning: readYesNoNa(raw.work_integrated_learning),
+      third_party_provider: readYesNoNa(raw.third_party_provider),
+      class_type: classType,
+      application_request:
+        typeof raw.application_request === "string" ? raw.application_request : "",
     });
-
-    hasPrefilledRef.current = true;
-  }, [enrollmentPayload, methods]);
+  }, [initialData, methods]);
 
   useEffect(() => {
-    if (!selectedIntake || hasAutoFilledDatesRef.current) return;
+    if (!enrollmentCore) return;
 
     const intakeStart =
-      normalizeDateStringToYmd(selectedIntake.intake_start) ??
-      normalizeDateStringToYmd(selectedIntake.class_start_date);
+      normalizeDateStringToYmd(enrollmentCore.intake_start) ??
+      normalizeDateStringToYmd(enrollmentCore.class_start_date);
     const intakeEnd =
-      normalizeDateStringToYmd(selectedIntake.intake_end) ??
-      normalizeDateStringToYmd(selectedIntake.class_end_date);
+      normalizeDateStringToYmd(enrollmentCore.intake_end) ??
+      normalizeDateStringToYmd(enrollmentCore.class_end_date);
+    const intakeDurationWeeks =
+      typeof enrollmentCore.intake_duration === "number" &&
+      enrollmentCore.intake_duration > 0
+        ? enrollmentCore.intake_duration
+        : toNumber(enrollmentCore.intake_duration);
     const durationWeeks =
-      (typeof selectedIntake.intake_duration === "number" &&
-      selectedIntake.intake_duration > 0
-        ? selectedIntake.intake_duration
-        : null) ?? parseWeeksFromDurationText(selectedCourse?.duration_text);
+      intakeDurationWeeks &&
+      Number.isFinite(intakeDurationWeeks) &&
+      intakeDurationWeeks > 0
+        ? intakeDurationWeeks
+        : parseWeeksFromDurationText(enrollmentCore.course_duration_text);
     const derivedEndDate =
       intakeEnd ??
       (intakeStart && durationWeeks
         ? addWeeksToYmdDateString(intakeStart, durationWeeks)
         : null);
 
-    const currentPreferredStartDate = methods.getValues("preferred_start_date");
-    const currentCourseEndDate = methods.getValues("course_end_date");
-    const currentWeeks = methods.getValues("no_of_weeks");
-
-    if (!currentPreferredStartDate && intakeStart) {
-      methods.setValue("preferred_start_date", intakeStart, {
-        shouldDirty: false,
-      });
-    }
-    if (!currentCourseEndDate && derivedEndDate) {
-      methods.setValue("course_end_date", derivedEndDate, {
-        shouldDirty: false,
-      });
-    }
-    if (
-      (!currentWeeks || currentWeeks <= 1) &&
-      typeof durationWeeks === "number" &&
-      durationWeeks > 0
-    ) {
+    methods.setValue("preferred_start_date", intakeStart ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    methods.setValue("course_end_date", derivedEndDate ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    if (durationWeeks && durationWeeks > 0) {
       methods.setValue("no_of_weeks", durationWeeks, {
         shouldDirty: false,
+        shouldValidate: false,
       });
     }
-
-    hasAutoFilledDatesRef.current = true;
-  }, [selectedCourse?.duration_text, selectedIntake, methods]);
+  }, [enrollmentCore, methods]);
 
   const onSubmit = async (values: StudentEnrollmentFormValues) => {
     if (!applicationId) {
@@ -339,7 +257,7 @@ const StudentEnrollmentForm = ({
     }
 
     if (!enrollmentCore) {
-      toast.error("Enrollment course/intake/campus details are missing.");
+      toast.error("Select course, intake and campus first.");
       return;
     }
 
@@ -389,18 +307,21 @@ const StudentEnrollmentForm = ({
       queryKey: ["application-get", applicationId],
     });
     toast.success("Enrollment details updated successfully.");
-    onSubmitSuccess?.();
+    onSubmitSuccess?.(payload);
   };
 
   const renderButtonRow = () => (
     <div className="flex items-center gap-2">
-      {applicationId && (
+      {applicationId && isDialogMode && (
         <Link href={siteRoutes.dashboard.application.edit(applicationId)}>
-          <Button variant={"outline"}>Edit Enrollment Data</Button>
+          <Button variant="outline">Edit Enrollment Data</Button>
         </Link>
       )}
 
-      <Button type="submit" disabled={methods.formState.isSubmitting}>
+      <Button
+        type="submit"
+        disabled={!enrollmentCore || methods.formState.isSubmitting}
+      >
         {methods.formState.isSubmitting || isSavingEnrollment ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -412,6 +333,7 @@ const StudentEnrollmentForm = ({
       </Button>
     </div>
   );
+
   return (
     <FormProvider {...methods}>
       <form
@@ -430,65 +352,46 @@ const StudentEnrollmentForm = ({
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <div>
                   <p className="text-muted-foreground">Course</p>
-                  <p className="font-medium">
-                    {selectedCourse?.course_name ||
-                      enrollmentCore.course_name ||
-                      "-"}
-                  </p>
+                  <p className="font-medium">{enrollmentCore.course_name || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Intake</p>
-                  <p className="font-medium">
-                    {selectedIntake?.intake_name ||
-                      enrollmentCore.intake_name ||
-                      "-"}
-                  </p>
+                  <p className="font-medium">{enrollmentCore.intake_name || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Campus</p>
-                  <p className="font-medium">
-                    {selectedCourse?.campuses.find(
-                      (campus) => campus.id === enrollmentCore.campus,
-                    )?.name ||
-                      enrollmentCore.campus_name ||
-                      "-"}
-                  </p>
+                  <p className="font-medium">{enrollmentCore.campus_name || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Duration</p>
                   <p className="font-medium">
-                    {selectedCourse?.duration_text ||
-                      (methods.getValues("no_of_weeks")
-                        ? `${methods.getValues("no_of_weeks")} weeks`
-                        : "-")}
+                    {enrollmentCore.course_duration_text ||
+                      `${methods.getValues("no_of_weeks")} weeks`}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Intake Start</p>
                   <p className="font-medium">
-                    {selectedIntake?.intake_start ||
-                      selectedIntake?.class_start_date ||
+                    {enrollmentCore.intake_start ||
+                      enrollmentCore.class_start_date ||
                       "-"}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Intake End</p>
                   <p className="font-medium">
-                    {selectedIntake?.intake_end ||
-                      selectedIntake?.class_end_date ||
+                    {enrollmentCore.intake_end ||
+                      enrollmentCore.class_end_date ||
                       "-"}
                   </p>
                 </div>
               </div>
             </div>
-          ) : null}
-
-          {isFetchingEnrollmentData ? (
-            <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Fetching enrollment details...
+          ) : (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              Select course, campus and intake in the parent form first.
             </div>
-          ) : null}
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormInput

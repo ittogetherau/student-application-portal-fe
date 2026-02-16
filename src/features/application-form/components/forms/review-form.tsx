@@ -20,7 +20,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { useMemo } from "react";
 import toast from "react-hot-toast";
 import { useGalaxySyncDocumentsMutation } from "../../hooks/galaxy-sync.hook";
@@ -191,9 +190,7 @@ const ReviewForm = ({
 
   const handleFormSubmit = () => {
     if (applicationId) {
-      toast.success("Submisison updated successfully!");
       submitApplication.mutate();
-      redirect(siteRoutes.dashboard.application.id.root(applicationId));
     }
   };
 

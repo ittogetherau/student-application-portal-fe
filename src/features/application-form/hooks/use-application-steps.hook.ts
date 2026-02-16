@@ -24,7 +24,7 @@ import {
   UsiValues,
 } from "@/shared/validation/application.validation";
 import { normalizeEnrollmentPayload } from "../utils/enrollment-normalization";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useApplicationFormDataStore } from "../store/use-application-form-data.store";
@@ -50,6 +50,7 @@ const useStepMutation = <TInput>(
     (state) => state.clearStepDirty,
   );
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
+  const queryClient = useQueryClient();
 
   return useMutation<ServiceResponse<StepUpdateResponse>, Error, TInput>({
     mutationKey: ["application-step", stepId, applicationId],
@@ -76,6 +77,9 @@ const useStepMutation = <TInput>(
       // Save to Zustand store after successful API save
       if (applicationId) {
         setStepData(stepId, payload);
+        queryClient.invalidateQueries({
+          queryKey: ["application-get", applicationId],
+        });
       }
 
       clearStepDirty(stepId);

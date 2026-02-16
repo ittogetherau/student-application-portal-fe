@@ -260,7 +260,7 @@ class GalaxySyncService extends ApiService {
     this.requireApplicationId(applicationId);
     try {
       const data = await this.post<GalaxySyncStatusResponse>(
-        `${this.basePath}/${applicationId}/galaxy-sync/declaration`,
+        `${this.basePath}/${applicationId}/galaxy-sync/enrollment`,
         {},
         true,
       );

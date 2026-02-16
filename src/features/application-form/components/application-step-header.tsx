@@ -13,9 +13,14 @@ import { useApplicationStepStore } from "../store/use-application-step.store";
 
 type StepHeaderProps = PropsWithChildren<{
   className?: string;
+  hidePrevious?: boolean;
 }>;
 
-const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
+const ApplicationStepHeader = ({
+  className,
+  children,
+  hidePrevious = false,
+}: StepHeaderProps) => {
   const currentStep = useApplicationStepStore((state) => state.currentStep);
   const totalSteps = useApplicationStepStore((state) => state.totalSteps);
   const goToPrevious = useApplicationStepStore((state) => state.goToPrevious);
@@ -44,29 +49,33 @@ const ApplicationStepHeader = ({ className, children }: StepHeaderProps) => {
       className={`sticky bottom-0 z-10 border-t bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 ${className ?? ""}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (currentStep === 0) return;
-            const navigationMessage = getNavigationBlockMessage(
-              currentStep,
-              currentStep - 1,
-            );
-            if (navigationMessage) {
-              setUnsavedMessage(navigationMessage);
-              return;
-            }
-            clearUnsavedMessage();
-            goToPrevious();
-          }}
-          disabled={currentStep === 0}
-          className="gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
+        {hidePrevious ? (
+          ""
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (currentStep === 0) return;
+              const navigationMessage = getNavigationBlockMessage(
+                currentStep,
+                currentStep - 1,
+              );
+              if (navigationMessage) {
+                setUnsavedMessage(navigationMessage);
+                return;
+              }
+              clearUnsavedMessage();
+              goToPrevious();
+            }}
+            disabled={currentStep === 0}
+            className="gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+        )}
 
         <span className="flex-1 text-center text-sm text-muted-foreground">
           Step {currentStep + 1} of {totalSteps}

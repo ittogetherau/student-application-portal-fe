@@ -1,22 +1,13 @@
 "use client";
 
-import { Plus, SquarePen } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-
 import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { ApplicationActionsMenu } from "@/features/application-detail/components/toolbar/application-actions-menu";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
-import StudentEnrollmentForm from "@/features/application-form/components/student-enrollment/student-enrollment-form";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
+import { Plus, SquarePen } from "lucide-react";
+import Link from "next/link";
 
 type ApplicationHeaderActionsProps = {
   applicationId: string;
@@ -42,8 +33,6 @@ export default function ApplicationHeaderActions({
   isAdminStaff,
   onStartConversation,
 }: ApplicationHeaderActionsProps) {
-  const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
-
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
@@ -62,14 +51,6 @@ export default function ApplicationHeaderActions({
 
         {role === "staff" && isAdminStaff ? (
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEnrollmentDialogOpen(true)}
-            >
-              Manage Enrollment
-            </Button>
-
             <div className="w-[12rem] min-w-0 shrink">
               <StaffAssignmentSelect
                 assignedStaffId={assignedStaffId}
@@ -90,27 +71,6 @@ export default function ApplicationHeaderActions({
           Start Conversation
         </Button>
       </div>
-
-      <Dialog
-        open={isEnrollmentDialogOpen}
-        onOpenChange={setIsEnrollmentDialogOpen}
-      >
-        <DialogContent
-          isXlWidth={true}
-          className="max-w-4xl h-[85vh] overflow-hidden p-0 flex flex-col"
-        >
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle>Manage Student Enrollment</DialogTitle>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 px-6 pb-6">
-            <StudentEnrollmentForm
-              isDialogMode
-              applicationId={applicationId}
-              onSubmitSuccess={() => setIsEnrollmentDialogOpen(false)}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

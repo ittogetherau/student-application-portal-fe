@@ -10,6 +10,7 @@ interface UseFormPersistenceOptions<T extends FieldValues> {
   stepId: number;
   form: UseFormReturn<T>;
   enabled?: boolean; // Default: true
+  autoSave?: boolean; // Default: true
   debounceMs?: number; // Default: 500
   onDataLoaded?: (data: T) => void;
 }
@@ -28,6 +29,7 @@ export const useFormPersistence = <T extends FieldValues>({
   stepId,
   form,
   enabled = true,
+  autoSave = true,
   debounceMs = 500,
   onDataLoaded,
 }: UseFormPersistenceOptions<T>) => {
@@ -231,7 +233,7 @@ export const useFormPersistence = <T extends FieldValues>({
 
   // Watch form values and auto-save (debounced)
   useEffect(() => {
-    if (!enabled || !applicationId || !_hasHydrated) return;
+    if (!enabled || !autoSave || !applicationId || !_hasHydrated) return;
 
     // Wait for initial load to complete before starting auto-save
     if (isInitialLoadRef.current) return;
@@ -255,6 +257,7 @@ export const useFormPersistence = <T extends FieldValues>({
     };
   }, [
     enabled,
+    autoSave,
     applicationId,
     form,
     saveStepDataDebounced,

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ApplicationSyncMetadata } from "@/service/application.service";
+import { useApplicationEnrollGalaxyCourseMutation } from "@/shared/hooks/use-applications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -11,7 +12,6 @@ import {
   useGalaxySyncDocumentsMutation,
   useGalaxySyncEmergencyContactMutation,
   useGalaxySyncEmploymentMutation,
-  useGalaxySyncEnrollmentMutation,
   useGalaxySyncLanguageMutation,
   useGalaxySyncOshcMutation,
   useGalaxySyncPersonalDetailsMutation,
@@ -163,7 +163,8 @@ const SyncToGalaxyButton = ({
   const syncUsi = useGalaxySyncUsiMutation(applicationId);
   const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
-  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
+  const syncEnrollment =
+    useApplicationEnrollGalaxyCourseMutation(applicationId);
 
   const {
     enrollment,

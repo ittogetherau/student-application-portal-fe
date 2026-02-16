@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
+import { Button } from "@/components/ui/button";
 import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
   createEmptyQualification,
@@ -13,13 +13,67 @@ import {
 } from "@/features/application-form/validations/qualifications";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Plus } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { FormProvider, useFieldArray, useWatch } from "react-hook-form";
 import ApplicationStepHeader from "../application-step-header";
 
 const stepId = 7;
 
+const sanitizeQualifications = (input: unknown): QualificationsFormValues => {
+  const source = input as
+    | {
+        has_qualifications?: unknown;
+        qualifications?: Array<Record<string, unknown>>;
+      }
+    | Array<Record<string, unknown>>
+    | undefined;
+
+  const rawQualifications = Array.isArray(source)
+    ? source
+    : Array.isArray(source?.qualifications)
+      ? source.qualifications
+      : [];
+
+  const qualifications = rawQualifications.map((item) => ({
+    qualification_name:
+      typeof item?.qualification_name === "string"
+        ? item.qualification_name
+        : "",
+    institution: typeof item?.institution === "string" ? item.institution : "",
+    completion_date:
+      typeof item?.completion_date === "string" ? item.completion_date : "",
+    certificate_number:
+      typeof item?.certificate_number === "string"
+        ? item.certificate_number
+        : "",
+    field_of_study:
+      typeof item?.field_of_study === "string" ? item.field_of_study : "",
+    grade: typeof item?.grade === "string" ? item.grade : "",
+  }));
+
+  const explicitHasQualifications =
+    !Array.isArray(source) &&
+    (source?.has_qualifications === "Yes" ||
+      source?.has_qualifications === "No")
+      ? source.has_qualifications
+      : undefined;
+
+  const hasQualifications =
+    explicitHasQualifications ?? (qualifications.length > 0 ? "Yes" : "No");
+
+  return {
+    has_qualifications: hasQualifications,
+    qualifications:
+      hasQualifications === "Yes"
+        ? qualifications.length
+          ? qualifications
+          : [createEmptyQualification() as any]
+        : [],
+  };
+};
+
 const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
+  const hasInitializedEffectRef = useRef(false);
   const {
     methods,
     mutation: qualificationsMutation,
@@ -30,6 +84,10 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
     resolver: zodResolver(qualificationsSchema),
     defaultValues: defaultQualificationsValues,
     enabled: !!applicationId,
+    normalizeBeforeSave: sanitizeQualifications,
+    onDataLoaded: (data) => {
+      methods.reset(sanitizeQualifications(data));
+    },
   });
 
   const { control, handleSubmit } = methods;
@@ -46,9 +104,24 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
 
   // Reset qualifications when "No" is selected
   useEffect(() => {
+    if (!hasInitializedEffectRef.current) {
+      hasInitializedEffectRef.current = true;
+      return;
+    }
+
+    const currentQualifications = methods.getValues("qualifications");
+    const hasCurrentQualifications =
+      Array.isArray(currentQualifications) && currentQualifications.length > 0;
+
     if (hasQualifications === "No") {
-      methods.setValue("qualifications", []);
-    } else if (hasQualifications === "Yes" && fields.length === 0) {
+      if (hasCurrentQualifications) {
+        methods.setValue("qualifications", [], { shouldDirty: true });
+      }
+    } else if (
+      hasQualifications === "Yes" &&
+      fields.length === 0 &&
+      !hasCurrentQualifications
+    ) {
       append(createEmptyQualification() as any);
     }
   }, [hasQualifications, methods, fields.length, append]);
@@ -137,18 +210,20 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
               </div>
             )}
 
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!canAddMore}
-                onClick={() => append(createEmptyQualification() as any)}
-              >
-                <Plus />
-                Add Qualification
-              </Button>
-            </div>
+            {hasQualifications === "Yes" && (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canAddMore}
+                  onClick={() => append(createEmptyQualification() as any)}
+                >
+                  <Plus />
+                  Add Qualification
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 

@@ -1,8 +1,23 @@
 import { z } from "zod";
 
+const optionalNullableString = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((val) => val ?? undefined);
+
+const otherLanguagesInputSchema = z
+  .union([z.string(), z.array(z.string()), z.null()])
+  .optional();
+
 export const languageAndCultureSchema = z.object({
   // Aboriginal/Torres Strait Islander origin
-  is_aus_aboriginal_or_islander: z.string().min(1, "Please select your origin"),
+  is_aus_aboriginal_or_islander: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((val) => val ?? "4")
+    .refine((val) => val.trim().length > 0, "Please select your origin"),
 
   // Main Language
   is_english_main_language: z.string().min(1, "Please select whether English is your main language"),
@@ -16,7 +31,7 @@ export const languageAndCultureSchema = z.object({
 
   // English Test
   completed_english_test: z.string().optional(),
-  english_test_type: z.string().optional(),
+  english_test_type: optionalNullableString,
   english_test_date: z.string().optional().nullable().transform(v => v === "" ? null : v),
   english_test_listening: z.any().optional(),
   english_test_writing: z.any().optional(),
@@ -27,7 +42,7 @@ export const languageAndCultureSchema = z.object({
   // Kept for backward compatibility
   first_language: z.string().optional(),
   english_proficiency: z.string().optional(),
-  other_languages: z.preprocess((val) => {
+  other_languages: otherLanguagesInputSchema.transform((val) => {
     if (typeof val === "string") {
       return val
         .split(",")
@@ -35,19 +50,18 @@ export const languageAndCultureSchema = z.object({
         .filter((item) => item !== "");
     }
     if (Array.isArray(val)) {
-      return (val as unknown[])
-        .filter((item): item is string => typeof item === "string")
+      return val
         .map((item) => item.trim())
         .filter((item) => item !== "");
     }
     return [];
-  }, z.array(z.string().min(1, "Other languages cannot be empty")).default([])),
+  }),
   indigenous_status: z.string().optional(),
   country_of_birth: z.string().optional(),
   citizenship_status: z.string().optional(),
   visa_type: z.string().optional(),
   visa_expiry: z.string().optional().nullable().transform(v => v === "" ? null : v),
-  english_test_score: z.string().optional(),
+  english_test_score: optionalNullableString,
 }).superRefine((data, ctx) => {
   // Main language requirement
   if (data.is_english_main_language === "No" && !data.main_language) {
