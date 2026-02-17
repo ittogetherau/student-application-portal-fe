@@ -10,18 +10,27 @@ import { Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
+import applicationService from "@/service/application.service";
+import {
+  APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
+  APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+} from "@/shared/constants/application-sync";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
 } from "@/shared/hooks/use-applications";
-import { useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useMemo } from "react";
-import { useGalaxySyncDocumentsMutation } from "../../hooks/galaxy-sync.hook";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef } from "react";
+import {
+  useGalaxySyncDeclarationMutation,
+  useGalaxySyncDocumentsMutation,
+} from "../../hooks/galaxy-sync.hook";
 import {
   AdditionalServicesSection,
   DisabilitySupportSection,
@@ -53,6 +62,8 @@ const ReviewForm = ({
   showSync?: boolean;
   onNavigateToDocuments?: () => void;
 }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const {
@@ -62,8 +73,10 @@ const ReviewForm = ({
   } = useApplicationGetQuery(applicationId);
   const submitApplication = useApplicationSubmitMutation(applicationId);
   const syncDocuments = useGalaxySyncDocumentsMutation(applicationId);
+  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
 
   const application = response?.data;
+  const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
   const isStaffOrAdmin =
     session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
   const syncMetadata = application?.sync_metadata ?? null;
@@ -71,17 +84,125 @@ const ReviewForm = ({
   const isSyncComplete = useMemo(
     () =>
       isSyncMetadataComplete(syncMetadata, {
-        ignoredKeys: [
-          "additional_services",
-          "survey_responses",
-          "declaration",
-          "employment_history",
-          "enrollment_data",
-          "usi",
-        ],
+        ignoredKeys: APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
       }),
     [syncMetadata],
   );
+
+  const syncMutationsInFlight = useIsMutating({
+    predicate: (mutation) => {
+      const mutationKey = mutation.options.mutationKey;
+      if (!Array.isArray(mutationKey) || mutationKey.length === 0) {
+        return false;
+      }
+
+      const key = String(mutationKey[0]);
+      if (key === "galaxy-sync-declaration") return false;
+
+      return (
+        key.startsWith("galaxy-sync-") ||
+        key === "application-enroll-galaxy-course"
+      );
+    },
+  });
+
+  const hadSectionSyncMutationRef = useRef(false);
+
+  useEffect(() => {
+    console.log("[Declaration][Auto] effect tick", {
+      applicationId,
+      showSync,
+      isStaffOrAdmin,
+      syncMutationsInFlight,
+      hadSectionSyncMutation: hadSectionSyncMutationRef.current,
+      declarationPending: syncDeclaration.isPending,
+    });
+
+    if (!showSync || !isStaffOrAdmin || !applicationId) {
+      console.log("[Declaration][Auto] skipped: guard failed", {
+        showSync,
+        isStaffOrAdmin,
+        hasApplicationId: !!applicationId,
+      });
+      return;
+    }
+
+    if (syncMutationsInFlight > 0) {
+      hadSectionSyncMutationRef.current = true;
+      console.log(
+        "[Declaration][Auto] waiting: section sync mutation still in flight",
+      );
+      return;
+    }
+
+    if (!hadSectionSyncMutationRef.current) {
+      console.log(
+        "[Declaration][Auto] skipped: no completed section sync mutation detected",
+      );
+      return;
+    }
+    hadSectionSyncMutationRef.current = false;
+
+    const runDeclarationAfterSectionSync = async () => {
+      try {
+        console.log("[Declaration][Auto] fetching latest application");
+        const applicationResponse =
+          await applicationService.getApplication(applicationId);
+        if (!applicationResponse.success || !applicationResponse.data) {
+          console.warn(
+            "[Declaration][Auto] skip: failed to fetch application",
+            {
+              success: applicationResponse.success,
+              message: applicationResponse.message,
+            },
+          );
+          return;
+        }
+
+        const latestSyncMetadata =
+          applicationResponse.data.sync_metadata ?? null;
+        const allSynced = isSyncMetadataComplete(latestSyncMetadata, {
+          ignoredKeys: APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+          allowNullKeys: APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
+          requireNoErrors: true,
+        });
+
+        console.log("[Declaration][Auto] sync completeness check", {
+          allSynced,
+          declarationMeta: latestSyncMetadata?.declaration ?? null,
+        });
+
+        if (!allSynced) {
+          console.log("[Declaration][Auto] skipped declaration call", {
+            reason: "not_all_synced",
+          });
+          return;
+        }
+
+        console.log("[Declaration][Auto] calling declaration endpoint");
+        await syncDeclaration.mutateAsync();
+        console.log("[Declaration][Auto] declaration call completed");
+      } catch (error) {
+        console.error("[Declaration][Auto] declaration flow failed", error);
+      } finally {
+        queryClient.invalidateQueries({
+          queryKey: ["application-get", applicationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["application-list"],
+        });
+      }
+    };
+
+    void runDeclarationAfterSectionSync();
+  }, [
+    applicationId,
+    isStaffOrAdmin,
+    queryClient,
+    showSync,
+    syncDeclaration,
+    syncMutationsInFlight,
+  ]);
 
   const stageBadge = useMemo(() => {
     const stage = application?.current_stage;
@@ -188,9 +309,14 @@ const ReviewForm = ({
   }, [sections]);
 
   const handleFormSubmit = () => {
-    if (applicationId) {
-      submitApplication.mutate();
+    if (!applicationId) return;
+
+    if (isEditMode) {
+      router.push(siteRoutes.dashboard.application.id.details(applicationId));
+      return;
     }
+
+    submitApplication.mutate();
   };
 
   if (isLoading) return <LoadingState />;
@@ -330,19 +456,25 @@ const ReviewForm = ({
             <SyncActionButton
               showSync={showSync}
               isStaffOrAdmin={isStaffOrAdmin}
-              onClick={() =>
-                syncDocuments.mutate(undefined, {
-                  onSettled: () => {
-                    queryClient.invalidateQueries({
-                      queryKey: ["application-get", applicationId],
-                    });
-                    queryClient.invalidateQueries({
-                      queryKey: ["application-list"],
-                    });
-                  },
-                })
-              }
-              isPending={syncDocuments.isPending}
+              onClick={async () => {
+                try {
+                  console.log("[Documents Sync] manual sync clicked", {
+                    applicationId,
+                  });
+                  await syncDocuments.mutateAsync();
+                  console.log("[Documents Sync] manual sync completed", {
+                    applicationId,
+                  });
+                } finally {
+                  queryClient.invalidateQueries({
+                    queryKey: ["application-get", applicationId],
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["application-list"],
+                  });
+                }
+              }}
+              isPending={syncDocuments.isPending || syncDeclaration.isPending}
               syncMeta={application?.sync_metadata?.documents}
             />
           }

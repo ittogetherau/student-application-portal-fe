@@ -16,7 +16,7 @@ import {
   SyncMetadataNote,
   type SyncMetadataItem,
 } from "@/features/application-form/components/sync-review/sync-metadata-note";
-import { useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
+import { useApplicationEnrollGalaxyCourseMutation } from "@/shared/hooks/use-applications";
 import {
   formatClassType,
   formatYesNo,
@@ -44,7 +44,8 @@ export function EnrollmentSection(props: {
   const { applicationId, enrollmentData, showSync, isStaffOrAdmin, syncMeta } =
     props;
   const queryClient = useQueryClient();
-  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
+  const syncEnrollment =
+    useApplicationEnrollGalaxyCourseMutation(applicationId);
   if (!enrollmentData) return null;
   const enrollments = enrollmentData?.enrollments || [];
   const invalidateApplication = () => {

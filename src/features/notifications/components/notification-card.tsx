@@ -15,6 +15,7 @@ import type { NotificationItem } from "@/features/notifications/service/notifica
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { cn } from "@/shared/lib/utils";
 import { useRouter } from "next/navigation";
+import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 
 type props = {
   notification: NotificationItem;
@@ -30,7 +31,9 @@ const COMMUNICATION_NOTIFICATION_TITLES = new Set([
   normalizeNotificationTitle("Thread created"),
 ]);
 
-function resolveNotificationDestination(notification: NotificationItem): string {
+function resolveNotificationDestination(
+  notification: NotificationItem,
+): string {
   const applicationId = notification.related_id;
   if (!applicationId) return siteRoutes.dashboard.notifications;
 
@@ -43,7 +46,7 @@ function resolveNotificationDestination(notification: NotificationItem): string 
   }
 
   const searchableText =
-    `${notification.title} ${notification.message} ${notification.type}`.toLowerCase();
+    `${notification.title} ${notification.type}`.toLowerCase();
 
   if (searchableText.includes("gs")) {
     return siteRoutes.dashboard.application.id.gs(applicationId);
@@ -105,21 +108,33 @@ export default function NotificationCard({ notification, className }: props) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p
-              className={cn("text-sm font-medium", !isRead && "font-semibold")}
-            >
-              {notification.title}
-            </p>
+            <div className="flex items-center justify-between gap-2 w-full ">
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  !isRead && "font-semibold",
+                )}
+              >
+                {notification.title}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {formatUtcToFriendlyLocal(notification.created_at)}
+              </p>
+            </div>
+
             {!isRead && (
               <div className="shrink-0 h-2 w-2 rounded-full bg-primary mt-1.5" />
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-            {notification.message}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            {new Date(notification.created_at).toLocaleString()}
-          </p>
+          <p
+            dangerouslySetInnerHTML={{
+              __html: notification?.message
+                ?.split("\n")
+                ?.toSpliced(1, 2)
+                ?.join("<br />"),
+            }}
+            className="text-xs text-muted-foreground mt-1"
+          />
         </div>
       </div>
     </div>

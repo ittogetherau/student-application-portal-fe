@@ -20,6 +20,10 @@ import {
   UnsyncedSectionsCard,
 } from "@/features/application-detail/components/cards";
 import { isSyncMetadataComplete } from "@/features/application-form/components/sync/sync-all-to-galaxy";
+import {
+  APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
+  APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+} from "@/shared/constants/application-sync";
 import type { ApplicationSyncMetadata } from "@/service/application.service";
 import {
   formatStageLabel,
@@ -56,19 +60,6 @@ const SYNC_SECTION_LABELS: Record<string, string> = {
   declaration: "Declaration",
 };
 
-const SYNC_IGNORED_KEYS: (keyof ApplicationSyncMetadata)[] = [
-  "additional_services",
-  "survey_responses",
-  "declaration",
-  "enrollment_data",
-  "employment_history",
-  "usi",
-];
-
-const SYNC_ALLOW_NULL_KEYS: (keyof ApplicationSyncMetadata)[] = [
-  "qualifications",
-];
-
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const { data: response, isLoading } = useApplicationGetQuery(id);
   const router = useRouter();
@@ -84,8 +75,8 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const isAllStagesSynced = useMemo(
     () =>
       isSyncMetadataComplete(application?.sync_metadata ?? null, {
-        ignoredKeys: SYNC_IGNORED_KEYS,
-        allowNullKeys: SYNC_ALLOW_NULL_KEYS,
+        ignoredKeys: APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+        allowNullKeys: APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
         requireNoErrors: true,
       }),
     [application?.sync_metadata],
@@ -98,12 +89,16 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
     return Object.entries(metadata)
       .filter(
         ([key]) =>
-          !SYNC_IGNORED_KEYS.includes(key as keyof ApplicationSyncMetadata),
+          !APPLICATION_SYNC_COMPLETION_IGNORED_KEYS.includes(
+            key as keyof ApplicationSyncMetadata,
+          ),
       )
       .filter(([key, value]) => {
         if (
           value == null &&
-          SYNC_ALLOW_NULL_KEYS.includes(key as keyof ApplicationSyncMetadata)
+          APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS.includes(
+            key as keyof ApplicationSyncMetadata,
+          )
         ) {
           return false;
         }

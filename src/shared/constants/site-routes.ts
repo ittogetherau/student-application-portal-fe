@@ -1,3 +1,10 @@
+type GS_TABS_TYPE =
+  | "documents"
+  | "declarations"
+  | "schedule"
+  | "interview"
+  | "assessment";
+
 export const siteRoutes = {
   home: "/",
   auth: {
@@ -20,7 +27,8 @@ export const siteRoutes = {
         timeline: (id: string) => `/dashboard/application/${id}/timeline`,
         communication: (id: string) =>
           `/dashboard/application/${id}/communication`,
-        gs: (id: string) => `/dashboard/application/${id}/gs-process`,
+        gs: (id: string, tab?: GS_TABS_TYPE) =>
+          `/dashboard/application/${id}/gs-process${tab ? `?gs_process_tab=${tab}` : ""}`,
         coe: (id: string) => `/dashboard/application/${id}/coe`,
       },
     },

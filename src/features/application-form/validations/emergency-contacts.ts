@@ -8,7 +8,10 @@ export const contactSchema = z.object({
   relationship: z
     .string()
     .nullish()
-    .refine((val) => !!val && val.length > 0, "Please describe the relationship"),
+    .refine(
+      (val) => !!val && val.length > 0,
+      "Please describe the relationship",
+    ),
   phone: z
     .string()
     .max(15, "Phone number must be at most 15 characters")
@@ -19,7 +22,7 @@ export const contactSchema = z.object({
     .nullish()
     .refine(
       (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-      "Enter a valid email address"
+      "Enter a valid email address",
     ),
   address: z
     .string()

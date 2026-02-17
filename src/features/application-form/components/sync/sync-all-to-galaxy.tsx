@@ -1,7 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ApplicationSyncMetadata } from "@/service/application.service";
+import applicationService, {
+  ApplicationSyncMetadata,
+} from "@/service/application.service";
+import {
+  APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
+  APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+} from "@/shared/constants/application-sync";
 import { useApplicationEnrollGalaxyCourseMutation } from "@/shared/hooks/use-applications";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -42,12 +48,6 @@ interface SyncTaskConfig {
   run: () => Promise<unknown>;
   upToDate: boolean;
 }
-
-const hasSyncError = (value: unknown): boolean => {
-  if (value === null || value === undefined) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  return true;
-};
 
 const SYNC_METADATA_LABELS: Record<string, string> = {
   enrollment_data: "Enrollment",
@@ -178,7 +178,6 @@ const SyncToGalaxyButton = ({
     employment,
     usi,
     documents,
-    survey,
   } = availability ?? {};
 
   const tasks: SyncTaskConfig[] = [
@@ -259,32 +258,9 @@ const SyncToGalaxyButton = ({
       upToDate: syncMetadata?.documents?.uptodate === true,
       run: () => syncDocuments.mutateAsync(),
     },
-    {
-      label: "Declaration",
-      metaKey: "declaration",
-      enabled: survey === true,
-      upToDate: syncMetadata?.declaration?.uptodate === true,
-      run: () => syncDeclaration.mutateAsync(),
-    },
   ];
 
-  const declarationTask = tasks.find((task) => task.metaKey === "declaration");
-  const declarationPrerequisitesMet = tasks
-    .filter((task) => task.enabled && task.metaKey !== "declaration")
-    .every((task) => {
-      const meta = syncMetadata?.[task.metaKey];
-      return (
-        meta?.uptodate === true &&
-        !!meta?.last_synced_at &&
-        !hasSyncError(meta?.last_error)
-      );
-    });
-
-  const runnable = tasks.filter((task) => {
-    if (!task.enabled || task.upToDate) return false;
-    if (task.metaKey === "declaration") return declarationPrerequisitesMet;
-    return true;
-  });
+  const runnable = tasks.filter((task) => task.enabled && !task.upToDate);
 
   const isSyncing =
     syncPersonalDetails.isPending ||
@@ -302,44 +278,80 @@ const SyncToGalaxyButton = ({
 
   const handleSync = async () => {
     try {
-      if (!runnable.length) {
-        if (
-          declarationTask?.enabled &&
-          declarationTask.upToDate !== true &&
-          !declarationPrerequisitesMet
-        ) {
-          toast(
-            "Declaration will sync after all other sections are up to date.",
-            {
-              id: SYNC_TOAST_ID,
-            },
+      console.log("[SyncAll] start", {
+        applicationId,
+        runnableTasks: runnable.map((task) => task.metaKey),
+      });
+      toast.loading("Syncing sections to Galaxy...", { id: SYNC_TOAST_ID });
+
+      if (runnable.length) {
+        const results = await Promise.allSettled(
+          runnable.map(async (task) => {
+            await task.run();
+            return task.label;
+          }),
+        );
+
+        const failures = results.filter(
+          (result) => result.status === "rejected",
+        );
+
+        if (failures.length) {
+          console.error("[SyncAll] section sync failures", {
+            failures,
+          });
+          toast.error(
+            `Failed to sync ${failures.length} section${failures.length === 1 ? "" : "s"}.`,
+            { id: SYNC_TOAST_ID },
           );
           return;
         }
-        toast("Everything is already synced.", { id: SYNC_TOAST_ID });
-        return;
       }
 
-      toast.loading("Syncing sections to Galaxy...", { id: SYNC_TOAST_ID });
+      console.log("[SyncAll] fetching latest sync metadata");
+      const latestApplication = await queryClient.fetchQuery({
+        queryKey: ["application-get", applicationId],
+        queryFn: async () => {
+          const response =
+            await applicationService.getApplication(applicationId);
+          if (!response.success) throw new Error(response.message);
+          return response.data;
+        },
+        staleTime: 0,
+      });
 
-      const results = await Promise.allSettled(
-        runnable.map(async (task) => {
-          await task.run();
-          return task.label;
-        }),
-      );
+      const latestSyncMetadata = latestApplication?.sync_metadata ?? null;
+      const isAllStagesSynced = isSyncMetadataComplete(latestSyncMetadata, {
+        ignoredKeys: APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
+        allowNullKeys: APPLICATION_SYNC_COMPLETION_ALLOW_NULL_KEYS,
+        requireNoErrors: true,
+      });
 
-      const failures = results.filter((result) => result.status === "rejected");
+      console.log("[SyncAll] sync completeness check", {
+        isAllStagesSynced,
+        declarationMeta: latestSyncMetadata?.declaration ?? null,
+      });
 
-      if (failures.length) {
-        toast.error(
-          `Failed to sync ${failures.length} section${failures.length === 1 ? "" : "s"}.`,
+      if (!isAllStagesSynced) {
+        console.log("[SyncAll] declaration skipped: not all stages synced");
+        toast(
+          "Declaration will sync after all required sections are up to date.",
           { id: SYNC_TOAST_ID },
         );
         return;
       }
 
+      console.log("[SyncAll] calling declaration endpoint");
+      await syncDeclaration.mutateAsync();
+      console.log("[SyncAll] declaration call completed");
+
       toast.success("All sections synced to Galaxy.", { id: SYNC_TOAST_ID });
+    } catch (error) {
+      console.error("[SyncAll] flow failed", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to sync sections.",
+        { id: SYNC_TOAST_ID },
+      );
     } finally {
       queryClient.invalidateQueries({
         queryKey: ["application-get", applicationId],
