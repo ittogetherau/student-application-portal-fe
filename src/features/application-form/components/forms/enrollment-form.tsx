@@ -67,22 +67,6 @@ const toId = (value: unknown): number | undefined => {
 
 const MIN_INTAKE_START_YEAR = new Date().getFullYear();
 
-const getStartYear = (value: unknown): number | null => {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const yearPrefix = /^(\d{4})/.exec(trimmed);
-  if (yearPrefix) {
-    const year = Number(yearPrefix[1]);
-    return Number.isFinite(year) ? year : null;
-  }
-
-  const parsed = new Date(trimmed);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.getUTCFullYear();
-};
-
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
   const [resolvedApplicationId, setResolvedApplicationId] = useState<
@@ -217,8 +201,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const availableIntakes = useMemo(
     () =>
       (intakesResponse?.data ?? []).filter((intake) => {
-        const year = getStartYear(intake.intake_start);
-        return year !== null && year >= MIN_INTAKE_START_YEAR;
+        const intakeYear = toId(intake.intake_year);
+        return (
+          intakeYear !== undefined && intakeYear >= MIN_INTAKE_START_YEAR
+        );
       }),
     [intakesResponse?.data],
   );
