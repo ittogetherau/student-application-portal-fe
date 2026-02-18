@@ -7,10 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Loader2, OctagonAlert, RefreshCw } from "lucide-react";
-import {
-  formatSyncError,
-  type SyncMetadataItem,
-} from "./sync-metadata-note";
+import { formatSyncError, type SyncMetadataItem } from "./sync-metadata-note";
+import { cn } from "@/shared/lib/utils";
 
 export function SyncActionButton({
   showSync,
@@ -44,48 +42,51 @@ export function SyncActionButton({
   // Only show a sync button when it's been synced/attempted before (or errored) and is out-of-date.
   const showSyncButton = !isUpToDate && (hasEverSynced || hasError);
 
-  // Show an alert icon when out-of-date OR errored.
-  const showAlertIcon = !isUpToDate || hasError;
-  const alertText =
-    errorText ?? "Out of date in Galaxy. Please sync to Galaxy.";
+  // Sync alert state: out-of-date or errored.
+  const syncAlert = !isUpToDate || hasError;
+  const alertText = errorText ?? "Not synced with galaxy.";
+
+  if (!showSyncButton) return null;
+
+  const syncButton = (
+    <Button
+      type="button"
+      variant={"outline"}
+      size="sm"
+      className={cn(
+        "h-7 gap-2 px-2 text-xs",
+        syncAlert && "!border-destructive",
+      )}
+      onClick={onClick}
+      disabled={isPending}
+    >
+      {isPending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : syncAlert ? (
+        <OctagonAlert className="h-3.5 w-3.5 text-destructive animate-scale-pulse" />
+      ) : (
+        <RefreshCw className="h-3.5 w-3.5" />
+      )}
+      Sync to Galaxy
+    </Button>
+  );
 
   return (
     <section className="flex items-center">
-      {!showAlertIcon ? null : (
-        <div className="animate-scale-pulse">
+      {!syncAlert ? (
+        syncButton
+      ) : (
+        <div>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-destructive"
-              >
-                <OctagonAlert />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-wrap">
+            <TooltipTrigger asChild>{syncButton}</TooltipTrigger>
+            <TooltipContent
+              className="max-w-xs text-wrap"
+              variant="destructive"
+            >
               {alertText}
             </TooltipContent>
           </Tooltip>
         </div>
-      )}
-
-      {!showSyncButton ? null : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1 px-2 text-xs"
-          onClick={onClick}
-          disabled={isPending}
-        >
-          {isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
-          )}
-          Sync to Galaxy
-        </Button>
       )}
     </section>
   );

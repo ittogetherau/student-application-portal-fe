@@ -2,7 +2,10 @@
 
 import { siteRoutes } from "@/shared/constants/site-routes";
 import ApplicationSignStage from "@/features/application-detail/components/stages/application-sign-stage";
-import type { ApplicationDetailResponse } from "@/service/application.service";
+import type {
+  ApplicationDetailResponse,
+  ApplicationSyncMetadata,
+} from "@/service/application.service";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
 import { useApplicationChangeStageMutation } from "@/shared/hooks/use-applications";
 import type { ServiceResponse } from "@/shared/types/service";
@@ -15,7 +18,7 @@ type OfferLetterStageCardProps = {
   studentEmail?: string | null;
   isInteractive: boolean;
   isAllStagesSynced: boolean;
-  onSyncBlocked: () => void;
+  syncMetadata?: ApplicationSyncMetadata | null;
 };
 
 export default function OfferLetterStageCard({
@@ -24,7 +27,7 @@ export default function OfferLetterStageCard({
   studentEmail,
   isInteractive,
   isAllStagesSynced,
-  onSyncBlocked,
+  syncMetadata,
 }: OfferLetterStageCardProps) {
   const changeStage = useApplicationChangeStageMutation(applicationId);
   const router = useRouter();
@@ -60,7 +63,7 @@ export default function OfferLetterStageCard({
       handleStageChange={handleMoveToGs}
       isInteractive={isInteractive}
       isAllStagesSynced={isAllStagesSynced}
-      onSyncBlocked={onSyncBlocked}
+      syncMetadata={syncMetadata}
     />
   );
 }

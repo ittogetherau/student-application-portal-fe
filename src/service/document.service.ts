@@ -174,13 +174,16 @@ class DocumentService extends ApiService {
 
   listApplicationDocuments(
     applicationId: string,
+    merged: boolean = true,
   ): Promise<ServiceResponse<ApplicationDocumentListItem[]>> {
+    const queryString = buildQueryString({ merged });
+
     return resolveServiceCall<ApplicationDocumentListItem[]>(
       async () => {
         const data = await this.get<
           | ApplicationDocumentListItem[]
           | { items?: ApplicationDocumentListItem[] }
-        >(`${this.basePath}/application/${applicationId}/list`, true);
+        >(`${this.basePath}/application/${applicationId}/list${queryString}`, true);
 
         if (Array.isArray(data)) return data;
         if (data && Array.isArray(data.items)) return data.items;

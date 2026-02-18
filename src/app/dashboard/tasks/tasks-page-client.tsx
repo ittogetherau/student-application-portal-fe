@@ -541,7 +541,7 @@ export default function TasksPageClient() {
                 <div className="pt-2 border-t">
                   {selectedApplicationId ? (
                     <Link
-                      href={siteRoutes.dashboard.application.id.root(
+                      href={siteRoutes.dashboard.application.id.details(
                         selectedApplicationId,
                       )}
                     >

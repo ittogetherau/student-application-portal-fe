@@ -65,6 +65,24 @@ const toId = (value: unknown): number | undefined => {
   return undefined;
 };
 
+const MIN_INTAKE_START_YEAR = new Date().getFullYear();
+
+const getStartYear = (value: unknown): number | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const yearPrefix = /^(\d{4})/.exec(trimmed);
+  if (yearPrefix) {
+    const year = Number(yearPrefix[1]);
+    return Number.isFinite(year) ? year : null;
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.getUTCFullYear();
+};
+
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
   const [resolvedApplicationId, setResolvedApplicationId] = useState<
@@ -190,13 +208,18 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const {
     data: intakesResponse,
     isLoading: isLoadingIntakes,
+    isFetching: isFetchingIntakes,
     error: intakesError,
   } = useCourseIntakesQuery(selectedCourse?.course_code, {
     campus: campusValue,
   });
 
   const availableIntakes = useMemo(
-    () => intakesResponse?.data ?? [],
+    () =>
+      (intakesResponse?.data ?? []).filter((intake) => {
+        const year = getStartYear(intake.intake_start);
+        return year !== null && year >= MIN_INTAKE_START_YEAR;
+      }),
     [intakesResponse?.data],
   );
 
@@ -205,6 +228,39 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const course = courses.find((item) => toId(item.id) === selectedCourseId);
     return course?.campuses ?? [];
   }, [courses, selectedCourseId]);
+
+  const canFetchIntakes = !!courseValue && !!campusValue;
+  const isIntakesLoading =
+    canFetchIntakes && (isLoadingIntakes || isFetchingIntakes);
+  const hasIntakes = availableIntakes.length > 0;
+  const intakePlaceholder = !courseValue
+    ? "Select course first"
+    : !campusValue
+      ? "Select campus first"
+      : isIntakesLoading
+        ? "Loading intakes..."
+        : hasIntakes
+          ? "Select intake"
+          : "No intakes available";
+
+  useEffect(() => {
+    if (!canFetchIntakes || isIntakesLoading) return;
+    const currentIntake = toId(intakeValue);
+    if (!currentIntake) return;
+
+    const intakeStillValid = availableIntakes.some(
+      (intake) => toId(intake.id) === currentIntake,
+    );
+    if (!intakeStillValid) {
+      resetField("intake", { defaultValue: undefined });
+    }
+  }, [
+    availableIntakes,
+    canFetchIntakes,
+    intakeValue,
+    isIntakesLoading,
+    resetField,
+  ]);
 
   const handleFieldChange = (
     field: "course" | "intake" | "campus",
@@ -486,25 +542,33 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                   <Select
                     value={value ? String(value) : ""}
                     onValueChange={(v) => handleFieldChange("intake", v)}
-                    disabled={!courseValue || !campusValue || isLoadingIntakes}
+                    disabled={!courseValue || !campusValue || isIntakesLoading}
                   >
                     <SelectTrigger
                       aria-invalid={!!methods.formState.errors.intake}
                     >
-                      <SelectValue
-                        placeholder={
-                          isLoadingIntakes
-                            ? "Loading intakes..."
-                            : "Select intake"
-                        }
-                      />
+                      <SelectValue placeholder={intakePlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableIntakes.map((i) => (
-                        <SelectItem key={i.id} value={String(i.id)}>
-                          {i.intake_name}
+                      {!courseValue || !campusValue ? (
+                        <SelectItem value="__intake-prereq__" disabled>
+                          Select course and campus first
                         </SelectItem>
-                      ))}
+                      ) : isIntakesLoading ? (
+                        <SelectItem value="__intake-loading__" disabled>
+                          Loading intakes...
+                        </SelectItem>
+                      ) : !hasIntakes ? (
+                        <SelectItem value="__intake-empty__" disabled>
+                          No intakes available
+                        </SelectItem>
+                      ) : (
+                        availableIntakes.map((i) => (
+                          <SelectItem key={i.id} value={String(i.id)}>
+                            {i.intake_name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 )}

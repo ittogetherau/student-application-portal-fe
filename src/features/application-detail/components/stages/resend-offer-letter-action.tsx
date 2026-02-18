@@ -16,6 +16,7 @@ import { useState } from "react";
 type ResendOfferLetterActionProps = {
   isVisible: boolean;
   hasStudentEmail: boolean;
+  isAllStagesSynced?: boolean;
   isSending: boolean;
   onBeforeOpen?: () => boolean;
   onConfirm: () => Promise<void>;
@@ -24,6 +25,7 @@ type ResendOfferLetterActionProps = {
 export default function ResendOfferLetterAction({
   isVisible,
   hasStudentEmail,
+  isAllStagesSynced = true,
   isSending,
   onBeforeOpen,
   onConfirm,
@@ -31,9 +33,12 @@ export default function ResendOfferLetterAction({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!isVisible) return null;
+  const isSyncBlocked = !isAllStagesSynced;
 
   const handleOpenClick = () => {
-    if (onBeforeOpen && !onBeforeOpen()) return;
+    if (isSyncBlocked || (onBeforeOpen && !onBeforeOpen())) {
+      return;
+    }
     setConfirmOpen(true);
   };
 
@@ -48,7 +53,7 @@ export default function ResendOfferLetterAction({
         <Button
           className="w-full h-9 text-xs font-semibold"
           variant="outline"
-          disabled={!hasStudentEmail || isSending}
+          disabled={!hasStudentEmail || isSending || isSyncBlocked}
           onClick={handleOpenClick}
         >
           {isSending ? (
@@ -91,6 +96,11 @@ export default function ResendOfferLetterAction({
       {!hasStudentEmail && (
         <p className="mt-2 text-[10px] text-center text-destructive font-medium">
           Student email required
+        </p>
+      )}
+      {isSyncBlocked && (
+        <p className="mt-2 text-[10px] text-center text-destructive font-medium">
+          All sections must be synced before resending.
         </p>
       )}
     </div>

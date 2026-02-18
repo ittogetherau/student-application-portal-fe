@@ -81,6 +81,38 @@ export interface GsDeclarationSubmitRequest {
   [key: string]: unknown;
 }
 
+export interface GsDeclarationApplicationPrefill {
+  tracking_code?: string;
+  given_name?: string;
+  family_name?: string;
+  date_of_birth?: string;
+  passport_number?: string;
+  email?: string;
+  citizenship_status?: string;
+  country_of_residence?: string;
+  usi?: string;
+  campus_name?: string;
+  generated_stud_id?: string;
+  [key: string]: unknown;
+}
+
+export interface GsPublicDeclarationResponse {
+  application_id: string;
+  tracking_code?: string;
+  expires_at?: string;
+  declaration: GsDeclarationResponse;
+  application_prefill?: GsDeclarationApplicationPrefill;
+  [key: string]: unknown;
+}
+
+export interface GsDeclarationDocumentUploadRequest {
+  file?: File;
+  files?: File[];
+  document_name?: string;
+  document_names?: string[];
+  document_type_code: string;
+}
+
 export interface GsDeclarationReviewRequest {
   status: "draft" | "approved" | "rejected" | string;
   review_notes?: string;
@@ -142,7 +174,7 @@ export interface StaffAssessmentSaveRequest {
   [key: string]: unknown;
 }
 
-export interface StaffAssessmentSubmitRequest extends StaffAssessmentSaveRequest {}
+export type StaffAssessmentSubmitRequest = StaffAssessmentSaveRequest;
 
 export interface StaffAssessmentDecisionRequest {
   final_decision: "approved" | "rejected" | string;
@@ -180,6 +212,31 @@ class GsAssessmentService extends ApiService {
         Authorization: `Bearer ${token}`,
       },
     };
+  }
+
+  private buildDeclarationDocumentUploadFormData(
+    payload: GsDeclarationDocumentUploadRequest,
+  ): FormData {
+    const formData = new FormData();
+    const { file, files, document_name, document_names, document_type_code } =
+      payload;
+
+    if (!document_type_code) throw new Error("Document type code is required");
+    if (!file && (!files || files.length === 0)) {
+      throw new Error("At least one file is required");
+    }
+
+    formData.append("document_type_code", document_type_code);
+    if (file) formData.append("file", file);
+    if (files?.length) {
+      files.forEach((nextFile) => formData.append("files", nextFile));
+    }
+    if (document_name) formData.append("document_name", document_name);
+    if (document_names?.length) {
+      document_names.forEach((name) => formData.append("document_names", name));
+    }
+
+    return formData;
   }
 
   initializeAssessment = async (
@@ -428,6 +485,34 @@ class GsAssessmentService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to resend student declaration");
+    }
+  };
+
+  uploadStudentDeclarationDocument = async (
+    applicationId: string,
+    payload: GsDeclarationDocumentUploadRequest,
+  ): Promise<ServiceResponse<string>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const formData = this.buildDeclarationDocumentUploadFormData(payload);
+      const data = await this.post<string>(
+        `${this.basePath}/${applicationId}/student-declaration/documents/upload`,
+        formData,
+        true,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      return {
+        success: true,
+        message: "Student declaration document uploaded.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to upload student declaration document",
+      );
     }
   };
 
@@ -726,6 +811,25 @@ class GsAssessmentService extends ApiService {
     }
   };
 
+  getStudentDeclarationPublicLink = async (
+    token: string,
+  ): Promise<ServiceResponse<GsPublicDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.get<GsPublicDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}`,
+        false,
+      );
+      return {
+        success: true,
+        message: "Student declaration fetched.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch student declaration");
+    }
+  };
+
   // POST /api/v1/public/gs-declarations/{token}/save
   saveStudentDeclarationByToken = async (
     token: string,
@@ -734,6 +838,27 @@ class GsAssessmentService extends ApiService {
     if (!token) throw new Error("Token is required");
     try {
       const data = await this.post<GsDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}/save`,
+        payload,
+        false,
+      );
+      return {
+        success: true,
+        message: "Student declaration saved.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to save student declaration");
+    }
+  };
+
+  saveStudentDeclarationPublicLink = async (
+    token: string,
+    payload: GsDeclarationSaveRequest,
+  ): Promise<ServiceResponse<GsPublicDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.post<GsPublicDeclarationResponse>(
         `public/gs-declarations/${encodeURIComponent(token)}/save`,
         payload,
         false,
@@ -767,6 +892,55 @@ class GsAssessmentService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to submit student declaration");
+    }
+  };
+
+  submitStudentDeclarationPublicLink = async (
+    token: string,
+    payload: GsDeclarationSubmitRequest,
+  ): Promise<ServiceResponse<GsPublicDeclarationResponse>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const data = await this.post<GsPublicDeclarationResponse>(
+        `public/gs-declarations/${encodeURIComponent(token)}/submit`,
+        payload,
+        false,
+      );
+      return {
+        success: true,
+        message: "Student declaration submitted.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to submit student declaration");
+    }
+  };
+
+  uploadStudentDeclarationDocumentByToken = async (
+    token: string,
+    payload: GsDeclarationDocumentUploadRequest,
+  ): Promise<ServiceResponse<string>> => {
+    if (!token) throw new Error("Token is required");
+    try {
+      const formData = this.buildDeclarationDocumentUploadFormData(payload);
+      const data = await this.post<string>(
+        `public/gs-declarations/${encodeURIComponent(token)}/documents/upload`,
+        formData,
+        false,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      return {
+        success: true,
+        message: "Student declaration document uploaded.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(
+        error,
+        "Failed to upload student declaration document",
+      );
     }
   };
 }

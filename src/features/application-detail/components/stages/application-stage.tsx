@@ -218,7 +218,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             studentEmail={application?.personal_details?.email}
             isInteractive={isInteractive}
             isAllStagesSynced={isAllStagesSynced}
-            onSyncBlocked={() => setSyncAlertOpen(true)}
+            syncMetadata={application?.sync_metadata ?? null}
           />
         );
       }

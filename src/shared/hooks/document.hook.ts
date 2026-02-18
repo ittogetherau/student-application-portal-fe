@@ -54,13 +54,18 @@ export const useDocumentQuery = (
   });
 };
 
-export const useApplicationDocumentsQuery = (applicationId: string | null) => {
+export const useApplicationDocumentsQuery = (
+  applicationId: string | null,
+  options?: { merged?: boolean },
+) => {
+  const merged = options?.merged;
+
   return useQuery({
-    queryKey: ["application-documents", applicationId],
+    queryKey: ["application-documents", applicationId, { merged }],
     queryFn: async () => {
       if (!applicationId) throw new Error("Application ID is required");
       const response =
-        await documentService.listApplicationDocuments(applicationId);
+        await documentService.listApplicationDocuments(applicationId, merged);
       if (!response.success) {
         throw new Error(
           response.message || "Failed to fetch application documents",
@@ -123,7 +128,7 @@ export const useVerifyDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
-    ServiceResponse<any>,
+    ServiceResponse<unknown>,
     Error,
     {
       documentId: string;
@@ -195,7 +200,8 @@ export const useDeleteDocument = () => {
 };
 
 // Main hook that exports all document operations
-export const useDocuments = (applicationId: string | null) => {
+export const useDocuments = (_applicationId: string | null) => {
+  void _applicationId;
   const uploadDocument = useUploadDocument();
   const deleteDocument = useDeleteDocument();
 

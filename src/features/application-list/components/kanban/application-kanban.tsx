@@ -2,9 +2,7 @@
 
 import {
   APPLICATION_KANBAN_STAGES,
-  getRoleStageLabel,
   getStageKanbanBackground,
-  getStageKanbanColor,
   getStageLabel,
 } from "@/shared/config/application-stage.config";
 import { Badge } from "@/components/ui/badge";
@@ -39,13 +37,41 @@ interface ApplicationKanbanProps {
   isallowMovingInKanban: boolean;
 }
 
+const KANBAN_COLLAPSE_STORAGE_KEY = "application-kanban-collapsed-stages-v1";
+
+const getDefaultCollapsedStages = (): Record<APPLICATION_STAGE, boolean> =>
+  APPLICATION_KANBAN_STAGES.reduce(
+    (acc, stage) => ({ ...acc, [stage]: false }),
+    {} as Record<APPLICATION_STAGE, boolean>,
+  );
+
+const getInitialCollapsedStages = (): Record<APPLICATION_STAGE, boolean> => {
+  const defaults = getDefaultCollapsedStages();
+  if (typeof window === "undefined") return defaults;
+
+  try {
+    const raw = window.localStorage.getItem(KANBAN_COLLAPSE_STORAGE_KEY);
+    if (!raw) return defaults;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return defaults;
+
+    return APPLICATION_KANBAN_STAGES.reduce(
+      (acc, stage) => ({
+        ...acc,
+        [stage]: Boolean((parsed as Partial<Record<APPLICATION_STAGE, boolean>>)[stage]),
+      }),
+      defaults,
+    );
+  } catch {
+    return defaults;
+  }
+};
+
 function isTouchDevice() {
   if (typeof window === "undefined") return false;
   return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
-
-const getKanbanStageLabel = (stage: APPLICATION_STAGE, role?: USER_ROLE | string) =>
-  getRoleStageLabel(stage, role) ?? getStageLabel(stage);
 
 export function ApplicationKanban({
   data,
@@ -53,6 +79,9 @@ export function ApplicationKanban({
 }: ApplicationKanbanProps) {
   const { data: session } = useSession();
   const [applications, setApplications] = useState<ApplicationTableRow[]>(data);
+  const [collapsedStages, setCollapsedStages] = useState<
+    Record<APPLICATION_STAGE, boolean>
+  >(getInitialCollapsedStages);
   const [activeApplication, setActiveApplication] =
     useState<ApplicationTableRow | null>(null);
   const queryClient = useQueryClient();
@@ -66,6 +95,17 @@ export function ApplicationKanban({
   useEffect(() => {
     setApplications(data);
   }, [data]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        KANBAN_COLLAPSE_STORAGE_KEY,
+        JSON.stringify(collapsedStages),
+      );
+    } catch {
+      // ignore storage write failures (private mode/quota)
+    }
+  }, [collapsedStages]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -220,6 +260,13 @@ export function ApplicationKanban({
     return grouped;
   }, [applications]);
 
+  const onToggleColumnCollapse = useCallback((stage: APPLICATION_STAGE) => {
+    setCollapsedStages((prev) => ({
+      ...prev,
+      [stage]: !prev[stage],
+    }));
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -236,10 +283,11 @@ export function ApplicationKanban({
               key={stage}
               stage={stage}
               applications={applicationsByStage[stage] || []}
-              statusLabel={getKanbanStageLabel(stage, role)}
-              statusColor={getStageKanbanColor(stage)}
+              role={role}
               statusBackground={getStageKanbanBackground(stage)}
               isallowMovingInKanban={isallowMovingInKanban}
+              isCollapsed={collapsedStages[stage]}
+              onToggleCollapse={onToggleColumnCollapse}
             />
           ))}
         </div>

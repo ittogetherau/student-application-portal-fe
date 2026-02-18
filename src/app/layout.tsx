@@ -16,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Student Application Management System",
   description: "student-application-management-system",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

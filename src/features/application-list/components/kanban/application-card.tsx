@@ -138,7 +138,7 @@ export function ApplicationCard({
                 </div>
               )}
               <Link
-                href={siteRoutes.dashboard.application.id.root(app.id)}
+                href={siteRoutes.dashboard.application.id.details(app.id)}
                 className="flex-1 w-full"
               >
                 <Button

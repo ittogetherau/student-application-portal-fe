@@ -218,6 +218,10 @@ const ReviewForm = ({
   }, [application?.current_stage]);
 
   const enrollmentData: any = application?.enrollment_data;
+  const canManageEnrollment =
+    !!applicationId &&
+    isStaffOrAdmin &&
+    application?.current_stage !== APPLICATION_STAGE.DRAFT;
   const emergencyContacts = application?.emergency_contacts || [];
   const qualificationsData = Array.isArray(application?.qualifications)
     ? { qualifications: application.qualifications, has_qualifications: null }
@@ -368,6 +372,7 @@ const ReviewForm = ({
           enrollmentData={enrollmentData}
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
+          canManageEnrollment={canManageEnrollment}
           syncMeta={syncMetadata?.enrollment_data}
         />
         <PersonalDetailsSection

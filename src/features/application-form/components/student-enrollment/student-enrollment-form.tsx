@@ -234,14 +234,19 @@ const StudentEnrollmentForm = ({
         ? addWeeksToYmdDateString(intakeStart, durationWeeks)
         : null);
 
-    methods.setValue("preferred_start_date", intakeStart ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
-    methods.setValue("course_end_date", derivedEndDate ?? "", {
-      shouldDirty: false,
-      shouldValidate: false,
-    });
+    // Keep existing values from initialData when intake dates are unavailable.
+    if (intakeStart) {
+      methods.setValue("preferred_start_date", intakeStart, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+    if (derivedEndDate) {
+      methods.setValue("course_end_date", derivedEndDate, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
     if (durationWeeks && durationWeeks > 0) {
       methods.setValue("no_of_weeks", durationWeeks, {
         shouldDirty: false,

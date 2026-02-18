@@ -123,7 +123,7 @@ export function DraftApplications({
         ),
       },
     ],
-    []
+    [],
   );
 
   const table = useReactTable({
@@ -172,7 +172,7 @@ export function DraftApplications({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   ))}
@@ -187,7 +187,7 @@ export function DraftApplications({
                     className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() =>
                       router.push(
-                        siteRoutes.dashboard.application.id.root(
+                        siteRoutes.dashboard.application.id.details(
                           row.original.applicationUuid,
                         ),
                       )
@@ -205,7 +205,7 @@ export function DraftApplications({
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}

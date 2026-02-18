@@ -17,8 +17,9 @@ export const siteRoutes = {
     root: "/dashboard",
     application: {
       root: "/dashboard/application",
-      create: "/dashboard/application/create",
-      edit: (id: string) => `/dashboard/application/create?id=${id}&edit=true`,
+      create: "/dashboard/application/manage-application",
+      edit: (id: string) =>
+        `/dashboard/application/manage-application?id=${id}&edit=true`,
       archived: "/dashboard/application/archived",
       id: {
         root: (id: string) => `/dashboard/application/${id}`,

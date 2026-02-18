@@ -252,7 +252,7 @@ export function DataTable<TData, TValue>({
 
                       if (applicationId) {
                         router.push(
-                          siteRoutes.dashboard.application.id.root(
+                          siteRoutes.dashboard.application.id.details(
                             applicationId,
                           ),
                         );

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApplicationGetMutation } from "@/shared/hooks/use-applications";
 import { cn } from "@/shared/lib/utils";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronLeft, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -18,6 +18,8 @@ import { useApplicationFormDataStore } from "../store/use-application-form-data.
 import { useApplicationStepStore } from "../store/use-application-step.store";
 import { useStepNavigation } from "../utils/use-step-navigation";
 import { FORM_COMPONENTS } from "./form-step-components";
+import Link from "next/link";
+import { siteRoutes } from "@/shared/constants/site-routes";
 
 const NewForm = ({
   applicationId: propApplicationId,
@@ -178,9 +180,22 @@ const NewForm = ({
       <ContainerLayout className="mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">
-              {isEditMode ? "Edit Application" : "Create New Application"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <Link
+                href={
+                  applicationId
+                    ? siteRoutes.dashboard.application.id.details(applicationId)
+                    : siteRoutes.dashboard.application.root
+                }
+              >
+                <Button size={"icon-sm"} variant={"outline"}>
+                  <ChevronLeft />
+                </Button>
+              </Link>
+              <h1 className="text-3xl font-bold">
+                {isEditMode ? "Edit Application" : "Create New Application"}
+              </h1>
+            </div>
             <p className="text-muted-foreground mt-1">
               {isEditMode
                 ? "Update your application details"

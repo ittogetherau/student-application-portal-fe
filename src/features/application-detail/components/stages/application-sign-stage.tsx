@@ -7,6 +7,7 @@ import {
   useApplicationRequestSignaturesMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/shared/hooks/use-applications";
+import type { ApplicationSyncMetadata } from "@/service/application.service";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import {
   AlertCircle,
@@ -15,8 +16,9 @@ import {
   Loader2,
   Mail,
 } from "lucide-react";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useMemo } from "react";
 import ResendOfferLetterAction from "./resend-offer-letter-action";
+import SyncToGalaxyButton from "@/features/application-form/components/sync/sync-all-to-galaxy";
 
 interface SignerRowProps {
   name: string;
@@ -79,6 +81,7 @@ interface ApplicationSignStageProps {
   handleStageChange: (val: APPLICATION_STAGE) => void;
   isInteractive?: boolean;
   isAllStagesSynced?: boolean;
+  syncMetadata?: ApplicationSyncMetadata | null;
   onSyncBlocked?: () => void;
 }
 
@@ -89,6 +92,7 @@ const ApplicationSignStage = ({
   handleStageChange,
   isInteractive = true,
   isAllStagesSynced = false,
+  syncMetadata,
   onSyncBlocked,
 }: ApplicationSignStageProps) => {
   const {
@@ -119,11 +123,52 @@ const ApplicationSignStage = ({
     return true;
   };
 
+  const firstItem = data?.items?.[0];
+  const hasUnsyncedOrOutdatedSection = useMemo(() => {
+    if (!syncMetadata) return false;
+
+    return Object.values(syncMetadata).some((item) => {
+      if (!item?.last_synced_at) return false;
+      return item.uptodate === false;
+    });
+  }, [syncMetadata]);
+
+  const isOfferLetterOutdated = useMemo(() => {
+    if (!syncMetadata) return !isAllStagesSynced;
+    if (!firstItem?.created_at) {
+      return !isAllStagesSynced || hasUnsyncedOrOutdatedSection;
+    }
+
+    const initiatedAtMs = Date.parse(firstItem.created_at);
+    if (!Number.isFinite(initiatedAtMs)) {
+      return !isAllStagesSynced || hasUnsyncedOrOutdatedSection;
+    }
+
+    const hasSyncAfterInitiated = Object.values(syncMetadata).some((item) => {
+      if (!item?.last_synced_at) return false;
+      const syncedAtMs = Date.parse(item.last_synced_at);
+      return Number.isFinite(syncedAtMs) && syncedAtMs > initiatedAtMs;
+    });
+
+    return (
+      !isAllStagesSynced ||
+      hasUnsyncedOrOutdatedSection ||
+      hasSyncAfterInitiated
+    );
+  }, [
+    firstItem,
+    hasUnsyncedOrOutdatedSection,
+    isAllStagesSynced,
+    syncMetadata,
+  ]);
+
   if (error) {
     return (
       <div className="space-y-2 text-center">
         <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
-        <p className="text-sm font-medium">Signature data unavailable</p>
+        <p className="text-sm font-medium">
+          We could not load signature details.
+        </p>
         <Button
           variant="outline"
           size="sm"
@@ -136,7 +181,6 @@ const ApplicationSignStage = ({
     );
   }
 
-  const firstItem = data?.items?.[0];
   const canShowResendOffer =
     currentRole === USER_ROLE.STAFF && (data?.items?.length ?? 0) > 0;
 
@@ -157,8 +201,8 @@ const ApplicationSignStage = ({
         <div className="text-center">
           <p className="text-xs text-muted-foreground italic">
             {isPending
-              ? "Loading signature records"
-              : "No active signature requests"}
+              ? "Loading signature requests..."
+              : "No active signature requests found."}
           </p>
         </div>
       ) : (
@@ -189,17 +233,26 @@ const ApplicationSignStage = ({
           </div>
 
           <p className="text-[10px] text-right text-muted-foreground mb-2">
-            Initiated{" "}
+            Initiated on{" "}
             {firstItem?.created_at
               ? formatUtcToFriendlyLocal(firstItem.created_at)
               : "-"}
           </p>
+
+          {isOfferLetterOutdated ? (
+            <p className="text-xs text-destructive mb-2 flex items-center gap-1">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              This offer letter is outdated. Please sync the outdated sections
+              and resend to use the latest synced data.
+            </p>
+          ) : null}
         </section>
       )}
 
       <ResendOfferLetterAction
         isVisible={canShowResendOffer}
         hasStudentEmail={!!studentEmail}
+        isAllStagesSynced={isAllStagesSynced}
         isSending={isSending}
         onBeforeOpen={handleBeforeResendOpen}
         onConfirm={handleResend}

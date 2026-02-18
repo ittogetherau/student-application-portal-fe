@@ -341,6 +341,7 @@ const UploadFilesTable = ({
 export default function DocumentsUploadForm() {
   const searchParams = useSearchParams();
   const applicationIdFromUrl = searchParams.get("id");
+  const isEditMode = Boolean(applicationIdFromUrl);
   const storedApplicationId = useApplicationFormDataStore(
     (state) => state.applicationId,
   );
@@ -357,7 +358,9 @@ export default function DocumentsUploadForm() {
     data: documentsResponse,
     isLoading: isLoadingUploadedDocuments,
     isFetching: isFetchingUploadedDocuments,
-  } = useApplicationDocumentsQuery(applicationId);
+  } = useApplicationDocumentsQuery(applicationId, {
+    merged: isEditMode ? false : undefined,
+  });
 
   const goToNext = useApplicationStepStore((state) => state.goToNext);
   const markStepCompleted = useApplicationStepStore(
@@ -536,7 +539,7 @@ export default function DocumentsUploadForm() {
         return prev;
       });
     }
-  }, [documentTypesKey, applicationId, getStepData]);
+  }, [documentTypesKey, applicationId, getStepData, sortedDocumentTypes]);
 
   // Auto-save
   useEffect(() => {
