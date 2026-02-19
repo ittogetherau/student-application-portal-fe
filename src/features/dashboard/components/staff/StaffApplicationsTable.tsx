@@ -26,7 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export interface Application {
   id: string;
@@ -163,6 +165,7 @@ interface StaffApplicationsTableProps {
 }
 
 export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
+  const router = useRouter();
   const { data: session } = useSession();
   const role = session?.user.role;
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -192,6 +195,11 @@ export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
       rowSelection,
     },
   });
+
+  const openApplicationDetails = (applicationId: string) => {
+    if (!applicationId) return;
+    router.push(siteRoutes.dashboard.application.id.details(applicationId));
+  };
 
   return (
     <div className="bg-card border-none shadow-none w-full">
@@ -243,6 +251,14 @@ export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className="border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors group cursor-pointer"
+                  onClick={() => openApplicationDetails(row.original.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openApplicationDetails(row.original.id);
+                    }
+                  }}
+                  tabIndex={0}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

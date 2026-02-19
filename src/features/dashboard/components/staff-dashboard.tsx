@@ -1,27 +1,69 @@
 "use client";
 
+import { useMemo } from "react";
+import { parseAsString, useQueryStates } from "nuqs";
 import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import { normalizeDashboardStatusItems } from "../utils/application-status";
 import { useStaffDashboardQuery } from "../hooks/useDashboard.hook";
 import {
   AlertsPanel,
+  ApplicationOutcomesChart,
   StaffApplicationsTable as ApplicationsTable,
   ApplicationStatusChart as StatusChart,
   StaffWorkloadSection as WorkloadSection,
 } from "./staff";
 import { Application } from "./staff/StaffApplicationsTable";
 
+const YYYY_MM_DD_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 export default function StaffDashboard() {
-  const { data } = useStaffDashboardQuery();
-  const dashboardData = data?.data;
-  const workload = dashboardData?.workload ?? {
+  const [{ start_date: startDateParam, end_date: endDateParam }] =
+    useQueryStates({
+      start_date: parseAsString,
+      end_date: parseAsString,
+    });
+
+  const dashboardFilters = useMemo(
+    () => ({
+      startDate:
+        startDateParam && YYYY_MM_DD_REGEX.test(startDateParam)
+          ? startDateParam
+          : undefined,
+      endDate:
+        endDateParam && YYYY_MM_DD_REGEX.test(endDateParam)
+          ? endDateParam
+          : undefined,
+    }),
+    [endDateParam, startDateParam],
+  );
+
+  const hasDistributionDateFilters = Boolean(
+    dashboardFilters.startDate || dashboardFilters.endDate,
+  );
+
+  const { data: baseDashboardResponse } = useStaffDashboardQuery();
+  const { data: distributionFilteredResponse } = useStaffDashboardQuery(
+    dashboardFilters,
+    { enabled: hasDistributionDateFilters },
+  );
+
+  const baseDashboardData = baseDashboardResponse?.data;
+  const workload = baseDashboardData?.workload ?? {
     assignedToMe: 0,
     unassigned: 0,
     overdue: 0,
   };
-  const statusDistribution = dashboardData?.statusDistribution ?? [];
-  const staffPerformance = dashboardData?.staffPerformance ?? [];
-  const priorityApplications = dashboardData?.priorityApplications ?? [];
+  const statusDistribution =
+    (hasDistributionDateFilters
+      ? distributionFilteredResponse?.data?.statusDistribution
+      : baseDashboardData?.statusDistribution) ?? [];
+  const staffPerformance = baseDashboardData?.staffPerformance ?? [];
+  const priorityApplications = baseDashboardData?.priorityApplications ?? [];
+  const applicationOutcomes = baseDashboardData?.applicationOutcomes ?? {
+    reviewed: 0,
+    coeIssued: 0,
+    rejected: 0,
+  };
 
   const staffStatusDistribution = normalizeDashboardStatusItems(
     statusDistribution.map((item) => ({
@@ -47,10 +89,16 @@ export default function StaffDashboard() {
       {/* Main Content */}
       <main className="wrapper py-2 space-y-6">
         {/* Workload Section */}
-        <section>
-          <WorkloadSection workload={workload} />
-        </section>
+        <section></section>
 
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 min-w-0 max-h-96">
+          <div className="">
+            <WorkloadSection workload={workload} />
+          </div>
+          <div className="min-w-0 col-span-2">
+            <ApplicationOutcomesChart outcomes={applicationOutcomes} />
+          </div>
+        </div>
         {/* Charts Row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-0">
           <div className="min-w-0">

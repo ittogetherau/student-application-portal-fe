@@ -1,6 +1,7 @@
 export { StaffKPICard } from './StaffKPICard';
 export { StaffWorkloadSection } from './StaffWorkloadSection';
 export { ApplicationStatusChart } from './ApplicationStatusChart';
+export { ApplicationOutcomesChart } from './ApplicationOutcomesChart';
 export { AlertsPanel } from './AlertsPanel';
 export { ProgramIntakeChart } from './ProgramIntakeChart';
 export { AgentPerformanceChart } from './AgentPerformanceChart';

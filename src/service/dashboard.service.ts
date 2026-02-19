@@ -33,11 +33,23 @@ export interface StaffDashboardPriorityApplication {
   assignedTo: string;
 }
 
+export interface StaffDashboardApplicationOutcomes {
+  reviewed: number;
+  coeIssued: number;
+  rejected: number;
+}
+
 export interface StaffDashboardResponse {
   workload: StaffDashboardWorkload;
   statusDistribution: StaffDashboardStatusDistributionItem[];
   staffPerformance: StaffDashboardPerformanceItem[];
   priorityApplications: StaffDashboardPriorityApplication[];
+  applicationOutcomes?: StaffDashboardApplicationOutcomes;
+}
+
+export interface StaffDashboardQueryParams {
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface AgentDashboardKpiTrend {
@@ -126,9 +138,18 @@ class DashboardService extends ApiService {
     );
   }
 
-  getStaffDashboard(): Promise<ServiceResponse<StaffDashboardResponse>> {
+  getStaffDashboard(
+    params: StaffDashboardQueryParams = {},
+  ): Promise<ServiceResponse<StaffDashboardResponse>> {
+    const queryParams: { start_date?: string; end_date?: string } = {};
+    if (params.startDate) queryParams.start_date = params.startDate;
+    if (params.endDate) queryParams.end_date = params.endDate;
+
+    const config =
+      Object.keys(queryParams).length > 0 ? { params: queryParams } : undefined;
+
     return resolveServiceCall<StaffDashboardResponse>(
-      () => this.get("staff/dashboard", true),
+      () => this.get("staff/dashboard", true, config),
       "Staff dashboard fetched.",
       "Failed to fetch staff dashboard",
     );

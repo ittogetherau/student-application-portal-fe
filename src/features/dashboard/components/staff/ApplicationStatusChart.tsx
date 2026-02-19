@@ -1,6 +1,16 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { Filter, X } from "lucide-react";
+import { parseAsString, useQueryStates } from "nuqs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Bar,
   BarChart,
@@ -24,6 +34,59 @@ interface ApplicationStatusChartProps {
 }
 
 export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
+  const [
+    { start_date: startDateParam, end_date: endDateParam },
+    setDateParams,
+  ] = useQueryStates({
+    start_date: parseAsString.withOptions({
+      history: "replace",
+      scroll: false,
+    }),
+    end_date: parseAsString.withOptions({ history: "replace", scroll: false }),
+  });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const appliedStartDate = startDateParam ?? "";
+  const appliedEndDate = endDateParam ?? "";
+
+  const [startDateDraft, setStartDateDraft] = useState(appliedStartDate);
+  const [endDateDraft, setEndDateDraft] = useState(appliedEndDate);
+
+  const hasActiveDateFilter = Boolean(appliedStartDate || appliedEndDate);
+  const hasDraftChanges =
+    startDateDraft !== appliedStartDate || endDateDraft !== appliedEndDate;
+  const hasInvalidRange =
+    Boolean(startDateDraft) &&
+    Boolean(endDateDraft) &&
+    startDateDraft > endDateDraft;
+
+  const applyDateFilter = () => {
+    void setDateParams({
+      start_date: startDateDraft || null,
+      end_date: endDateDraft || null,
+    });
+    setIsFilterOpen(false);
+  };
+
+  const clearDateFilter = () => {
+    setStartDateDraft("");
+    setEndDateDraft("");
+
+    void setDateParams({
+      start_date: null,
+      end_date: null,
+    });
+    setIsFilterOpen(false);
+  };
+
+  const handleFilterPopoverChange = (open: boolean) => {
+    setIsFilterOpen(open);
+    if (open) {
+      setStartDateDraft(appliedStartDate);
+      setEndDateDraft(appliedEndDate);
+    }
+  };
+
   const isMounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -42,6 +105,81 @@ export function ApplicationStatusChart({ data }: ApplicationStatusChartProps) {
           <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium mt-1">
             Status breakdown for current intake
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Popover open={isFilterOpen} onOpenChange={handleFilterPopoverChange}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Date Filter
+                {hasActiveDateFilter ? (
+                  <span className="rounded-sm bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+                    Active
+                  </span>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[320px] p-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="app-distribution-start-date">
+                    Start date
+                  </Label>
+                  <Input
+                    id="app-distribution-start-date"
+                    type="date"
+                    value={startDateDraft}
+                    onChange={(event) => setStartDateDraft(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="app-distribution-end-date">End date</Label>
+                  <Input
+                    id="app-distribution-end-date"
+                    type="date"
+                    value={endDateDraft}
+                    onChange={(event) => setEndDateDraft(event.target.value)}
+                  />
+                </div>
+
+                {hasInvalidRange ? (
+                  <p className="text-xs text-destructive">
+                    Start date must be on or before end date.
+                  </p>
+                ) : null}
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearDateFilter}
+                    disabled={
+                      !hasActiveDateFilter && !startDateDraft && !endDateDraft
+                    }
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={applyDateFilter}
+                    disabled={hasInvalidRange || !hasDraftChanges}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {hasActiveDateFilter ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={clearDateFilter}
+              aria-label="Clear date filter"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className="h-[300px] w-full">
