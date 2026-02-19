@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /* =========================
    Types
@@ -90,7 +96,7 @@ const STAGE_ICONS: Record<CanonicalStage, React.ElementType> = {
    Page
 ========================= */
 
-export default function ApplicationTrack() {
+function ApplicationTrackContent() {
   const searchParams = useSearchParams();
   const [applicationId, setApplicationId] = useState("");
   const [data, setData] = useState<TrackApplicationResponse | null>(null);
@@ -337,5 +343,13 @@ export default function ApplicationTrack() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ApplicationTrack() {
+  return (
+    <Suspense fallback={null}>
+      <ApplicationTrackContent />
+    </Suspense>
   );
 }
