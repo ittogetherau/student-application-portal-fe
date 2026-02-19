@@ -25,7 +25,7 @@ import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import {
   useGalaxySyncDeclarationMutation,
@@ -63,7 +63,6 @@ const ReviewForm = ({
   onNavigateToDocuments?: () => void;
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const {
@@ -76,7 +75,6 @@ const ReviewForm = ({
   const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
 
   const application = response?.data;
-  const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
   const isStaffOrAdmin =
     session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
   const syncMetadata = application?.sync_metadata ?? null;
@@ -315,7 +313,7 @@ const ReviewForm = ({
   const handleFormSubmit = () => {
     if (!applicationId) return;
 
-    if (isEditMode) {
+    if (application?.current_stage !== APPLICATION_STAGE.DRAFT) {
       router.push(siteRoutes.dashboard.application.id.details(applicationId));
       return;
     }
