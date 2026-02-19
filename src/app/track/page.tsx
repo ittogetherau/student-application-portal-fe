@@ -1,5 +1,8 @@
 "use client";
 
+import studentService from "@/service/student.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
+import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,11 +13,8 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
-
-import { siteRoutes } from "@/shared/constants/site-routes";
-import studentService from "@/service/student.service";
-import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { useSearchParams } from "next/navigation";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 /* =========================
    Types
@@ -91,20 +91,23 @@ const STAGE_ICONS: Record<CanonicalStage, React.ElementType> = {
 ========================= */
 
 export default function ApplicationTrack() {
+  const searchParams = useSearchParams();
   const [applicationId, setApplicationId] = useState("");
   const [data, setData] = useState<TrackApplicationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastAutoSubmittedTid = useRef<string | null>(null);
 
-  const handleTrack = async () => {
-    if (!applicationId.trim()) return;
+  const trackById = useCallback(async (id: string) => {
+    const trackingId = id.trim();
+    if (!trackingId) return;
 
     setLoading(true);
     setError(null);
     setData(null);
 
     try {
-      const res = await studentService.trackApplication(applicationId.trim());
+      const res = await studentService.trackApplication(trackingId);
       if (!res.success || !res.data) {
         throw new Error(res.message || "Application not found");
       }
@@ -114,7 +117,20 @@ export default function ApplicationTrack() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleTrack = () => {
+    void trackById(applicationId);
   };
+
+  useEffect(() => {
+    const tid = searchParams.get("tid")?.trim();
+    if (!tid || lastAutoSubmittedTid.current === tid) return;
+
+    lastAutoSubmittedTid.current = tid;
+    setApplicationId(tid);
+    void trackById(tid);
+  }, [searchParams, trackById]);
 
   const StatusIcon = data ? STAGE_ICONS[data.current_stage] : null;
 

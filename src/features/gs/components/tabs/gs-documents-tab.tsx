@@ -64,6 +64,8 @@ interface GSDocumentsTabProps {
   onStageComplete?: () => Promise<void>;
 }
 
+const REQUIRED_DOCUMENT_NUMBERS = [1, 2, 3, 4, 5] as const;
+
 function getStatusBadge(status: GSDocumentBackendStatus) {
   switch (status) {
     case "approved":
@@ -183,9 +185,12 @@ export default function GSDocumentsTab({
   const notStartedCount = statusCounts.not_started || 0;
   const rejectedCount = statusCounts.rejected || 0;
 
-  // Check if all documents are approved
-  const allDocumentsApproved =
-    documents.length === documents.length && approvedCount === documents.length;
+  // Only documents 1-5 are mandatory for stage completion
+  const requiredDocumentsApproved = REQUIRED_DOCUMENT_NUMBERS.every(
+    (documentNumber) =>
+      documents.find((doc) => doc.documentNumber === documentNumber)?.status ===
+      "approved",
+  );
 
   // Handle completing the stage
   const handleCompleteStage = async () => {
@@ -202,16 +207,19 @@ export default function GSDocumentsTab({
         return;
       }
 
-      // Check if all documents are approved on the server (handle case-insensitive)
-      // Cast to unknown[] first since the API returns different shape than GSDocument type
-      const approvedDocs = (
-        freshDocs as unknown as Array<{ status?: string }>
-      ).filter((doc) => doc.status?.toLowerCase() === "approved");
+      // Only docs 1-5 are mandatory for stage completion
+      const transformedFreshDocs = transformGSDocuments(freshDocs as unknown[]);
+      const approvedRequiredDocs = REQUIRED_DOCUMENT_NUMBERS.filter(
+        (documentNumber) =>
+          transformedFreshDocs.find(
+            (doc) => doc.documentNumber === documentNumber,
+          )?.status === "approved",
+      ).length;
 
-      if (approvedDocs.length !== 10) {
-        const remaining = 10 - approvedDocs.length;
+      if (approvedRequiredDocs !== REQUIRED_DOCUMENT_NUMBERS.length) {
+        const remaining = REQUIRED_DOCUMENT_NUMBERS.length - approvedRequiredDocs;
         toast.error(
-          `Cannot complete stage: ${remaining} document${remaining > 1 ? "s" : ""} still need${remaining === 1 ? "s" : ""} approval.`,
+          `Cannot complete stage: ${remaining} required document${remaining > 1 ? "s" : ""} still need${remaining === 1 ? "s" : ""} approval.`,
         );
         return;
       }
@@ -746,7 +754,7 @@ export default function GSDocumentsTab({
             </div>
           )}
 
-          {isStaff && allDocumentsApproved && !isStageCompleted && (
+          {isStaff && requiredDocumentsApproved && !isStageCompleted && (
             <div className="pt-4 border-t">
               <Button
                 onClick={handleCompleteStage}
