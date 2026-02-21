@@ -4,17 +4,18 @@ import applicationThreadsService, {
   AddThreadMessagePayload,
   CommunicationThread,
   CreateThreadPayload,
+  StaffThreadFilters,
   StaffThreadSummary,
   ThreadMessage,
 } from "@/service/application-threads.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useStaffThreadsQuery = () => {
+export const useStaffThreadsQuery = (filters: StaffThreadFilters = {}) => {
   return useQuery<ServiceResponse<StaffThreadSummary[]>, Error>({
-    queryKey: ["staff-threads"],
+    queryKey: ["staff-threads", filters],
     queryFn: async () => {
-      const response = await applicationThreadsService.listStaffThreads();
+      const response = await applicationThreadsService.listStaffThreads(filters);
       if (!response.success) throw new Error(response.message);
       return response;
     },

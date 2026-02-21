@@ -69,7 +69,7 @@ export function ApplicationOutcomesChart({
         </div>
       </div>
 
-      <div className="h-full w-full">
+      <div className="h-[300px] w-full">
         {isMounted ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

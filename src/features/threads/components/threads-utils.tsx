@@ -2,9 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
-import type { StaffThreadSummary } from "@/service/application-threads.service";
+import type {
+  StaffThreadSummary,
+  ThreadParticipant,
+} from "@/service/application-threads.service";
 import { ThreadMessage } from "@/service/application-threads.service";
 import { LucideIcon } from "lucide-react";
+import Image from "next/image";
 
 //
 export const statusVariant = (status: string) => {
@@ -23,50 +27,72 @@ export const priorityVariant = (priority: string) => {
   return map[priority] || "secondary";
 };
 
+const formatParticipantLabel = (participant?: ThreadParticipant | null) => {
+  const name = participant?.name?.trim();
+  const email = participant?.email?.trim();
+
+  if (name && email) return `${name} (${email})`;
+  if (name) return name;
+  if (email) return email;
+  return "N/A";
+};
+
 export const ThreadListItem = ({
   thread,
   isActive,
   onSelect,
+  showAssignedStaff = false,
 }: {
   thread: StaffThreadSummary;
   isActive: boolean;
   onSelect: () => void;
+  showAssignedStaff?: boolean;
 }) => (
-  <div
-    className={`p-3 mb-2 cursor-pointer transition-colors border-l-2 ${
+  <button
+    type="button"
+    className={`w-full p-2 mb-1 rounded-md text-left cursor-pointer transition-colors border-l-2 ${
       isActive
-        ? "border-l-primary bg-muted/60"
+        ? "border-l-primary bg-muted/70"
         : "border-l-transparent hover:bg-muted/40 hover:border-l-muted-foreground/20"
     }`}
     onClick={onSelect}
   >
-    <div className="flex items-start justify-between gap-2 mb-2">
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate">{thread.subject}</p>
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold truncate">{thread.subject}</p>
+        <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+          <p className="truncate">
+            Agent: {formatParticipantLabel(thread.agent)}
+          </p>
+          {showAssignedStaff && (
+            <p className="truncate">
+              Staff: {formatParticipantLabel(thread.assigned_staff)}
+            </p>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1 truncate">
+          {thread.status_updated_at
+            ? formatUtcToFriendlyLocal(thread.status_updated_at)
+            : "No update time"}
+        </p>
       </div>
-      <Badge
-        variant={priorityVariant(thread.priority)}
-        className="text-[10px] shrink-0"
-      >
-        {thread.priority}
-      </Badge>
+
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <Badge
+          variant={priorityVariant(thread.priority)}
+          className="text-[9px] px-1.5 py-0 h-4"
+        >
+          {thread.priority}
+        </Badge>
+        <Badge
+          variant={statusVariant(thread.status)}
+          className="text-[9px] px-1.5 py-0 h-4"
+        >
+          {thread.status.replace("_", " ")}
+        </Badge>
+      </div>
     </div>
-    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-      <span className="truncate">Deadline: {thread.deadline || "-"}</span>
-      <Badge
-        variant={statusVariant(thread.status)}
-        className="text-[10px] ml-2 shrink-0"
-      >
-        {thread.status.replace("_", " ")}
-      </Badge>
-    </div>
-    <p className="text-[10px] text-muted-foreground mt-1">
-      Updated{" "}
-      {thread.status_updated_at
-        ? formatUtcToFriendlyLocal(thread.status_updated_at)
-        : ""}
-    </p>
-  </div>
+  </button>
 );
 
 export const MessageBubble = ({
@@ -110,7 +136,9 @@ export const MessageBubble = ({
                 rel="noreferrer"
                 className="block h-20 w-20 overflow-hidden rounded-md border bg-background/60"
               >
-                <img
+                <Image
+                  width={350}
+                  height={350}
                   src={attachment.url}
                   alt={attachment.file_name || `Attachment ${idx + 1}`}
                   className="h-full w-full object-cover"

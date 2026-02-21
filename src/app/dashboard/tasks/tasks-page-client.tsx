@@ -28,7 +28,10 @@ import {
   useUpdateThreadPriorityMutation,
   useUpdateThreadStatusMutation,
 } from "@/features/threads/hooks/application-threads.hook";
-import type { StaffThreadSummary } from "@/service/application-threads.service";
+import type {
+  StaffThreadFilters,
+  StaffThreadSummary,
+} from "@/service/application-threads.service";
 import { CommunicationThread } from "@/service/application-threads.service";
 import { USER_ROLE } from "@/shared/constants/types";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
@@ -56,20 +59,89 @@ const formatContactName = (name?: string | null, email?: string | null) => {
 };
 
 const formatContactEmail = (email?: string | null) => email || "N/A";
+const THREADS_PER_PAGE = 10;
+
+type TasksPopoverFilterState = {
+  agent: string;
+  activeAgent: "all" | "active" | "inactive";
+  status: string;
+  priority: string;
+};
+
+const DEFAULT_POPOVER_FILTERS: TasksPopoverFilterState = {
+  agent: "",
+  activeAgent: "all",
+  status: "all",
+  priority: "all",
+};
 
 export default function TasksPageClient() {
   const { data: session } = useSession();
   const ROLE = session?.user.role;
+  const showAssignedStaff = ROLE === USER_ROLE.STAFF;
 
-  const { data: staffThreads, isLoading, error } = useStaffThreadsQuery();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [draftFilters, setDraftFilters] = useState<TasksPopoverFilterState>(
+    DEFAULT_POPOVER_FILTERS,
+  );
+  const [appliedFilters, setAppliedFilters] = useState<TasksPopoverFilterState>(
+    DEFAULT_POPOVER_FILTERS,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const hasPendingFilterChanges = useMemo(
+    () =>
+      draftFilters.agent !== appliedFilters.agent ||
+      draftFilters.activeAgent !== appliedFilters.activeAgent ||
+      draftFilters.status !== appliedFilters.status ||
+      draftFilters.priority !== appliedFilters.priority,
+    [appliedFilters, draftFilters],
+  );
+
+  const hasActiveFilters = useMemo(
+    () =>
+      !!searchTerm.trim() ||
+      !!appliedFilters.agent.trim() ||
+      appliedFilters.activeAgent !== "all" ||
+      appliedFilters.status !== "all" ||
+      appliedFilters.priority !== "all",
+    [appliedFilters, searchTerm],
+  );
+
+  const staffThreadFilters = useMemo<StaffThreadFilters>(
+    () => ({
+      title: debouncedSearchTerm.trim() || undefined,
+      agent: appliedFilters.agent.trim() || undefined,
+      status: appliedFilters.status !== "all" ? appliedFilters.status : undefined,
+      priority:
+        appliedFilters.priority !== "all" ? appliedFilters.priority : undefined,
+      active_agent:
+        appliedFilters.activeAgent === "all"
+          ? undefined
+          : appliedFilters.activeAgent === "active",
+    }),
+    [appliedFilters, debouncedSearchTerm],
+  );
+
+  const {
+    data: staffThreads,
+    isLoading,
+    isFetching,
+    error,
+  } = useStaffThreadsQuery(staffThreadFilters);
   const staffThreadsList = useMemo(
     () => staffThreads?.data ?? [],
     [staffThreads],
   );
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
 
   const [selectedThreadId, setSelectedThreadId] = useQueryState("threadId");
   const [selectedApplicationId, setSelectedApplicationId] =
@@ -101,7 +173,24 @@ export default function TasksPageClient() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!selectedThreadId && staffThreadsList.length > 0) {
+    if (staffThreadsList.length === 0) {
+      if (selectedThreadId || selectedApplicationId) {
+        setSelectedThreadId(null);
+        setSelectedApplicationId(null);
+      }
+      return;
+    }
+
+    if (!selectedThreadId) {
+      setSelectedThreadId(staffThreadsList[0].id);
+      setSelectedApplicationId(staffThreadsList[0].application_id);
+      return;
+    }
+
+    const selectedStillVisible = staffThreadsList.some(
+      (thread) => thread.id === selectedThreadId,
+    );
+    if (!selectedStillVisible) {
       setSelectedThreadId(staffThreadsList[0].id);
       setSelectedApplicationId(staffThreadsList[0].application_id);
       return;
@@ -122,11 +211,6 @@ export default function TasksPageClient() {
     setSelectedApplicationId,
     setSelectedThreadId,
   ]);
-
-  useEffect(() => {
-    setComposer("");
-    setAttachments([]);
-  }, [selectedThreadId]);
 
   const selectedThreadFromApp = useMemo(
     () => applicationThreads.find((t) => t.id === selectedThreadId) || null,
@@ -156,30 +240,24 @@ export default function TasksPageClient() {
   const isThreadCompleted = selectedThread?.status === "completed";
   const canUpdateStatus = !!selectedThreadId && !!selectedApplicationId;
 
-  const filteredStaffThreads = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return staffThreadsList.filter((thread) => {
-      if (statusFilter !== "all" && thread.status !== statusFilter) {
-        return false;
-      }
-      if (priorityFilter !== "all" && thread.priority !== priorityFilter) {
-        return false;
-      }
-      if (!term) return true;
-      return (
-        thread.subject.toLowerCase().includes(term) ||
-        thread.application_id.toLowerCase().includes(term) ||
-        thread.status.toLowerCase().includes(term) ||
-        thread.priority.toLowerCase().includes(term)
-      );
-    });
-  }, [searchTerm, staffThreadsList, statusFilter, priorityFilter]);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(staffThreadsList.length / THREADS_PER_PAGE),
+  );
+  const resolvedCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedStaffThreads = useMemo(() => {
+    const startIndex = (resolvedCurrentPage - 1) * THREADS_PER_PAGE;
+    return staffThreadsList.slice(startIndex, startIndex + THREADS_PER_PAGE);
+  }, [resolvedCurrentPage, staffThreadsList]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedThreadId, selectedThreadFromApp?.messages?.length]);
 
   const handleSelectThread = (thread: StaffThreadSummary) => {
+    setComposer("");
+    setAttachments([]);
     setSelectedThreadId(thread.id);
     setSelectedApplicationId(thread.application_id);
   };
@@ -205,6 +283,19 @@ export default function TasksPageClient() {
 
   const messages = selectedThreadFromApp?.messages ?? [];
 
+  const applyFilters = () => {
+    setAppliedFilters(draftFilters);
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+    setDraftFilters(DEFAULT_POPOVER_FILTERS);
+    setAppliedFilters(DEFAULT_POPOVER_FILTERS);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] overflow-hidden bg-background">
       <div className="grid grid-cols-9 h-full">
@@ -212,16 +303,19 @@ export default function TasksPageClient() {
           <div className="p-4 border-b bg-background/95 backdrop-blur">
             <h2 className="text-base font-semibold">Communication Threads</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {filteredStaffThreads.length} of{" "}
-              {staffThreadsList.length > 0 && staffThreadsList.length}{" "}
-              {filteredStaffThreads.length === 1 ? "thread" : "threads"}
+              {staffThreadsList.length}{" "}
+              {staffThreadsList.length === 1 ? "thread" : "threads"}
+              {hasActiveFilters ? " (filtered)" : ""}
             </p>
 
             <div className="mt-3 flex flex-col gap-px sm:flex-row sm:items-center">
               <Input
                 placeholder="Search threads..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="sm:flex-1"
               />
               <div className="flex items-center gap-2">
@@ -234,10 +328,56 @@ export default function TasksPageClient() {
                   <PopoverContent align="end" className="w-64">
                     <div className="space-y-3">
                       <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Agent</p>
+                        <Input
+                          value={draftFilters.agent}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setDraftFilters((prev) => ({
+                              ...prev,
+                              agent: value,
+                            }));
+                          }}
+                          className="h-9 text-xs w-full"
+                          placeholder="Search agent by name or email"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Agent Account
+                        </p>
+                        <Select
+                          value={draftFilters.activeAgent}
+                          onValueChange={(value) => {
+                            setDraftFilters((prev) => ({
+                              ...prev,
+                              activeAgent:
+                                value as TasksPopoverFilterState["activeAgent"],
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="h-9 text-xs w-full">
+                            <SelectValue placeholder="Agent Account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All agents</SelectItem>
+                            <SelectItem value="active">Active only</SelectItem>
+                            <SelectItem value="inactive">
+                              Inactive only
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
                         <p className="text-xs text-muted-foreground">Status</p>
                         <Select
-                          value={statusFilter}
-                          onValueChange={setStatusFilter}
+                          value={draftFilters.status}
+                          onValueChange={(value) => {
+                            setDraftFilters((prev) => ({
+                              ...prev,
+                              status: value,
+                            }));
+                          }}
                         >
                           <SelectTrigger className="h-9 text-xs w-full">
                             <SelectValue placeholder="Status" />
@@ -257,8 +397,13 @@ export default function TasksPageClient() {
                           Priority
                         </p>
                         <Select
-                          value={priorityFilter}
-                          onValueChange={setPriorityFilter}
+                          value={draftFilters.priority}
+                          onValueChange={(value) => {
+                            setDraftFilters((prev) => ({
+                              ...prev,
+                              priority: value,
+                            }));
+                          }}
                         >
                           <SelectTrigger className="h-9 text-xs w-full">
                             <SelectValue placeholder="Priority" />
@@ -271,20 +416,24 @@ export default function TasksPageClient() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={applyFilters}
+                          disabled={!hasPendingFilterChanges}
+                        >
+                          Apply
+                        </Button>
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
-                {searchTerm.trim() ||
-                statusFilter !== "all" ||
-                priorityFilter !== "all" ? (
+                {hasActiveFilters ? (
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("all");
-                      setPriorityFilter("all");
-                    }}
+                    onClick={clearFilters}
                     aria-label="Clear filters"
                   >
                     <X size={14} />
@@ -295,27 +444,63 @@ export default function TasksPageClient() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
-            {isLoading ? (
+            {isLoading || isFetching ? (
               <div className="text-sm text-muted-foreground p-3">
                 Loading...
               </div>
             ) : error ? (
               <div className="text-sm text-destructive p-3">Load failed</div>
-            ) : filteredStaffThreads.length === 0 ? (
-              <EmptyState icon={MessageSquare} text="No threads" />
+            ) : staffThreadsList.length === 0 ? (
+              <EmptyState
+                icon={MessageSquare}
+                text={hasActiveFilters ? "No matching threads" : "No threads"}
+              />
             ) : (
               <div className="space-y-1">
-                {filteredStaffThreads.map((thread) => (
+                {paginatedStaffThreads.map((thread) => (
                   <ThreadListItem
                     key={thread.id}
                     thread={thread}
                     isActive={thread.id === selectedThreadId}
+                    showAssignedStaff={showAssignedStaff}
                     onSelect={() => handleSelectThread(thread)}
                   />
                 ))}
               </div>
             )}
           </div>
+
+          {!isLoading && !error && staffThreadsList.length > 0 && (
+            <div className="border-t p-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>{`Page ${resolvedCurrentPage} of ${totalPages}`}</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(Math.max(1, resolvedCurrentPage - 1))
+                    }
+                    disabled={resolvedCurrentPage <= 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(
+                        Math.min(totalPages, resolvedCurrentPage + 1),
+                      )
+                    }
+                    disabled={resolvedCurrentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </aside>
 
         <section className="col-span-5 flex flex-col overflow-hidden">

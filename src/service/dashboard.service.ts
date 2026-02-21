@@ -23,6 +23,7 @@ export interface StaffDashboardPerformanceItem {
 
 export interface StaffDashboardPriorityApplication {
   id: string;
+  applicationUuid?: string;
   studentName: string;
   program: string;
   intake: string;

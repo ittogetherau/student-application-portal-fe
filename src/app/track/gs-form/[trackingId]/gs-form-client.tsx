@@ -10,6 +10,15 @@ import { Loader2 } from "lucide-react";
 import { GSScreeningFormValues } from "@/features/gs/utils/gs-screening.validation";
 
 /** Public-by-token API response: { application_id, tracking_code, expires_at, declaration } */
+type UploadedDeclarationDocument = {
+  file_name?: string;
+  document_name?: string;
+  view_url?: string;
+  download_url?: string;
+  uploaded_at?: string;
+  [key: string]: unknown;
+};
+
 type PublicDeclarationByTokenResponse = {
   application_id?: string;
   tracking_code?: string;
@@ -18,6 +27,7 @@ type PublicDeclarationByTokenResponse = {
     id?: string;
     status?: string;
     data?: Record<string, unknown>;
+    uploaded_documents?: UploadedDeclarationDocument[];
     submitted_at?: string;
     [key: string]: unknown;
   };
@@ -77,15 +87,31 @@ export function GSFormClient({
   const useToken = Boolean(token);
   const query = useToken ? byToken : byApplicationId;
   const isLoading = query.isLoading;
+  const responseData = query.data?.data as
+    | PublicDeclarationByTokenResponse
+    | {
+        data?: Record<string, unknown>;
+        uploaded_documents?: UploadedDeclarationDocument[];
+      }
+    | undefined;
 
   // Public-by-token returns { application_id, tracking_code, expires_at, declaration }; form data is declaration.data
   // Authenticated by applicationId returns { id, status, data, ... }; form data is data
   const rawData = useToken
-    ? (query.data?.data as PublicDeclarationByTokenResponse | undefined)
-        ?.declaration?.data
-    : (query.data?.data as { data?: Record<string, unknown> } | undefined)
-        ?.data;
+    ? (responseData as PublicDeclarationByTokenResponse | undefined)
+        ?.declaration?.data ??
+      (responseData as { data?: Record<string, unknown> } | undefined)?.data
+    : (responseData as { data?: Record<string, unknown> } | undefined)?.data;
   const initialData = mapDeclarationDataToFormValues(rawData);
+  const initialUploadedDocuments = useToken
+    ? (responseData as PublicDeclarationByTokenResponse | undefined)
+        ?.declaration?.uploaded_documents ??
+      (
+        responseData as { uploaded_documents?: UploadedDeclarationDocument[] }
+      )?.uploaded_documents
+    : (
+        responseData as { uploaded_documents?: UploadedDeclarationDocument[] }
+      )?.uploaded_documents;
 
   if (isLoading) {
     return (
@@ -104,6 +130,7 @@ export function GSFormClient({
       token={token ?? undefined}
       applicationId={applicationId ?? undefined}
       initialData={initialData}
+      initialUploadedDocuments={initialUploadedDocuments ?? []}
     />
   );
 }

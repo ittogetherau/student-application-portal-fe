@@ -30,6 +30,10 @@ export interface DeclarationDocumentUploadProps {
   file: File | null;
   /** Called when user selects or clears a file */
   onFileChange: (file: File | null) => void;
+  /** Existing uploaded file name (from API) */
+  existingFileName?: string;
+  /** Existing uploaded file URL (view/download) */
+  existingFileUrl?: string;
   disabled?: boolean;
 }
 
@@ -44,12 +48,15 @@ export function DeclarationDocumentUpload({
   description,
   file,
   onFileChange,
+  existingFileName,
+  existingFileUrl,
   disabled = false,
 }: DeclarationDocumentUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { setValue, watch } = useFormContext();
   const formValue = watch(name) as string | undefined;
   const hasFile = !!file || !!(formValue && String(formValue).trim());
+  const hasExistingFile = !!existingFileName && existingFileName.trim() !== "";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.files?.[0];
@@ -99,11 +106,30 @@ export function DeclarationDocumentUpload({
             {hasFile
               ? file
                 ? `Replace file (${file.name})`
-                : "Replace file"
+                : hasExistingFile
+                  ? `Replace file (${existingFileName})`
+                  : "Replace file"
               : "Drop file here or click to upload"}
           </span>
           <span>Accepted: PDF, JPG, PNG. Max 10MB.</span>
         </label>
+        {hasExistingFile && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            Uploaded file:{" "}
+            {existingFileUrl ? (
+              <a
+                href={existingFileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline hover:no-underline"
+              >
+                {existingFileName}
+              </a>
+            ) : (
+              <span>{existingFileName}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -67,6 +67,37 @@ const toId = (value: unknown): number | undefined => {
 
 const MIN_INTAKE_START_YEAR = new Date().getFullYear();
 
+type CampusIntakeToken = "melbourne" | "paramatta" | null;
+
+const getCampusIntakeToken = (
+  campusName?: string | null,
+): CampusIntakeToken => {
+  const normalizedName = campusName?.toLowerCase() ?? "";
+  if (normalizedName.includes("melbourne")) return "melbourne";
+  if (
+    normalizedName.includes("paramatta") ||
+    normalizedName.includes("parramatta")
+  ) {
+    return "paramatta";
+  }
+  return null;
+};
+
+const matchesBitCampusIntake = (
+  intakeName: string | undefined,
+  campusToken: CampusIntakeToken,
+): boolean => {
+  if (!campusToken) return true;
+  const normalizedIntakeName = intakeName?.toLowerCase() ?? "";
+  if (campusToken === "melbourne") {
+    return normalizedIntakeName.includes("melbourne");
+  }
+  return (
+    normalizedIntakeName.includes("paramatta") ||
+    normalizedIntakeName.includes("parramatta")
+  );
+};
+
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
   const [resolvedApplicationId, setResolvedApplicationId] = useState<
@@ -198,15 +229,33 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     campus: campusValue,
   });
 
+  const isBitCourse =
+    (selectedCourse?.course_code ?? "").trim().toUpperCase() === "BIT";
+  const selectedCampusName = useMemo(() => {
+    if (!selectedCourseId) return "";
+    const course = courses.find((item) => toId(item.id) === selectedCourseId);
+    const campus = course?.campuses?.find(
+      (item) => toId(item.id) === toId(campusValue),
+    );
+    return campus?.name ?? "";
+  }, [campusValue, courses, selectedCourseId]);
+  const selectedCampusToken = useMemo(
+    () => getCampusIntakeToken(selectedCampusName),
+    [selectedCampusName],
+  );
+
   const availableIntakes = useMemo(
     () =>
       (intakesResponse?.data ?? []).filter((intake) => {
         const intakeYear = toId(intake.intake_year);
-        return (
-          intakeYear !== undefined && intakeYear >= MIN_INTAKE_START_YEAR
-        );
+        if (intakeYear === undefined || intakeYear < MIN_INTAKE_START_YEAR) {
+          return false;
+        }
+
+        if (!isBitCourse) return true;
+        return matchesBitCampusIntake(intake.intake_name, selectedCampusToken);
       }),
-    [intakesResponse?.data],
+    [intakesResponse?.data, isBitCourse, selectedCampusToken],
   );
 
   const availableCampuses = useMemo(() => {

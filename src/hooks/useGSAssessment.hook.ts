@@ -13,6 +13,7 @@ import {
 import gsAssessmentService, {
   type GsAssessmentDetail,
   type GsDeclarationActor,
+  type GsDeclarationDocumentUploadRequest,
   type GsDeclarationResponse,
   type GsDeclarationReviewRequest,
   type GsDeclarationSaveRequest,
@@ -409,6 +410,45 @@ export function useGSStageCompleteMutation(applicationId: string | null) {
     onError: (error) => {
       console.error("Failed to complete GS stage:", error);
       toast.error(error.message || "Failed to complete stage");
+    },
+  });
+}
+
+/**
+ * Mutation to upload a student declaration document (authenticated).
+ */
+export function useGSStudentDeclarationDocumentUploadMutation(
+  applicationId: string | null,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, GsDeclarationDocumentUploadRequest>({
+    mutationKey: ["gs-student-declaration-document-upload", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Application ID is required");
+      const response = await gsAssessmentService.uploadStudentDeclarationDocument(
+        applicationId,
+        payload,
+      );
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing");
+      return response.data;
+    },
+    onSuccess: () => {
+      if (applicationId) {
+        queryClient.invalidateQueries({
+          queryKey: gsAssessmentKeys.studentDeclaration(applicationId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: gsAssessmentKeys.detail(applicationId),
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to upload student declaration document:", error);
+      toast.error(
+        error.message || "Failed to upload student declaration document",
+      );
     },
   });
 }
@@ -890,6 +930,47 @@ interface PublicByTokenMutationParams {
   token: string;
   payload: GsDeclarationSaveRequest | GsDeclarationSubmitRequest;
   files?: Record<string, File>;
+}
+
+interface PublicByTokenDocumentUploadMutationParams {
+  token: string;
+  payload: GsDeclarationDocumentUploadRequest;
+}
+
+/**
+ * Mutation to upload a student declaration document via public link token.
+ */
+export function useGSStudentDeclarationDocumentUploadByTokenMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    string,
+    Error,
+    PublicByTokenDocumentUploadMutationParams
+  >({
+    mutationFn: async ({ token, payload }) => {
+      const response = await gsAssessmentService.uploadStudentDeclarationDocumentByToken(
+        token,
+        payload,
+      );
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing");
+      return response.data;
+    },
+    onSuccess: (_, { token }) => {
+      queryClient.invalidateQueries({
+        queryKey: gsAssessmentKeys.studentDeclarationByToken(token),
+      });
+    },
+    onError: (error) => {
+      console.error(
+        "Failed to upload student declaration document by token:",
+        error,
+      );
+      toast.error(
+        error.message || "Failed to upload student declaration document",
+      );
+    },
+  });
 }
 
 /**

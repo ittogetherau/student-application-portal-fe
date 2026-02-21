@@ -51,11 +51,22 @@ export interface CreateThreadPayload {
 export interface StaffThreadSummary {
   id: string;
   application_id: string;
+  agent?: ThreadParticipant | null;
+  assigned_staff?: ThreadParticipant | null;
   subject: string;
   priority: string;
   status: string;
   deadline: string | null;
   status_updated_at: string;
+}
+
+export interface StaffThreadFilters {
+  title?: string;
+  agent?: string;
+  agent_id?: string;
+  status?: string;
+  priority?: string;
+  active_agent?: boolean;
 }
 
 export interface ThreadMessageAttachment {
@@ -73,9 +84,28 @@ export interface AddThreadMessagePayload {
 class ApplicationThreadsService extends ApiService {
   private readonly basePath = "applications";
 
-  listStaffThreads(): Promise<ServiceResponse<StaffThreadSummary[]>> {
+  listStaffThreads(
+    filters: StaffThreadFilters = {},
+  ): Promise<ServiceResponse<StaffThreadSummary[]>> {
+    const params = {
+      title: filters.title?.trim() || undefined,
+      agent: filters.agent?.trim() || undefined,
+      agent_id: filters.agent_id?.trim() || undefined,
+      status: filters.status?.trim() || undefined,
+      priority: filters.priority?.trim() || undefined,
+      active_agent:
+        typeof filters.active_agent === "boolean"
+          ? filters.active_agent
+          : undefined,
+    };
+
     return resolveServiceCall<StaffThreadSummary[]>(
-      () => this.get("/staff/threads", true),
+      async () => {
+        const data = await this.get<
+          StaffThreadSummary[] | Record<string, StaffThreadSummary>
+        >("/staff/threads", true, { params });
+        return Array.isArray(data) ? data : Object.values(data ?? {});
+      },
       "Staff threads fetched successfully.",
       "Failed to fetch staff threads",
       [],

@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 
 export interface Application {
   id: string;
+  applicationUuid: string;
   studentName: string;
   program: string;
   intake: string;
@@ -251,11 +252,17 @@ export function StaffApplicationsTable({ data }: StaffApplicationsTableProps) {
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className="border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors group cursor-pointer"
-                  onClick={() => openApplicationDetails(row.original.id)}
+                  onClick={() =>
+                    openApplicationDetails(
+                      row.original.applicationUuid ?? row.original.id,
+                    )
+                  }
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      openApplicationDetails(row.original.id);
+                      openApplicationDetails(
+                        row.original.applicationUuid ?? row.original.id,
+                      );
                     }
                   }}
                   tabIndex={0}

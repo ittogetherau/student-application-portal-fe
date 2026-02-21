@@ -1,10 +1,10 @@
 "use client";
 
-import { GSDeclarationPdfDownloadButton } from "@/features/gs/components/forms/gs-declaration-pdf-download-button";
-import { GSScreeningForm } from "@/features/gs/components/forms/gs-screening-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GSDeclarationPdfDownloadButton } from "@/features/gs/components/forms/gs-declaration-pdf-download-button";
+import { GSScreeningForm } from "@/features/gs/components/forms/gs-screening-form";
 import {
   useGSAgentDeclarationQuery,
   useGSDeclarationReviewMutation,
@@ -27,8 +27,6 @@ import {
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { GSScreeningFormValues } from "../../utils/gs-screening.validation";
-import { useSession } from "next-auth/react";
-import { USER_ROLE } from "@/shared/constants/types";
 
 type DeclarationType = "student" | "agent";
 
@@ -87,9 +85,6 @@ export default function GSDeclarationsTab({
   isStageCompleted = false,
   onStageComplete,
 }: GSDeclarationsTabProps) {
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
-
   const [viewState, setViewState] = useState<ViewState>("cards");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -391,6 +386,11 @@ export default function GSDeclarationsTab({
     return { ...studentData, ...pickAgentDeclarationFields(agentData) };
   };
   const initialData = getInitialData();
+  const studentUploadedDocuments = Array.isArray(
+    studentDeclaration?.data?.uploaded_documents,
+  )
+    ? studentDeclaration?.data?.uploaded_documents
+    : [];
 
   const breadcrumbLabel =
     declarationType === "student"
@@ -419,6 +419,7 @@ export default function GSDeclarationsTab({
         currentView={declarationType}
         readOnly={isReadOnly}
         initialData={initialData}
+        initialUploadedDocuments={studentUploadedDocuments}
         applicationId={applicationId}
         handleBack={handleBack}
       />

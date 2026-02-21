@@ -1,22 +1,14 @@
 "use client";
 
-import * as React from "react";
-import { FileText, Edit3, Trash2, Clock, Plus } from "lucide-react";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -25,9 +17,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Link from "next/link";
 import { siteRoutes } from "@/shared/constants/site-routes";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { Clock, Edit3, FileText, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 
 export interface DraftApplication {
   id: string;
@@ -107,23 +107,26 @@ export function DraftApplications({
       {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
-        cell: () => (
+        cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" size="icon">
-              <Edit3 className="w-4 h-4" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="text-destructive hover:text-destructive"
+              onClick={() =>
+                router.push(
+                  siteRoutes.dashboard.application.edit(
+                    row.original.applicationUuid ?? row.original.id,
+                  ),
+                )
+              }
             >
-              <Trash2 className="w-4 h-4" />
+              <Edit3 className="w-4 h-4" />
             </Button>
           </div>
         ),
       },
     ],
-    [],
+    [router],
   );
 
   const table = useReactTable({

@@ -20,6 +20,8 @@ import SignatureModal from "@/features/gs/components/signature-modal";
 import {
   useGSAgentDeclarationSaveMutation,
   useGSAgentDeclarationSubmitMutation,
+  useGSStudentDeclarationDocumentUploadByTokenMutation,
+  useGSStudentDeclarationDocumentUploadMutation,
   useGSStudentDeclarationSaveByTokenMutation,
   useGSStudentDeclarationSaveMutation,
   useGSStudentDeclarationSubmitByTokenMutation,
@@ -121,6 +123,65 @@ const yesNoOptions = [
 ];
 
 type DeclarationView = "student" | "agent";
+type DeclarationDocumentFieldName =
+  | "currentVisaDocument"
+  | "visaRefusalDocument"
+  | "familyVisaRefusalDocument"
+  | "marriageCertificate"
+  | "childrenBirthCertificates";
+type DeclarationSectionToggleFieldName =
+  | "currentlyInAustralia"
+  | "visaRefusedOrCancelled"
+  | "familyVisaRefusedOrCancelled"
+  | "isMarried"
+  | "hasChildren";
+
+const declarationDocumentMetaByField: Record<
+  DeclarationDocumentFieldName,
+  { documentTypeCode: string; documentName: string }
+> = {
+  currentVisaDocument: {
+    documentTypeCode: "currentVisaDocument",
+    documentName: "current_visa_document",
+  },
+  visaRefusalDocument: {
+    documentTypeCode: "visaRefusalDocument",
+    documentName: "visa_refusal_document",
+  },
+  familyVisaRefusalDocument: {
+    documentTypeCode: "familyVisaRefusalDocument",
+    documentName: "family_visa_refusal_document",
+  },
+  marriageCertificate: {
+    documentTypeCode: "marriageCertificate",
+    documentName: "marriage_certificate",
+  },
+  childrenBirthCertificates: {
+    documentTypeCode: "childrenBirthCertificates",
+    documentName: "children_birth_certificates",
+  },
+};
+
+const declarationSectionToggleByField: Record<
+  DeclarationDocumentFieldName,
+  DeclarationSectionToggleFieldName
+> = {
+  currentVisaDocument: "currentlyInAustralia",
+  visaRefusalDocument: "visaRefusedOrCancelled",
+  familyVisaRefusalDocument: "familyVisaRefusedOrCancelled",
+  marriageCertificate: "isMarried",
+  childrenBirthCertificates: "hasChildren",
+};
+
+type UploadedDeclarationDocument = {
+  id?: string;
+  file_name?: string;
+  document_name?: string;
+  view_url?: string;
+  download_url?: string;
+  uploaded_at?: string;
+  [key: string]: unknown;
+};
 
 interface GSScreeningFormProps {
   currentView: DeclarationView;
@@ -129,6 +190,7 @@ interface GSScreeningFormProps {
   applicationId?: string;
   readOnly?: boolean;
   initialData?: Partial<GSScreeningFormValues>;
+  initialUploadedDocuments?: UploadedDeclarationDocument[];
   handleBack?: () => void;
 }
 
@@ -139,6 +201,7 @@ export function GSScreeningForm({
   applicationId,
   readOnly = false,
   initialData,
+  initialUploadedDocuments = [],
   handleBack,
 }: GSScreeningFormProps) {
   const { data: session } = useSession();
@@ -173,11 +236,71 @@ export function GSScreeningForm({
     "applicant" | "agent" | null
   >(null);
 
+  const uploadedDocumentByField = useMemo(() => {
+    const getLatestForField = (fieldName: DeclarationDocumentFieldName) => {
+      const sectionName =
+        declarationDocumentMetaByField[fieldName].documentName.toLowerCase();
+
+      const matches = initialUploadedDocuments.filter((doc) => {
+        const documentName = String(doc.document_name ?? "").toLowerCase();
+        const fileName = String(doc.file_name ?? "").toLowerCase();
+        return documentName === sectionName || fileName.includes(sectionName);
+      });
+
+      if (matches.length === 0) return undefined;
+
+      const sorted = [...matches].sort((a, b) => {
+        const aTime = String(a.uploaded_at ?? "");
+        const bTime = String(b.uploaded_at ?? "");
+        return bTime.localeCompare(aTime);
+      });
+      return sorted[0];
+    };
+
+    return {
+      currentVisaDocument: getLatestForField("currentVisaDocument"),
+      visaRefusalDocument: getLatestForField("visaRefusalDocument"),
+      familyVisaRefusalDocument: getLatestForField("familyVisaRefusalDocument"),
+      marriageCertificate: getLatestForField("marriageCertificate"),
+      childrenBirthCertificates: getLatestForField("childrenBirthCertificates"),
+    } satisfies Record<
+      DeclarationDocumentFieldName,
+      UploadedDeclarationDocument | undefined
+    >;
+  }, [initialUploadedDocuments]);
+
   useEffect(() => {
     if (initialData != null) {
       reset({ ...defaultValues, ...initialData });
     }
   }, [initialData, reset]);
+
+  useEffect(() => {
+    const fields: DeclarationDocumentFieldName[] = [
+      "currentVisaDocument",
+      "visaRefusalDocument",
+      "familyVisaRefusalDocument",
+      "marriageCertificate",
+      "childrenBirthCertificates",
+    ];
+
+    for (const field of fields) {
+      const currentValue = String(getValues(field) ?? "").trim();
+      const uploadedDoc = uploadedDocumentByField[field];
+      const uploadedFileName = String(uploadedDoc?.file_name ?? "").trim();
+      if (currentValue === "" && uploadedFileName !== "") {
+        setValue(field, uploadedFileName, { shouldValidate: false });
+      }
+
+      // If we have an uploaded file for a conditional section, default that section
+      // to "yes" so the relevant upload block remains visible after refresh.
+      const toggleField = declarationSectionToggleByField[field];
+      const currentToggleValue = String(getValues(toggleField) ?? "").trim();
+      if (uploadedFileName !== "" && currentToggleValue === "") {
+        setValue(toggleField, "yes", { shouldValidate: false });
+      }
+    }
+  }, [getValues, setValue, uploadedDocumentByField]);
 
   const todayForInput = useMemo(() => formatLocalDateForInput(new Date()), []);
 
@@ -352,6 +475,57 @@ export function GSScreeningForm({
   const submitAgentDeclarationMutation = useGSAgentDeclarationSubmitMutation(
     applicationId ?? null,
   );
+  const uploadStudentDeclarationDocumentMutation =
+    useGSStudentDeclarationDocumentUploadMutation(applicationId ?? null);
+  const uploadStudentDeclarationDocumentByTokenMutation =
+    useGSStudentDeclarationDocumentUploadByTokenMutation();
+
+  const isUploadingDeclarationDocument =
+    uploadStudentDeclarationDocumentMutation.isPending ||
+    uploadStudentDeclarationDocumentByTokenMutation.isPending;
+
+  const handleDeclarationDocumentFileChange = async (
+    fieldName: DeclarationDocumentFieldName,
+    file: File | null,
+    setSelectedFile: (nextFile: File | null) => void,
+  ) => {
+    setSelectedFile(file);
+    if (!file || currentView !== "student" || readOnly) return;
+
+    if (!token && !applicationId) {
+      setSelectedFile(null);
+      setValue(fieldName, "", { shouldValidate: true, shouldDirty: true });
+      toast.error("Application ID or authentication token is missing.");
+      return;
+    }
+
+    try {
+      const documentMeta = declarationDocumentMetaByField[fieldName];
+      const payload = {
+        file,
+        document_name: documentMeta.documentName,
+        document_type_code: documentMeta.documentTypeCode,
+      };
+
+      const uploadedDocumentValue = token
+        ? await uploadStudentDeclarationDocumentByTokenMutation.mutateAsync({
+            token,
+            payload,
+          })
+        : await uploadStudentDeclarationDocumentMutation.mutateAsync(payload);
+
+      setValue(
+        fieldName,
+        uploadedDocumentValue.trim() !== "" ? uploadedDocumentValue : file.name,
+        { shouldValidate: true, shouldDirty: true },
+      );
+      toast.success("Document uploaded successfully");
+    } catch {
+      // Mutation hook handles error toast. Reset local state/value to keep form valid.
+      setSelectedFile(null);
+      setValue(fieldName, "", { shouldValidate: true, shouldDirty: true });
+    }
+  };
 
   const isSubmitting =
     saveByTokenMutation.isPending ||
@@ -359,52 +533,31 @@ export function GSScreeningForm({
     saveStudentDeclarationMutation.isPending ||
     submitStudentDeclarationMutation.isPending ||
     saveAgentDeclarationMutation.isPending ||
-    submitAgentDeclarationMutation.isPending;
+    submitAgentDeclarationMutation.isPending ||
+    isUploadingDeclarationDocument;
 
   const onSubmit = async (values: GSScreeningFormValues) => {
     try {
       if (currentView === "student") {
         const data = { ...values } as Record<string, unknown>;
-        if (currentVisaFile) data.currentVisaDocument = "";
-        if (visaRefusalFile) data.visaRefusalDocument = "";
-        if (familyVisaRefusalFile) data.familyVisaRefusalDocument = "";
-        if (marriageCertFile) data.marriageCertificate = "";
-        if (childrenBirthCertsFile) data.childrenBirthCertificates = "";
         const payload = { data };
-
-        const files: Record<string, File> = {
-          ...(currentVisaFile && { currentVisaDocument: currentVisaFile }),
-          ...(visaRefusalFile && { visaRefusalDocument: visaRefusalFile }),
-          ...(familyVisaRefusalFile && {
-            familyVisaRefusalDocument: familyVisaRefusalFile,
-          }),
-          ...(marriageCertFile && { marriageCertificate: marriageCertFile }),
-          ...(childrenBirthCertsFile && {
-            childrenBirthCertificates: childrenBirthCertsFile,
-          }),
-        };
-        const hasFiles = Object.keys(files).length > 0;
 
         if (token) {
           await saveByTokenMutation.mutateAsync({
             token,
             payload,
-            ...(hasFiles && { files }),
           });
           await submitByTokenMutation.mutateAsync({
             token,
             payload,
-            ...(hasFiles && { files }),
           });
           handleBack?.();
         } else if (applicationId) {
           await saveStudentDeclarationMutation.mutateAsync({
             ...payload,
-            ...(hasFiles && { files }),
           });
           await submitStudentDeclarationMutation.mutateAsync({
             ...payload,
-            ...(hasFiles && { files }),
           });
           toast.success("Student declaration submitted successfully!");
           handleBack?.();
@@ -624,8 +777,27 @@ export function GSScreeningForm({
                         name="currentVisaDocument"
                         label="Current visa or bridging visa details"
                         file={currentVisaFile}
-                        onFileChange={setCurrentVisaFile}
-                        disabled={readOnly}
+                        existingFileName={String(
+                          uploadedDocumentByField.currentVisaDocument
+                            ?.file_name ?? "",
+                        )}
+                        existingFileUrl={
+                          String(
+                            uploadedDocumentByField.currentVisaDocument
+                              ?.view_url ??
+                              uploadedDocumentByField.currentVisaDocument
+                                ?.download_url ??
+                              "",
+                          ) || undefined
+                        }
+                        onFileChange={(file) =>
+                          void handleDeclarationDocumentFileChange(
+                            "currentVisaDocument",
+                            file,
+                            setCurrentVisaFile,
+                          )
+                        }
+                        disabled={readOnly || isUploadingDeclarationDocument}
                       />
                     </div>
                   )}
@@ -698,8 +870,27 @@ export function GSScreeningForm({
                           label="Document (visa refusal or cancellation notice)"
                           description="Upload PDF, JPG or PNG"
                           file={visaRefusalFile}
-                          onFileChange={setVisaRefusalFile}
-                          disabled={readOnly}
+                          existingFileName={String(
+                            uploadedDocumentByField.visaRefusalDocument
+                              ?.file_name ?? "",
+                          )}
+                          existingFileUrl={
+                            String(
+                              uploadedDocumentByField.visaRefusalDocument
+                                ?.view_url ??
+                                uploadedDocumentByField.visaRefusalDocument
+                                  ?.download_url ??
+                                "",
+                            ) || undefined
+                          }
+                          onFileChange={(file) =>
+                            void handleDeclarationDocumentFileChange(
+                              "visaRefusalDocument",
+                              file,
+                              setVisaRefusalFile,
+                            )
+                          }
+                          disabled={readOnly || isUploadingDeclarationDocument}
                         />
                       </div>
                     )}
@@ -720,8 +911,27 @@ export function GSScreeningForm({
                           name="familyVisaRefusalDocument"
                           label="Family visa refusal document"
                           file={familyVisaRefusalFile}
-                          onFileChange={setFamilyVisaRefusalFile}
-                          disabled={readOnly}
+                          existingFileName={String(
+                            uploadedDocumentByField.familyVisaRefusalDocument
+                              ?.file_name ?? "",
+                          )}
+                          existingFileUrl={
+                            String(
+                              uploadedDocumentByField.familyVisaRefusalDocument
+                                ?.view_url ??
+                                uploadedDocumentByField
+                                  .familyVisaRefusalDocument?.download_url ??
+                                "",
+                            ) || undefined
+                          }
+                          onFileChange={(file) =>
+                            void handleDeclarationDocumentFileChange(
+                              "familyVisaRefusalDocument",
+                              file,
+                              setFamilyVisaRefusalFile,
+                            )
+                          }
+                          disabled={readOnly || isUploadingDeclarationDocument}
                         />
                       </div>
                     )}
@@ -810,8 +1020,27 @@ export function GSScreeningForm({
                       name="marriageCertificate"
                       label="Marriage certificate or partner details"
                       file={marriageCertFile}
-                      onFileChange={setMarriageCertFile}
-                      disabled={readOnly}
+                      existingFileName={String(
+                        uploadedDocumentByField.marriageCertificate
+                          ?.file_name ?? "",
+                      )}
+                      existingFileUrl={
+                        String(
+                          uploadedDocumentByField.marriageCertificate
+                            ?.view_url ??
+                            uploadedDocumentByField.marriageCertificate
+                              ?.download_url ??
+                            "",
+                        ) || undefined
+                      }
+                      onFileChange={(file) =>
+                        void handleDeclarationDocumentFileChange(
+                          "marriageCertificate",
+                          file,
+                          setMarriageCertFile,
+                        )
+                      }
+                      disabled={readOnly || isUploadingDeclarationDocument}
                     />
                   )}
 
@@ -820,8 +1049,27 @@ export function GSScreeningForm({
                       name="childrenBirthCertificates"
                       label="Children birth certificates or supporting documents"
                       file={childrenBirthCertsFile}
-                      onFileChange={setChildrenBirthCertsFile}
-                      disabled={readOnly}
+                      existingFileName={String(
+                        uploadedDocumentByField.childrenBirthCertificates
+                          ?.file_name ?? "",
+                      )}
+                      existingFileUrl={
+                        String(
+                          uploadedDocumentByField.childrenBirthCertificates
+                            ?.view_url ??
+                            uploadedDocumentByField.childrenBirthCertificates
+                              ?.download_url ??
+                            "",
+                        ) || undefined
+                      }
+                      onFileChange={(file) =>
+                        void handleDeclarationDocumentFileChange(
+                          "childrenBirthCertificates",
+                          file,
+                          setChildrenBirthCertsFile,
+                        )
+                      }
+                      disabled={readOnly || isUploadingDeclarationDocument}
                     />
                   )}
 

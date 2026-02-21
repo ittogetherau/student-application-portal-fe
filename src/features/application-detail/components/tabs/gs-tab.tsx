@@ -252,6 +252,7 @@ export default function GSTab({
       <TabsContent value="interview" className="mt-0">
         {currentApiStage >= 3 && (
           <GSInterviewTab
+            applicationId={applicationId}
             isStageCompleted={isStageCompleted(3)}
             onStageComplete={() => handleStageComplete(4)}
           />

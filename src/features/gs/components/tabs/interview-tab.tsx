@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  CalendarDays,
   CheckCircle2,
-  Clock,
   ExternalLink,
   Video,
   Loader2,
@@ -13,13 +13,65 @@ import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import gsMeetingsService, {
+  type GsMeetingResponse,
+} from "@/service/gs-meetings.service";
+
+const getMeetingDateValue = (meeting: GsMeetingResponse) => {
+  if (
+    typeof meeting.scheduled_at === "string" &&
+    meeting.scheduled_at.trim() !== ""
+  ) {
+    return meeting.scheduled_at;
+  }
+
+  const scheduledStart = meeting["scheduled_start"];
+  if (typeof scheduledStart === "string" && scheduledStart.trim() !== "") {
+    return scheduledStart;
+  }
+
+  return "";
+};
+
+const getMeetingTimestamp = (meeting: GsMeetingResponse) => {
+  const rawDate = getMeetingDateValue(meeting);
+  if (!rawDate) return Number.POSITIVE_INFINITY;
+
+  const parsed = new Date(rawDate);
+  return Number.isNaN(parsed.getTime())
+    ? Number.POSITIVE_INFINITY
+    : parsed.getTime();
+};
+
+const formatMeetingDateTime = (meeting: GsMeetingResponse) => {
+  const rawDate = getMeetingDateValue(meeting);
+  if (rawDate === "") return "Date not available";
+
+  const parsedDate = new Date(rawDate);
+  if (Number.isNaN(parsedDate.getTime())) return rawDate;
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone:
+        typeof meeting.timezone === "string" && meeting.timezone.trim() !== ""
+          ? meeting.timezone
+          : undefined,
+    }).format(parsedDate);
+  } catch {
+    return parsedDate.toLocaleString();
+  }
+};
 
 interface GSInterviewTabProps {
+  applicationId?: string;
   isStageCompleted?: boolean;
   onStageComplete?: () => Promise<void>;
 }
 
 export default function GSInterviewTab({
+  applicationId,
   isStageCompleted = false,
   onStageComplete,
 }: GSInterviewTabProps) {
@@ -28,6 +80,58 @@ export default function GSInterviewTab({
     session?.user.role === "staff" || Boolean(session?.user.staff_admin);
 
   const [isProceeding, setIsProceeding] = useState(false);
+  const [isLoadingMeetings, setIsLoadingMeetings] = useState(false);
+  const [meetingError, setMeetingError] = useState<string | null>(null);
+  const [meetings, setMeetings] = useState<GsMeetingResponse[]>([]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadMeetings = async () => {
+      if (!applicationId) {
+        setMeetings([]);
+        setMeetingError(null);
+        return;
+      }
+
+      setIsLoadingMeetings(true);
+      setMeetingError(null);
+
+      try {
+        const response =
+          await gsMeetingsService.listMeetingsForApplication(applicationId);
+
+        if (isCancelled) return;
+
+        if (!response.success) {
+          setMeetings([]);
+          setMeetingError(response.message || "Failed to fetch meetings.");
+          return;
+        }
+
+        const meetingList = Array.isArray(response.data) ? response.data : [];
+        const sortedMeetings = [...meetingList].sort(
+          (a, b) => getMeetingTimestamp(a) - getMeetingTimestamp(b),
+        );
+        setMeetings(sortedMeetings);
+      } catch {
+        if (!isCancelled) {
+          setMeetings([]);
+          setMeetingError("Failed to fetch meetings.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingMeetings(false);
+        }
+      }
+    };
+
+    void loadMeetings();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [applicationId]);
 
   const handleProceedToAssessment = async () => {
     if (isStageCompleted || isProceeding) return;
@@ -46,37 +150,80 @@ export default function GSInterviewTab({
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Interview Status</CardTitle>
+          <CardTitle className="text-base">Application Meetings</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center gap-3">
-          <Clock
-            className={`h-5 w-5 ${isStaff ? "text-amber-600" : "text-muted-foreground"}`}
-          />
-          <div>
-            <p className="text-sm font-medium">
-              {isStaff
-                ? "Awaiting completion"
-                : isStageCompleted
-                  ? "Interview completed"
-                  : "Awaiting interview scheduling"}
+        <CardContent className="space-y-3">
+          {isLoadingMeetings ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading meetings...
+            </div>
+          ) : meetingError ? (
+            <p className="text-sm text-destructive">{meetingError}</p>
+          ) : meetings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No meetings found for this application.
             </p>
-            <p className="text-xs text-muted-foreground">
-              {isStaff ? (
-                <>Interview scheduled for Feb 10, 2026.</>
-              ) : isStageCompleted ? (
-                <>
-                  Your interview has been completed. You&apos;ll be notified by
-                  email when there are updates or next steps.
-                </>
-              ) : (
-                <>
-                  A Churchill representative will schedule your interview.
-                  You&apos;ll be notified by email once it&apos;s scheduled and
-                  when there are updates.
-                </>
-              )}
-            </p>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              {meetings.map((meeting) => (
+                <div key={meeting.id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <p className="text-sm font-medium truncate">
+                        {formatMeetingDateTime(meeting)}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {meeting.status ?? "scheduled"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {typeof meeting.meeting_link === "string" &&
+                      meeting.meeting_link.trim() !== "" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() =>
+                            window.open(
+                              meeting.meeting_link,
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          }
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Open Meeting
+                        </Button>
+                      )}
+
+                    {isStaff &&
+                      typeof meeting.recording_url === "string" &&
+                      meeting.recording_url.trim() !== "" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() =>
+                            window.open(
+                              meeting.recording_url,
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          }
+                        >
+                          <Video className="h-4 w-4" />
+                          Open Recording
+                        </Button>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
