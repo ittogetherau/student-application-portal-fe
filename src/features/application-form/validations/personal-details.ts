@@ -44,12 +44,13 @@ export const personalDetailsSchema = z
     // Contact Details
     email: z
       .string()
-      .nullish()
+      .trim()
+      .toLowerCase()
+      .min(1, "Email is required")
       .refine(
-        (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+        (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
         "Enter a valid email address",
-      )
-      .refine((val) => !!val && val.trim().length > 0, "Email is required"),
+      ),
 
     phone: z
       .string()
@@ -137,6 +138,7 @@ export const personalDetailsSchema = z
       ),
     postcode: z
       .string()
+      .max(10, "Post code must be at most 10 characters")
       .nullish()
       .refine((val) => !!val && val.trim().length > 0, "Post code is required"),
 
@@ -155,7 +157,10 @@ export const personalDetailsSchema = z
     postal_street_name: z.string().nullish(),
     postal_suburb: z.string().nullish(),
     postal_state: z.string().nullish(),
-    postal_postcode: z.string().nullish(),
+    postal_postcode: z
+      .string()
+      .max(10, "Post code must be at most 10 characters")
+      .nullish(),
 
     // Overseas/Permanent Address
     overseas_country: z

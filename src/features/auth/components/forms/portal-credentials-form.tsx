@@ -11,6 +11,7 @@ import {
   type SignInValues,
 } from "@/features/auth/utils/validations/sign-in";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
@@ -85,7 +86,15 @@ const PortalCredentialsForm = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}-password`}>Password</Label>
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor={`${idPrefix}-password`}>Password</Label>
+          <Link
+            href={siteRoutes.auth.forgotPassword}
+            className="text-xs text-primary underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id={`${idPrefix}-password`}
           type="password"

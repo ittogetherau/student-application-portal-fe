@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -142,7 +143,15 @@ const SignInForm = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href={siteRoutes.auth.forgotPassword}
+                className="text-xs text-primary underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"

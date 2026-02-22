@@ -36,10 +36,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { toast } from "react-hot-toast";
 
+import { siteRoutes } from "@/shared/constants/site-routes";
 import {
   createGSScreeningSchema,
   GSScreeningFormValues,
@@ -190,6 +192,7 @@ interface GSScreeningFormProps {
   applicationId?: string;
   readOnly?: boolean;
   initialData?: Partial<GSScreeningFormValues>;
+  prefillData?: Partial<GSScreeningFormValues>;
   initialUploadedDocuments?: UploadedDeclarationDocument[];
   handleBack?: () => void;
 }
@@ -201,15 +204,23 @@ export function GSScreeningForm({
   applicationId,
   readOnly = false,
   initialData,
+  prefillData,
   initialUploadedDocuments = [],
   handleBack,
 }: GSScreeningFormProps) {
   const { data: session } = useSession();
+  const router = useRouter();
+  const isPublicStudentMode = currentView === "student" && Boolean(token);
+  const isPrefillLocked = readOnly || isPublicStudentMode;
   const resolver = zodResolver(
     createGSScreeningSchema(currentView),
   ) as Resolver<GSScreeningFormValues>;
 
-  const mergedDefaults = { ...defaultValues, ...(initialData ?? {}) };
+  const mergedDefaults = {
+    ...defaultValues,
+    ...(prefillData ?? {}),
+    ...(initialData ?? {}),
+  };
 
   const methods = useForm<GSScreeningFormValues>({
     resolver,
@@ -223,7 +234,7 @@ export function GSScreeningForm({
     reset,
     setValue,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = methods;
   const [currentVisaFile, setCurrentVisaFile] = useState<File | null>(null);
   const [visaRefusalFile, setVisaRefusalFile] = useState<File | null>(null);
@@ -270,10 +281,15 @@ export function GSScreeningForm({
   }, [initialUploadedDocuments]);
 
   useEffect(() => {
-    if (initialData != null) {
-      reset({ ...defaultValues, ...initialData });
+    if (isDirty) return;
+    if (initialData != null || prefillData != null) {
+      reset({
+        ...defaultValues,
+        ...(prefillData ?? {}),
+        ...(initialData ?? {}),
+      });
     }
-  }, [initialData, reset]);
+  }, [initialData, isDirty, prefillData, reset]);
 
   useEffect(() => {
     const fields: DeclarationDocumentFieldName[] = [
@@ -348,8 +364,34 @@ export function GSScreeningForm({
   const isMarried = watch("isMarried");
   const hasChildren = watch("hasChildren");
   const hasRelativesInAustralia = watch("hasRelativesInAustralia");
+  const firstName = watch("firstName");
+  const lastName = watch("lastName");
   const applicantSignature = watch("applicantSignature");
   const agentSignature = watch("agentSignature");
+
+  useEffect(() => {
+    if (!isPublicStudentMode || readOnly) return;
+
+    const existingApplicantFullName = String(
+      getValues("applicantFullName") ?? "",
+    ).trim();
+    if (existingApplicantFullName !== "") return;
+
+    const combinedName = `${String(firstName ?? "").trim()} ${String(
+      lastName ?? "",
+    ).trim()}`.replace(/\s+/g, " ").trim();
+
+    if (combinedName !== "") {
+      setValue("applicantFullName", combinedName, { shouldValidate: false });
+    }
+  }, [
+    firstName,
+    getValues,
+    isPublicStudentMode,
+    lastName,
+    readOnly,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (currentlyInAustralia !== "yes") {
@@ -551,7 +593,7 @@ export function GSScreeningForm({
             token,
             payload,
           });
-          handleBack?.();
+          router.push(siteRoutes.track.root(trackingId));
         } else if (applicationId) {
           await saveStudentDeclarationMutation.mutateAsync({
             ...payload,
@@ -715,39 +757,41 @@ export function GSScreeningForm({
                       name="firstName"
                       label="Given Name(s)"
                       placeholder="Enter given name(s)"
-                      disabled={readOnly}
+                      disabled={isPrefillLocked}
                     />
 
                     <FormInput
                       name="lastName"
                       label="Family Name"
                       placeholder="Enter family name"
-                      disabled={readOnly}
+                      disabled={isPrefillLocked}
                     />
                     <FormInput
                       name="dateOfBirth"
                       label="Date of Birth (DOB)"
                       type="date"
-                      disabled={readOnly || Boolean(initialData?.dateOfBirth)}
+                      disabled={
+                        isPrefillLocked || Boolean(initialData?.dateOfBirth)
+                      }
                     />
                     <FormInput
                       name="studentId"
                       label="Student ID / Reference Number"
                       placeholder="Enter student ID/reference"
-                      disabled={readOnly}
+                      disabled={isPrefillLocked}
                     />
                     <FormInput
                       name="passportNumber"
                       label="Passport Number"
                       placeholder="Enter passport number"
-                      disabled={readOnly}
+                      disabled={isPrefillLocked}
                     />
                     <FormInput
                       name="email"
                       label="Email"
                       placeholder="Enter email address"
                       type="email"
-                      disabled={readOnly}
+                      disabled={isPrefillLocked}
                     />
                   </div>
                 </CardContent>
@@ -1355,7 +1399,7 @@ export function GSScreeningForm({
                     name="applicantFullName"
                     label="Applicant Full Name"
                     placeholder="Enter full name"
-                    disabled={readOnly}
+                    disabled={isPrefillLocked}
                   />
                   <FormInput
                     name="applicantDate"

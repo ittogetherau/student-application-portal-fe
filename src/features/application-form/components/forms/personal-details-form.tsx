@@ -147,11 +147,19 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   });
 
   const onSubmit = (values: PersonalDetailsValues) => {
-    console.log("submitting personal details", values);
+    const normalizedValues: PersonalDetailsValues = {
+      ...values,
+      email:
+        typeof values.email === "string"
+          ? values.email.trim().toLowerCase()
+          : values.email,
+    };
+
+    console.log("submitting personal details", normalizedValues);
     if (applicationId) {
-      saveOnSubmit(values);
+      saveOnSubmit(normalizedValues);
     }
-    personalDetailsMutation.mutate(values);
+    personalDetailsMutation.mutate(normalizedValues);
   };
 
   const getComponentByType = (components: AddressComponent[], type: string) =>

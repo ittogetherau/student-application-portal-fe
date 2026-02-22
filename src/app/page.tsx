@@ -56,7 +56,7 @@ const Index = () => {
               variant="outline"
               className="w-full border-dashed"
             >
-              <Link href={siteRoutes.track.root}>Track your application</Link>
+              <Link href={siteRoutes.track.root()}>Track your application</Link>
             </Button>
           </div>
         </div>

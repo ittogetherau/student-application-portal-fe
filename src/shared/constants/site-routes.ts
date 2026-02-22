@@ -10,6 +10,8 @@ export const siteRoutes = {
   auth: {
     login: "/login",
     register: "/register",
+    forgotPassword: "/forgot-password",
+    resetPassword: "/reset-password",
     signUp: "/sign-up",
     signUpAlt: "/signup",
   },
@@ -41,7 +43,7 @@ export const siteRoutes = {
     gsInterviews: "/dashboard/gs-interviews",
   },
   track: {
-    root: "/track",
+    root: (id?: string) => `/track${id ? `?tid=${id}` : ""}`,
     gsForm: (id: string) => `/track/gs-form/${id}`,
   },
 } as const;

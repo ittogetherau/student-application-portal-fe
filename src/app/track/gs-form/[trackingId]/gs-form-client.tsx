@@ -31,6 +31,18 @@ type PublicDeclarationByTokenResponse = {
     submitted_at?: string;
     [key: string]: unknown;
   };
+  application_prefill?: {
+    tracking_code?: string;
+    given_name?: string;
+    family_name?: string;
+    date_of_birth?: string;
+    passport_number?: string;
+    email?: string;
+    generated_stud_id?: string;
+    usi?: string | null;
+    campus_name?: string | null;
+    [key: string]: unknown;
+  };
 };
 
 const NUMERIC_FIELDS: (keyof GSScreeningFormValues)[] = [
@@ -60,6 +72,57 @@ function mapDeclarationDataToFormValues(
     }
   }
   return out as Partial<GSScreeningFormValues>;
+}
+
+function isNonEmptyRecord(value: unknown): value is Record<string, unknown> {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).length > 0
+  );
+}
+
+function normalizeDateForInput(value: unknown): string | undefined {
+  const raw = String(value ?? "").trim();
+  if (raw === "") return undefined;
+
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso?.[1]) return iso[1];
+
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const day = String(slash[1]).padStart(2, "0");
+    const month = String(slash[2]).padStart(2, "0");
+    const year = String(slash[3]);
+    return `${year}-${month}-${day}`;
+  }
+
+  return raw;
+}
+
+function mapPrefillToFormValues(
+  prefill: PublicDeclarationByTokenResponse["application_prefill"],
+): Partial<GSScreeningFormValues> | undefined {
+  if (!prefill) return undefined;
+
+  const out: Partial<GSScreeningFormValues> = {};
+
+  const firstName = String(prefill.given_name ?? "").trim();
+  const lastName = String(prefill.family_name ?? "").trim();
+  const dateOfBirth = normalizeDateForInput(prefill.date_of_birth);
+  const passportNumber = String(prefill.passport_number ?? "").trim();
+  const email = String(prefill.email ?? "").trim();
+  const studentId = String(prefill.generated_stud_id ?? "").trim();
+
+  if (firstName) out.firstName = firstName;
+  if (lastName) out.lastName = lastName;
+  if (dateOfBirth) out.dateOfBirth = dateOfBirth;
+  if (passportNumber) out.passportNumber = passportNumber;
+  if (email) out.email = email;
+  if (studentId) out.studentId = studentId;
+
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 type GSFormClientProps = {
@@ -98,20 +161,25 @@ export function GSFormClient({
   // Public-by-token returns { application_id, tracking_code, expires_at, declaration }; form data is declaration.data
   // Authenticated by applicationId returns { id, status, data, ... }; form data is data
   const rawData = useToken
-    ? (responseData as PublicDeclarationByTokenResponse | undefined)
+    ? ((responseData as PublicDeclarationByTokenResponse | undefined)
         ?.declaration?.data ??
-      (responseData as { data?: Record<string, unknown> } | undefined)?.data
+      (responseData as { data?: Record<string, unknown> } | undefined)?.data)
     : (responseData as { data?: Record<string, unknown> } | undefined)?.data;
   const initialData = mapDeclarationDataToFormValues(rawData);
+  const prefillData =
+    useToken && !isNonEmptyRecord(rawData)
+      ? mapPrefillToFormValues(
+          (responseData as PublicDeclarationByTokenResponse | undefined)
+            ?.application_prefill,
+        )
+      : undefined;
   const initialUploadedDocuments = useToken
-    ? (responseData as PublicDeclarationByTokenResponse | undefined)
+    ? ((responseData as PublicDeclarationByTokenResponse | undefined)
         ?.declaration?.uploaded_documents ??
-      (
-        responseData as { uploaded_documents?: UploadedDeclarationDocument[] }
-      )?.uploaded_documents
-    : (
-        responseData as { uploaded_documents?: UploadedDeclarationDocument[] }
-      )?.uploaded_documents;
+      (responseData as { uploaded_documents?: UploadedDeclarationDocument[] })
+        ?.uploaded_documents)
+    : (responseData as { uploaded_documents?: UploadedDeclarationDocument[] })
+        ?.uploaded_documents;
 
   if (isLoading) {
     return (
@@ -130,6 +198,7 @@ export function GSFormClient({
       token={token ?? undefined}
       applicationId={applicationId ?? undefined}
       initialData={initialData}
+      prefillData={prefillData}
       initialUploadedDocuments={initialUploadedDocuments ?? []}
     />
   );

@@ -10,7 +10,9 @@ import {
   useGSDeclarationReviewMutation,
   useGSStudentDeclarationQuery,
 } from "@/hooks/useGSAssessment.hook";
+import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
 import { cn } from "@/shared/lib/utils";
+import type { ApplicationDetailResponse } from "@/service/application.service";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -79,6 +81,67 @@ const getStatusBadge = (status: string | undefined) => {
   }
 };
 
+const isNonEmptyRecord = (value: unknown): value is Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.keys(value as Record<string, unknown>).length > 0;
+};
+
+const normalizeDateForInput = (value: unknown): string | undefined => {
+  const raw = String(value ?? "").trim();
+  if (raw === "") return undefined;
+
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso?.[1]) return iso[1];
+
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const day = String(slash[1]).padStart(2, "0");
+    const month = String(slash[2]).padStart(2, "0");
+    const year = String(slash[3]);
+    return `${year}-${month}-${day}`;
+  }
+
+  return raw;
+};
+
+const mapApplicationToGSPrefill = (
+  application: ApplicationDetailResponse | null | undefined,
+): Partial<GSScreeningFormValues> | undefined => {
+  if (!application) return undefined;
+
+  const personal = application.personal_details ?? null;
+  if (!personal || typeof personal !== "object") return undefined;
+
+  const givenName = String((personal as Record<string, unknown>).given_name ?? "")
+    .trim();
+  const familyName = String(
+    (personal as Record<string, unknown>).family_name ?? "",
+  ).trim();
+  const passportNumber = String(
+    (personal as Record<string, unknown>).passport_number ?? "",
+  ).trim();
+  const email = String((personal as Record<string, unknown>).email ?? "").trim();
+  const dateOfBirth = normalizeDateForInput(
+    (personal as Record<string, unknown>).date_of_birth,
+  );
+
+  const studentId = String(
+    application.reference_number ?? application.tracking_code ?? "",
+  ).trim();
+
+  const applicantFullName = `${givenName} ${familyName}`.trim();
+
+  const out: Partial<GSScreeningFormValues> = {};
+  if (givenName) out.firstName = givenName;
+  if (familyName) out.lastName = familyName;
+  if (dateOfBirth) out.dateOfBirth = dateOfBirth;
+  if (studentId) out.studentId = studentId;
+  if (passportNumber) out.passportNumber = passportNumber;
+  if (email) out.email = email;
+  if (applicantFullName) out.applicantFullName = applicantFullName;
+  return out;
+};
+
 export default function GSDeclarationsTab({
   applicationId,
   isStaff = false,
@@ -88,26 +151,44 @@ export default function GSDeclarationsTab({
   const [viewState, setViewState] = useState<ViewState>("cards");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { data: studentDeclaration } = useGSStudentDeclarationQuery(
+  const studentDeclarationQuery = useGSStudentDeclarationQuery(
     applicationId ?? null,
   );
-  const { data: agentDeclaration } = useGSAgentDeclarationQuery(
-    applicationId ?? null,
-  );
+  const agentDeclarationQuery = useGSAgentDeclarationQuery(applicationId ?? null);
 
   const reviewMutation = useGSDeclarationReviewMutation(applicationId ?? null);
 
-  const studentDeclarationData = studentDeclaration?.data;
-  const agentDeclarationData = agentDeclaration?.data;
+  const studentDeclarationData = studentDeclarationQuery.data?.data;
+  const agentDeclarationData = agentDeclarationQuery.data?.data;
+  const activeView = viewState === "cards" ? null : viewState;
+  const activeDeclarationType = activeView?.declarationType ?? null;
+
   const hasDeclarationData =
-    Boolean(studentDeclarationData?.data) ||
-    Boolean(agentDeclarationData?.data);
+    isNonEmptyRecord(studentDeclarationData?.data) ||
+    isNonEmptyRecord(agentDeclarationData?.data);
   const declarationPdfData = hasDeclarationData
     ? ({
         ...(studentDeclarationData?.data ?? {}),
         ...(agentDeclarationData?.data ?? {}),
       } as GSScreeningFormValues)
     : null;
+
+  const studentDeclarationFormData = isNonEmptyRecord(studentDeclarationData?.data)
+    ? (studentDeclarationData?.data as Partial<GSScreeningFormValues>)
+    : undefined;
+
+  const shouldPrefillFromApplication =
+    Boolean(applicationId) &&
+    Boolean(activeDeclarationType) &&
+    studentDeclarationQuery.isFetched &&
+    !isNonEmptyRecord(studentDeclarationData?.data);
+
+  const applicationQuery = useApplicationGetQuery(
+    shouldPrefillFromApplication ? (applicationId ?? null) : null,
+  );
+  const prefillData = shouldPrefillFromApplication
+    ? mapApplicationToGSPrefill(applicationQuery.data?.data ?? null)
+    : undefined;
 
   // Derive status from declaration responses
   const studentStatus = studentDeclarationData?.status;
@@ -177,7 +258,7 @@ export default function GSDeclarationsTab({
     }
   };
 
-  if (viewState === "cards") {
+  if (activeView == null) {
     return (
       <div className="space-y-4">
         <div className="grid gap-4 lg:grid-cols-2">
@@ -360,36 +441,56 @@ export default function GSDeclarationsTab({
     );
   }
 
-  const isReadOnly = viewState.mode === "view";
-  const declarationType = viewState.declarationType;
+  const isReadOnly = activeView.mode === "view";
+  const declarationType = activeView.declarationType;
+
+  const isLoadingDeclarations =
+    declarationType === "agent"
+      ? studentDeclarationQuery.isLoading || agentDeclarationQuery.isLoading
+      : studentDeclarationQuery.isLoading;
+  const isLoadingPrefill = shouldPrefillFromApplication && applicationQuery.isLoading;
+  if (isLoadingDeclarations || isLoadingPrefill) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   // For agent form, merge student data with agent data so student details are pre-filled
   const pickAgentDeclarationFields = (
     data?: Record<string, unknown> | null,
   ) => {
     if (!data) return {};
+    const toOptionalString = (value: unknown) => {
+      const raw = typeof value === "string" ? value : String(value ?? "");
+      const trimmed = raw.trim();
+      return trimmed === "" ? undefined : trimmed;
+    };
     return {
-      agentAgencyName: data.agentAgencyName,
-      agentCounsellorName: data.agentCounsellorName,
-      agentDate: data.agentDate,
-      agentSignature: data.agentSignature,
+      agentAgencyName: toOptionalString(data.agentAgencyName),
+      agentCounsellorName: toOptionalString(data.agentCounsellorName),
+      agentDate: toOptionalString(data.agentDate),
+      agentSignature: toOptionalString(data.agentSignature),
     };
   };
 
   const getInitialData = () => {
     if (declarationType === "student") {
-      return studentDeclaration?.data?.data;
+      return studentDeclarationFormData;
     }
     // For agent form, include student data as base
-    const studentData = studentDeclaration?.data?.data;
-    const agentData = agentDeclaration?.data?.data;
+    const studentData = studentDeclarationFormData;
+    const agentData = agentDeclarationData?.data;
     return { ...studentData, ...pickAgentDeclarationFields(agentData) };
   };
   const initialData = getInitialData();
   const studentUploadedDocuments = Array.isArray(
-    studentDeclaration?.data?.uploaded_documents,
+    studentDeclarationQuery.data?.data?.uploaded_documents,
   )
-    ? studentDeclaration?.data?.uploaded_documents
+    ? studentDeclarationQuery.data?.data?.uploaded_documents
     : [];
 
   const breadcrumbLabel =
@@ -419,6 +520,7 @@ export default function GSDeclarationsTab({
         currentView={declarationType}
         readOnly={isReadOnly}
         initialData={initialData}
+        prefillData={prefillData}
         initialUploadedDocuments={studentUploadedDocuments}
         applicationId={applicationId}
         handleBack={handleBack}

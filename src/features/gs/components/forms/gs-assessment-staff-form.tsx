@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getFieldError } from "@/components/forms/form-errors";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -13,8 +13,13 @@ import {
   useGSStaffAssessmentSaveMutation,
   useGSStaffAssessmentSubmitMutation,
 } from "@/hooks/useGSAssessment.hook";
+import type { ApplicationDetailResponse } from "@/service/application.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
+import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
+import { gsAssessmentStaffSchema } from "@/shared/validation/gs-assessment-staff.validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { memo, useCallback, useEffect } from "react";
 import {
   Controller,
@@ -26,15 +31,67 @@ import {
   type Resolver,
 } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { siteRoutes } from "@/shared/constants/site-routes";
-import { GSAssessmentPdfDownloadButton } from "./gs-assessment-pdf-download-button";
 import {
   STAGE_1_QUESTIONS,
   STAGE_2_QUESTIONS,
   type StageQuestion,
 } from "../../utils/gs-assessment-questions";
-import { gsAssessmentStaffSchema } from "../../../../shared/validation/gs-assessment-staff.validation";
-import { useRouter } from "next/navigation";
+import { GSAssessmentPdfDownloadButton } from "./gs-assessment-pdf-download-button";
+
+const normalizeDateForInput = (value: unknown): string | undefined => {
+  const raw = String(value ?? "").trim();
+  if (raw === "") return undefined;
+
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso?.[1]) return iso[1];
+
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const day = String(slash[1]).padStart(2, "0");
+    const month = String(slash[2]).padStart(2, "0");
+    const year = String(slash[3]);
+    return `${year}-${month}-${day}`;
+  }
+
+  return raw;
+};
+
+const mapApplicationToApplicantDetailsPrefill = (
+  application: ApplicationDetailResponse | null | undefined,
+): Partial<GSAssessmentStaffFormInput["applicantDetails"]> | undefined => {
+  if (!application) return undefined;
+
+  const personal = application.personal_details ?? null;
+  if (!personal || typeof personal !== "object") return undefined;
+
+  const givenName = String(
+    (personal as Record<string, unknown>).given_name ?? "",
+  ).trim();
+  const familyName = String(
+    (personal as Record<string, unknown>).family_name ?? "",
+  ).trim();
+  const passportNo = String(
+    (personal as Record<string, unknown>).passport_number ?? "",
+  ).trim();
+  const email = String(
+    (personal as Record<string, unknown>).email ?? "",
+  ).trim();
+  const dob = normalizeDateForInput(
+    (personal as Record<string, unknown>).date_of_birth,
+  );
+  const refNo = String(
+    application.reference_number ?? application.tracking_code ?? "",
+  ).trim();
+
+  const out: Partial<GSAssessmentStaffFormInput["applicantDetails"]> = {};
+  if (givenName) out.givenName = givenName;
+  if (familyName) out.familyName = familyName;
+  if (dob) out.dob = dob;
+  if (refNo) out.refNo = refNo;
+  if (passportNo) out.passportNo = passportNo;
+  if (email) out.email = email;
+  return out;
+};
 
 // Form input type (allows undefined for initial state, Zod validates on submit)
 type GSAssessmentStaffFormInput = {
@@ -117,10 +174,19 @@ export function GSAssessmentStaffForm({
   onSuccess,
 }: GSAssessmentStaffFormProps) {
   const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
 
-  const { data: staffAssessment, isLoading } = useGSStaffAssessmentQuery(
-    applicationId ?? null,
-  );
+  const token = searchParams.get("token")?.trim();
+  const trackingIdParam = (
+    params as Record<string, string | string[] | undefined>
+  )?.trackingId;
+  const trackingId = Array.isArray(trackingIdParam)
+    ? trackingIdParam[0]
+    : trackingIdParam;
+
+  const staffAssessmentQuery = useGSStaffAssessmentQuery(applicationId ?? null);
+  const { data: staffAssessment, isLoading } = staffAssessmentQuery;
 
   const saveMutation = useGSStaffAssessmentSaveMutation(applicationId ?? null);
   const submitMutation = useGSStaffAssessmentSubmitMutation(
@@ -147,6 +213,11 @@ export function GSAssessmentStaffForm({
 
   const staffAssessmentData = staffAssessment?.data;
   const isSubmitted = staffAssessmentData?.status === "submitted";
+
+  const applicationQuery = useApplicationGetQuery(applicationId ?? null);
+  const applicantDetailsPrefill = mapApplicationToApplicantDetailsPrefill(
+    applicationQuery.data?.data ?? null,
+  );
 
   // Transform form values to API payload
   const transformToPayload = useCallback(
@@ -282,6 +353,82 @@ export function GSAssessmentStaffForm({
     });
   }, [staffAssessment, reset]);
 
+  // Prefill applicant details from application when staff assessment isn't available yet.
+  useEffect(() => {
+    if (!applicantDetailsPrefill) return;
+
+    const dirtyApplicantDetails = methods.formState.dirtyFields
+      ?.applicantDetails as
+      | Partial<
+          Record<keyof GSAssessmentStaffFormInput["applicantDetails"], boolean>
+        >
+      | undefined;
+
+    if (
+      !dirtyApplicantDetails?.givenName &&
+      applicantDetailsPrefill.givenName
+    ) {
+      setValue(
+        "applicantDetails.givenName",
+        applicantDetailsPrefill.givenName,
+        {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: false,
+        },
+      );
+    }
+    if (
+      !dirtyApplicantDetails?.familyName &&
+      applicantDetailsPrefill.familyName
+    ) {
+      setValue(
+        "applicantDetails.familyName",
+        applicantDetailsPrefill.familyName,
+        {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: false,
+        },
+      );
+    }
+    if (!dirtyApplicantDetails?.dob && applicantDetailsPrefill.dob) {
+      setValue("applicantDetails.dob", applicantDetailsPrefill.dob, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+    if (!dirtyApplicantDetails?.refNo && applicantDetailsPrefill.refNo) {
+      setValue("applicantDetails.refNo", applicantDetailsPrefill.refNo, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+    if (
+      !dirtyApplicantDetails?.passportNo &&
+      applicantDetailsPrefill.passportNo
+    ) {
+      setValue(
+        "applicantDetails.passportNo",
+        applicantDetailsPrefill.passportNo,
+        {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: false,
+        },
+      );
+    }
+    if (!dirtyApplicantDetails?.email && applicantDetailsPrefill.email) {
+      setValue("applicantDetails.email", applicantDetailsPrefill.email, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+  }, [applicantDetailsPrefill, methods.formState.dirtyFields, setValue]);
+
   const handleSave = async () => {
     const values = getValues();
     try {
@@ -305,8 +452,10 @@ export function GSAssessmentStaffForm({
       });
 
       toast.success("Assessment submitted");
-      if (applicationId) {
-        router.push(siteRoutes.dashboard.application.id.gs(applicationId));
+      if (token && trackingId) {
+        router.push(siteRoutes.track.root(trackingId));
+      } else if (applicationId) {
+        router.push(siteRoutes.dashboard.application.id.coe(applicationId));
       }
       onSuccess?.();
     } catch {

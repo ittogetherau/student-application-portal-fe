@@ -511,51 +511,6 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
 
   return (
     <div className="space-y-4">
-      {isStageCompleted && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">COE documents uploaded.</p>
-                <p className="text-xs text-muted-foreground">
-                  This COE stage is completed.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {isCoeStage ? (
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      handleStageChange(APPLICATION_STAGE.ACCEPTED)
-                    }
-                  >
-                    Accept
-                  </Button>
-                ) : null}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (!applicationId) return;
-                    router.push(
-                      siteRoutes.dashboard.application.id.documents(
-                        applicationId,
-                      ),
-                    );
-                  }}
-                >
-                  Open Documents Tab
-                </Button>
-                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                  Completed
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Agent payment proof */}
       {agentCoeItem ? (
         <Card>
           <CardHeader className="pb-3">
@@ -640,7 +595,6 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
         </Card>
       )}
 
-      {/* COE document uploaded by staff/admin */}
       {staffCoeItem ? (
         <Card>
           <CardHeader className="pb-3">
@@ -712,6 +666,50 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
           </Card>
         )
       ) : null}
+
+      {isStageCompleted && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">COE documents uploaded.</p>
+                <p className="text-xs text-muted-foreground">
+                  This COE stage is completed.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {isCoeStage ? (
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleStageChange(APPLICATION_STAGE.ACCEPTED)
+                    }
+                  >
+                    Accept
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!applicationId) return;
+                    router.push(
+                      siteRoutes.dashboard.application.id.documents(
+                        applicationId,
+                      ),
+                    );
+                  }}
+                >
+                  Open Documents Tab
+                </Button>
+                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                  Completed
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
