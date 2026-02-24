@@ -2,11 +2,13 @@
 
 import applicationThreadsService, {
   AddThreadMessagePayload,
+  ApplicationThreadFilters,
   CommunicationThread,
   CreateThreadPayload,
   StaffThreadFilters,
   StaffThreadSummary,
   ThreadMessage,
+  UnresolvedThreadsResponse,
 } from "@/service/application-threads.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,13 +25,36 @@ export const useStaffThreadsQuery = (filters: StaffThreadFilters = {}) => {
 };
 
 // Queries
-export const useApplicationThreadsQuery = (applicationId: string | null) => {
+export const useApplicationThreadsQuery = (
+  applicationId: string | null,
+  filters?: ApplicationThreadFilters,
+) => {
+  const filtersKey = filters ? JSON.stringify(filters) : "";
+
   return useQuery<ServiceResponse<CommunicationThread[]>, Error>({
-    queryKey: ["application-threads", applicationId],
+    queryKey: ["application-threads", applicationId, filtersKey],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
       const response =
-        await applicationThreadsService.listThreads(applicationId);
+        await applicationThreadsService.listThreads(applicationId, filters ?? {});
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    enabled: !!applicationId,
+  });
+};
+
+export const useApplicationUnresolvedThreadsQuery = (
+  applicationId: string | null,
+) => {
+  return useQuery<ServiceResponse<UnresolvedThreadsResponse>, Error>({
+    queryKey: ["application-threads-unresolved", applicationId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      const response =
+        await applicationThreadsService.getUnresolvedThreads(applicationId);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -58,6 +83,9 @@ export const useCreateThreadMutation = (applicationId: string | null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-threads-unresolved", applicationId],
       });
     },
     onError: (error) => {
@@ -128,6 +156,9 @@ export const useUpdateThreadStatusMutation = (
         queryKey: ["application-threads", applicationId],
       });
       queryClient.invalidateQueries({
+        queryKey: ["application-threads-unresolved", applicationId],
+      });
+      queryClient.invalidateQueries({
         queryKey: ["staff-threads"],
       });
     },
@@ -167,6 +198,9 @@ export const useUpdateThreadPriorityMutation = (
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-threads-unresolved", applicationId],
       });
       queryClient.invalidateQueries({
         queryKey: ["staff-threads"],

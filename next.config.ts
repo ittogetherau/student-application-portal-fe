@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "churchilltest.blob.core.windows.net",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "churchillapplicationportal.s3.ap-southeast-2.amazonaws.com",
+        pathname: "/**",
+      },
     ],
   },
 

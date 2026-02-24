@@ -27,6 +27,7 @@ import {
   MAX_FILE_SIZE_BYTES,
 } from "@/shared/lib/document-file-helpers";
 import { cn } from "@/shared/lib/utils";
+import { getTodayDateInputValue } from "@/shared/validation/date-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
@@ -126,6 +127,7 @@ const stepId = 4;
 
 const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
   const languageMutation = useApplicationStepMutations(applicationId)[stepId];
+  const todayForInput = getTodayDateInputValue();
 
   const methods = useForm<LanguageAndCultureFormValues>({
     resolver: zodResolver(languageAndCultureSchema),
@@ -495,6 +497,7 @@ const LanguageDefaultForm = ({ applicationId }: { applicationId: string }) => {
                                 name="english_test_date"
                                 label=""
                                 type="date"
+                                max={todayForInput}
                               />
                             </td>
                             <td className="p-3">

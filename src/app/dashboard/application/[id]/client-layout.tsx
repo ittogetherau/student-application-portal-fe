@@ -1,33 +1,30 @@
 "use client";
 
+import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import {
   ErrorState,
   LoadingState,
   NotFoundState,
 } from "@/components/ui-kit/states";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import ContainerLayout from "@/components/ui-kit/layout/container-layout";
-import { siteRoutes } from "@/shared/constants/site-routes";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ApplicationHeaderActions from "@/features/application-detail/components/layout/application-header-actions";
 import ApplicationHeaderDetails from "@/features/application-detail/components/layout/application-header-details";
 import ApplicationSidebar from "@/features/application-detail/components/layout/application-sidebar";
 import ApplicationTabNav from "@/features/application-detail/components/layout/application-tab-nav";
-import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
-import ThreadMessagesPanel from "@/features/threads/components/panels/thread-messages-panel";
+import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import {
   getActiveSegment,
   useApplicationLayoutData,
 } from "@/features/application-detail/hooks/useApplicationLayoutData.hook";
+import ThreadMessagesPanel from "@/features/threads/components/panels/thread-messages-panel";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
-import { useSession } from "next-auth/react";
+import { cn } from "@/shared/lib/utils";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
+import { CircleAlert } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
 export default function ClientApplicationLayout({
   id,
@@ -38,7 +35,12 @@ export default function ClientApplicationLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
-  const { data: session } = useSession();
+  const {
+    role: ROLE,
+    isStaffOrAdmin,
+    isStaffAdmin: IS_ADMIN_STAFF,
+  } = useRoleFlags();
+
   const {
     application,
     stage,
@@ -57,16 +59,13 @@ export default function ClientApplicationLayout({
     error,
   } = useApplicationLayoutData(id);
 
-  const ROLE = session?.user.role;
-  const IS_ADMIN_STAFF = session?.user.staff_admin;
-  const isStaffOrAdmin = ROLE === "staff" || !!IS_ADMIN_STAFF;
-  const [isCreateThreadOpen, setIsCreateThreadOpen] = useState(false);
   const hasAppliedInitialStageRedirect = useRef(false);
 
   const handleBackNavigation = () =>
     router.push(siteRoutes.dashboard.application.root);
 
   const activeSegment = getActiveSegment(pathname);
+  const isInitialLoading = isLoading && application === undefined;
 
   useEffect(() => {
     if (hasAppliedInitialStageRedirect.current) return;
@@ -85,7 +84,7 @@ export default function ClientApplicationLayout({
     }
   }, [activeSegment, id, router, showCoe, showGs, stage]);
 
-  if (isLoading)
+  if (isInitialLoading)
     return (
       <div className="mt-4">
         <LoadingState />
@@ -102,14 +101,27 @@ export default function ClientApplicationLayout({
       </div>
     );
 
-  if (!application)
+  if (application === undefined)
+    return (
+      <div className="mt-4">
+        <LoadingState />
+      </div>
+    );
+
+  if (application === null)
     return (
       <div className="mt-4">
         <NotFoundState
+          title="Application was not found or was removed."
           action={{ label: "Back", onClick: handleBackNavigation }}
         />
       </div>
     );
+
+  const showUnassignedAlert =
+    stage &&
+    stage !== APPLICATION_STAGE.DRAFT &&
+    application.assigned_staff_id === null;
 
   return (
     <main className="space-y-4 p-6">
@@ -138,39 +150,52 @@ export default function ClientApplicationLayout({
           stage={stage}
           role={ROLE}
           isAdminStaff={IS_ADMIN_STAFF}
-          onStartConversation={() => setIsCreateThreadOpen(true)}
         />
       </ContainerLayout>
 
-      <TwoColumnLayout
-        reversed
-        sticky={true}
-        sidebar={<ApplicationSidebar id={id} stage={stage} role={ROLE} />}
-      >
-        <div className="space-y-3">
-          <ApplicationTabNav
-            activeSegment={activeSegment}
-            navItems={navItems}
-          />
-          <div className="space-y-4">{children}</div>
-        </div>
-      </TwoColumnLayout>
+      {showUnassignedAlert ? (
+        <Alert className="border-destructive/50">
+          <CircleAlert />
+          <AlertTitle>Staff member not assigned</AlertTitle>
+          <AlertDescription>
+            This application is not assigned to a staff member yet. Assign a
+            staff member to continue.
+            <div className="w-64 mt-2">
+              <StaffAssignmentSelect applicationId={application.id} />
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-      <Dialog
-        open={isCreateThreadOpen}
-        onOpenChange={(open) => setIsCreateThreadOpen(open)}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create Communication Thread</DialogTitle>
-          </DialogHeader>
-          <CreateThreadForm
-            applicationId={application.id}
-            onSuccess={() => setIsCreateThreadOpen(false)}
-            currentRole={ROLE}
+      <div className="relative">
+        {showUnassignedAlert && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-10 bg-background/50 cursor-not-allowed"
           />
-        </DialogContent>
-      </Dialog>
+        )}
+
+        <div
+          className={cn(
+            showUnassignedAlert ? "pointer-events-none opacity-50" : undefined,
+          )}
+        >
+          <TwoColumnLayout
+            reversed
+            sticky={true}
+            sidebar={<ApplicationSidebar id={id} stage={stage} role={ROLE} />}
+          >
+            <div className="space-y-3">
+              <ApplicationTabNav
+                activeSegment={activeSegment}
+                applicationId={application.id}
+                navItems={navItems}
+              />
+              <div className="space-y-4">{children}</div>
+            </div>
+          </TwoColumnLayout>
+        </div>
+      </div>
     </main>
   );
 }

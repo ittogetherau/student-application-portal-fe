@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import TasksPageClient from "./tasks-page-client";
+import TasksPage from "@/features/threads/components/tasks-page/tasks-page";
 
-export default function TasksPage() {
-  return <TasksPageClient />;
-}
+const Page = () => {
+  return <TasksPage />;
+};
+
+export default Page;

@@ -16,14 +16,14 @@ import {
   APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
 } from "@/shared/constants/application-sync";
 import { siteRoutes } from "@/shared/constants/site-routes";
-import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
+import { APPLICATION_STAGE } from "@/shared/constants/types";
 import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
 } from "@/shared/hooks/use-applications";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { FileText, Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
@@ -63,8 +63,9 @@ const ReviewForm = ({
   onNavigateToDocuments?: () => void;
 }) => {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { isStaffOrAdmin } = useRoleFlags();
   const queryClient = useQueryClient();
+
   const {
     data: response,
     isLoading,
@@ -75,8 +76,6 @@ const ReviewForm = ({
   const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
 
   const application = response?.data;
-  const isStaffOrAdmin =
-    session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
   const syncMetadata = application?.sync_metadata ?? null;
 
   const isSyncComplete = useMemo(
@@ -342,8 +341,6 @@ const ReviewForm = ({
           </div>
         </div>
       ) : null}
-
-      {/* <pre>{JSON.stringify(application.sync_metadata, null, 2)}</pre> */}
 
       {application.current_stage !== APPLICATION_STAGE.DRAFT &&
         isStaffOrAdmin && (

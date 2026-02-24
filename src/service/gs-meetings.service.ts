@@ -14,16 +14,37 @@ export interface GsMeetingParticipant {
 export interface GsMeetingResponse {
   id: string;
   application_id: string;
-  scheduled_at: string;
-  duration_minutes?: number;
+
+  // Newer API fields (see GET /api/v1/gs-meetings/{meeting_id})
+  teams_event_id?: string;
+  join_url?: string;
+  organizer_email?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
   timezone?: string;
+  recording_url?: string;
+  recording_uploaded_at?: string;
+  agent_notified?: boolean;
+  agent_notified_at?: string;
+  student_notified?: boolean;
+  student_notified_at?: string;
+  is_cancelled?: boolean;
+  cancelled_at?: string;
+  meeting_notes?: string;
+  created_at?: string;
+  updated_at?: string;
+
+  // Backward compatible fields (older list endpoints)
+  scheduled_at?: string;
+  duration_minutes?: number;
   status?: string;
   meeting_link?: string;
-  recording_url?: string;
   notes?: string;
   participants?: GsMeetingParticipant[];
   [key: string]: unknown;
 }
+
+export type GsInterviewResponse = GsMeetingResponse;
 
 export interface ScheduleGsMeetingRequest {
   application_id: string;
@@ -51,22 +72,75 @@ export interface GeneratePublicLinkRequest {
 }
 
 export interface PublicLinkResponse {
-  url: string;
-  expires_at: string;
+  meeting_id?: string;
+  public_url?: string;
+  url?: string;
   token?: string;
+  expires_at: string;
   [key: string]: unknown;
 }
 
 export interface GsRecordingMetadata {
   id: string;
-  file_url: string;
+  meeting_id?: string;
+  recording_content_url?: string;
+  file_url?: string;
+  created_datetime?: string;
   created_at?: string;
   duration_seconds?: number;
   [key: string]: unknown;
 }
 
+export interface FetchRecordingsResponse {
+  meeting_id: string;
+  count?: number;
+  recordings: GsRecordingMetadata[];
+  [key: string]: unknown;
+}
+
+const normalizeGsInterviewList = (raw: unknown): GsInterviewResponse[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw as GsInterviewResponse[];
+
+  if (typeof raw !== "object") return [];
+  const obj = raw as Record<string, unknown>;
+
+  const candidates = [
+    obj.items,
+    obj.data,
+    obj.results,
+    obj.interviews,
+    obj.meetings,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate as GsInterviewResponse[];
+  }
+
+  return [];
+};
+
 class GsMeetingsService extends ApiService {
   private readonly basePath = "gs-meetings";
+
+  listInterviews = async (params?: {
+    date_from?: string;
+    date_to?: string;
+  }): Promise<ServiceResponse<GsInterviewResponse[]>> => {
+    try {
+      const data = await this.get<unknown>(`${this.basePath}/list/interviews`, true, {
+        params,
+      });
+
+      return {
+        success: true,
+        message: "GS interviews listed.",
+        data: normalizeGsInterviewList(data),
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to list GS interviews", []);
+    }
+  };
 
   scheduleMeeting = async (
     payload: ScheduleGsMeetingRequest,
@@ -165,14 +239,23 @@ class GsMeetingsService extends ApiService {
   ): Promise<ServiceResponse<GsRecordingMetadata[]>> => {
     if (!meetingId) throw new Error("Meeting id is required");
     try {
-      const data = await this.get<GsRecordingMetadata[]>(
+      const data = await this.get<unknown>(
         `${this.basePath}/${meetingId}/recordings/fetch`,
         true,
       );
+
+      const recordings: GsRecordingMetadata[] = Array.isArray(data)
+        ? (data as GsRecordingMetadata[])
+        : data &&
+            typeof data === "object" &&
+            "recordings" in data &&
+            Array.isArray((data as FetchRecordingsResponse).recordings)
+          ? (data as FetchRecordingsResponse).recordings
+          : [];
       return {
         success: true,
         message: "Meeting recordings fetched.",
-        data,
+        data: recordings,
       };
     } catch (error) {
       return handleApiError(error, "Failed to fetch meeting recordings", []);

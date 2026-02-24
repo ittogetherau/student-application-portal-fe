@@ -17,6 +17,7 @@ type InReviewStageCardProps = {
   onSyncBlocked: () => void;
   studentEmail?: string | null;
   studentName: string;
+  withUnresolvedWarning?: (action: () => void) => void;
 };
 
 const getSafeSyncToastMessage = (data: unknown) => {
@@ -37,6 +38,7 @@ export default function InReviewStageCard({
   onSyncBlocked,
   studentEmail,
   studentName,
+  withUnresolvedWarning,
 }: InReviewStageCardProps) {
   const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
@@ -91,6 +93,20 @@ export default function InReviewStageCard({
     });
   };
 
+  const handleGenerateOfferClick = () => {
+    if (!isAllStagesSynced) {
+      handleGenerateOffer();
+      return;
+    }
+
+    if (withUnresolvedWarning) {
+      withUnresolvedWarning(handleGenerateOffer);
+      return;
+    }
+
+    handleGenerateOffer();
+  };
+
   return (
     <>
       <h3 className="text-base">Confirm before generating Offer Letter</h3>
@@ -101,7 +117,7 @@ export default function InReviewStageCard({
       </p>
 
       <Button
-        onClick={handleGenerateOffer}
+        onClick={handleGenerateOfferClick}
         disabled={!isInteractive || isPending}
         className="w-full"
       >

@@ -20,6 +20,7 @@ type ResendOfferLetterActionProps = {
   isSending: boolean;
   onBeforeOpen?: () => boolean;
   onConfirm: () => Promise<void>;
+  withUnresolvedWarning?: (action: () => void) => void;
 };
 
 export default function ResendOfferLetterAction({
@@ -29,6 +30,7 @@ export default function ResendOfferLetterAction({
   isSending,
   onBeforeOpen,
   onConfirm,
+  withUnresolvedWarning,
 }: ResendOfferLetterActionProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -39,7 +41,15 @@ export default function ResendOfferLetterAction({
     if (isSyncBlocked || (onBeforeOpen && !onBeforeOpen())) {
       return;
     }
-    setConfirmOpen(true);
+
+    const openConfirm = () => setConfirmOpen(true);
+
+    if (withUnresolvedWarning) {
+      withUnresolvedWarning(openConfirm);
+      return;
+    }
+
+    openConfirm();
   };
 
   const handleConfirm = async () => {

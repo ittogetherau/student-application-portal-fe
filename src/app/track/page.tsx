@@ -139,6 +139,10 @@ function ApplicationTrackContent() {
   }, [searchParams, trackById]);
 
   const StatusIcon = data ? STAGE_ICONS[data.current_stage] : null;
+  const requiredDocuments =
+    data?.required_documents.filter(
+      (d) => d.name.trim().toLowerCase() !== "signed offer letter",
+    ) ?? [];
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
@@ -276,7 +280,7 @@ function ApplicationTrackContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.required_documents.map((d) => (
+                  {requiredDocuments.map((d) => (
                     <tr key={d.name} className="border-t border-border">
                       <td className="py-2">{d.name}</td>
                       <td className="py-2">

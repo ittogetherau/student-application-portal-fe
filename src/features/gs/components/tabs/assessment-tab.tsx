@@ -7,8 +7,8 @@ import { GSAssessmentPdfDownloadButton } from "@/features/gs/components/forms/gs
 import { useGSStaffAssessmentQuery } from "@/hooks/useGSAssessment.hook";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import { useApplicationChangeStageMutation } from "@/shared/hooks/use-applications";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { CheckCircle2, Clock } from "lucide-react";
-import { useSession } from "next-auth/react";
 
 // type ViewState = "cards" | { mode: "view" | "edit" };
 
@@ -26,8 +26,7 @@ export default function GSAssessmentTab({
   isStageCompleted = false,
   onStageComplete,
 }: GSAssessmentTabProps) {
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
+  const { role: ROLE } = useRoleFlags();
 
   // const [viewState, setViewState] = useState<ViewState>("cards");
 

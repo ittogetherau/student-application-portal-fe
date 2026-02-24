@@ -8,6 +8,9 @@ interface FormInputProps {
   label: string;
   placeholder?: string;
   type?: string;
+  min?: string;
+  max?: string;
+  maxLength?: number;
   description?: string;
   disabled?: boolean;
   readOnly?: boolean;
@@ -18,6 +21,9 @@ export function FormInput({
   label,
   placeholder,
   type = "text",
+  min,
+  max,
+  maxLength,
   description,
   disabled = false,
   readOnly = false,
@@ -42,6 +48,9 @@ export function FormInput({
             ref={ref}
             type={type}
             placeholder={placeholder}
+            min={min}
+            max={max}
+            maxLength={maxLength}
             aria-invalid={!!error}
             value={
               type === "number" && typeof value === "number" && Number.isNaN(value)

@@ -16,28 +16,32 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getCountriesList, getNationalitiesList } from "@/shared/data/country-list";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
-import { useOcrAutofillUpload } from "@/features/application-form/hooks/use-ocr-autofill-upload.hook";
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useOcrAutofillUpload } from "@/features/application-form/hooks/use-ocr-autofill-upload.hook";
+import { mapPassportOcrToPersonalDetails } from "@/features/application-form/utils/ocr-autofill-mappers";
 import {
   defaultPersonalDetailsValues,
   personalDetailsSchema,
   type PersonalDetailsValues,
 } from "@/features/application-form/validations/personal-details";
-import { mapPassportOcrToPersonalDetails } from "@/features/application-form/utils/ocr-autofill-mappers";
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete.hook";
 import type { OcrResult } from "@/service/document.service";
+import {
+  getCountriesList,
+  getNationalitiesList,
+} from "@/shared/data/country-list";
 import {
   useDocuments,
   useDocumentTypesQuery,
 } from "@/shared/hooks/document.hook";
 import {
   DROPZONE_ACCEPT,
-  MAX_FILE_SIZE_BYTES,
   getDropzoneHelperText,
+  MAX_FILE_SIZE_BYTES,
 } from "@/shared/lib/document-file-helpers";
 import { cn } from "@/shared/lib/utils";
+import { getDateInputValueFromToday } from "@/shared/validation/date-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
@@ -75,6 +79,8 @@ type AddressComponent = {
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
+  const yesterdayForInput = getDateInputValueFromToday(-1);
+  const tomorrowForInput = getDateInputValueFromToday(1);
 
   const methods = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
@@ -417,6 +423,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               name="passport_expiry"
               label="Passport Expiry Date"
               type="date"
+              min={tomorrowForInput}
             />
           </div>
         </section>
@@ -488,6 +495,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                   name="date_of_birth"
                   label="Date of birth"
                   type="date"
+                  max={yesterdayForInput}
                 />
               </div>
             </div>

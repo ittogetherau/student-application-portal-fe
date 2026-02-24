@@ -15,6 +15,7 @@ import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import {
   useApplicationDocumentsQuery,
   useDocumentTypesQuery,
@@ -41,7 +42,6 @@ import {
   RefreshCw,
   Upload,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "react-hot-toast";
@@ -322,11 +322,7 @@ const ReuploadDialog = ({
 
 const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const router = useRouter();
-  // get user role
-  const { data: session } = useSession();
-  const ROLE = session?.user.role;
-  const isStaff =
-    ROLE === USER_ROLE.STAFF || Boolean(session?.user.staff_admin);
+  const { role: ROLE, isStaffOrAdmin: isStaff } = useRoleFlags();
 
   // mutations
   const uploadMutation = useUploadDocument();

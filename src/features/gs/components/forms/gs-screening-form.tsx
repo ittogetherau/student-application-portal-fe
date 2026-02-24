@@ -757,41 +757,39 @@ export function GSScreeningForm({
                       name="firstName"
                       label="Given Name(s)"
                       placeholder="Enter given name(s)"
-                      disabled={isPrefillLocked}
+                      disabled
                     />
 
                     <FormInput
                       name="lastName"
                       label="Family Name"
                       placeholder="Enter family name"
-                      disabled={isPrefillLocked}
+                      disabled
                     />
                     <FormInput
                       name="dateOfBirth"
                       label="Date of Birth (DOB)"
                       type="date"
-                      disabled={
-                        isPrefillLocked || Boolean(initialData?.dateOfBirth)
-                      }
+                      disabled
                     />
                     <FormInput
                       name="studentId"
                       label="Student ID / Reference Number"
                       placeholder="Enter student ID/reference"
-                      disabled={isPrefillLocked}
+                      disabled
                     />
                     <FormInput
                       name="passportNumber"
                       label="Passport Number"
                       placeholder="Enter passport number"
-                      disabled={isPrefillLocked}
+                      disabled
                     />
                     <FormInput
                       name="email"
                       label="Email"
                       placeholder="Enter email address"
                       type="email"
-                      disabled={isPrefillLocked}
+                      disabled
                     />
                   </div>
                 </CardContent>

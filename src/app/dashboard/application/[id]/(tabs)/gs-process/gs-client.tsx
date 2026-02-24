@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 
 import GsTab from "@/features/application-detail/components/tabs/gs-tab";
 import { useStageRouteGuard } from "@/features/application-detail/hooks/useStageRouteGuard.hook";
@@ -11,9 +11,7 @@ export default function GsClient({ applicationId }: { applicationId: string }) {
     applicationId,
     canAccess: shouldShowGsRoute,
   });
-  const { data: session } = useSession();
-
-  const isStaff = session?.user.role === "staff" || !!session?.user.staff_admin;
+  const { isStaffOrAdmin: isStaff } = useRoleFlags();
 
   if (!application) {
     return null;

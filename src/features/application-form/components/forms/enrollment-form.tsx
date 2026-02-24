@@ -9,35 +9,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  addWeeksToYmdDateString,
+  parseWeeksFromDurationText,
+} from "@/features/application-form/constants/enrollment-date-utils";
+import {
+  useCourseIntakesQuery,
+  useCoursesQuery,
+  useSaveEnrollmentMutation,
+} from "@/features/application-form/hooks/course.hook";
+import { useApplicationStepQuery } from "@/features/application-form/hooks/use-application-steps.hook";
 import { useFormPersistence } from "@/features/application-form/hooks/use-form-persistence.hook";
+import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
+import { useApplicationStepStore } from "@/features/application-form/store/use-application-step.store";
 import type { EnrollmentValues } from "@/features/application-form/validations/enrollment";
-import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
+import { APPLICATION_STAGE } from "@/shared/constants/types";
 import {
   DEFAULT_CREATE_PAYLOAD_temp,
   useApplicationCreateMutation,
   useApplicationGetQuery,
 } from "@/shared/hooks/use-applications";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { cn } from "@/shared/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
-import {
-  addWeeksToYmdDateString,
-  parseWeeksFromDurationText,
-} from "../../constants/enrollment-date-utils";
-import {
-  useCourseIntakesQuery,
-  useCoursesQuery,
-  useSaveEnrollmentMutation,
-} from "../../hooks/course.hook";
-import { useApplicationStepQuery } from "../../hooks/use-application-steps.hook";
-import { useApplicationFormDataStore } from "../../store/use-application-form-data.store";
-import { useApplicationStepStore } from "../../store/use-application-step.store";
 import StudentEnrollmentForm from "../student-enrollment/student-enrollment-form";
 
 const requiredSelectId = (message: string) =>
@@ -114,12 +114,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     (state) => state.stepData[0],
   );
   const currentApplicationId = resolvedApplicationId ?? applicationId;
-  const { data: session } = useSession();
+  const { isStaffOrAdmin } = useRoleFlags();
   const { data: applicationResponse } = useApplicationGetQuery(
     currentApplicationId ?? null,
   );
-  const isStaffOrAdmin =
-    session?.user.role === USER_ROLE.STAFF || !!session?.user.staff_admin;
   const currentStage = applicationResponse?.data?.current_stage;
   const shouldShowManageEnrollment =
     !!currentApplicationId &&

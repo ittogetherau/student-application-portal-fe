@@ -41,9 +41,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-* {
-}
-
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -149,6 +146,11 @@
 @layer components {
   .wrapper {
     @apply mx-auto w-full px-1.5 sm:px-2.5 lg:px-2.5;
+    max-width: 1600px;
+  }
+
+  .container-lg {
+    @apply w-full;
     max-width: 1600px;
   }
 

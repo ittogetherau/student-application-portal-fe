@@ -2,10 +2,19 @@
 
 import { CheckCircle2, FileText, Lock } from "lucide-react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { transformGSAssessmentData } from "@/shared/constants/gs-assessment";
 import GSAssessmentTab from "@/features/gs/components/tabs/assessment-tab";
@@ -13,6 +22,7 @@ import GSDeclarationsTab from "@/features/gs/components/tabs/declarations-tab";
 import GSDocumentsTab from "@/features/gs/components/tabs/gs-documents-tab";
 import GSInterviewTab from "@/features/gs/components/tabs/interview-tab";
 import GSScheduleTab from "@/features/gs/components/tabs/schedule-tab";
+import { useApplicationUnresolvedThreadsQuery } from "@/features/threads/hooks/application-threads.hook";
 import {
   useGSAssessmentProgress,
   useGSAssessmentQuery,
@@ -40,6 +50,9 @@ export default function GSTab({
   applicationId,
   isStaff = false,
 }: GSTabProps) {
+  const unresolvedThreadsQuery = useApplicationUnresolvedThreadsQuery(
+    applicationId ?? null,
+  );
   const [userSelectedTab, setUserSelectedTab] = useQueryState(
     "gs_process_tab",
     parseAsStringEnum<StepId>(
@@ -48,6 +61,41 @@ export default function GSTab({
       clearOnDefault: true,
     }),
   );
+
+  const [unresolvedAlertOpen, setUnresolvedAlertOpen] = useState(false);
+  const pendingActionRef = useRef<null | (() => void)>(null);
+
+  const unresolvedCount =
+    unresolvedThreadsQuery.data?.data?.unresolved_count ?? 0;
+  const shouldWarnUnresolvedCommunications =
+    unresolvedCount > 0 &&
+    !unresolvedThreadsQuery.isLoading &&
+    !unresolvedThreadsQuery.isError;
+
+  const runWithUnresolvedCommunicationsWarning = useCallback(
+    (action: () => void) => {
+      if (shouldWarnUnresolvedCommunications) {
+        pendingActionRef.current = action;
+        setUnresolvedAlertOpen(true);
+        return;
+      }
+
+      action();
+    },
+    [shouldWarnUnresolvedCommunications],
+  );
+
+  const handleUnresolvedAlertClose = useCallback(() => {
+    pendingActionRef.current = null;
+    setUnresolvedAlertOpen(false);
+  }, []);
+
+  const handleIgnoreUnresolvedAndContinue = useCallback(() => {
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    setUnresolvedAlertOpen(false);
+    action?.();
+  }, []);
 
   // Fetch GS assessment from dedicated endpoint: /api/v1/gs-assessment/{application_id}
   const { data: gsAssessmentResponse } = useGSAssessmentQuery(
@@ -91,16 +139,21 @@ export default function GSTab({
     return stepsProgress[stageIndex]?.state === "completed";
   };
 
-  const handleTabChange = (tabId: StepId) => {
-    setUserSelectedTab(tabId);
-  };
+  const handleTabChange = useCallback(
+    (tabId: StepId) => {
+      runWithUnresolvedCommunicationsWarning(() => {
+        setUserSelectedTab(tabId);
+      });
+    },
+    [runWithUnresolvedCommunicationsWarning, setUserSelectedTab],
+  );
 
   const stageCompleteMutation = useGSStageCompleteMutation(
     applicationId ?? null,
   );
 
   // Centralized stage completion handler - calls API and updates UI
-  const handleStageComplete = async (stageToComplete: number) => {
+  const handleStageCompleteInternal = async (stageToComplete: number) => {
     await stageCompleteMutation.mutateAsync({ stageToComplete });
     // Move to next stage after successful API call
     const nextStageIndex = Math.min(stageToComplete, STEPS.length - 1);
@@ -108,6 +161,17 @@ export default function GSTab({
     if (nextStep) {
       setUserSelectedTab(nextStep.id);
     }
+  };
+
+  const handleStageComplete = async (stageToComplete: number) => {
+    if (shouldWarnUnresolvedCommunications) {
+      runWithUnresolvedCommunicationsWarning(() => {
+        void handleStageCompleteInternal(stageToComplete);
+      });
+      return;
+    }
+
+    await handleStageCompleteInternal(stageToComplete);
   };
 
   return (
@@ -239,16 +303,16 @@ export default function GSTab({
         )}
       </TabsContent>
 
-       <TabsContent value="schedule" className="mt-0">
-         {currentApiStage >= 2 && (
-           <GSScheduleTab
-             applicationId={applicationId}
-             isStageCompleted={isStageCompleted(2)}
-             onStageComplete={() => handleStageComplete(3)}
-             // onSkipToAssessment={() => handleStageComplete(5)}
-           />
-         )}
-       </TabsContent>
+      <TabsContent value="schedule" className="mt-0">
+        {currentApiStage >= 2 && (
+          <GSScheduleTab
+            applicationId={applicationId}
+            isStageCompleted={isStageCompleted(2)}
+            onStageComplete={() => handleStageComplete(3)}
+            // onSkipToAssessment={() => handleStageComplete(5)}
+          />
+        )}
+      </TabsContent>
       <TabsContent value="interview" className="mt-0">
         {currentApiStage >= 3 && (
           <GSInterviewTab
@@ -269,6 +333,38 @@ export default function GSTab({
           />
         )}
       </TabsContent>
+
+      <Dialog
+        open={unresolvedAlertOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleUnresolvedAlertClose();
+            return;
+          }
+          setUnresolvedAlertOpen(true);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle>Incomplete communications remain</DialogTitle>
+            <DialogDescription>
+              There {unresolvedCount === 1 ? "is" : "are"} {unresolvedCount}{" "}
+              unresolved communication{" "}
+              {unresolvedCount === 1 ? "thread" : "threads"} for this
+              application. You can close this message to review them, or ignore
+              the warning and continue.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="justify-end">
+            <Button variant="secondary" onClick={handleUnresolvedAlertClose}>
+              Close
+            </Button>
+            <Button onClick={handleIgnoreUnresolvedAndContinue}>
+              Ignore warning and continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }

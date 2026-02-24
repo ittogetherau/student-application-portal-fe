@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/card";
 import type { ApplicationDocumentListItem } from "@/service/document.service";
 import { useApplicationDocumentsQuery } from "@/shared/hooks/document.hook";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { AdditionalDocumentsUpload } from "../additional-documents-upload";
 import { DocumentCard } from "../cards/document-card";
+import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
 
 //
 type Document = ApplicationDocumentListItem;
@@ -48,10 +49,20 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
               No documents found for this application
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {documents.map((doc) => (
-                <DocumentCard key={doc.id} doc={doc} />
-              ))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {documents.map((doc) => (
+                  <DocumentCard key={doc.id} doc={doc} />
+                ))}
+              </div>
+
+              <CreateThreadButton
+                applicationId={applicationId}
+                label="Request Change"
+                icon={RefreshCw}
+                showAllFields={false}
+                defaultTitle={"Changes Requested in Documents!"}
+              />
             </div>
           )}
 

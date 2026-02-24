@@ -19,11 +19,14 @@ type UploadDocumentParams = {
 // type ListApplicationDocumentsParams = Record<string, QueryValue>;
 
 // Query hooks
-export const useDocumentTypesQuery = () => {
+export const useDocumentTypesQuery = (options?: {
+  initialOnly?: boolean;
+}) => {
+  const initialOnly = options?.initialOnly ?? false;
   return useQuery<ServiceResponse<DocumentType[]>, Error>({
-    queryKey: ["document-types"],
+    queryKey: ["document-types", initialOnly],
     queryFn: async () => {
-      const response = await documentService.getDocumentTypes();
+      const response = await documentService.getDocumentTypes(initialOnly);
       if (!response.success) {
         throw new Error(response.message || "Failed to fetch document types");
       }

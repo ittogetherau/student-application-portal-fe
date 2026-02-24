@@ -473,6 +473,7 @@ export function GSAssessmentStaffForm({
 
   const isReadonlyMode =
     readonly || staffAssessment?.data?.status === "submitted";
+  const isApplicantDetailsReadonly = true;
 
   return (
     <FormProvider {...methods}>
@@ -496,34 +497,40 @@ export function GSAssessmentStaffForm({
             <FormInput
               name="applicantDetails.givenName"
               label="Given Name(s)"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
             <FormInput
               name="applicantDetails.familyName"
               label="Family Name"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
             <FormInput
               name="applicantDetails.dob"
               label="DOB"
               type="date"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
             <FormInput
               name="applicantDetails.refNo"
               label="Student ID / Ref no"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
             <FormInput
               name="applicantDetails.passportNo"
               label="Passport No"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
             <FormInput
               name="applicantDetails.email"
               label="Email"
               type="email"
-              disabled={isReadonlyMode}
+              disabled={isApplicantDetailsReadonly || isReadonlyMode}
+              readOnly={isApplicantDetailsReadonly}
             />
           </div>
         </div>

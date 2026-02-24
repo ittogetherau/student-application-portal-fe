@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { ApplicationTableRow, USER_ROLE } from "@/shared/constants/types";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { cn } from "@/shared/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, GripVertical } from "lucide-react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 export function ApplicationCard({
   app,
@@ -17,9 +17,7 @@ export function ApplicationCard({
   app: ApplicationTableRow;
   isallowMovingInKanban: boolean;
 }) {
-  const { data: session } = useSession();
-  const role = session?.user.role as USER_ROLE | undefined;
-  const isStaffAdmin = session?.user.staff_admin;
+  const { role, isStaffAdmin } = useRoleFlags();
 
   const {
     attributes,

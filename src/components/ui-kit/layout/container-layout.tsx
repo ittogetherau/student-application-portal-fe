@@ -1,7 +1,7 @@
 import React, { type ReactNode } from "react";
 
 export interface Props {
-  size?: "sm" | "md" | "base";
+  size?: "sm" | "md" | "base" | "lg";
   isCenter?: boolean;
   pad?: boolean;
   className?: string;
@@ -9,7 +9,7 @@ export interface Props {
 }
 
 const ContainerLayout: React.FC<Props> = ({
-  size = "base",
+  size = "container-lg",
   isCenter = true,
   children,
   pad = true,
@@ -21,7 +21,9 @@ const ContainerLayout: React.FC<Props> = ({
         ? "container-sm"
         : size === "md"
           ? "container-md"
-          : "container"
+          : size === "lg"
+            ? "container-lg"
+            : "container"
     } ${isCenter ? "mx-auto" : ""} ${pad ? "px-4" : ""} ${className} `}
   >
     {children}

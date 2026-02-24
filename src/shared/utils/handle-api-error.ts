@@ -38,8 +38,10 @@ const formatGalaxyError = (error?: GalaxyError) => {
 
 const extractErrorMessage = (payload?: ApiErrorBody) => {
   if (!payload) return null;
-  if (typeof payload.detail === "string" && payload.detail) return payload.detail;
-  if (typeof payload.message === "string" && payload.message) return payload.message;
+  if (typeof payload.detail === "string" && payload.detail)
+    return payload.detail;
+  if (typeof payload.message === "string" && payload.message)
+    return payload.message;
   if (typeof payload.error === "string" && payload.error) return payload.error;
   return formatGalaxyError(payload.galaxy_error);
 };
@@ -47,13 +49,15 @@ const extractErrorMessage = (payload?: ApiErrorBody) => {
 export const handleApiError = <T = null>(
   error: unknown,
   fallbackMessage: string,
-  defaultData: T = null as T
+  defaultData: T = null as T,
 ) => {
   let errorMessage = fallbackMessage;
   let payload: ApiErrorBody | undefined;
+  let status: number | undefined;
 
   if (axios.isAxiosError(error)) {
     payload = error.response?.data as ApiErrorBody | undefined;
+    status = error.response?.status;
     errorMessage =
       extractErrorMessage(payload) || error.message || fallbackMessage;
   } else if (error instanceof Error) {
@@ -64,6 +68,7 @@ export const handleApiError = <T = null>(
     success: false,
     data: defaultData,
     message: errorMessage,
+    status,
     error: payload,
   };
 };

@@ -41,6 +41,13 @@ const TARGET_SECTIONS = [
 
 const PRIORITIES = ["low", "medium", "high"] as const;
 
+const toDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const CreateThreadForm = ({
   applicationId,
   onSuccess,
@@ -48,6 +55,7 @@ const CreateThreadForm = ({
   defaultTitle,
 }: CreateThreadFormProps) => {
   const isStaff = currentRole === "staff";
+  const today = toDateInputValue(new Date());
   const form = useForm<ThreadCreateValues>({
     resolver: zodResolver(threadCreateSchema),
     defaultValues: {
@@ -99,7 +107,12 @@ const CreateThreadForm = ({
   return (
     <FormProvider {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormInput name="subject" label="Subject" placeholder="Enter subject" />
+        <FormInput
+          name="subject"
+          label="Subject"
+          placeholder="Enter subject"
+          maxLength={200}
+        />
 
         {isStaff ? (
           <>
@@ -141,6 +154,7 @@ const CreateThreadForm = ({
                 label="Deadline"
                 type="date"
                 placeholder="Select deadline"
+                min={today}
               />
             </div>
           </>
@@ -151,6 +165,7 @@ const CreateThreadForm = ({
           label="Message"
           placeholder="Provide details for this thread"
           rows={4}
+          maxLength={200}
         />
 
         <div className="flex justify-end">

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  getDateInputValueFromToday,
+  requiredDateInputString,
+} from "@/shared/validation/date-input";
 
 export const personalDetailsSchema = z
   .object({
@@ -33,13 +37,12 @@ export const personalDetailsSchema = z
         (val) => !!val && val.trim().length > 0,
         "Please select a gender",
       ),
-    date_of_birth: z
-      .string()
-      .nullish()
-      .refine(
-        (val) => !!val && val.trim().length > 0,
-        "Date of birth is required",
-      ),
+    date_of_birth: requiredDateInputString({
+      requiredMessage: "Date of birth is required",
+      max: () => getDateInputValueFromToday(-1),
+      invalidFormatMessage: "Invalid date of birth",
+      maxMessage: "Date of birth must be before today",
+    }),
 
     // Contact Details
     email: z
@@ -87,13 +90,12 @@ export const personalDetailsSchema = z
         (val) => !!val && val.trim().length > 0,
         "Passport number is required",
       ),
-    passport_expiry: z
-      .string()
-      .nullish()
-      .refine(
-        (val) => !!val && val.trim().length > 0,
-        "Passport expiry is required",
-      ),
+    passport_expiry: requiredDateInputString({
+      requiredMessage: "Passport expiry is required",
+      min: () => getDateInputValueFromToday(1),
+      invalidFormatMessage: "Invalid passport expiry date",
+      minMessage: "Passport expiry date must be after today",
+    }),
 
     // Visa Details (only required for Onshore students)
     visa_type: z.string().nullish(),

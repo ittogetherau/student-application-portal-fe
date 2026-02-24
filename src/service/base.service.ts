@@ -1,5 +1,6 @@
 import { axiosDataPrivate, axiosDataPublic } from "@/shared/lib/axios";
 import type { AxiosRequestConfig } from "axios";
+import axios from "axios";
 
 export class ApiService {
   protected getClient(usePrivate: boolean) {
@@ -80,14 +81,8 @@ export class ApiService {
   }
 
   private extractError(error: unknown) {
-    const err = error as {
-      response?: { data?: { message?: string } };
-      message?: string;
-    };
-    return new Error(
-      err?.response?.data?.message ||
-        err?.message ||
-        "An unexpected error occurred.",
-    );
+    if (axios.isAxiosError(error)) return error;
+    const err = error as { message?: string };
+    return new Error(err?.message || "An unexpected error occurred.");
   }
 }

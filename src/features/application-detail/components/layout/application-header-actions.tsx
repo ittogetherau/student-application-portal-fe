@@ -4,9 +4,10 @@ import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
 import { ApplicationActionsMenu } from "@/features/application-detail/components/toolbar/application-actions-menu";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
+import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
-import { Plus, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import Link from "next/link";
 
 type ApplicationHeaderActionsProps = {
@@ -15,7 +16,6 @@ type ApplicationHeaderActionsProps = {
   stage: APPLICATION_STAGE;
   role?: string;
   isAdminStaff?: boolean;
-  onStartConversation: () => void;
 };
 
 const EDITABLE_STAGES = [
@@ -31,7 +31,6 @@ export default function ApplicationHeaderActions({
   stage,
   role,
   isAdminStaff,
-  onStartConversation,
 }: ApplicationHeaderActionsProps) {
   return (
     <>
@@ -62,14 +61,7 @@ export default function ApplicationHeaderActions({
           </>
         ) : null}
 
-        <Button
-          size="sm"
-          className="w-full sm:w-auto gap-2"
-          onClick={onStartConversation}
-        >
-          <Plus className="h-4 w-4" />
-          Start Conversation
-        </Button>
+        <CreateThreadButton variant={"default"} applicationId={applicationId} />
       </div>
     </>
   );

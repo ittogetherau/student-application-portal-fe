@@ -9,6 +9,7 @@ interface FormTextareaProps {
     placeholder?: string;
     description?: string;
     rows?: number;
+    maxLength?: number;
     disabled?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function FormTextarea({
     placeholder,
     description,
     rows = 4,
+    maxLength,
     disabled = false,
 }: FormTextareaProps) {
     const {
@@ -40,6 +42,7 @@ export function FormTextarea({
                         ref={ref}
                         placeholder={placeholder}
                         rows={rows}
+                        maxLength={maxLength}
                         aria-invalid={!!error}
                         value={value ?? ""}
                         onChange={onChange}

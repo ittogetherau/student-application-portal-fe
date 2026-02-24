@@ -9,11 +9,13 @@ import { toast } from "react-hot-toast";
 type SubmittedStageCardProps = {
   applicationId: string;
   isInteractive: boolean;
+  withUnresolvedWarning?: (action: () => void) => void;
 };
 
 export default function SubmittedStageCard({
   applicationId,
   isInteractive,
+  withUnresolvedWarning,
 }: SubmittedStageCardProps) {
   const changeStage = useApplicationChangeStageMutation(applicationId);
 
@@ -31,6 +33,15 @@ export default function SubmittedStageCard({
     );
   };
 
+  const handleStartReviewClick = () => {
+    if (withUnresolvedWarning) {
+      withUnresolvedWarning(handleStartReview);
+      return;
+    }
+
+    handleStartReview();
+  };
+
   return (
     <>
       <h3 className="text-base">Ready to Start Review?</h3>
@@ -40,7 +51,7 @@ export default function SubmittedStageCard({
         with reason.
       </p>
       <Button
-        onClick={handleStartReview}
+        onClick={handleStartReviewClick}
         disabled={!isInteractive || changeStage.isPending}
         className="w-full"
       >

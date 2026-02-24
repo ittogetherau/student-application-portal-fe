@@ -49,13 +49,24 @@ export const useApplicationListQuery = (params: ApplicationListParams = {}) => {
 };
 
 export const useApplicationGetQuery = (applicationId: string | null) => {
-  return useQuery<ServiceResponse<ApplicationDetailResponse>, Error>({
+  return useQuery<ServiceResponse<ApplicationDetailResponse>, ServiceMutationError>({
     queryKey: ["application-get", applicationId],
     queryFn: async () => {
       if (!applicationId) throw new Error("Missing application reference.");
       const response = await applicationService.getApplication(applicationId);
       if (!response.success) {
-        throw new Error(response.message);
+        if (response.status === 404) {
+          return {
+            ...response,
+            success: true,
+            data: null,
+            message: "Application not found.",
+          };
+        }
+
+        const error = new Error(response.message) as ServiceMutationError;
+        error.response = response;
+        throw error;
       }
       return response;
     },

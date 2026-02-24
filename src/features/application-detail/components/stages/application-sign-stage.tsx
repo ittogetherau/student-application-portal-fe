@@ -2,13 +2,14 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ApplicationSyncMetadata } from "@/service/application.service";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationRequestSignaturesMutation,
   useApplicationSendOfferLetterMutation,
 } from "@/shared/hooks/use-applications";
-import type { ApplicationSyncMetadata } from "@/service/application.service";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { cn } from "@/shared/lib/utils";
 import {
   AlertCircle,
   ArrowRight,
@@ -18,58 +19,79 @@ import {
 } from "lucide-react";
 import { memo, useEffect, useMemo } from "react";
 import ResendOfferLetterAction from "./resend-offer-letter-action";
-import SyncToGalaxyButton from "@/features/application-form/components/sync/sync-all-to-galaxy";
 
 interface SignerRowProps {
   name: string;
   email: string;
   url: string;
   signedAt?: string | null;
+  isReSignFlow?: boolean;
   isInteractive?: boolean;
 }
 
 const SignerRow = memo(
-  ({ name, email, url, signedAt, isInteractive = true }: SignerRowProps) => (
-    <a
-      href={isInteractive ? url : "#"}
-      target={isInteractive ? "_blank" : undefined}
-      rel={isInteractive ? "noreferrer" : undefined}
-      aria-disabled={!isInteractive}
-      tabIndex={isInteractive ? 0 : -1}
-      onClick={(event) => {
-        if (!isInteractive) {
-          event.preventDefault();
-        }
-      }}
-      className={`flex items-center justify-between p-2 rounded-md transition-colors ${
-        isInteractive ? "hover:bg-muted/40" : "opacity-70"
-      }`}
-    >
-      <div className="flex items-center justify-between w-full gap-3 min-w-0">
-        <div className="space-y-0.5 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium leading-none truncate">{name}</p>
-            {signedAt ? (
-              <Badge variant="default" className="text-[10px] px-1.5">
-                Signed
-              </Badge>
-            ) : null}
+  ({
+    name,
+    email,
+    url,
+    signedAt,
+    isReSignFlow = false,
+    isInteractive = true,
+  }: SignerRowProps) => {
+    const actionLabel = signedAt ? "View" : "Sign now";
+
+    return (
+      <Button
+        asChild
+        variant="outline"
+        className={cn(
+          "w-full h-auto justify-between px-3 py-2.5 rounded-md",
+          isInteractive ? "hover:bg-muted/40" : "opacity-70",
+        )}
+      >
+        <a
+          href={isInteractive ? url : "#"}
+          target={isInteractive ? "_blank" : undefined}
+          rel={isInteractive ? "noreferrer" : undefined}
+          aria-disabled={!isInteractive}
+          tabIndex={isInteractive ? 0 : -1}
+          onClick={(event) => {
+            if (!isInteractive) {
+              event.preventDefault();
+            }
+          }}
+          className="flex items-center gap-3 min-w-0"
+        >
+          <div className="min-w-0 flex-1 text-left">
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-sm font-medium leading-none truncate">
+                {name}
+              </p>
+              {signedAt ? (
+                <Badge variant="default" className="text-[9px] px-1.5">
+                  {isReSignFlow ? "Re-signed" : "Signed"}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-[9px] px-1.5">
+                  Pending
+                </Badge>
+              )}
+            </div>
+
+            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <Mail className="h-3 w-3" />
+              <span className="truncate">{email}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Mail className="h-3 w-3" />
-            <span className="truncate max-w-[16ch] block">{email}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-medium">{actionLabel}</span>
+            <ExternalLink className="h-4 w-4" />
           </div>
-        </div>
-
-        <div className="s">
-          <Button variant={"ghost"} size={"icon-sm"} disabled={!isInteractive}>
-            <ExternalLink />
-          </Button>
-        </div>
-      </div>
-    </a>
-  ),
+        </a>
+      </Button>
+    );
+  },
 );
 
 SignerRow.displayName = "SignerRow";
@@ -83,7 +105,19 @@ interface ApplicationSignStageProps {
   isAllStagesSynced?: boolean;
   syncMetadata?: ApplicationSyncMetadata | null;
   onSyncBlocked?: () => void;
+  withUnresolvedWarning?: (action: () => void) => void;
 }
+
+const formatOrdinal = (value: number) => {
+  const absValue = Math.abs(Math.trunc(value));
+  const mod100 = absValue % 100;
+  const mod10 = absValue % 10;
+  if (mod100 >= 11 && mod100 <= 13) return `${absValue}th`;
+  if (mod10 === 1) return `${absValue}st`;
+  if (mod10 === 2) return `${absValue}nd`;
+  if (mod10 === 3) return `${absValue}rd`;
+  return `${absValue}th`;
+};
 
 const ApplicationSignStage = ({
   applicationId,
@@ -94,6 +128,7 @@ const ApplicationSignStage = ({
   isAllStagesSynced = false,
   syncMetadata,
   onSyncBlocked,
+  withUnresolvedWarning,
 }: ApplicationSignStageProps) => {
   const {
     data,
@@ -124,6 +159,7 @@ const ApplicationSignStage = ({
   };
 
   const firstItem = data?.items?.[0];
+  const signatureRequestCount = data?.items?.length ?? 0;
   const hasUnsyncedOrOutdatedSection = useMemo(() => {
     if (!syncMetadata) return false;
 
@@ -184,10 +220,20 @@ const ApplicationSignStage = ({
   const canShowResendOffer =
     currentRole === USER_ROLE.STAFF && (data?.items?.length ?? 0) > 0;
 
+  const isReSignFlow = signatureRequestCount > 1;
+  const isCurrentRequestFullySigned =
+    !!firstItem?.student.signed_at && !!firstItem?.agent.signed_at;
+
   const canStartGs =
-    currentRole === USER_ROLE.STAFF &&
-    !!firstItem?.student.signed_at &&
-    !!firstItem?.agent.signed_at;
+    currentRole === USER_ROLE.STAFF && isCurrentRequestFullySigned;
+
+  const offerLetterHeading = isReSignFlow
+    ? isCurrentRequestFullySigned
+      ? "Re-signed offer letter"
+      : "Re-sign offer letter"
+    : "Sign Offer Letter Agreement";
+
+  const initiatedLabel = isReSignFlow ? "Re-initiated on" : "Initiated on";
 
   return (
     <div>
@@ -210,16 +256,17 @@ const ApplicationSignStage = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold flex items-center gap-2">
-                {firstItem?.document_title}
+                {offerLetterHeading}
               </h4>
             </div>
 
-            <div>
+            <div className="space-y-1">
               <SignerRow
                 name={firstItem?.student.name ?? ""}
                 email={firstItem?.student.email ?? ""}
                 url={firstItem?.student.signing_url ?? "#"}
                 signedAt={firstItem?.student.signed_at}
+                isReSignFlow={isReSignFlow}
                 isInteractive={true}
               />
               <SignerRow
@@ -227,16 +274,20 @@ const ApplicationSignStage = ({
                 email={firstItem?.agent.email ?? ""}
                 url={firstItem?.agent.signing_url ?? "#"}
                 signedAt={firstItem?.agent.signed_at}
+                isReSignFlow={isReSignFlow}
                 isInteractive={true}
               />
             </div>
           </div>
 
-          <p className="text-[10px] text-right text-muted-foreground mb-2">
-            Initiated on{" "}
+          <p className="text-[10px] text-right text-muted-foreground mb-2 mt-1">
+            {initiatedLabel}{" "}
             {firstItem?.created_at
               ? formatUtcToFriendlyLocal(firstItem.created_at)
               : "-"}
+            {signatureRequestCount > 1
+              ? ` \u2022 ${formatOrdinal(signatureRequestCount)} signature request`
+              : null}
           </p>
 
           {isOfferLetterOutdated ? (
@@ -256,12 +307,23 @@ const ApplicationSignStage = ({
         isSending={isSending}
         onBeforeOpen={handleBeforeResendOpen}
         onConfirm={handleResend}
+        withUnresolvedWarning={withUnresolvedWarning}
       />
 
       {canStartGs ? (
         <div className="px-2">
           <Button
-            onClick={() => handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT)}
+            onClick={() => {
+              const run = () =>
+                handleStageChange(APPLICATION_STAGE.GS_ASSESSMENT);
+
+              if (withUnresolvedWarning) {
+                withUnresolvedWarning(run);
+                return;
+              }
+
+              run();
+            }}
             className="w-full text-xs"
             disabled={!isInteractive}
           >

@@ -33,9 +33,10 @@ import {
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
+import { useApplicationUnresolvedThreadsQuery } from "@/features/threads/hooks/application-threads.hook";
 import { BadgeCheck, Loader2, OctagonAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 interface ApplicationStageProps {
   currentStatus: APPLICATION_STAGE;
@@ -62,6 +63,7 @@ const SYNC_SECTION_LABELS: Record<string, string> = {
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const { data: response, isLoading } = useApplicationGetQuery(id);
+  const unresolvedThreadsQuery = useApplicationUnresolvedThreadsQuery(id);
   const router = useRouter();
 
   const application = response?.data;
@@ -71,6 +73,40 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
     null,
   );
   const [syncAlertOpen, setSyncAlertOpen] = useState(false);
+  const [unresolvedAlertOpen, setUnresolvedAlertOpen] = useState(false);
+  const pendingCtaActionRef = useRef<null | (() => void)>(null);
+
+  const unresolvedCount =
+    unresolvedThreadsQuery.data?.data?.unresolved_count ?? 0;
+  const shouldWarnUnresolvedCommunications =
+    unresolvedCount > 0 &&
+    !unresolvedThreadsQuery.isLoading &&
+    !unresolvedThreadsQuery.isError;
+
+  const runWithUnresolvedCommunicationsWarning = useCallback(
+    (action: () => void) => {
+      if (shouldWarnUnresolvedCommunications) {
+        pendingCtaActionRef.current = action;
+        setUnresolvedAlertOpen(true);
+        return;
+      }
+
+      action();
+    },
+    [shouldWarnUnresolvedCommunications],
+  );
+
+  const handleUnresolvedAlertClose = useCallback(() => {
+    pendingCtaActionRef.current = null;
+    setUnresolvedAlertOpen(false);
+  }, []);
+
+  const handleIgnoreUnresolvedAndContinue = useCallback(() => {
+    const action = pendingCtaActionRef.current;
+    pendingCtaActionRef.current = null;
+    setUnresolvedAlertOpen(false);
+    action?.();
+  }, []);
 
   const isAllStagesSynced = useMemo(
     () =>
@@ -187,6 +223,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           <SubmittedStageCard
             applicationId={id}
             isInteractive={isInteractive}
+            withUnresolvedWarning={runWithUnresolvedCommunicationsWarning}
           />
         );
       }
@@ -206,6 +243,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             onSyncBlocked={() => setSyncAlertOpen(true)}
             studentEmail={application?.personal_details?.email}
             studentName={studentName}
+            withUnresolvedWarning={runWithUnresolvedCommunicationsWarning}
           />
         );
       }
@@ -219,6 +257,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             isInteractive={isInteractive}
             isAllStagesSynced={isAllStagesSynced}
             syncMetadata={application?.sync_metadata ?? null}
+            withUnresolvedWarning={runWithUnresolvedCommunicationsWarning}
           />
         );
       }
@@ -315,6 +354,38 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
               <Button variant="secondary">Close</Button>
             </DialogClose>
             <Button onClick={() => setSyncAlertOpen(false)}>Got it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={unresolvedAlertOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleUnresolvedAlertClose();
+            return;
+          }
+          setUnresolvedAlertOpen(true);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle>Incomplete communications remain</DialogTitle>
+            <DialogDescription>
+              There {unresolvedCount === 1 ? "is" : "are"} {unresolvedCount}{" "}
+              unresolved communication{" "}
+              {unresolvedCount === 1 ? "thread" : "threads"} for this
+              application. You can close this message to review them, or ignore
+              the warning and continue.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="justify-end">
+            <Button variant="secondary" onClick={handleUnresolvedAlertClose}>
+              Close
+            </Button>
+            <Button onClick={handleIgnoreUnresolvedAndContinue}>
+              Ignore warning and continue
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

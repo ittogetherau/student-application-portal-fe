@@ -26,7 +26,7 @@ import {
   type GSDocumentBackendStatus,
   type GSDocumentData,
 } from "@/shared/constants/gs-assessment";
-import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
+import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
 import {
   useGSDocumentAutoCompleteMutation,
   useGSDocumentFileDeleteMutation,
@@ -124,9 +124,6 @@ export default function GSDocumentsTab({
     fileId: string;
     fileName: string;
   } | null>(null);
-  const [requestChangeDocNumber, setRequestChangeDocNumber] = useState<
-    number | null
-  >(null);
 
   // Queries
   const {
@@ -217,7 +214,8 @@ export default function GSDocumentsTab({
       ).length;
 
       if (approvedRequiredDocs !== REQUIRED_DOCUMENT_NUMBERS.length) {
-        const remaining = REQUIRED_DOCUMENT_NUMBERS.length - approvedRequiredDocs;
+        const remaining =
+          REQUIRED_DOCUMENT_NUMBERS.length - approvedRequiredDocs;
         toast.error(
           `Cannot complete stage: ${remaining} required document${remaining > 1 ? "s" : ""} still need${remaining === 1 ? "s" : ""} approval.`,
         );
@@ -279,13 +277,6 @@ export default function GSDocumentsTab({
       );
     }
   };
-
-  const requestChangeDocument = useMemo(() => {
-    if (requestChangeDocNumber == null) return null;
-    return documents.find(
-      (doc) => doc.documentNumber === requestChangeDocNumber,
-    );
-  }, [documents, requestChangeDocNumber]);
 
   // Handle auto-complete all documents (staff only)
   const handleAutoComplete = async () => {
@@ -388,7 +379,7 @@ export default function GSDocumentsTab({
               if (!open) setPendingDelete(null);
             }}
           >
-            <ShadDialogContent>
+            <ShadDialogContent className="sm:max-w-md">
               <ShadDialogHeader>
                 <ShadDialogTitle>Delete file?</ShadDialogTitle>
                 <DialogDescription>
@@ -434,68 +425,6 @@ export default function GSDocumentsTab({
               </DialogFooter>
             </ShadDialogContent>
           </Dialog>
-
-          {isStaff && (
-            <Dialog
-              open={requestChangeDocNumber !== null}
-              onOpenChange={(open) => {
-                if (!open) setRequestChangeDocNumber(null);
-              }}
-            >
-              <ShadDialogContent className="sm:max-w-xl">
-                <ShadDialogHeader>
-                  <ShadDialogTitle>Request change</ShadDialogTitle>
-                  <DialogDescription>
-                    Start a thread to request changes for{" "}
-                    <span className="font-medium text-foreground">
-                      {requestChangeDocument?.title ?? "this document"}
-                    </span>
-                    . After the thread is created, this document will be marked
-                    as{" "}
-                    <span className="font-medium text-foreground">
-                      Changes Requested
-                    </span>
-                    .
-                  </DialogDescription>
-                </ShadDialogHeader>
-
-                {applicationId ? (
-                  <CreateThreadForm
-                    applicationId={applicationId}
-                    currentRole="agent"
-                    defaultTitle={
-                      requestChangeDocument?.title
-                        ? `Changes requested for - ${requestChangeDocument.title}`
-                        : "Changes requested"
-                    }
-                    onSuccess={async () => {
-                      const docNumber = requestChangeDocNumber;
-                      if (docNumber == null) return;
-
-                      try {
-                        await statusMutation.mutateAsync({
-                          documentNumber: docNumber,
-                          status: "rejected",
-                        });
-                        toast.success("Change requested");
-                        setRequestChangeDocNumber(null);
-                      } catch (error) {
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Failed to update status",
-                        );
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                    Missing application id. Unable to create a thread.
-                  </div>
-                )}
-              </ShadDialogContent>
-            </Dialog>
-          )}
 
           {/* Search and Filter */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -543,7 +472,7 @@ export default function GSDocumentsTab({
                 <AccordionItem
                   key={doc.id}
                   value={doc.id}
-                  className="rounded-lg border border-border px-3"
+                  className="rounded-lg border border-border px-3 data-[state=open]:border-primary"
                 >
                   <AccordionTrigger className="py-3 hover:no-underline">
                     <div className="flex w-full items-center justify-between gap-3 pr-2">
@@ -569,11 +498,11 @@ export default function GSDocumentsTab({
                   </AccordionTrigger>
                   <AccordionContent className="pb-4 space-y-4">
                     {/* Document description */}
-                    {config && (
+                    {/* {config && (
                       <p className="text-xs text-muted-foreground">
                         {config.description}
                       </p>
-                    )}
+                    )} */}
 
                     {/* Uploaded files */}
                     {hasFiles && (
@@ -720,25 +649,41 @@ export default function GSDocumentsTab({
                           </Button>
                         )}
                         {doc.status !== "rejected" && (
-                          <Button
+                          <CreateThreadButton
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
-                            onClick={() =>
-                              setRequestChangeDocNumber(doc.documentNumber)
+                            className="w-auto h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                            applicationId={applicationId ?? ""}
+                            disabled={!applicationId || isUpdatingStatus}
+                            icon={RefreshCw}
+                            iconClassName="h-3 w-3 mr-1"
+                            label="Request Change"
+                            dialogTitle="Request change"
+                            defaultTitle={
+                              doc.title
+                                ? `Changes requested for - ${doc.title}`
+                                : "Changes requested"
                             }
-                            disabled={
-                              isUpdatingStatus ||
-                              requestChangeDocNumber !== null
-                            }
-                          >
-                            {isUpdatingStatus ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                            )}
-                            Request Change
-                          </Button>
+                            showAllFields={false}
+                            onSuccess={() => {
+                              if (!applicationId) return;
+                              void (async () => {
+                                try {
+                                  await statusMutation.mutateAsync({
+                                    documentNumber: doc.documentNumber,
+                                    status: "rejected",
+                                  });
+                                  toast.success("Change requested");
+                                } catch (error) {
+                                  toast.error(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "Failed to update status",
+                                  );
+                                }
+                              })();
+                            }}
+                          />
                         )}
                       </div>
                     )}

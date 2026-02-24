@@ -136,9 +136,12 @@ class DocumentService extends ApiService {
     }
   }
 
-  getDocumentTypes(): Promise<ServiceResponse<DocumentType[]>> {
+  getDocumentTypes(
+    initialOnly?: boolean,
+  ): Promise<ServiceResponse<DocumentType[]>> {
+    const queryString = buildQueryString({ initial_only: initialOnly });
     return resolveServiceCall<DocumentType[]>(
-      () => this.get(`${this.basePath}/types`, true),
+      () => this.get(`${this.basePath}/types${queryString}`, true),
       "Document types fetched successfully.",
       "Failed to fetch document types",
     );

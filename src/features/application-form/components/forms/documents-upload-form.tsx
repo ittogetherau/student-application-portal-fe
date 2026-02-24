@@ -352,7 +352,7 @@ export default function DocumentsUploadForm() {
     data: documentTypesResponse,
     isLoading: isLoadingDocumentTypes,
     error: documentTypesError,
-  } = useDocumentTypesQuery();
+  } = useDocumentTypesQuery({ initialOnly: true });
 
   const {
     data: documentsResponse,

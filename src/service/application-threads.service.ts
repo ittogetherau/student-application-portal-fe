@@ -62,11 +62,45 @@ export interface StaffThreadSummary {
 
 export interface StaffThreadFilters {
   title?: string;
+  s_student?: string;
+  s_staff?: string;
   agent?: string;
   agent_id?: string;
   status?: string;
   priority?: string;
+  date?: string;
+  deadline?: string;
+  section?: string;
   active_agent?: boolean;
+  sort_by?: "created_at" | "deadline";
+  sort_order?: "asc" | "desc";
+}
+
+export interface ApplicationThreadFilters {
+  title?: string;
+  status?: string;
+  priority?: string;
+  deadline?: string;
+  sort_by?: "created_at" | "deadline";
+}
+
+export interface UnresolvedThreadSummary {
+  id: string;
+  subject: string;
+  status: string;
+  priority: string;
+  target_section: string;
+  deadline: string | null;
+  created_at: string;
+  status_updated_at: string;
+}
+
+export interface UnresolvedThreadsResponse {
+  application_id: string;
+  total_threads: number;
+  unresolved_count: number;
+  all_threads_completed: boolean;
+  unresolved_threads: UnresolvedThreadSummary[];
 }
 
 export interface ThreadMessageAttachment {
@@ -89,14 +123,21 @@ class ApplicationThreadsService extends ApiService {
   ): Promise<ServiceResponse<StaffThreadSummary[]>> {
     const params = {
       title: filters.title?.trim() || undefined,
+      s_student: filters.s_student?.trim() || undefined,
+      s_staff: filters.s_staff?.trim() || undefined,
       agent: filters.agent?.trim() || undefined,
       agent_id: filters.agent_id?.trim() || undefined,
       status: filters.status?.trim() || undefined,
       priority: filters.priority?.trim() || undefined,
+      date: filters.date?.trim() || undefined,
+      deadline: filters.deadline?.trim() || undefined,
+      section: filters.section?.trim() || undefined,
       active_agent:
         typeof filters.active_agent === "boolean"
           ? filters.active_agent
           : undefined,
+      sort_by: filters.sort_by,
+      sort_order: filters.sort_order,
     };
 
     return resolveServiceCall<StaffThreadSummary[]>(
@@ -114,6 +155,7 @@ class ApplicationThreadsService extends ApiService {
 
   listThreads(
     applicationId: string,
+    filters: ApplicationThreadFilters = {},
   ): Promise<ServiceResponse<CommunicationThread[]>> {
     if (!applicationId) {
       return Promise.resolve({
@@ -123,16 +165,52 @@ class ApplicationThreadsService extends ApiService {
       });
     }
 
+    const params = {
+      title: filters.title?.trim() || undefined,
+      status: filters.status?.trim() || undefined,
+      priority: filters.priority?.trim() || undefined,
+      deadline: filters.deadline?.trim() || undefined,
+      sort_by: filters.sort_by,
+    };
+
     return resolveServiceCall<CommunicationThread[]>(
       async () => {
         const data = await this.get<
           CommunicationThread[] | Record<string, CommunicationThread>
-        >(`${this.basePath}/${applicationId}/threads`, true);
+        >(`${this.basePath}/${applicationId}/threads`, true, { params });
         return Array.isArray(data) ? data : Object.values(data ?? {});
       },
       "Communication threads fetched successfully.",
       "Failed to fetch communication threads",
       [],
+    );
+  }
+
+  getUnresolvedThreads(
+    applicationId: string,
+  ): Promise<ServiceResponse<UnresolvedThreadsResponse>> {
+    if (!applicationId) {
+      return Promise.resolve({
+        success: false,
+        data: null,
+        message: "Application id is required",
+      });
+    }
+
+    const defaultPayload: UnresolvedThreadsResponse = {
+      application_id: applicationId,
+      total_threads: 0,
+      unresolved_count: 0,
+      all_threads_completed: true,
+      unresolved_threads: [],
+    };
+
+    return resolveServiceCall<UnresolvedThreadsResponse>(
+      () =>
+        this.get(`${this.basePath}/${applicationId}/threads/unresolved`, true),
+      "Unresolved communication threads fetched successfully.",
+      "Failed to fetch unresolved communication threads",
+      defaultPayload,
     );
   }
 

@@ -7,7 +7,7 @@ import { applicationStageFilterOptions } from "@/components/shared/ApplicationSt
 import { Button } from "@/components/ui/button";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { USER_ROLE, type ApplicationTableRow } from "@/shared/constants/types";
-import { useSession } from "next-auth/react";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import Link from "next/link";
 import * as React from "react";
 import { getApplicationColumns } from "./application-table-columns";
@@ -162,14 +162,7 @@ export const ApplicationTable = ({
   const bulkDeleteMutation = useBulkDeleteApplicationsMutation();
   const bulkUnarchiveMutation = useBulkUnarchiveApplicationsMutation();
 
-  const { data: session } = useSession();
-  const ROLE = React.useMemo(() => {
-    const role = session?.user.role;
-    return Object.values(USER_ROLE).includes(role as USER_ROLE)
-      ? (role as USER_ROLE)
-      : undefined;
-  }, [session?.user.role]);
-  const isStaffAdmin = session?.user.staff_admin;
+  const { role: ROLE, isStaffAdmin } = useRoleFlags();
 
   const filters = React.useMemo<DataTableFacetedFilter[]>(
     () => [

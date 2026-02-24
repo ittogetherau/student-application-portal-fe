@@ -1,0 +1,54 @@
+/* FullCalendar CSS setup for Tailwind v4 + Next.js App Router.
+   - We vendor FullCalendar's generated CSS in `fullcalendar.css` because the
+     packages don't ship .css files and Next enforces package `exports`.
+   - Import it into a cascade layer so Tailwind-layered overrides can work. */
+
+@import "./fullcalendar.css" layer(base);
+
+@layer components {
+  :root {
+    --fc-page-bg-color: var(--color-background);
+    --fc-border-color: var(--color-border);
+    --fc-neutral-bg-color: var(--color-muted);
+    --fc-neutral-text-color: var(--color-muted-foreground);
+    --fc-button-text-color: var(--color-primary-foreground);
+    --fc-button-bg-color: var(--color-primary);
+    --fc-button-border-color: var(--color-primary);
+    --fc-button-hover-bg-color: color-mix(
+      in oklch,
+      var(--color-primary) 90%,
+      black
+    );
+    --fc-button-hover-border-color: color-mix(
+      in oklch,
+      var(--color-primary) 90%,
+      black
+    );
+    --fc-button-active-bg-color: color-mix(
+      in oklch,
+      var(--color-primary) 80%,
+      black
+    );
+    --fc-button-active-border-color: color-mix(
+      in oklch,
+      var(--color-primary) 80%,
+      black
+    );
+    --fc-event-bg-color: var(--color-primary);
+    --fc-event-border-color: var(--color-primary);
+    --fc-event-text-color: var(--color-primary-foreground);
+    --fc-more-link-bg-color: var(--color-muted);
+    --fc-more-link-text-color: var(--color-foreground);
+    --fc-today-bg-color: color-mix(in oklch, var(--color-primary) 14%, transparent);
+    --fc-now-indicator-color: var(--color-destructive);
+    --fc-list-event-hover-bg-color: color-mix(
+      in oklch,
+      var(--color-muted) 70%,
+      var(--color-background)
+    );
+  }
+
+  .fc {
+    color: var(--color-foreground);
+  }
+}

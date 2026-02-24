@@ -1,9 +1,10 @@
 "use client";
 
-import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import ApplicationStepHeader from "@/features/application-form/components/application-step-header";
 import { useStepForm } from "@/features/application-form/hooks/use-step-form.hook";
 import {
@@ -13,7 +14,8 @@ import {
 } from "@/features/application-form/validations/emergency-contacts";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronRight, Plus } from "lucide-react";
-import { FormProvider, useFieldArray } from "react-hook-form";
+import { useEffect } from "react";
+import { Controller, FormProvider, useFieldArray } from "react-hook-form";
 
 const STEP_ID = 2;
 
@@ -39,8 +41,18 @@ const sanitizeEmergencyContacts = (input: unknown): EmergencyContactsValues => {
     is_primary: Boolean(contact?.is_primary),
   }));
 
+  const primaryIndex = contacts.findIndex((contact) => contact.is_primary);
+  if (contacts.length) {
+    const primaryToKeep = primaryIndex >= 0 ? primaryIndex : 0;
+    contacts.forEach((contact, index) => {
+      contact.is_primary = index === primaryToKeep;
+    });
+  }
+
   return {
-    contacts: contacts.length ? contacts : [createEmptyContact()],
+    contacts: contacts.length
+      ? contacts
+      : [{ ...createEmptyContact(), is_primary: true }],
   };
 };
 
@@ -54,7 +66,7 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
     stepId: STEP_ID,
     resolver: zodResolver(emergencyContactsSchema),
     defaultValues: {
-      contacts: [createEmptyContact()],
+      contacts: [{ ...createEmptyContact(), is_primary: true }],
     },
     enabled: !!applicationId,
     normalizeBeforeSave: sanitizeEmergencyContacts,
@@ -66,6 +78,8 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
   const {
     control,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = methods;
 
@@ -78,6 +92,38 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
   const canAddMore = fields.length < maxContacts;
   const contactsErrorMessage =
     errors.contacts?.message ?? errors.contacts?.root?.message;
+
+  const setPrimaryContact = (
+    indexToSelect: number,
+    options?: { shouldDirty?: boolean },
+  ) => {
+    const contacts = getValues("contacts");
+    contacts.forEach((_, index) => {
+      setValue(`contacts.${index}.is_primary`, index === indexToSelect, {
+        shouldValidate: true,
+        shouldDirty: options?.shouldDirty ?? true,
+      });
+    });
+  };
+
+  useEffect(() => {
+    const contacts = getValues("contacts");
+    if (!contacts.length) return;
+
+    const primaryIndexes = contacts
+      .map((contact, index) => (contact.is_primary ? index : -1))
+      .filter((index) => index >= 0);
+
+    if (primaryIndexes.length !== 1) {
+      const indexToSelect = primaryIndexes[0] ?? 0;
+      contacts.forEach((_, index) => {
+        setValue(`contacts.${index}.is_primary`, index === indexToSelect, {
+          shouldValidate: true,
+          shouldDirty: false,
+        });
+      });
+    }
+  }, [fields.length, getValues, setValue]);
 
   return (
     <FormProvider {...methods}>
@@ -141,10 +187,27 @@ const EmergencyContactForm = ({ applicationId }: { applicationId: string }) => {
                   placeholder="Enter street address"
                 />
 
-                <FormCheckbox
-                  name={`contacts.${index}.is_primary`}
-                  label="Primary contact"
-                />
+                <div className="flex items-center gap-2">
+                  <Controller
+                    name={`contacts.${index}.is_primary`}
+                    control={control}
+                    render={({ field: { value, ref } }) => (
+                      <Checkbox
+                        id={`contacts.${index}.is_primary`}
+                        ref={ref}
+                        checked={Boolean(value)}
+                        onCheckedChange={() => setPrimaryContact(index)}
+                      />
+                    )}
+                  />
+
+                  <Label
+                    className="cursor-pointer select-none font-normal"
+                    htmlFor={`contacts.${index}.is_primary`}
+                  >
+                    Primary contact
+                  </Label>
+                </div>
 
                 {contactError?.root?.message && (
                   <p className="text-sm text-red-500">

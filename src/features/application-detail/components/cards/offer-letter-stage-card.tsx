@@ -19,6 +19,7 @@ type OfferLetterStageCardProps = {
   isInteractive: boolean;
   isAllStagesSynced: boolean;
   syncMetadata?: ApplicationSyncMetadata | null;
+  withUnresolvedWarning?: (action: () => void) => void;
 };
 
 export default function OfferLetterStageCard({
@@ -28,6 +29,7 @@ export default function OfferLetterStageCard({
   isInteractive,
   isAllStagesSynced,
   syncMetadata,
+  withUnresolvedWarning,
 }: OfferLetterStageCardProps) {
   const changeStage = useApplicationChangeStageMutation(applicationId);
   const router = useRouter();
@@ -64,6 +66,7 @@ export default function OfferLetterStageCard({
       isInteractive={isInteractive}
       isAllStagesSynced={isAllStagesSynced}
       syncMetadata={syncMetadata}
+      withUnresolvedWarning={withUnresolvedWarning}
     />
   );
 }

@@ -8,7 +8,9 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import gsMeetingsService from "@/service/gs-meetings.service";
+import { getTodayDateInputValue } from "@/shared/validation/date-input";
+import { useScheduleGsMeetingMutation } from "@/features/gs/hooks/gs-meetings.hook";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 
 interface GSScheduleTabProps {
   applicationId?: string;
@@ -33,6 +35,32 @@ const getDefaultScheduledDateParts = () => {
   };
 };
 
+const getLocalDateFromParts = (datePart: string, timePart: string) => {
+  const [year, month, day] = datePart.split("-").map((value) => Number(value));
+  const [hours, minutes] = timePart.split(":").map((value) => Number(value));
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+};
+
+const toIsoWithLocalOffset = (date: Date) => {
+  const pad = (value: number) => String(Math.trunc(value)).padStart(2, "0");
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  const offsetMinutesTotal = -date.getTimezoneOffset();
+  const sign = offsetMinutesTotal >= 0 ? "+" : "-";
+  const offsetAbs = Math.abs(offsetMinutesTotal);
+  const offsetHours = pad(Math.floor(offsetAbs / 60));
+  const offsetMinutes = pad(offsetAbs % 60);
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+};
+
 export default function GSScheduleTab({
   applicationId,
   isStageCompleted = false,
@@ -47,11 +75,12 @@ export default function GSScheduleTab({
   );
   const [meetingTitle, setMeetingTitle] = useState("GS Assessment Interview");
   const { data: session } = useSession();
-  const isStaff =
-    session?.user.role === "staff" || Boolean(session?.user.staff_admin);
+  const { isStaffOrAdmin: isStaff } = useRoleFlags();
+  const todayForInput = getTodayDateInputValue();
+  const scheduleMeeting = useScheduleGsMeetingMutation(applicationId);
 
   const handleScheduleInterview = async () => {
-    if (isStageCompleted || !applicationId) return;
+    if (isStageCompleted || !applicationId || scheduleMeeting.isPending) return;
 
     setIsScheduling(true);
     try {
@@ -62,8 +91,16 @@ export default function GSScheduleTab({
         return;
       }
 
-      // Schedule a meeting using the selected date/time
-      const scheduledStart = new Date(`${datePart}T${timePart}`);
+      const scheduledStart = getLocalDateFromParts(datePart, timePart);
+      if (Number.isNaN(scheduledStart.getTime())) {
+        toast.error("Please select a valid date and time for the interview.");
+        return;
+      }
+
+      if (scheduledStart.getTime() < Date.now()) {
+        toast.error("Interview date/time cannot be in the past.");
+        return;
+      }
 
       const scheduledEnd = new Date(scheduledStart);
       scheduledEnd.setMinutes(scheduledEnd.getMinutes() + 30); // 30 minute duration
@@ -72,8 +109,8 @@ export default function GSScheduleTab({
         const meetingPayload: Record<string, unknown> = {
           application_id: applicationId,
           title: meetingTitle,
-          scheduled_start: scheduledStart.toISOString(),
-          scheduled_end: scheduledEnd.toISOString(),
+          scheduled_start: toIsoWithLocalOffset(scheduledStart),
+          scheduled_end: toIsoWithLocalOffset(scheduledEnd),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
 
@@ -82,9 +119,9 @@ export default function GSScheduleTab({
           meetingPayload.staff_id = session.user.id;
         }
 
-        const meetingResponse = await gsMeetingsService.scheduleMeeting(
+        const meetingResponse = await scheduleMeeting.mutateAsync(
           meetingPayload as Parameters<
-            typeof gsMeetingsService.scheduleMeeting
+            typeof scheduleMeeting.mutateAsync
           >[0],
         );
 
@@ -172,6 +209,7 @@ export default function GSScheduleTab({
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
                     disabled={isStageCompleted || isScheduling}
+                    min={todayForInput}
                     className="text-sm"
                   />
                 </div>

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  getTodayDateInputValue,
+  nullableDateInputString,
+} from "@/shared/validation/date-input";
 
 const optionalNullableString = z
   .string()
@@ -32,7 +36,11 @@ export const languageAndCultureSchema = z.object({
   // English Test
   completed_english_test: z.string().optional(),
   english_test_type: optionalNullableString,
-  english_test_date: z.string().optional().nullable().transform(v => v === "" ? null : v),
+  english_test_date: nullableDateInputString({
+    max: getTodayDateInputValue,
+    invalidFormatMessage: "Invalid test date",
+    maxMessage: "Test date cannot be after today",
+  }),
   english_test_listening: z.any().optional(),
   english_test_writing: z.any().optional(),
   english_test_reading: z.any().optional(),
