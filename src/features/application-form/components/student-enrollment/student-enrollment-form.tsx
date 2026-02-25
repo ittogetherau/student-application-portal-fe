@@ -83,6 +83,8 @@ type StudentEnrollmentFormProps = {
     intake: number;
     campus: number;
     course_name?: string;
+    major?: string;
+    major_id?: string | null;
     intake_name?: string;
     campus_name?: string;
     course_duration_text?: string;
@@ -124,8 +126,37 @@ const StudentEnrollmentForm = ({
     name: "receiving_scholarship",
   });
 
+  const initialEnrollmentData = useMemo(() => {
+    if (!initialData || typeof initialData !== "object" || Array.isArray(initialData)) {
+      return null;
+    }
+    return initialData as Record<string, unknown>;
+  }, [initialData]);
+
   const enrollmentCore = useMemo(() => {
     if (!selectedCore) return null;
+
+    const selectedMajor =
+      typeof selectedCore.major === "string" && selectedCore.major.trim().length
+        ? selectedCore.major
+        : undefined;
+    const selectedMajorId =
+      typeof selectedCore.major_id === "string" &&
+      selectedCore.major_id.trim().length
+        ? selectedCore.major_id
+        : undefined;
+
+    const initialMajor =
+      typeof initialEnrollmentData?.major === "string" &&
+      initialEnrollmentData.major.trim().length
+        ? initialEnrollmentData.major
+        : undefined;
+    const initialMajorId =
+      typeof initialEnrollmentData?.major_id === "string" &&
+      initialEnrollmentData.major_id.trim().length
+        ? initialEnrollmentData.major_id
+        : undefined;
+
     return {
       course: selectedCore.course,
       course_name: selectedCore.course_name ?? "",
@@ -133,6 +164,8 @@ const StudentEnrollmentForm = ({
       intake_name: selectedCore.intake_name ?? "",
       campus: selectedCore.campus,
       campus_name: selectedCore.campus_name ?? "",
+      major: selectedMajor ?? initialMajor ?? "",
+      major_id: selectedMajorId ?? initialMajorId ?? null,
       course_duration_text: selectedCore.course_duration_text ?? "",
       intake_start: selectedCore.intake_start ?? null,
       intake_end: selectedCore.intake_end ?? null,
@@ -140,7 +173,7 @@ const StudentEnrollmentForm = ({
       class_end_date: selectedCore.class_end_date ?? null,
       intake_duration: selectedCore.intake_duration ?? null,
     };
-  }, [selectedCore]);
+  }, [initialEnrollmentData, selectedCore]);
 
   useEffect(() => {
     if (!initialData || typeof initialData !== "object" || Array.isArray(initialData)) {
@@ -281,6 +314,8 @@ const StudentEnrollmentForm = ({
       intake_name: enrollmentCore.intake_name,
       campus: enrollmentCore.campus,
       campus_name: enrollmentCore.campus_name,
+      ...(enrollmentCore.major ? { major: enrollmentCore.major } : {}),
+      ...(enrollmentCore.major_id ? { major_id: enrollmentCore.major_id } : {}),
       preferred_start_date: values.preferred_start_date,
       advanced_standing_credit: toYesNoApi(values.advanced_standing_credit),
       no_of_weeks: Number(values.no_of_weeks),
@@ -359,6 +394,12 @@ const StudentEnrollmentForm = ({
                   <p className="text-muted-foreground">Course</p>
                   <p className="font-medium">{enrollmentCore.course_name || "-"}</p>
                 </div>
+                {enrollmentCore.major ? (
+                  <div>
+                    <p className="text-muted-foreground">Major</p>
+                    <p className="font-medium">{enrollmentCore.major}</p>
+                  </div>
+                ) : null}
                 <div>
                   <p className="text-muted-foreground">Intake</p>
                   <p className="font-medium">{enrollmentCore.intake_name || "-"}</p>

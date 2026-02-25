@@ -129,8 +129,27 @@ export interface Course {
   currency_symbol: string;
   gst_included: number | string;
   fee_currency_gst: string;
+  majors?: CourseMajor[];
   [key: string]: unknown;
 }
+
+export interface CourseMajor {
+  secure_id: string;
+  major_name: string;
+  core_subjects_count?: string | number | null;
+  elective_subjects_count?: string | number | null;
+  is_default?: string | number | boolean | null;
+  is_master_template?: string | number | boolean | null;
+  total_subjects?: string | number | null;
+  total_units?: string | number | null;
+  subjects?: unknown;
+  units?: unknown;
+  [key: string]: unknown;
+}
+
+export type CourseDetails = Course & {
+  majors?: CourseMajor[];
+};
 
 type CourseListApiResponse =
   | Course[]
@@ -140,6 +159,16 @@ type CourseListApiResponse =
       status?: string;
       message?: string;
       data?: Course[];
+    };
+
+type CourseDetailsApiResponse =
+  | CourseDetails
+  | {
+      code?: number;
+      success?: number;
+      status?: string;
+      message?: string;
+      data?: CourseDetails;
     };
 
 export type CourseListParams = {
@@ -185,6 +214,17 @@ class CourseService extends ApiService {
     return [];
   };
 
+  private normalizeCourseDetails = (
+    response: CourseDetailsApiResponse,
+  ): CourseDetails | null => {
+    if (!response) return null;
+    if (typeof response === "object" && "data" in response) {
+      const payload = response.data;
+      return payload && typeof payload === "object" ? (payload as CourseDetails) : null;
+    }
+    return response as CourseDetails;
+  };
+
   private normalizeIntakes = (response: IntakeListApiResponse): Intake[] => {
     const isIntake = (value: unknown): value is Intake => {
       if (!value || typeof value !== "object") return false;
@@ -222,17 +262,12 @@ class CourseService extends ApiService {
       }
       if (params?.city) query.set("city", params.city);
       if (params?.date) query.set("date", params.date);
-      if (typeof params?.include_expired_intakes === "boolean") {
-        query.set(
-          "include_expired_intakes",
-          params.include_expired_intakes ? "1" : "0",
-        );
-      }
       if (params?.mode) query.set("mode", params.mode);
       if (params?.page) query.set("page", params.page);
       if (params?.search) query.set("search", params.search);
       if (params?.student_id) query.set("student_id", params.student_id);
       if (params?.type) query.set("type", String(params.type));
+      query.set("include_expired_intakes", "0");
 
       const endpoint = query.toString()
         ? `${this.coursesUrl}?${query.toString()}`
@@ -285,6 +320,25 @@ class CourseService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to fetch course intakes", []);
+    }
+  };
+
+  getCourseByCode = async (
+    courseCode: string,
+  ): Promise<ServiceResponse<CourseDetails | null>> => {
+    if (!courseCode) throw new Error("Course code is required");
+    try {
+      const response = await this.get<CourseDetailsApiResponse>(
+        `${this.coursesUrl}/${encodeURIComponent(courseCode)}`,
+      );
+      const course = this.normalizeCourseDetails(response);
+      return {
+        success: true,
+        message: "Course fetched.",
+        data: course,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch course", null);
     }
   };
 }

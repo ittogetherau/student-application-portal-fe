@@ -150,6 +150,15 @@ export function EnrollmentSection(props: {
         resolvedEnrollmentData.course_name ??
         resolvedEnrollmentData.courseName ??
         "",
+      major:
+        resolvedEnrollmentData.major ??
+        resolvedEnrollmentData.major_name ??
+        resolvedEnrollmentData.majorName ??
+        "",
+      major_id:
+        resolvedEnrollmentData.major_id ??
+        resolvedEnrollmentData.majorId ??
+        null,
       intake_name:
         selectedIntakeFromQuery?.intake_name ??
         resolvedEnrollmentData.intake_name ??
@@ -266,6 +275,11 @@ export function EnrollmentSection(props: {
           <Field
             label="Course"
             value={enrollmentData.course_name ?? enrollmentData.course}
+            icon={GraduationCap}
+          />
+          <Field
+            label="Major"
+            value={enrollmentData.major}
             icon={GraduationCap}
           />
           <Field

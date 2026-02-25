@@ -4,6 +4,7 @@ import applicationStepsService from "@/service/application-steps.service";
 import courseService, {
   type CourseIntakeListParams,
   Course,
+  type CourseDetails,
   type CourseListParams,
 } from "@/service/course.service";
 import type { ServiceResponse } from "@/shared/types/service";
@@ -55,6 +56,24 @@ export const useCourseIntakesQuery = (
         courseCode as string,
         options,
       );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+  });
+};
+
+export const useCourseDetailsQuery = (
+  courseCode?: string,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery<ServiceResponse<CourseDetails | null>, Error>({
+    queryKey: ["course-details", courseCode],
+    enabled: (options?.enabled ?? true) && !!courseCode,
+    queryFn: async () => {
+      if (!courseCode) throw new Error("Course code is required");
+      const response = await courseService.getCourseByCode(courseCode);
       if (!response.success) {
         throw new Error(response.message);
       }

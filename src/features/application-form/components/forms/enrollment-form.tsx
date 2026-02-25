@@ -15,6 +15,7 @@ import {
 } from "@/features/application-form/constants/enrollment-date-utils";
 import {
   useCourseIntakesQuery,
+  useCourseDetailsQuery,
   useCoursesQuery,
   useSaveEnrollmentMutation,
 } from "@/features/application-form/hooks/course.hook";
@@ -52,6 +53,8 @@ const enrollmentCoreSchema = z.object({
   course: requiredSelectId("Please select a course"),
   intake: requiredSelectId("Please select an intake"),
   campus: requiredSelectId("Please select a campus"),
+  major_id: z.string().optional(),
+  major: z.string().optional(),
 });
 
 type EnrollmentCoreFormValues = z.infer<typeof enrollmentCoreSchema>;
@@ -143,6 +146,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       course: undefined,
       intake: undefined,
       campus: undefined,
+      major_id: undefined,
+      major: undefined,
     },
     mode: "onSubmit",
     reValidateMode: "onChange",
@@ -181,6 +186,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         course?: number | string;
         intake?: number | string;
         campus?: number | string;
+        majorId?: string | null;
+        major_id?: string | null;
+        major?: string | null;
       };
 
       const legacyCourse = toId(
@@ -202,6 +210,17 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       if (legacyCampus) {
         methods.setValue("campus", legacyCampus, { shouldDirty: false });
       }
+      const majorId = saved.majorId ?? saved.major_id;
+      const normalizedMajorId =
+        majorId !== null && majorId !== undefined ? String(majorId).trim() : "";
+      if (normalizedMajorId) {
+        methods.setValue("major_id", normalizedMajorId, { shouldDirty: false });
+      }
+      if (saved.major) {
+        methods.setValue("major", saved.major ?? undefined, {
+          shouldDirty: false,
+        });
+      }
 
       hasRestoredRef.current = true;
     },
@@ -211,6 +230,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const courseValue = useWatch({ control: methods.control, name: "course" });
   const intakeValue = useWatch({ control: methods.control, name: "intake" });
   const campusValue = useWatch({ control: methods.control, name: "campus" });
+  const majorIdValue = useWatch({ control: methods.control, name: "major_id" });
+  const majorNameValue = useWatch({ control: methods.control, name: "major" });
   const selectedCourseId = toId(courseValue);
   const selectedCourse = useMemo(
     () =>
@@ -229,6 +250,101 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const isBitCourse =
     (selectedCourse?.course_code ?? "").trim().toUpperCase() === "BIT";
+
+  const {
+    data: courseDetailsResponse,
+    isLoading: isLoadingCourseDetails,
+    isFetching: isFetchingCourseDetails,
+    error: courseDetailsError,
+  } = useCourseDetailsQuery(selectedCourse?.course_code, {
+    enabled: isBitCourse && !!selectedCourse?.course_code,
+  });
+
+  const majors = useMemo(
+    () =>
+      (courseDetailsResponse?.data?.majors ?? []).filter(
+        (major) =>
+          (major.major_name ?? "").trim().toLowerCase() !== "default major",
+      ),
+    [courseDetailsResponse?.data?.majors],
+  );
+
+  const isMajorsLoading =
+    isBitCourse && (isLoadingCourseDetails || isFetchingCourseDetails);
+
+  const selectedMajor = useMemo(
+    () =>
+      majors.find((major) => major.secure_id === (majorIdValue ?? "").trim()) ??
+      null,
+    [majorIdValue, majors],
+  );
+
+  useEffect(() => {
+    if (!selectedCourseId) {
+      resetField("major_id", { defaultValue: undefined });
+      resetField("major", { defaultValue: undefined });
+      clearErrors(["major_id"]);
+      return;
+    }
+
+    // Course selected, but courses list might not have loaded yet; avoid clearing prefilled values.
+    if (!selectedCourse) return;
+
+    if (isBitCourse) return;
+
+    resetField("major_id", { defaultValue: undefined });
+    resetField("major", { defaultValue: undefined });
+    clearErrors(["major_id"]);
+  }, [clearErrors, isBitCourse, resetField, selectedCourse, selectedCourseId]);
+
+  useEffect(() => {
+    if (!isBitCourse) return;
+    if (!majorIdValue) return;
+    if (!majors.length || isMajorsLoading) return;
+
+    const normalizedMajorId = majorIdValue.trim();
+    const stillValid = majors.some(
+      (major) => major.secure_id === normalizedMajorId,
+    );
+    if (!stillValid) {
+      const normalizedMajorName = (majorNameValue ?? "").trim().toLowerCase();
+      const matchedByName = normalizedMajorName
+        ? (majors.find(
+            (major) =>
+              (major.major_name ?? "").trim().toLowerCase() ===
+              normalizedMajorName,
+          ) ?? null)
+        : null;
+
+      if (matchedByName) {
+        setValue("major_id", matchedByName.secure_id, { shouldDirty: false });
+        setValue("major", matchedByName.major_name, { shouldDirty: false });
+        clearErrors(["major_id"]);
+        return;
+      }
+
+      resetField("major_id", { defaultValue: undefined });
+      resetField("major", { defaultValue: undefined });
+      return;
+    }
+
+    const majorName = majors.find(
+      (major) => major.secure_id === normalizedMajorId,
+    )?.major_name;
+    if (majorName && methods.getValues("major") !== majorName) {
+      setValue("major", majorName, { shouldDirty: false });
+    }
+  }, [
+    isBitCourse,
+    isMajorsLoading,
+    majorIdValue,
+    majorNameValue,
+    majors,
+    methods,
+    resetField,
+    setValue,
+    clearErrors,
+  ]);
   const selectedCampusName = useMemo(() => {
     if (!selectedCourseId) return "";
     const course = courses.find((item) => toId(item.id) === selectedCourseId);
@@ -312,7 +428,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       if (currentCourse !== nextId) {
         resetField("intake", { defaultValue: undefined });
         resetField("campus", { defaultValue: undefined });
-        clearErrors(["course", "intake", "campus"]);
+        resetField("major_id", { defaultValue: undefined });
+        resetField("major", { defaultValue: undefined });
+        clearErrors(["course", "intake", "campus", "major_id"]);
         return;
       }
 
@@ -350,6 +468,15 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     }
     setValue("campus", nextId, { shouldDirty: true });
     clearErrors(["campus", "intake"]);
+  };
+
+  const handleMajorChange = (value: string) => {
+    setValue("major_id", value, { shouldDirty: true });
+    const majorName = majors.find(
+      (major) => major.secure_id === value,
+    )?.major_name;
+    setValue("major", majorName ?? undefined, { shouldDirty: true });
+    clearErrors(["major_id"]);
   };
 
   const selectedIntake = useMemo(
@@ -395,6 +522,30 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const onSubmit = async (values: EnrollmentCoreFormValues) => {
     try {
+      const majorId = values.major_id?.trim();
+      const majorMatch =
+        isBitCourse && majorId
+          ? (majors.find((major) => major.secure_id === majorId) ?? null)
+          : null;
+
+      if (isBitCourse) {
+        if (isMajorsLoading) {
+          methods.setError("major_id", {
+            type: "manual",
+            message: "Majors are still loading. Please wait.",
+          });
+          return;
+        }
+
+        if (!majorId || !majorMatch) {
+          methods.setError("major_id", {
+            type: "manual",
+            message: "Please select a major",
+          });
+          return;
+        }
+      }
+
       const ensuredApplicationId = await ensureApplicationId();
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
@@ -410,6 +561,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
             (campus) => toId(campus.id) === toId(values.campus),
           )?.name ?? "",
         advanced_standing_credit: "no",
+        ...(isBitCourse && majorMatch
+          ? {
+              major_id: majorMatch.secure_id,
+              major: majorMatch.major_name,
+            }
+          : {}),
       };
 
       await saveEnrollment({
@@ -494,7 +651,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
         <div className={cn("space-y-8 p-4 border rounded-lg mb-6")}>
-          <div className="grid-cols-3 grid gap-4">
+          <div
+            className={cn(
+              "grid gap-4",
+              isBitCourse ? "md:grid-cols-4" : "md:grid-cols-3",
+            )}
+          >
             <div className="space-y-2">
               <Label>Course *</Label>
               <Controller
@@ -532,6 +694,77 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                 </p>
               )}
             </div>
+
+            {isBitCourse && (
+              <div className="space-y-2">
+                <Label>Major *</Label>
+                <Controller
+                  name="major_id"
+                  control={methods.control}
+                  render={({ field: { value } }) => (
+                    <Select
+                      value={value ?? ""}
+                      onValueChange={handleMajorChange}
+                      disabled={!selectedCourse || isMajorsLoading}
+                    >
+                      <SelectTrigger
+                        aria-invalid={!!methods.formState.errors.major_id}
+                      >
+                        {value ? (
+                          <span className="truncate">
+                            {selectedMajor?.major_name ??
+                              majorNameValue ??
+                              String(value)}
+                          </span>
+                        ) : (
+                          <SelectValue
+                            placeholder={
+                              isMajorsLoading
+                                ? "Loading majors..."
+                                : majors.length
+                                  ? "Select major"
+                                  : "No majors available"
+                            }
+                          />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isMajorsLoading ? (
+                          <SelectItem value="__major-loading__" disabled>
+                            Loading majors...
+                          </SelectItem>
+                        ) : !majors.length ? (
+                          <SelectItem value="__major-empty__" disabled>
+                            No majors available
+                          </SelectItem>
+                        ) : (
+                          majors.map((major) => (
+                            <SelectItem
+                              key={major.secure_id}
+                              value={major.secure_id}
+                            >
+                              {major.major_name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+
+                {courseDetailsError && (
+                  <p className="text-sm text-red-500">
+                    Failed to load majors. Please retry.
+                  </p>
+                )}
+
+                {methods.formState.errors.major_id?.message && (
+                  <p className="text-sm text-red-500">
+                    {methods.formState.errors.major_id.message as string}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Campus *</Label>
@@ -641,7 +874,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
         {!isEnrollmentDialogOpen && (
           <div className="flex justify-end">
-            <Button type="submit" disabled={isSaving || isCreating}>
+            <Button
+              type="submit"
+              disabled={
+                isSaving || isCreating || (isBitCourse && isMajorsLoading)
+              }
+            >
               {isSaving || isCreating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -661,13 +899,20 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       {isEnrollmentDialogOpen && (
         <div className="mt-6">
           <StudentEnrollmentForm
-            applicationId={currentApplicationId}
-            initialData={persistedEnrollmentData}
             selectedCore={
               selectedCourse && selectedIntake && selectedCampus
                 ? {
                     course: Number(selectedCourse.id),
                     course_name: selectedCourse.course_name,
+                    ...(isBitCourse
+                      ? {
+                          major:
+                            majorNameValue ||
+                            selectedMajor?.major_name ||
+                            undefined,
+                          major_id: majorIdValue ?? undefined,
+                        }
+                      : {}),
                     intake: Number(selectedIntake.id),
                     intake_name: selectedIntake.intake_name,
                     campus: Number(selectedCampus.id),
@@ -681,6 +926,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                   }
                 : null
             }
+            applicationId={currentApplicationId}
+            initialData={persistedEnrollmentData}
             onSubmitSuccess={handleManagedEnrollmentSuccess}
           />
         </div>

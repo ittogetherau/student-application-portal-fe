@@ -17,6 +17,8 @@ const agentEnrollmentSchema = z
     intake_name: z.string().min(1),
     campus: z.number().int().min(1),
     campus_name: z.string().min(1),
+    major_id: z.string().optional(),
+    major: z.string().optional(),
 
     advanced_standing_credit: yesNoApiSchema,
     number_of_subjects: z.number().int().min(1).max(12).optional(),
@@ -39,6 +41,8 @@ const staffEnrollmentSchema = z.object({
   intake_name: z.string(),
   campus: z.number(),
   campus_name: z.string(),
+  major_id: z.string().optional(),
+  major: z.string().optional(),
 
   advanced_standing_credit: yesNoApiSchema,
   preferred_start_date: requiredYmdDateSchema("preferred_start_date is required"),
