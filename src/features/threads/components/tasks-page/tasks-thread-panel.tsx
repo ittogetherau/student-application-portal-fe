@@ -7,32 +7,32 @@ import ThreadMessagesList from "@/features/threads/components/thread-messages-li
 import EmptyState from "@/features/threads/components/empty-state";
 import {
   useAddThreadMessageMutation,
-  useApplicationThreadsQuery,
+  useApplicationThreadQuery,
 } from "@/features/threads/hooks/application-threads.hook";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
-import { Dot, Send, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Dot, Info, Send, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 type TasksThreadPanelProps = {
   selectedThreadId: string | null;
   selectedApplicationId: string | null;
+  setDetailShown: (b: boolean) => void;
 };
 
 export default function TasksThreadPanel({
   selectedThreadId,
   selectedApplicationId,
+  setDetailShown,
 }: TasksThreadPanelProps) {
   const { role } = useRoleFlags();
 
-  const { data, isLoading, error } = useApplicationThreadsQuery(
+  const { data, isLoading, error } = useApplicationThreadQuery(
     selectedApplicationId,
+    selectedThreadId,
   );
 
-  const selectedThread = useMemo(() => {
-    if (!selectedThreadId) return null;
-    return data?.data?.find((t) => t.id === selectedThreadId) ?? null;
-  }, [data?.data, selectedThreadId]);
+  const selectedThread = data?.data ?? null;
 
   const isThreadCompleted = selectedThread?.status === "completed";
   const addMessage = useAddThreadMessageMutation(
@@ -63,41 +63,33 @@ export default function TasksThreadPanel({
 
   if (!selectedThreadId || !selectedApplicationId) {
     return (
-      <section className="col-span-5 flex flex-col overflow-hidden">
-        <div className="flex-1 flex items-center justify-center">
-          <EmptyState icon={Sparkles} text="Select thread" />
-        </div>
-      </section>
+      <div className="flex-1 flex items-center justify-center">
+        <EmptyState icon={Sparkles} text="Select thread" />
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <section className="col-span-5 flex flex-col overflow-hidden">
-        <div className="p-4 border-b bg-background/95 backdrop-blur">
-          <div className="text-sm text-muted-foreground">Loading...</div>
-        </div>
-      </section>
+      <div className="p-4 border-b bg-background/95 backdrop-blur">
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <section className="col-span-5 flex flex-col overflow-hidden">
-        <div className="flex-1 flex items-center justify-center">
-          <EmptyState icon={Sparkles} text="Load failed" />
-        </div>
-      </section>
+      <div className="flex-1 flex items-center justify-center">
+        <EmptyState icon={Sparkles} text="Load failed" />
+      </div>
     );
   }
 
   if (!selectedThread) {
     return (
-      <section className="col-span-5 flex flex-col overflow-hidden">
-        <div className="flex-1 flex items-center justify-center">
-          <EmptyState icon={Sparkles} text="Thread not found" />
-        </div>
-      </section>
+      <div className="flex-1 flex items-center justify-center">
+        <EmptyState icon={Sparkles} text="Thread not found" />
+      </div>
     );
   }
 
@@ -106,7 +98,7 @@ export default function TasksThreadPanel({
     addMessage.isPending || !selectedApplicationId || isThreadCompleted;
 
   return (
-    <section className="col-span-5 flex flex-col overflow-hidden">
+    <>
       <div className="p-4 border-b bg-background/95 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -123,6 +115,14 @@ export default function TasksThreadPanel({
               </span>
             </div>
           </div>
+
+          <Button
+            onClick={() => setDetailShown((p) => !p)}
+            variant={"secondary"}
+            size={"icon-lg"}
+          >
+            <Info />
+          </Button>
         </div>
       </div>
 
@@ -166,6 +166,6 @@ export default function TasksThreadPanel({
           />
         </div>
       </div>
-    </section>
+    </>
   );
 }

@@ -37,6 +37,7 @@ export default function ClientApplicationLayout({
   const pathname = usePathname() ?? "";
   const {
     role: ROLE,
+    isStaff: IS_STAFF,
     isStaffOrAdmin,
     isStaffAdmin: IS_ADMIN_STAFF,
   } = useRoleFlags();
@@ -119,6 +120,7 @@ export default function ClientApplicationLayout({
     );
 
   const showUnassignedAlert =
+    IS_STAFF &&
     stage &&
     stage !== APPLICATION_STAGE.DRAFT &&
     application.assigned_staff_id === null;
@@ -158,11 +160,18 @@ export default function ClientApplicationLayout({
           <CircleAlert />
           <AlertTitle>Staff member not assigned</AlertTitle>
           <AlertDescription>
-            This application is not assigned to a staff member yet. Assign a
-            staff member to continue.
-            <div className="w-64 mt-2">
-              <StaffAssignmentSelect applicationId={application.id} />
-            </div>
+            This application is not assigned to a staff member yet.
+            {IS_ADMIN_STAFF ? (
+              <>
+                {" "}
+                Assign a staff member to continue.
+                <div className="w-64 mt-2">
+                  <StaffAssignmentSelect applicationId={application.id} />
+                </div>
+              </>
+            ) : (
+              <> Please contact an administrator to assign a staff member.</>
+            )}
           </AlertDescription>
         </Alert>
       ) : null}

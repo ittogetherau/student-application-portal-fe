@@ -27,7 +27,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  useApplicationThreadsQuery,
+  useApplicationThreadQuery,
   useUpdateThreadPriorityMutation,
   useUpdateThreadStatusMutation,
 } from "../../hooks/application-threads.hook";
@@ -58,11 +58,14 @@ const ThreadMessagesPanel = () => {
   const searchParams = useSearchParams();
   const { role: userRole } = useRoleFlags();
 
-  const applicationId = searchParams.get("applicationId") ?? "";
-  const threadId = searchParams.get("threadId") ?? "";
+  const applicationId = searchParams.get("applicationId");
+  const threadId = searchParams.get("threadId");
   const isOpen = searchParams.get("view") === "message";
 
-  const { data, isLoading, error } = useApplicationThreadsQuery(applicationId);
+  const { data, isLoading, error } = useApplicationThreadQuery(
+    isOpen ? applicationId : null,
+    isOpen ? threadId : null,
+  );
   const updateStatus = useUpdateThreadStatusMutation(applicationId, threadId);
   const updatePriority = useUpdateThreadPriorityMutation(
     applicationId,
@@ -78,7 +81,7 @@ const ThreadMessagesPanel = () => {
 
   const endRef = useRef<HTMLDivElement>(null);
 
-  const thread = data?.data?.find((t) => t.id === threadId);
+  const thread = data?.data ?? null;
   const messages = thread?.messages || [];
   const agentContact = thread?.agent;
   const staffContact = thread?.assigned_staff;
@@ -149,7 +152,7 @@ const ThreadMessagesPanel = () => {
       header={
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            {thread.issue_type} - {thread.target_section} - {thread.status}
+            {thread.issue_type} - {thread.target_section} - {status}
           </p>
           <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
             <div>

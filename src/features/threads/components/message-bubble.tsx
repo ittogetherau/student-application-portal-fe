@@ -50,11 +50,11 @@ export default function MessageBubble({ message, isSelf }: MessageBubbleProps) {
                 href={attachment.url}
                 target="_blank"
                 rel="noreferrer"
-                className="block h-20 w-20 overflow-hidden rounded-md border bg-primary"
+                className="block h-18 w-18 overflow-hidden rounded-md border bg-accent"
               >
                 <Image
-                  width={350}
-                  height={350}
+                  width={100}
+                  height={100}
                   src={attachment.url}
                   alt={attachment.file_name || `Attachment ${idx + 1}`}
                   className="h-full w-full object-cover"

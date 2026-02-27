@@ -186,6 +186,29 @@ class ApplicationThreadsService extends ApiService {
     );
   }
 
+  getThread(
+    applicationId: string,
+    threadId: string,
+  ): Promise<ServiceResponse<CommunicationThread>> {
+    if (!applicationId || !threadId) {
+      return Promise.resolve({
+        success: false,
+        data: null,
+        message: "Application id and thread id are required",
+      });
+    }
+
+    return resolveServiceCall<CommunicationThread>(
+      () =>
+        this.get(
+          `${this.basePath}/${applicationId}/threads/${threadId}`,
+          true,
+        ),
+      "Communication thread fetched successfully.",
+      "Failed to fetch communication thread",
+    );
+  }
+
   getUnresolvedThreads(
     applicationId: string,
   ): Promise<ServiceResponse<UnresolvedThreadsResponse>> {

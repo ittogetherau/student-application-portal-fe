@@ -13,6 +13,18 @@ import applicationThreadsService, {
 import type { ServiceResponse } from "@/shared/types/service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+const appendThreadMessage = (
+  thread: CommunicationThread,
+  message: ThreadMessage,
+): CommunicationThread => {
+  const messages = thread.messages ?? [];
+  return {
+    ...thread,
+    messages: [...messages, message],
+    status_updated_at: message.created_at || thread.status_updated_at,
+  };
+};
+
 export const useStaffThreadsQuery = (filters: StaffThreadFilters = {}) => {
   return useQuery<ServiceResponse<StaffThreadSummary[]>, Error>({
     queryKey: ["staff-threads", filters],
@@ -43,6 +55,28 @@ export const useApplicationThreadsQuery = (
       return response;
     },
     enabled: !!applicationId,
+  });
+};
+
+export const useApplicationThreadQuery = (
+  applicationId: string | null,
+  threadId: string | null,
+) => {
+  return useQuery<ServiceResponse<CommunicationThread>, Error>({
+    queryKey: ["application-thread", applicationId, threadId],
+    queryFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+      if (!threadId) throw new Error("Missing thread reference.");
+      const response = await applicationThreadsService.getThread(
+        applicationId,
+        threadId,
+      );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    enabled: !!applicationId && !!threadId,
   });
 };
 
@@ -117,10 +151,51 @@ export const useAddThreadMessageMutation = (
 
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["application-threads", applicationId],
-      });
+    onSuccess: (message) => {
+      queryClient.setQueryData<ServiceResponse<CommunicationThread>>(
+        ["application-thread", applicationId, threadId],
+        (cached) => {
+          if (!cached?.data) return cached;
+          return {
+            ...cached,
+            data: appendThreadMessage(cached.data, message),
+          };
+        },
+      );
+
+      queryClient.setQueriesData<ServiceResponse<CommunicationThread[]>>(
+        { queryKey: ["application-threads", applicationId] },
+        (cached) => {
+          if (!cached?.data) return cached;
+          return {
+            ...cached,
+            data: cached.data.map((thread) =>
+              thread.id === threadId
+                ? appendThreadMessage(thread, message)
+                : thread,
+            ),
+          };
+        },
+      );
+
+      queryClient.setQueriesData<ServiceResponse<StaffThreadSummary[]>>(
+        { queryKey: ["staff-threads"] },
+        (cached) => {
+          if (!cached?.data) return cached;
+          return {
+            ...cached,
+            data: cached.data.map((thread) =>
+              thread.id === threadId
+                ? {
+                    ...thread,
+                    status_updated_at:
+                      message.created_at || thread.status_updated_at,
+                  }
+                : thread,
+            ),
+          };
+        },
+      );
     },
     onError: (error) => {
       console.error("[ApplicationThreads] addThreadMessage failed", error);
@@ -154,6 +229,9 @@ export const useUpdateThreadStatusMutation = (
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-thread", applicationId, threadId],
       });
       queryClient.invalidateQueries({
         queryKey: ["application-threads-unresolved", applicationId],
@@ -198,6 +276,9 @@ export const useUpdateThreadPriorityMutation = (
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["application-threads", applicationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-thread", applicationId, threadId],
       });
       queryClient.invalidateQueries({
         queryKey: ["application-threads-unresolved", applicationId],
