@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { cn } from "@/shared/lib/utils";
+import { consumePostLoginRedirect } from "@/shared/lib/post-login-redirect";
 import type { LoginResponse } from "@/service/auth.service";
 import authService from "@/service/auth.service";
 
@@ -106,7 +107,7 @@ const MicrosoftOAuthButton = ({
         url.searchParams.delete("code");
         url.searchParams.delete("state");
         window.history.replaceState({}, "", url.pathname);
-        router.push(redirectTo);
+        router.push(consumePostLoginRedirect() ?? redirectTo);
       } else {
         throw new Error(
           result.message || "Failed to process Microsoft callback",
@@ -207,7 +208,7 @@ const MicrosoftOAuthButton = ({
         "token_type",
       ].forEach((param) => url.searchParams.delete(param));
       window.history.replaceState({}, "", url.pathname);
-      router.push(redirectTo);
+      router.push(consumePostLoginRedirect() ?? redirectTo);
     } catch (callbackError) {
       console.error("Microsoft token callback error:", callbackError);
       toast.error("Failed to complete Microsoft login. Please try again.");

@@ -7,7 +7,14 @@ import {
   LoadingState,
   NotFoundState,
 } from "@/components/ui-kit/states";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ApplicationHeaderActions from "@/features/application-detail/components/layout/application-header-actions";
 import ApplicationHeaderDetails from "@/features/application-detail/components/layout/application-header-details";
 import ApplicationSidebar from "@/features/application-detail/components/layout/application-sidebar";
@@ -20,7 +27,6 @@ import {
 import ThreadMessagesPanel from "@/features/threads/components/panels/thread-messages-panel";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
-import { cn } from "@/shared/lib/utils";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { CircleAlert } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -155,56 +161,56 @@ export default function ClientApplicationLayout({
         />
       </ContainerLayout>
 
-      {showUnassignedAlert ? (
-        <Alert className="border-destructive/50">
-          <CircleAlert />
-          <AlertTitle>Staff member not assigned</AlertTitle>
-          <AlertDescription>
-            This application is not assigned to a staff member yet.
-            {IS_ADMIN_STAFF ? (
-              <>
-                {" "}
-                Assign a staff member to continue.
-                <div className="w-64 mt-2">
-                  <StaffAssignmentSelect applicationId={application.id} />
-                </div>
-              </>
-            ) : (
-              <> Please contact an administrator to assign a staff member.</>
-            )}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="relative">
-        {showUnassignedAlert && (
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 z-10 bg-background/50 cursor-not-allowed"
-          />
-        )}
-
-        <div
-          className={cn(
-            showUnassignedAlert ? "pointer-events-none opacity-50" : undefined,
-          )}
+      <Dialog open={showUnassignedAlert}>
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
         >
-          <TwoColumnLayout
-            reversed
-            sticky={true}
-            sidebar={<ApplicationSidebar id={id} stage={stage} role={ROLE} />}
-          >
-            <div className="space-y-3">
-              <ApplicationTabNav
-                activeSegment={activeSegment}
-                applicationId={application.id}
-                navItems={navItems}
-              />
-              <div className="space-y-4">{children}</div>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CircleAlert className="text-destructive" />
+              Staff member not assigned
+            </DialogTitle>
+            <DialogDescription>
+              This application is not assigned to a staff member yet.
+              {IS_ADMIN_STAFF ? (
+                <> Assign a staff member to continue.</>
+              ) : (
+                <> Please contact an administrator to assign a staff member.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {IS_ADMIN_STAFF ? (
+            <div className="w-full">
+              <StaffAssignmentSelect applicationId={application.id} />
             </div>
-          </TwoColumnLayout>
+          ) : null}
+
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={handleBackNavigation}>
+              Back
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <TwoColumnLayout
+        reversed
+        sticky={true}
+        sidebar={<ApplicationSidebar id={id} stage={stage} role={ROLE} />}
+      >
+        <div className="space-y-3">
+          <ApplicationTabNav
+            activeSegment={activeSegment}
+            applicationId={application.id}
+            navItems={navItems}
+          />
+          <div className="space-y-4">{children}</div>
         </div>
-      </div>
+      </TwoColumnLayout>
     </main>
   );
 }

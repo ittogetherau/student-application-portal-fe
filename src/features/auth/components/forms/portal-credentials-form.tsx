@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { UserRole } from "@/shared/lib/auth";
 import { siteRoutes } from "@/shared/constants/site-routes";
+import { consumePostLoginRedirect } from "@/shared/lib/post-login-redirect";
 import { publicSignIn } from "@/features/auth/components/utils/sign-in";
 import {
   signInSchema,
@@ -56,7 +57,8 @@ const PortalCredentialsForm = ({
       id = toast.loading(`Redirecting to dashboard.`);
       await publicSignIn(values, role);
       reset();
-      const destination = siteRoutes.dashboard.root;
+      const destination =
+        consumePostLoginRedirect() ?? siteRoutes.dashboard.root;
       toast.success("Login Successful", { id: id });
 
       router.push(destination);

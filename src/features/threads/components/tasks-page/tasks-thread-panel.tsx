@@ -3,21 +3,27 @@
 import ThreadAttachmentInput from "@/components/shared/thread-attachment-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ThreadMessagesList from "@/features/threads/components/thread-messages-list";
 import EmptyState from "@/features/threads/components/empty-state";
+import ThreadMessagesList from "@/features/threads/components/thread-messages-list";
 import {
   useAddThreadMessageMutation,
   useApplicationThreadQuery,
 } from "@/features/threads/hooks/application-threads.hook";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { Dot, Info, Send, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { toast } from "react-hot-toast";
 
 type TasksThreadPanelProps = {
   selectedThreadId: string | null;
   selectedApplicationId: string | null;
-  setDetailShown: (b: boolean) => void;
+  setDetailShown: Dispatch<SetStateAction<boolean>>;
 };
 
 export default function TasksThreadPanel({

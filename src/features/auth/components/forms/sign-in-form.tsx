@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { siteRoutes } from "@/shared/constants/site-routes";
+import { consumePostLoginRedirect } from "@/shared/lib/post-login-redirect";
 import {
   adminSignIn,
   publicSignIn,
@@ -97,7 +98,10 @@ const SignInForm = ({
             ? siteRoutes.dashboard.root
             : siteRoutes.dashboard.root;
 
-      router.push(redirectTo ?? roleRedirect);
+      const destination =
+        consumePostLoginRedirect() ?? (redirectTo ?? roleRedirect);
+
+      router.push(destination);
     } catch (err) {
       console.error(err);
       setStatus("error");
