@@ -272,12 +272,12 @@ export default function GSTab({
             })}
           </section>
 
-          <section className="flex gap-3 justify-between">
+          {/* <section className="flex gap-3 justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <FileText className="h-3.5 w-3.5" />
               <span>Use the tabs above to review each GS stage.</span>
             </div>
-          </section>
+          </section> */}
         </CardContent>
       </Card>
 

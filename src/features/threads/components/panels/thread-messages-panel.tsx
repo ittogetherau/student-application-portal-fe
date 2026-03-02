@@ -4,11 +4,6 @@ import UrlDrivenSheet from "@/components/shared/url-driven-sheet";
 import { LoadingState } from "@/components/ui-kit/states";
 import { Button } from "@/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,11 +14,7 @@ import ThreadMessageComposer from "@/features/threads/components/thread-message-
 import ThreadMessagesList from "@/features/threads/components/thread-messages-list";
 import { USER_ROLE } from "@/shared/constants/types";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
-import {
-  ListRestart,
-  SlidersHorizontal,
-  Verified,
-} from "lucide-react";
+import { ListRestart, Verified } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -184,86 +175,74 @@ const ThreadMessagesPanel = () => {
         <section className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             {userRole === USER_ROLE.STAFF ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Thread Options
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-72">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <Select
-                        value={status}
-                        onValueChange={(v) =>
-                          handleStatusChange(v as ThreadStatusType)
-                        }
-                        disabled={updateStatus.isPending}
-                      >
-                        <SelectTrigger className="h-9 text-xs w-full">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          {Object.values(ThreadStatus).map((value) => (
-                            <SelectItem
-                              key={value}
-                              value={value}
-                              className="text-xs"
-                            >
-                              {value.replace("_", " ")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div className="flex items-end gap-2">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Select
+                    value={status}
+                    onValueChange={(v) =>
+                      handleStatusChange(v as ThreadStatusType)
+                    }
+                    disabled={updateStatus.isPending}
+                  >
+                    <SelectTrigger className="h-9 text-xs w-full capitalize">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs capitalize">
+                      {Object.values(ThreadStatus).map((value) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-xs"
+                        >
+                          {value.replace("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Priority</p>
-                      <Select
-                        value={priority}
-                        onValueChange={(v) =>
-                          handlePriorityChange(v as ThreadPriorityType)
-                        }
-                        disabled={updatePriority.isPending}
-                      >
-                        <SelectTrigger className="h-9 text-xs w-full">
-                          <SelectValue placeholder="Priority" />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          {Object.values(ThreadPriority).map((value) => (
-                            <SelectItem
-                              key={value}
-                              value={value}
-                              className="text-xs"
-                            >
-                              {value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Priority</p>
+                  <Select
+                    value={priority}
+                    onValueChange={(v) =>
+                      handlePriorityChange(v as ThreadPriorityType)
+                    }
+                    disabled={updatePriority.isPending}
+                  >
+                    <SelectTrigger className="h-9 text-xs w-full capitalize">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs capitalize">
+                      {Object.values(ThreadPriority).map((value) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className="text-xs"
+                        >
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    <Button
-                      onClick={() =>
-                        handleStatusChange(
-                          isCompleted
-                            ? ThreadStatus.pending
-                            : ThreadStatus.completed,
-                        )
-                      }
-                      size="sm"
-                      variant={isCompleted ? "secondary" : "outline"}
-                      disabled={updateStatus.isPending}
-                      className="w-full"
-                    >
-                      {isCompleted ? <ListRestart /> : <Verified />}
-                      {isCompleted ? "Reopen Thread" : "Mark As Resolved"}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                <Button
+                  onClick={() =>
+                    handleStatusChange(
+                      isCompleted
+                        ? ThreadStatus.pending
+                        : ThreadStatus.completed,
+                    )
+                  }
+                  variant={isCompleted ? "secondary" : "outline"}
+                  disabled={updateStatus.isPending}
+                >
+                  {isCompleted ? <ListRestart /> : <Verified />}
+                  {isCompleted ? "Reopen Thread" : "Mark As Resolved"}
+                </Button>
+              </div>
             ) : (
               <span />
             )}

@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-  SheetClose,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 
 type RenderCtx = {
   view: string | null;
@@ -71,7 +71,7 @@ const UrlDrivenSheet = ({
 
   const ctx: RenderCtx = useMemo(
     () => ({ view, clearFromUrl, open, setOpen }),
-    [view, open]
+    [view, open],
   );
 
   const renderChildren =

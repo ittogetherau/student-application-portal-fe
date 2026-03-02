@@ -32,7 +32,7 @@ export function ApplicationOutcomesChart({
   const chartData = useMemo(
     () => [
       {
-        name: "Reviewed",
+        name: "Applicaiton Recieved",
         value: outcomes.reviewed,
         color: "#3B82F6",
       },
@@ -42,7 +42,7 @@ export function ApplicationOutcomesChart({
         color: "#10B981",
       },
       {
-        name: "Rejected",
+        name: "Application Rejected",
         value: outcomes.rejected,
         color: "#EF4444",
       },

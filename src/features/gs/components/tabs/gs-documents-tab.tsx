@@ -1,57 +1,34 @@
 "use client";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogFooter,
-  DialogContent as ShadDialogContent,
-  DialogHeader as ShadDialogHeader,
-  DialogTitle as ShadDialogTitle,
-} from "@/components/ui/dialog";
-import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import GSDocumentAccordionItem from "./gs-document-accordion-item";
 import {
-  GS_DOCUMENT_CONFIGS,
+  useGSDocumentAutoCompleteMutation,
+  useGSDocumentsQuery,
+} from "@/hooks/useGSAssessment.hook";
+import {
   transformGSDocuments,
   type GSDocumentBackendStatus,
   type GSDocumentData,
 } from "@/shared/constants/gs-assessment";
-import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
-import {
-  useGSDocumentAutoCompleteMutation,
-  useGSDocumentFileDeleteMutation,
-  useGSDocumentsQuery,
-  useGSDocumentStatusMutation,
-  useGSDocumentUploadMutation,
-} from "@/hooks/useGSAssessment.hook";
-import {
-  DROPZONE_ACCEPT,
-  getDropzoneHelperText,
-  isAllowedFileType,
-  MAX_FILE_SIZE_BYTES,
-} from "@/shared/lib/document-file-helpers";
-import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  ExternalLink,
   FileText,
   Filter,
   Loader2,
   RefreshCw,
   Search,
-  Trash2,
   Upload,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -66,46 +43,6 @@ interface GSDocumentsTabProps {
 
 const REQUIRED_DOCUMENT_NUMBERS = [1, 2, 3, 4, 5] as const;
 
-function getStatusBadge(status: GSDocumentBackendStatus) {
-  switch (status) {
-    case "approved":
-      return (
-        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-          Approved
-        </Badge>
-      );
-    case "uploaded":
-      return (
-        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-          Uploaded
-        </Badge>
-      );
-    case "in_review":
-      return (
-        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-          Under Review
-        </Badge>
-      );
-    case "rejected":
-      return (
-        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-          Changes Requested
-        </Badge>
-      );
-    case "not_started":
-    default:
-      return <Badge variant="secondary">Not Started</Badge>;
-  }
-}
-
-function formatFileSize(bytes: number | null | undefined): string {
-  if (!bytes || bytes <= 0) return "";
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${Math.round(kb)} KB`;
-  const mb = kb / 1024;
-  return `${mb.toFixed(1)} MB`;
-}
-
 export default function GSDocumentsTab({
   applicationId,
   isStaff = false,
@@ -116,14 +53,6 @@ export default function GSDocumentsTab({
   //
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [uploadingDocNumber, setUploadingDocNumber] = useState<number | null>(
-    null,
-  );
-  const [pendingDelete, setPendingDelete] = useState<{
-    documentNumber: number;
-    fileId: string;
-    fileName: string;
-  } | null>(null);
 
   // Queries
   const {
@@ -134,12 +63,7 @@ export default function GSDocumentsTab({
   } = useGSDocumentsQuery(applicationId ?? null);
 
   // Mutations
-  const uploadMutation = useGSDocumentUploadMutation(applicationId ?? null);
-  const statusMutation = useGSDocumentStatusMutation(applicationId ?? null);
   const autoCompleteMutation = useGSDocumentAutoCompleteMutation(
-    applicationId ?? null,
-  );
-  const deleteFileMutation = useGSDocumentFileDeleteMutation(
     applicationId ?? null,
   );
   const [isCompletingStage, setIsCompletingStage] = useState(false);
@@ -182,11 +106,18 @@ export default function GSDocumentsTab({
   const notStartedCount = statusCounts.not_started || 0;
   const rejectedCount = statusCounts.rejected || 0;
 
-  // Only documents 1-5 are mandatory for stage completion
-  const requiredDocumentsApproved = REQUIRED_DOCUMENT_NUMBERS.every(
-    (documentNumber) =>
-      documents.find((doc) => doc.documentNumber === documentNumber)?.status ===
-      "approved",
+  const requiredDocumentsUploaded = REQUIRED_DOCUMENT_NUMBERS.every(
+    (documentNumber) => {
+      const requiredDoc = documents.find(
+        (doc) => doc.documentNumber === documentNumber,
+      );
+      if (!requiredDoc) return false;
+
+      const hasNonDeletedFile = requiredDoc.files.some(
+        (file) => !file.deletedAt,
+      );
+      return hasNonDeletedFile || Boolean(requiredDoc.fileUrl);
+    },
   );
 
   // Handle completing the stage
@@ -230,51 +161,6 @@ export default function GSDocumentsTab({
       );
     } finally {
       setIsCompletingStage(false);
-    }
-  };
-
-  // Handle file upload
-  const handleFiles = async (files: File[] | null, documentNumber: number) => {
-    const file = files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!isAllowedFileType(file)) {
-      toast.error(
-        "Invalid file type. Only PDF, JPG, and PNG files are allowed.",
-      );
-      return;
-    }
-
-    setUploadingDocNumber(documentNumber);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      await uploadMutation.mutateAsync({ documentNumber, formData });
-      toast.success("Document uploaded successfully");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload document",
-      );
-    } finally {
-      setUploadingDocNumber(null);
-    }
-  };
-
-  const handleStatusChange = async (
-    documentNumber: number,
-    status: "approved" | "rejected",
-  ) => {
-    try {
-      await statusMutation.mutateAsync({ documentNumber, status });
-      toast.success(
-        `Document ${status === "approved" ? "approved" : "change requested"}`,
-      );
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update status",
-      );
     }
   };
 
@@ -373,59 +259,6 @@ export default function GSDocumentsTab({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Dialog
-            open={pendingDelete !== null}
-            onOpenChange={(open) => {
-              if (!open) setPendingDelete(null);
-            }}
-          >
-            <ShadDialogContent className="sm:max-w-md">
-              <ShadDialogHeader>
-                <ShadDialogTitle>Delete file?</ShadDialogTitle>
-                <DialogDescription>
-                  This will remove{" "}
-                  <span className="font-medium text-foreground">
-                    {pendingDelete?.fileName ?? "this file"}
-                  </span>
-                  . This action can’t be undone.
-                </DialogDescription>
-              </ShadDialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={
-                    deleteFileMutation.isPending || pendingDelete === null
-                  }
-                  onClick={async () => {
-                    if (!pendingDelete) return;
-                    try {
-                      await deleteFileMutation.mutateAsync({
-                        documentNumber: pendingDelete.documentNumber,
-                        fileId: pendingDelete.fileId,
-                      });
-                      toast.success("File deleted");
-                      setPendingDelete(null);
-                    } catch (error) {
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : "Failed to delete file",
-                      );
-                    }
-                  }}
-                >
-                  {deleteFileMutation.isPending ? "Deleting..." : "Delete"}
-                </Button>
-              </DialogFooter>
-            </ShadDialogContent>
-          </Dialog>
-
           {/* Search and Filter */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
@@ -455,255 +288,73 @@ export default function GSDocumentsTab({
           </div>
 
           {/* Documents Accordion */}
-          <Accordion type="single" collapsible className="space-y-2">
-            {visibleDocuments.map((doc) => {
-              const config = GS_DOCUMENT_CONFIGS.find(
-                (c) => c.number === doc.documentNumber,
-              );
-              const isUploading = uploadingDocNumber === doc.documentNumber;
-              const isUpdatingStatus = statusMutation.isPending;
-              const visibleFiles = doc.files.filter((file) => !file.deletedAt);
-              const hasFiles = visibleFiles.length > 0;
-              const latestFile = hasFiles
-                ? visibleFiles[visibleFiles.length - 1]
-                : null;
+          {(() => {
+            const splitIndex = Math.ceil(visibleDocuments.length / 2);
+            const leftColumn = visibleDocuments.slice(0, splitIndex);
+            const rightColumn = visibleDocuments.slice(splitIndex);
 
-              return (
-                <AccordionItem
-                  key={doc.id}
-                  value={doc.id}
-                  className="rounded-lg border border-border px-3 data-[state=open]:border-primary"
+            return (
+              <div className="grid grid-cols-2 gap-4">
+                <Accordion
+                  type="single"
+                  collapsible
+                  className="space-y-2 flex flex-col"
                 >
-                  <AccordionTrigger className="py-3 hover:no-underline">
-                    <div className="flex w-full items-center justify-between gap-3 pr-2">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted text-sm font-semibold text-muted-foreground">
-                          {doc.documentNumber}
-                        </div>
-                        <div className="min-w-0 text-left">
-                          <p className="truncate text-sm font-medium">
-                            {doc.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {latestFile
-                              ? `${latestFile.fileName} - ${formatUtcToFriendlyLocal(latestFile.uploadedAt)}`
-                              : (config?.description ?? "No file uploaded")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {getStatusBadge(doc.status)}
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4 space-y-4">
-                    {/* Document description */}
-                    {/* {config && (
-                      <p className="text-xs text-muted-foreground">
-                        {config.description}
-                      </p>
-                    )} */}
+                  {leftColumn.map((doc) => (
+                    <GSDocumentAccordionItem
+                      key={doc.id}
+                      applicationId={applicationId}
+                      doc={doc}
+                      isStaff={isStaff}
+                    />
+                  ))}
+                </Accordion>
 
-                    {/* Uploaded files */}
-                    {hasFiles && (
-                      <div className="space-y-2">
-                        {visibleFiles.map((file) => {
-                          const href = file.signedUrl ?? file.fileUrl;
-                          return (
-                            <div
-                              key={file.id}
-                              className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
-                            >
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm truncate">
-                                  {file.fileName || "Uploaded file"}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground truncate">
-                                  {formatFileSize(file.fileSize)}
-                                  {file.uploadedAt
-                                    ? ` • ${formatUtcToFriendlyLocal(file.uploadedAt)}`
-                                    : ""}
-                                </p>
-                              </div>
+                <Accordion
+                  type="single"
+                  collapsible
+                  className="space-y-2 flex flex-col"
+                >
+                  {rightColumn.map((doc) => (
+                    <GSDocumentAccordionItem
+                      key={doc.id}
+                      applicationId={applicationId}
+                      doc={doc}
+                      isStaff={isStaff}
+                    />
+                  ))}
+                </Accordion>
+              </div>
+            );
+          })()}
 
-                              {href ? (
-                                <div className="flex items-center gap-2">
-                                  <a
-                                    href={href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline text-xs flex items-center gap-1"
-                                  >
-                                    View <ExternalLink className="h-3 w-3" />
-                                  </a>
-
-                                  {isStaff && (
-                                    <Button
-                                      type="button"
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-7 w-7"
-                                      disabled={deleteFileMutation.isPending}
-                                      onClick={() =>
-                                        setPendingDelete({
-                                          documentNumber: doc.documentNumber,
-                                          fileId: file.id,
-                                          fileName:
-                                            file.fileName || "this file",
-                                        })
-                                      }
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Upload area */}
-                    <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4">
-                      <Dropzone
-                        onDrop={(acceptedFiles) =>
-                          handleFiles(acceptedFiles, doc.documentNumber)
-                        }
-                        onError={(error) => {
-                          if (error?.message) {
-                            toast.error(error.message);
-                          }
-                        }}
-                        accept={DROPZONE_ACCEPT}
-                        maxFiles={1}
-                        maxSize={MAX_FILE_SIZE_BYTES}
-                        disabled={isUploading}
-                        className={`px-4 py-6 text-center text-xs text-muted-foreground transition hover:border-primary/60 hover:text-foreground ${
-                          isUploading ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <DropzoneEmptyState>
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            {isUploading ? (
-                              <Loader2 className="h-6 w-6 animate-spin" />
-                            ) : (
-                              <Upload className="h-6 w-6" />
-                            )}
-                            <span className="text-sm font-medium text-foreground">
-                              {isUploading
-                                ? "Uploading..."
-                                : hasFiles
-                                  ? "Add file"
-                                  : "Drop file here or click to upload"}
-                            </span>
-                            <span>
-                              {config?.acceptedFormats ??
-                                getDropzoneHelperText(MAX_FILE_SIZE_BYTES)}
-                            </span>
-                          </div>
-                        </DropzoneEmptyState>
-                      </Dropzone>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                      You can add multiple files by dropping or selecting them
-                      one at a time.
-                    </p>
-
-                    {/* Review notes if change requested */}
-                    {doc.status === "rejected" && doc.reviewNotes && (
-                      <div className="p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                          Requested changes:
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
-                          {doc.reviewNotes}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Staff actions */}
-                    {isStaff && doc.status !== "not_started" && (
-                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                        <span className="text-xs text-muted-foreground">
-                          Staff Actions:
-                        </span>
-                        {doc.status !== "approved" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                            onClick={() =>
-                              handleStatusChange(doc.documentNumber, "approved")
-                            }
-                            disabled={isUpdatingStatus}
-                          >
-                            {isUpdatingStatus ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                            )}
-                            Approve
-                          </Button>
-                        )}
-                        {doc.status !== "rejected" && (
-                          <CreateThreadButton
-                            size="sm"
-                            variant="outline"
-                            className="w-auto h-7 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
-                            applicationId={applicationId ?? ""}
-                            disabled={!applicationId || isUpdatingStatus}
-                            icon={RefreshCw}
-                            iconClassName="h-3 w-3 mr-1"
-                            label="Request Change"
-                            dialogTitle="Request change"
-                            defaultTitle={
-                              doc.title
-                                ? `Changes requested for - ${doc.title}`
-                                : "Changes requested"
-                            }
-                            showAllFields={false}
-                            onSuccess={() => {
-                              if (!applicationId) return;
-                              void (async () => {
-                                try {
-                                  await statusMutation.mutateAsync({
-                                    documentNumber: doc.documentNumber,
-                                    status: "rejected",
-                                  });
-                                  toast.success("Change requested");
-                                } catch (error) {
-                                  toast.error(
-                                    error instanceof Error
-                                      ? error.message
-                                      : "Failed to update status",
-                                  );
-                                }
-                              })();
-                            }}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+          {visibleDocuments.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              You can add multiple files by dropping or selecting them one at a
+              time.
+            </p>
+          )}
 
           {visibleDocuments.length === 0 && (
             <div className="py-8 text-center text-muted-foreground">
               No documents match your search.
             </div>
           )}
+        </CardContent>
 
-          {isStaff && requiredDocumentsApproved && !isStageCompleted && (
-            <div className="pt-4 border-t">
+        {(isStageCompleted || isStaff || requiredDocumentsUploaded) && (
+          <CardFooter className="flex flex-col items-stretch gap-3 border-t pt-4">
+            {isStageCompleted ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  Documents stage completed. Proceed to Declarations.
+                </span>
+              </div>
+            ) : isStaff ? (
               <Button
                 onClick={handleCompleteStage}
-                disabled={isCompletingStage}
+                disabled={!requiredDocumentsUploaded || isCompletingStage}
                 className="w-full"
               >
                 {isCompletingStage ? (
@@ -714,21 +365,17 @@ export default function GSDocumentsTab({
                 Complete Documents Stage
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-            </div>
-          )}
-
-          {/* Stage completed message */}
-          {isStageCompleted && (
-            <div className="pt-4 border-t">
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" />
+            ) : (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
+                <Clock className="h-5 w-5 mt-0.5" />
                 <span className="text-sm font-medium">
-                  Documents stage completed. Proceed to Declarations.
+                  Awaiting staff review. You’ll be notified if changes are
+                  needed.
                 </span>
               </div>
-            </div>
-          )}
-        </CardContent>
+            )}
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
