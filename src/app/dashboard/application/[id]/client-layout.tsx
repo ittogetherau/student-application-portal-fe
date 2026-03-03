@@ -155,9 +155,9 @@ export default function ClientApplicationLayout({
         <ApplicationHeaderActions
           applicationId={application.id}
           assignedStaffId={application.assigned_staff_id}
+          assignedAgentProfileId={application.agent_profile_id}
+          assignedAgentEmail={agentEmail}
           stage={stage}
-          role={ROLE}
-          isAdminStaff={IS_ADMIN_STAFF}
         />
       </ContainerLayout>
 

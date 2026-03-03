@@ -101,6 +101,14 @@ const matchesBitCampusIntake = (
   );
 };
 
+const getMajorDisplayName = (majorName?: string | null): string | undefined => {
+  const trimmedName = (majorName ?? "").trim();
+  if (!trimmedName) return undefined;
+  return trimmedName.toLowerCase() === "default major"
+    ? "Select Major"
+    : trimmedName;
+};
+
 const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
   const [resolvedApplicationId, setResolvedApplicationId] = useState<
@@ -261,11 +269,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   });
 
   const majors = useMemo(
-    () =>
-      (courseDetailsResponse?.data?.majors ?? []).filter(
-        (major) =>
-          (major.major_name ?? "").trim().toLowerCase() !== "default major",
-      ),
+    () => courseDetailsResponse?.data?.majors ?? [],
     [courseDetailsResponse?.data?.majors],
   );
 
@@ -278,6 +282,32 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       null,
     [majorIdValue, majors],
   );
+
+  useEffect(() => {
+    if (!isBitCourse) return;
+    if (isMajorsLoading) return;
+    if ((majorIdValue ?? "").trim()) return;
+    if (!majors.length) return;
+
+    const defaultMajor =
+      majors.find(
+        (major) =>
+          (major.major_name ?? "").trim().toLowerCase() === "default major",
+      ) ?? null;
+
+    if (!defaultMajor?.secure_id) return;
+
+    setValue("major_id", defaultMajor.secure_id, { shouldDirty: false });
+    setValue("major", defaultMajor.major_name, { shouldDirty: false });
+    clearErrors(["major_id"]);
+  }, [
+    clearErrors,
+    isBitCourse,
+    isMajorsLoading,
+    majorIdValue,
+    majors,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (!selectedCourseId) {
@@ -712,8 +742,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                       >
                         {value ? (
                           <span className="truncate">
-                            {selectedMajor?.major_name ??
-                              majorNameValue ??
+                            {getMajorDisplayName(selectedMajor?.major_name) ??
+                              getMajorDisplayName(majorNameValue) ??
                               String(value)}
                           </span>
                         ) : (
@@ -743,7 +773,8 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                               key={major.secure_id}
                               value={major.secure_id}
                             >
-                              {major.major_name}
+                              {getMajorDisplayName(major.major_name) ??
+                                major.major_name}
                             </SelectItem>
                           ))
                         )}
@@ -905,10 +936,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                     course: Number(selectedCourse.id),
                     course_name: selectedCourse.course_name,
                     ...(isBitCourse
-                      ? {
-                          major:
-                            majorNameValue ||
-                            selectedMajor?.major_name ||
+                       ? {
+                           major:
+                            getMajorDisplayName(majorNameValue) ??
+                            getMajorDisplayName(selectedMajor?.major_name) ??
                             undefined,
                           major_id: majorIdValue ?? undefined,
                         }
