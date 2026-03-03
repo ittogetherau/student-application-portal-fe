@@ -137,6 +137,8 @@ export default function ClientApplicationLayout({
 
       <ContainerLayout className="space-y-2">
         <ApplicationHeaderDetails
+          applicationId={application.id}
+          assignedAgentProfileId={application.agent_profile_id}
           data={{
             studentName,
             trackingCode: application.tracking_code,

@@ -7,10 +7,20 @@ import {
   Hash,
   Mail,
   MapPin,
+  SquarePen,
   User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { USER_ROLE } from "@/shared/constants/types";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
+import { useState } from "react";
+import { AgentAssignmentSelect } from "../toolbar/agent-assignment-select";
 import ApplicationInfoRow from "./application-info-row";
 
 export type ApplicationHeaderDetailsData = {
@@ -26,16 +36,24 @@ export type ApplicationHeaderDetailsData = {
 };
 
 type ApplicationHeaderDetailsProps = {
+  applicationId: string;
+  assignedAgentProfileId?: string | null;
   data: ApplicationHeaderDetailsData;
   isStaffOrAdmin: boolean;
   onBack: () => void;
 };
 
 export default function ApplicationHeaderDetails({
+  applicationId,
+  assignedAgentProfileId = null,
   data,
   isStaffOrAdmin,
   onBack,
 }: ApplicationHeaderDetailsProps) {
+  const { role } = useRoleFlags();
+  const canAssignAgent = role === USER_ROLE.STAFF;
+  const [agentAssignOpen, setAgentAssignOpen] = useState(false);
+
   return (
     <div className="flex items-start gap-3">
       <Button
@@ -96,9 +114,37 @@ export default function ApplicationHeaderDetails({
 
             <ApplicationInfoRow
               icon={<Mail className="h-3.5 w-3.5" />}
-              label="Email"
+              label="Agent Email"
               value={data.agentEmail}
+              action={
+                canAssignAgent ? (
+                  <Popover
+                    open={agentAssignOpen}
+                    onOpenChange={setAgentAssignOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Assign agent"
+                      >
+                        <SquarePen className="h-3.5 w-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0" align="end">
+                      <AgentAssignmentSelect
+                        applicationId={applicationId}
+                        assignedAgentProfileId={assignedAgentProfileId}
+                        assignedAgentEmail={data.agentEmail}
+                        mode="list"
+                        onAssigned={() => setAgentAssignOpen(false)}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : null
+              }
             />
+
             {data.agentPhone ? (
               <ApplicationInfoRow
                 icon={<Hash className="h-3.5 w-3.5" />}

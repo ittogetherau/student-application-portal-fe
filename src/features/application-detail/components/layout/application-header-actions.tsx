@@ -63,13 +63,13 @@ export default function ApplicationHeaderActions({
               </div>
             )}
 
-            <div className="w-[13rem] min-w-0 shrink">
+            {/* <div className="w-[13rem] min-w-0 shrink">
               <AgentAssignmentSelect
                 applicationId={applicationId}
                 assignedAgentProfileId={assignedAgentProfileId}
                 assignedAgentEmail={assignedAgentEmail}
               />
-            </div>
+            </div> */}
 
             <ApplicationActionsMenu applicationId={applicationId} />
           </>

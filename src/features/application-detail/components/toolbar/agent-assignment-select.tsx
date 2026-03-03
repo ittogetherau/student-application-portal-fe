@@ -32,12 +32,16 @@ interface AgentAssignmentSelectProps {
   applicationId: string;
   assignedAgentProfileId?: string | null;
   assignedAgentEmail?: string | null;
+  mode?: "dropdown" | "list";
+  onAssigned?: () => void;
 }
 
 export function AgentAssignmentSelect({
   applicationId,
   assignedAgentProfileId = null,
   assignedAgentEmail = null,
+  mode = "dropdown",
+  onAssigned,
 }: AgentAssignmentSelectProps) {
   const [open, setOpen] = useState(false);
   const { data: agentsResponse, isLoading: isAgentsLoading } =
@@ -74,12 +78,61 @@ export function AgentAssignmentSelect({
       onSuccess: () => {
         toast.success(agentId ? "Agent assigned." : "Agent unassigned.");
         setOpen(false);
+        onAssigned?.();
       },
       onError: (error) => {
         toast.error(error.message || "Failed to assign agent");
       },
     });
   };
+
+  if (mode === "list") {
+    return (
+      <Command>
+        <CommandInput placeholder="Search by email..." className="h-9" />
+        <CommandList>
+          <CommandEmpty>No agent found.</CommandEmpty>
+          <CommandGroup>
+            <CommandItem value="unassigned" onSelect={() => handleAssign(null)}>
+              <Check
+                className={`mr-2 h-4 w-4 ${
+                  !currentAgentId ? "opacity-100" : "opacity-0"
+                }`}
+              />
+              <span className="text-foreground">Unassigned</span>
+            </CommandItem>
+            {agents.map((agent) => {
+              const assignId = agent.agent_profile_id || agent.id;
+              const meta =
+                agent.agency_name || agent.contact_person || agent.phone;
+
+              return (
+                <CommandItem
+                  key={agent.id}
+                  value={`${agent.email} ${agent.agency_name || ""}`}
+                  onSelect={() => handleAssign(assignId)}
+                >
+                  <Check
+                    className={`mr-2 h-4 w-4 ${
+                      currentAgentId === assignId ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                  <div className="flex flex-col text-foreground min-w-0">
+                    <span className="truncate">{agent.email}</span>
+                    {meta ? (
+                      <span className="text-xs text-muted-foreground truncate">
+                        {meta}
+                      </span>
+                    ) : null}
+                  </div>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1 min-w-0 w-full relative">
