@@ -3,9 +3,11 @@
 import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApplicationGetMutation } from "@/shared/hooks/use-applications";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { cn } from "@/shared/lib/utils";
+import type { ApplicationDetailResponse } from "@/service/application.service";
 import { Check, ChevronLeft, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,6 +22,8 @@ import { useStepNavigation } from "../utils/use-step-navigation";
 import { FORM_COMPONENTS } from "./form-step-components";
 import Link from "next/link";
 import { siteRoutes } from "@/shared/constants/site-routes";
+import { AgentAssignmentSelect } from "@/features/application-detail/components/toolbar/agent-assignment-select";
+import { APPLICATION_STAGE } from "@/shared/constants/types";
 
 const NewForm = ({
   applicationId: propApplicationId,
@@ -59,6 +63,9 @@ const NewForm = ({
 
   const StepComponent = FORM_COMPONENTS[currentStep]?.component;
   const [isInitialized, setIsInitialized] = useState(false);
+  const [currentApplication, setCurrentApplication] =
+    useState<ApplicationDetailResponse | null>(null);
+  const { isStaff } = useRoleFlags();
 
   const hasHydratedData = useApplicationFormDataStore(
     (state) => state._hasHydrated,
@@ -123,6 +130,7 @@ const NewForm = ({
         // Load fresh data from API
         getApplication(undefined, {
           onSuccess: (res) => {
+            setCurrentApplication(res?.data ?? null);
             if (res?.data) {
               // Initialize step navigation with loaded data
               const stepData = useApplicationFormDataStore.getState().stepData;
@@ -133,6 +141,7 @@ const NewForm = ({
             setIsInitialized(true);
           },
           onError: () => {
+            setCurrentApplication(null);
             fetchedEditApplicationRef.current = applicationId;
             setIsInitialized(true);
           },
@@ -224,69 +233,98 @@ const NewForm = ({
         reversed={true}
         sticky={true}
         sidebar={
-          <Card>
-            <CardContent className="py-0">
-              <div className="flex w-full overflow-x-scroll lg:flex-col gap-1 px-2 lg:px-0 py-3">
-                {APPLICATION_FORM_STEPS.filter(
-                  (step) => !HIDDEN_STEP_IDS.includes(step.id),
-                ).map((step, index) => {
-                  const canNavigate = canNavigateToStep(step.id, currentStep);
-                  const isCompleted = isStepCompleted(step.id);
-                  const isCurrent = currentStep === step.id;
+          <aside className="space-y-4">
+            <Card>
+              <CardContent className="py-0">
+                <div className="flex w-full overflow-x-scroll lg:flex-col gap-1 px-2 lg:px-0 py-3">
+                  {APPLICATION_FORM_STEPS.filter(
+                    (step) => !HIDDEN_STEP_IDS.includes(step.id),
+                  ).map((step, index) => {
+                    const canNavigate = canNavigateToStep(step.id, currentStep);
+                    const isCompleted = isStepCompleted(step.id);
+                    const isCurrent = currentStep === step.id;
 
-                  return (
-                    <button
-                      key={step.id}
-                      type="button"
-                      disabled={!canNavigate}
-                      onClick={() => handleStepNavigation(step.id, canNavigate)}
-                      className={cn(
-                        "flex items-center justify-center lg:justify-start gap-2 rounded-lg px-2 py-2.5 text-left transition-colors shrink-0",
-                        isCurrent
-                          ? "bg-primary text-primary-foreground"
-                          : canNavigate
-                            ? "hover:bg-muted"
-                            : "cursor-not-allowed",
-                        !canNavigate && "pointer-events-none",
-                      )}
-                      title={
-                        !canNavigate && isCreateMode
-                          ? "Complete previous steps to unlock"
-                          : step.title
-                      }
-                    >
-                      <div
+                    return (
+                      <button
+                        key={step.id}
+                        type="button"
+                        disabled={!canNavigate}
+                        onClick={() =>
+                          handleStepNavigation(step.id, canNavigate)
+                        }
                         className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                          "flex items-center justify-center lg:justify-start gap-2 rounded-lg px-2 py-2.5 text-left transition-colors shrink-0",
                           isCurrent
-                            ? "bg-primary-foreground text-primary font-bold"
-                            : isCompleted
-                              ? "bg-emerald-100 text-emerald-700"
-                              : canNavigate
-                                ? "bg-muted text-muted-foreground"
-                                : "bg-muted/50 text-muted-foreground/50",
+                            ? "bg-primary text-primary-foreground"
+                            : canNavigate
+                              ? "hover:bg-muted"
+                              : "cursor-not-allowed",
+                          !canNavigate && "pointer-events-none",
                         )}
+                        title={
+                          !canNavigate && isCreateMode
+                            ? "Complete previous steps to unlock"
+                            : step.title
+                        }
                       >
-                        {isCompleted && !isCurrent ? (
-                          <Check className="h-3 w-3" />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          !canNavigate && "text-muted-foreground/50",
-                        )}
-                      >
-                        {step.title}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                            isCurrent
+                              ? "bg-primary-foreground text-primary font-bold"
+                              : isCompleted
+                                ? "bg-emerald-100 text-emerald-700"
+                                : canNavigate
+                                  ? "bg-muted text-muted-foreground"
+                                  : "bg-muted/50 text-muted-foreground/50",
+                          )}
+                        >
+                          {isCompleted && !isCurrent ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            "text-sm",
+                            !canNavigate && "text-muted-foreground/50",
+                          )}
+                        >
+                          {step.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {isStaff && applicationId ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Manage Agent</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <AgentAssignmentSelect
+                    applicationId={applicationId}
+                    assignedAgentProfileId={
+                      currentApplication?.agent_profile_id ?? null
+                    }
+                    assignedAgentEmail={
+                      (currentApplication?.agent_email as string | null) ?? null
+                    }
+                    onAssigned={() => {
+                      getApplication(undefined, {
+                        onSuccess: (res) =>
+                          setCurrentApplication(res?.data ?? null),
+                      });
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
+          </aside>
         }
       >
         <div className="mb-4 flex items-center justify-between">

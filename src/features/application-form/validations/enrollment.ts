@@ -28,7 +28,8 @@ const agentEnrollmentSchema = z
     if (data.advanced_standing_credit === "yes" && !data.number_of_subjects) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "number_of_subjects is required when advanced_standing_credit is yes",
+        message:
+          "number_of_subjects is required when advanced_standing_credit is yes",
         path: ["number_of_subjects"],
       });
     }
@@ -45,9 +46,12 @@ const staffEnrollmentSchema = z.object({
   major: z.string().optional(),
 
   advanced_standing_credit: yesNoApiSchema,
-  preferred_start_date: requiredYmdDateSchema("preferred_start_date is required"),
+  preferred_start_date: requiredYmdDateSchema(
+    "preferred_start_date is required",
+  ),
   number_of_subjects: z.number().int().min(1).max(12).optional(),
   no_of_weeks: z.number().int().min(1),
+  calculated_no_of_weeks: z.number().int().min(0).optional(),
   course_end_date: requiredYmdDateSchema("course_end_date is required"),
   offer_issued_date: requiredYmdDateSchema("offer_issued_date is required"),
   study_reason: z.string().min(1),

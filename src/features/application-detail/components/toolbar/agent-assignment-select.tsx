@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -33,6 +34,7 @@ interface AgentAssignmentSelectProps {
   assignedAgentProfileId?: string | null;
   assignedAgentEmail?: string | null;
   mode?: "dropdown" | "list";
+  size?: "base" | "lg";
   onAssigned?: () => void;
 }
 
@@ -41,6 +43,7 @@ export function AgentAssignmentSelect({
   assignedAgentProfileId = null,
   assignedAgentEmail = null,
   mode = "dropdown",
+  size = "base",
   onAssigned,
 }: AgentAssignmentSelectProps) {
   const [open, setOpen] = useState(false);
@@ -134,10 +137,17 @@ export function AgentAssignmentSelect({
     );
   }
 
+  const isLarge = size === "lg";
+
   return (
     <div className="flex items-center gap-1 min-w-0 w-full relative">
       {!(assignedAgentProfileId || assignedAgentEmail) && (
-        <div className="absolute top-1/2 -translate-y-1/2 right-6 animate-scale-pulse">
+        <div
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 animate-scale-pulse",
+            isLarge ? "right-8" : "right-6",
+          )}
+        >
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -160,35 +170,45 @@ export function AgentAssignmentSelect({
             role="combobox"
             aria-expanded={open}
             disabled={assignMutation.isPending}
-            className="flex-1 min-w-0 h-8 justify-between text-sm"
+            className={cn(
+              "flex-1 min-w-0 justify-between",
+              isLarge ? "h-11 px-4 text-base text-left" : "h-8 text-sm",
+            )}
           >
             {assignMutation.isPending ? (
               "Loading..."
             ) : currentAgent ? (
-              <span className="block w-full truncate">
+              <span className="block w-full truncate text-left">
                 {currentAgent.email}
               </span>
             ) : assignedAgentEmail ? (
-              <span className="block w-full truncate">
+              <span className="block w-full truncate text-left">
                 {assignedAgentEmail}
               </span>
             ) : isAgentsLoading ? (
               "Loading..."
             ) : (
-              <span className="text-foreground">Assign Agent</span>
+              <span className="text-foreground text-left">Assign Agent</span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[320px] p-0" align="center">
+        <PopoverContent
+          className={cn(isLarge ? "w-[360px] p-0" : "w-[320px] p-0")}
+          align="start"
+        >
           <Command>
-            <CommandInput placeholder="Search by email..." className="h-9" />
+            <CommandInput
+              placeholder="Search by email..."
+              className={cn(isLarge ? "h-11" : "h-9")}
+            />
             <CommandList>
               <CommandEmpty>No agent found.</CommandEmpty>
               <CommandGroup>
                 <CommandItem
                   value="unassigned"
                   onSelect={() => handleAssign(null)}
+                  className={cn(isLarge && "px-4 py-3")}
                 >
                   <Check
                     className={`mr-2 h-4 w-4 ${
@@ -207,6 +227,7 @@ export function AgentAssignmentSelect({
                       key={agent.id}
                       value={`${agent.email} ${agent.agency_name || ""}`}
                       onSelect={() => handleAssign(assignId)}
+                      className={cn(isLarge && "px-4 py-3")}
                     >
                       <Check
                         className={`mr-2 h-4 w-4 ${

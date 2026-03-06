@@ -40,6 +40,7 @@ const defaultValues: StudentEnrollmentFormValues = {
   advanced_standing_credit: "No",
   number_of_subjects: undefined,
   no_of_weeks: 1,
+  calculated_no_of_weeks: 1,
   course_end_date: "",
   offer_issued_date: "",
   study_reason: "",
@@ -71,6 +72,44 @@ const toNumber = (value: unknown): number | null => {
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
+};
+
+const getWeeksBetweenDates = (startDateRaw: unknown, endDateRaw: unknown) => {
+  const startDate = normalizeDateStringToYmd(startDateRaw);
+  const endDate = normalizeDateStringToYmd(endDateRaw);
+  if (!startDate || !endDate) return null;
+
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  const diffMs = end.getTime() - start.getTime();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
+
+  const weeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+  return weeks > 0 ? weeks : null;
+};
+
+const applyAdvancedStandingWeekReduction = (
+  courseWeeks: number,
+  subjectCredits: unknown,
+) => {
+  const credits = toNumber(subjectCredits) ?? 0;
+  let weeks = courseWeeks;
+
+  if (credits < 4) {
+    // Less than 4 subjects = no reduction
+    weeks = Math.max(0, weeks - 0);
+  } else if (credits >= 4 && credits < 8) {
+    // 4-7 subjects = reduce by 6 months (26 weeks)
+    weeks = Math.max(0, weeks - 26);
+  } else if (credits >= 8 && credits <= 11) {
+    // 8-11 subjects = reduce by 1 year (52 weeks)
+    weeks = Math.max(0, weeks - 52);
+  } else if (credits === 12) {
+    // 12 subjects = reduce by 1 year 6 months (76 weeks)
+    weeks = Math.max(0, weeks - 76);
+  }
+
+  return weeks;
 };
 
 type StudentEnrollmentFormProps = {
@@ -121,13 +160,25 @@ const StudentEnrollmentForm = ({
     control: methods.control,
     name: "advanced_standing_credit",
   });
+  const numberOfSubjectsValue = useWatch({
+    control: methods.control,
+    name: "number_of_subjects",
+  });
+  const preferredStartDateValue = useWatch({
+    control: methods.control,
+    name: "preferred_start_date",
+  });
   const receivingScholarshipValue = useWatch({
     control: methods.control,
     name: "receiving_scholarship",
   });
 
   const initialEnrollmentData = useMemo(() => {
-    if (!initialData || typeof initialData !== "object" || Array.isArray(initialData)) {
+    if (
+      !initialData ||
+      typeof initialData !== "object" ||
+      Array.isArray(initialData)
+    ) {
       return null;
     }
     return initialData as Record<string, unknown>;
@@ -176,7 +227,11 @@ const StudentEnrollmentForm = ({
   }, [initialEnrollmentData, selectedCore]);
 
   useEffect(() => {
-    if (!initialData || typeof initialData !== "object" || Array.isArray(initialData)) {
+    if (
+      !initialData ||
+      typeof initialData !== "object" ||
+      Array.isArray(initialData)
+    ) {
       return;
     }
 
@@ -196,7 +251,9 @@ const StudentEnrollmentForm = ({
       return "No";
     };
 
-    const classTypeRaw = String(raw.class_type ?? defaultValues.class_type).toLowerCase();
+    const classTypeRaw = String(
+      raw.class_type ?? defaultValues.class_type,
+    ).toLowerCase();
     const classType =
       classTypeRaw === "hybrid" || classTypeRaw === "online"
         ? classTypeRaw
@@ -210,6 +267,10 @@ const StudentEnrollmentForm = ({
       advanced_standing_credit: readYesNo(raw.advanced_standing_credit),
       number_of_subjects: toNumber(raw.number_of_subjects) ?? undefined,
       no_of_weeks: toNumber(raw.no_of_weeks) ?? defaultValues.no_of_weeks,
+      calculated_no_of_weeks:
+        toNumber(raw.calculated_no_of_weeks) ??
+        toNumber(raw.no_of_weeks) ??
+        defaultValues.calculated_no_of_weeks,
       course_end_date:
         typeof raw.course_end_date === "string"
           ? raw.course_end_date
@@ -226,7 +287,8 @@ const StudentEnrollmentForm = ({
         toNumber(raw.course_actual_fee) ?? defaultValues.course_actual_fee,
       course_upfront_fee:
         toNumber(raw.course_upfront_fee) ?? defaultValues.course_upfront_fee,
-      enrollment_fee: toNumber(raw.enrollment_fee) ?? defaultValues.enrollment_fee,
+      enrollment_fee:
+        toNumber(raw.enrollment_fee) ?? defaultValues.enrollment_fee,
       material_fee: toNumber(raw.material_fee) ?? defaultValues.material_fee,
       inclue_material_fee_in_initial_payment: readYesNo(
         raw.inclue_material_fee_in_initial_payment,
@@ -237,7 +299,9 @@ const StudentEnrollmentForm = ({
       third_party_provider: readYesNoNa(raw.third_party_provider),
       class_type: classType,
       application_request:
-        typeof raw.application_request === "string" ? raw.application_request : "",
+        typeof raw.application_request === "string"
+          ? raw.application_request
+          : "",
     });
   }, [initialData, methods]);
 
@@ -247,25 +311,6 @@ const StudentEnrollmentForm = ({
     const intakeStart =
       normalizeDateStringToYmd(enrollmentCore.intake_start) ??
       normalizeDateStringToYmd(enrollmentCore.class_start_date);
-    const intakeEnd =
-      normalizeDateStringToYmd(enrollmentCore.intake_end) ??
-      normalizeDateStringToYmd(enrollmentCore.class_end_date);
-    const intakeDurationWeeks =
-      typeof enrollmentCore.intake_duration === "number" &&
-      enrollmentCore.intake_duration > 0
-        ? enrollmentCore.intake_duration
-        : toNumber(enrollmentCore.intake_duration);
-    const durationWeeks =
-      intakeDurationWeeks &&
-      Number.isFinite(intakeDurationWeeks) &&
-      intakeDurationWeeks > 0
-        ? intakeDurationWeeks
-        : parseWeeksFromDurationText(enrollmentCore.course_duration_text);
-    const derivedEndDate =
-      intakeEnd ??
-      (intakeStart && durationWeeks
-        ? addWeeksToYmdDateString(intakeStart, durationWeeks)
-        : null);
 
     // Keep existing values from initialData when intake dates are unavailable.
     if (intakeStart) {
@@ -274,19 +319,78 @@ const StudentEnrollmentForm = ({
         shouldValidate: false,
       });
     }
-    if (derivedEndDate) {
+  }, [enrollmentCore, methods]);
+
+  useEffect(() => {
+    if (!enrollmentCore) return;
+
+    const intakeStart =
+      normalizeDateStringToYmd(preferredStartDateValue) ??
+      normalizeDateStringToYmd(enrollmentCore.intake_start) ??
+      normalizeDateStringToYmd(enrollmentCore.class_start_date);
+    const intakeEnd =
+      normalizeDateStringToYmd(enrollmentCore.intake_end) ??
+      normalizeDateStringToYmd(enrollmentCore.class_end_date);
+
+    const intakeDurationWeeks =
+      typeof enrollmentCore.intake_duration === "number" &&
+      enrollmentCore.intake_duration > 0
+        ? enrollmentCore.intake_duration
+        : toNumber(enrollmentCore.intake_duration);
+    const durationWeeksFromDates = getWeeksBetweenDates(intakeStart, intakeEnd);
+    const initialWeeks = toNumber(initialEnrollmentData?.no_of_weeks);
+    const currentWeeks = toNumber(methods.getValues("no_of_weeks"));
+    const durationWeeks =
+      intakeDurationWeeks &&
+      Number.isFinite(intakeDurationWeeks) &&
+      intakeDurationWeeks > 0
+        ? intakeDurationWeeks
+        : (parseWeeksFromDurationText(enrollmentCore.course_duration_text) ??
+          durationWeeksFromDates ??
+          initialWeeks ??
+          currentWeeks);
+
+    if (!intakeStart || !durationWeeks) return;
+
+    const baseWeeks = Math.max(0, Math.trunc(durationWeeks));
+    const reducedWeeks =
+      advancedStandingValue === "Yes"
+        ? applyAdvancedStandingWeekReduction(baseWeeks, numberOfSubjectsValue)
+        : baseWeeks;
+
+    const derivedEndDate = addWeeksToYmdDateString(intakeStart, reducedWeeks);
+
+    if (
+      derivedEndDate &&
+      methods.getValues("course_end_date") !== derivedEndDate
+    ) {
       methods.setValue("course_end_date", derivedEndDate, {
         shouldDirty: false,
         shouldValidate: false,
       });
     }
-    if (durationWeeks && durationWeeks > 0) {
-      methods.setValue("no_of_weeks", durationWeeks, {
+
+    if (methods.getValues("no_of_weeks") !== baseWeeks) {
+      methods.setValue("no_of_weeks", baseWeeks, {
         shouldDirty: false,
         shouldValidate: false,
       });
     }
-  }, [enrollmentCore, methods]);
+
+    if (methods.getValues("calculated_no_of_weeks") !== reducedWeeks) {
+      methods.setValue("calculated_no_of_weeks", reducedWeeks, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [
+    advancedStandingValue,
+    enrollmentCore,
+    initialEnrollmentData,
+    methods,
+    numberOfSubjectsValue,
+    preferredStartDateValue,
+  ]);
 
   const onSubmit = async (values: StudentEnrollmentFormValues) => {
     if (!applicationId) {
@@ -319,6 +423,7 @@ const StudentEnrollmentForm = ({
       preferred_start_date: values.preferred_start_date,
       advanced_standing_credit: toYesNoApi(values.advanced_standing_credit),
       no_of_weeks: Number(values.no_of_weeks),
+      calculated_no_of_weeks: Number(values.calculated_no_of_weeks),
       course_end_date: values.course_end_date,
       offer_issued_date: values.offer_issued_date,
       study_reason: values.study_reason,
@@ -392,7 +497,9 @@ const StudentEnrollmentForm = ({
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <div>
                   <p className="text-muted-foreground">Course</p>
-                  <p className="font-medium">{enrollmentCore.course_name || "-"}</p>
+                  <p className="font-medium">
+                    {enrollmentCore.course_name || "-"}
+                  </p>
                 </div>
                 {enrollmentCore.major ? (
                   <div>
@@ -402,11 +509,15 @@ const StudentEnrollmentForm = ({
                 ) : null}
                 <div>
                   <p className="text-muted-foreground">Intake</p>
-                  <p className="font-medium">{enrollmentCore.intake_name || "-"}</p>
+                  <p className="font-medium">
+                    {enrollmentCore.intake_name || "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Campus</p>
-                  <p className="font-medium">{enrollmentCore.campus_name || "-"}</p>
+                  <p className="font-medium">
+                    {enrollmentCore.campus_name || "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Duration</p>
@@ -449,6 +560,12 @@ const StudentEnrollmentForm = ({
             <FormInput
               name="no_of_weeks"
               label="No. of Weeks *"
+              type="number"
+              disabled
+            />
+            <FormInput
+              name="calculated_no_of_weeks"
+              label="Calculated No. of Weeks *"
               type="number"
               disabled
             />

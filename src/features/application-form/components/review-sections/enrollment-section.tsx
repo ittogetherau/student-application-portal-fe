@@ -297,9 +297,14 @@ export function EnrollmentSection(props: {
             value={enrollmentData.course_end_date}
             icon={CalendarDays}
           />
-          <Field
+          {/* <Field
             label="No. of Weeks"
             value={enrollmentData.no_of_weeks}
+            icon={CalendarDays}
+          /> */}
+          <Field
+            label="No. of Weeks"
+            value={enrollmentData.calculated_no_of_weeks}
             icon={CalendarDays}
           />
           <Field

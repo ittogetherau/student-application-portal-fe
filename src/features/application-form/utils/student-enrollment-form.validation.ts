@@ -14,7 +14,11 @@ export const studentEnrollmentFormSchema = z
       .min(1, "Please select number of subjects")
       .max(12, "Please select number of subjects")
       .optional(),
-    no_of_weeks: z.number().int().min(1, "Number of weeks is required"),
+    no_of_weeks: z.number().int().min(0, "Number of weeks is required"),
+    calculated_no_of_weeks: z
+      .number()
+      .int()
+      .min(0, "Calculated number of weeks is required"),
     course_end_date: z.string().min(1, "Course end date is required"),
     offer_issued_date: z.string().min(1, "Offer issued date is required"),
     study_reason: z.string().min(1, "Please select a study reason"),

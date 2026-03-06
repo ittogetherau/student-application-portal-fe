@@ -1,13 +1,27 @@
 export const parseWeeksFromDurationText = (durationText?: string) => {
   if (!durationText) return null;
-  const parts = durationText.trim().split(/\s+/);
-  const weeksRaw = parts[0];
-  const unitRaw = parts[1]?.toLowerCase();
-  if (!weeksRaw) return null;
-  if (unitRaw && unitRaw !== "week" && unitRaw !== "weeks") return null;
-  const weeks = Number.parseInt(weeksRaw, 10);
-  if (!Number.isFinite(weeks) || weeks <= 0) return null;
-  return weeks;
+  const normalized = durationText.trim().toLowerCase();
+  const match = normalized.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)/);
+  if (!match) return null;
+
+  const value = Number.parseFloat(match[1]);
+  const unit = match[2];
+
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  if (unit.startsWith("week")) {
+    return Math.round(value);
+  }
+
+  if (unit.startsWith("month")) {
+    return Math.round(value * (52 / 12));
+  }
+
+  if (unit.startsWith("year") || unit.startsWith("yr")) {
+    return Math.round(value * 52);
+  }
+
+  return null;
 };
 
 export const parseStartDateToUtcDate = (input: string) => {
