@@ -8,7 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ApplicationDocumentListItem } from "@/service/document.service";
+import { USER_ROLE } from "@/shared/constants/types";
 import { useApplicationDocumentsQuery } from "@/shared/hooks/document.hook";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { Loader2, RefreshCw } from "lucide-react";
 import { AdditionalDocumentsUpload } from "../additional-documents-upload";
 import { DocumentCard } from "../cards/document-card";
@@ -25,6 +27,8 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
   const { data: documentsResponse, isLoading } =
     useApplicationDocumentsQuery(applicationId);
   const documents = (documentsResponse?.data || []) as Document[];
+  const { role } = useRoleFlags();
+  const canCreateThread = role === USER_ROLE.STAFF;
 
   return (
     <>
@@ -56,13 +60,15 @@ const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
                 ))}
               </div>
 
-              <CreateThreadButton
-                applicationId={applicationId}
-                label="Request Change"
-                icon={RefreshCw}
-                showAllFields={false}
-                defaultTitle={"Changes Requested in Documents!"}
-              />
+              {canCreateThread && (
+                <CreateThreadButton
+                  applicationId={applicationId}
+                  label="Request Change"
+                  icon={RefreshCw}
+                  showAllFields={false}
+                  defaultTitle={"Changes Requested in Documents!"}
+                />
+              )}
             </div>
           )}
 

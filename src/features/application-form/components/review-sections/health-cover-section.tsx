@@ -26,12 +26,14 @@ export function HealthCoverSection({
   showSync,
   isStaffOrAdmin,
   syncMeta,
+  showRequestChange,
 }: {
   applicationId: string;
   policy: any;
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const queryClient = useQueryClient();
   const syncOshc = useGalaxySyncOshcMutation(applicationId);
@@ -44,9 +46,11 @@ export function HealthCoverSection({
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
 

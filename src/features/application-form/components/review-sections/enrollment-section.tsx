@@ -68,6 +68,7 @@ export function EnrollmentSection(props: {
   isStaffOrAdmin: boolean;
   canManageEnrollment?: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const {
     applicationId,
@@ -76,6 +77,7 @@ export function EnrollmentSection(props: {
     isStaffOrAdmin,
     canManageEnrollment = false,
     syncMeta,
+    showRequestChange,
   } = props;
   const queryClient = useQueryClient();
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
@@ -225,9 +227,11 @@ export function EnrollmentSection(props: {
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
 

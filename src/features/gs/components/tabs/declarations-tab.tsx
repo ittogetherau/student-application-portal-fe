@@ -112,15 +112,18 @@ const mapApplicationToGSPrefill = (
   const personal = application.personal_details ?? null;
   if (!personal || typeof personal !== "object") return undefined;
 
-  const givenName = String((personal as Record<string, unknown>).given_name ?? "")
-    .trim();
+  const givenName = String(
+    (personal as Record<string, unknown>).given_name ?? "",
+  ).trim();
   const familyName = String(
     (personal as Record<string, unknown>).family_name ?? "",
   ).trim();
   const passportNumber = String(
     (personal as Record<string, unknown>).passport_number ?? "",
   ).trim();
-  const email = String((personal as Record<string, unknown>).email ?? "").trim();
+  const email = String(
+    (personal as Record<string, unknown>).email ?? "",
+  ).trim();
   const dateOfBirth = normalizeDateForInput(
     (personal as Record<string, unknown>).date_of_birth,
   );
@@ -154,7 +157,9 @@ export default function GSDeclarationsTab({
   const studentDeclarationQuery = useGSStudentDeclarationQuery(
     applicationId ?? null,
   );
-  const agentDeclarationQuery = useGSAgentDeclarationQuery(applicationId ?? null);
+  const agentDeclarationQuery = useGSAgentDeclarationQuery(
+    applicationId ?? null,
+  );
 
   const reviewMutation = useGSDeclarationReviewMutation(applicationId ?? null);
 
@@ -173,7 +178,9 @@ export default function GSDeclarationsTab({
       } as GSScreeningFormValues)
     : null;
 
-  const studentDeclarationFormData = isNonEmptyRecord(studentDeclarationData?.data)
+  const studentDeclarationFormData = isNonEmptyRecord(
+    studentDeclarationData?.data,
+  )
     ? (studentDeclarationData?.data as Partial<GSScreeningFormValues>)
     : undefined;
 
@@ -421,7 +428,9 @@ export default function GSDeclarationsTab({
           <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5" />
             <span className="text-sm font-medium">
-              Declarations stage completed. Proceed to Schedule.
+              {isStaff
+                ? "Declarations stage completed. Proceed to Schedule."
+                : "All documents verified - Please wait for agent to proceed to next stage."}
             </span>
           </div>
         )}
@@ -448,7 +457,8 @@ export default function GSDeclarationsTab({
     declarationType === "agent"
       ? studentDeclarationQuery.isLoading || agentDeclarationQuery.isLoading
       : studentDeclarationQuery.isLoading;
-  const isLoadingPrefill = shouldPrefillFromApplication && applicationQuery.isLoading;
+  const isLoadingPrefill =
+    shouldPrefillFromApplication && applicationQuery.isLoading;
   if (isLoadingDeclarations || isLoadingPrefill) {
     return (
       <Card>

@@ -29,6 +29,7 @@ export function QualificationsSection({
   showSync,
   isStaffOrAdmin,
   syncMeta,
+  showRequestChange,
 }: {
   applicationId: string;
   qualifications: any[];
@@ -36,6 +37,7 @@ export function QualificationsSection({
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const queryClient = useQueryClient();
   const syncQualifications = useGalaxySyncQualificationsMutation(applicationId);
@@ -48,9 +50,11 @@ export function QualificationsSection({
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
   const action = (

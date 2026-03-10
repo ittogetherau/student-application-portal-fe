@@ -51,31 +51,35 @@ function getStatusBadge(status: GSDocumentBackendStatus) {
   switch (status) {
     case "approved":
       return (
-        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+        <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
           Approved
         </Badge>
       );
     case "uploaded":
       return (
-        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        <Badge className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
           Uploaded
         </Badge>
       );
     case "in_review":
       return (
-        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+        <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
           Under Review
         </Badge>
       );
     case "rejected":
       return (
-        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+        <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
           Changes Requested
         </Badge>
       );
     case "not_started":
     default:
-      return <Badge variant="secondary">Not Started</Badge>;
+      return (
+        <Badge className="text-[10px]" variant="secondary">
+          Not Started
+        </Badge>
+      );
   }
 }
 
@@ -100,7 +104,9 @@ export default function GSDocumentAccordionItem({
 }: GSDocumentAccordionItemProps) {
   const uploadMutation = useGSDocumentUploadMutation(applicationId ?? null);
   const statusMutation = useGSDocumentStatusMutation(applicationId ?? null);
-  const deleteFileMutation = useGSDocumentFileDeleteMutation(applicationId ?? null);
+  const deleteFileMutation = useGSDocumentFileDeleteMutation(
+    applicationId ?? null,
+  );
 
   const [isUploading, setIsUploading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
@@ -120,13 +126,16 @@ export default function GSDocumentAccordionItem({
   const hasFiles = visibleFiles.length > 0;
   const latestFile = hasFiles ? visibleFiles[visibleFiles.length - 1] : null;
   const isUpdatingStatus = statusMutation.isPending;
+  const isMandatory = doc.documentNumber >= 1 && doc.documentNumber <= 5;
 
   const handleFiles = async (files: File[] | null) => {
     const file = files?.[0];
     if (!file) return;
 
     if (!isAllowedFileType(file)) {
-      toast.error("Invalid file type. Only PDF, JPG, and PNG files are allowed.");
+      toast.error(
+        "Invalid file type. Only PDF, JPG, and PNG files are allowed.",
+      );
       return;
     }
 
@@ -141,7 +150,9 @@ export default function GSDocumentAccordionItem({
       });
       toast.success("Document uploaded successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to upload document");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload document",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -149,10 +160,17 @@ export default function GSDocumentAccordionItem({
 
   const handleStatusChange = async (status: "approved" | "rejected") => {
     try {
-      await statusMutation.mutateAsync({ documentNumber: doc.documentNumber, status });
-      toast.success(`Document ${status === "approved" ? "approved" : "change requested"}`);
+      await statusMutation.mutateAsync({
+        documentNumber: doc.documentNumber,
+        status,
+      });
+      toast.success(
+        `Document ${status === "approved" ? "approved" : "change requested"}`,
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update status");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update status",
+      );
     }
   };
 
@@ -199,7 +217,9 @@ export default function GSDocumentAccordionItem({
                   setPendingDelete(null);
                 } catch (error) {
                   toast.error(
-                    error instanceof Error ? error.message : "Failed to delete file",
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to delete file",
                   );
                 }
               }}
@@ -226,6 +246,11 @@ export default function GSDocumentAccordionItem({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {isMandatory && !hasFiles && (
+              <Badge variant="default" className="text-[10px]">
+                Mandatory
+              </Badge>
+            )}
             {getStatusBadge(doc.status)}
           </div>
         </div>
@@ -265,23 +290,21 @@ export default function GSDocumentAccordionItem({
                         View <ExternalLink className="h-3 w-3" />
                       </a>
 
-                      {isStaff && (
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          disabled={deleteFileMutation.isPending}
-                          onClick={() =>
-                            setPendingDelete({
-                              fileId: file.id,
-                              fileName: file.fileName || "this file",
-                            })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        disabled={deleteFileMutation.isPending}
+                        onClick={() =>
+                          setPendingDelete({
+                            fileId: file.id,
+                            fileName: file.fileName || "this file",
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : null}
                 </div>
@@ -340,7 +363,9 @@ export default function GSDocumentAccordionItem({
 
         {isStaff && doc.status !== "not_started" && (
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-            <span className="text-xs text-muted-foreground">Staff Actions:</span>
+            <span className="text-xs text-muted-foreground">
+              Staff Actions:
+            </span>
             {doc.status !== "approved" && (
               <Button
                 size="sm"

@@ -16,7 +16,7 @@ import {
   APPLICATION_SYNC_COMPLETION_IGNORED_KEYS,
 } from "@/shared/constants/application-sync";
 import { siteRoutes } from "@/shared/constants/site-routes";
-import { APPLICATION_STAGE } from "@/shared/constants/types";
+import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationGetQuery,
   useApplicationSubmitMutation,
@@ -63,7 +63,7 @@ const ReviewForm = ({
   onNavigateToDocuments?: () => void;
 }) => {
   const router = useRouter();
-  const { isStaffOrAdmin } = useRoleFlags();
+  const { isStaffOrAdmin, role } = useRoleFlags();
   const queryClient = useQueryClient();
 
   const {
@@ -77,6 +77,12 @@ const ReviewForm = ({
 
   const application = response?.data;
   const syncMetadata = application?.sync_metadata ?? null;
+  const isStaff = role === USER_ROLE.STAFF;
+  const shouldShowRequestChange =
+    isStaff &&
+    (application?.current_stage === APPLICATION_STAGE.SUBMITTED ||
+      application?.current_stage === APPLICATION_STAGE.IN_REVIEW ||
+      application?.current_stage === APPLICATION_STAGE.OFFER_LETTER);
 
   const isSyncComplete = useMemo(
     () =>
@@ -369,6 +375,7 @@ const ReviewForm = ({
           isStaffOrAdmin={isStaffOrAdmin}
           canManageEnrollment={canManageEnrollment}
           syncMeta={syncMetadata?.enrollment_data}
+          showRequestChange={shouldShowRequestChange}
         />
         <PersonalDetailsSection
           applicationId={applicationId}
@@ -376,6 +383,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.personal_details}
+          showRequestChange={shouldShowRequestChange}
         />
         <EmergencyContactsSection
           applicationId={applicationId}
@@ -383,6 +391,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.emergency_contacts}
+          showRequestChange={shouldShowRequestChange}
         />
         <HealthCoverSection
           applicationId={applicationId}
@@ -390,6 +399,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.health_cover_policy}
+          showRequestChange={shouldShowRequestChange}
         />
         <LanguageCulturalSection
           applicationId={applicationId}
@@ -397,6 +407,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.language_cultural_data}
+          showRequestChange={shouldShowRequestChange}
         />
         <DisabilitySupportSection
           applicationId={applicationId}
@@ -404,6 +415,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.disability_support}
+          showRequestChange={shouldShowRequestChange}
         />
         <SchoolingSection
           applicationId={applicationId}
@@ -411,6 +423,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.schooling_history}
+          showRequestChange={shouldShowRequestChange}
         />
         <QualificationsSection
           applicationId={applicationId}
@@ -419,6 +432,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.qualifications}
+          showRequestChange={shouldShowRequestChange}
         />
         <EmploymentSection
           applicationId={applicationId}
@@ -426,6 +440,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.employment_history}
+          showRequestChange={shouldShowRequestChange}
         />
         <UsiSection
           applicationId={applicationId}
@@ -435,6 +450,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.usi}
+          showRequestChange={shouldShowRequestChange}
         />
         <AdditionalServicesSection
           applicationId={applicationId}
@@ -446,6 +462,7 @@ const ReviewForm = ({
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.survey_responses}
+          showRequestChange={shouldShowRequestChange}
         />
 
         <Section

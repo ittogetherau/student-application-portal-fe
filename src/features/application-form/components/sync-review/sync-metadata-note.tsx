@@ -1,7 +1,9 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { RefreshCw } from "lucide-react";
 
 export type SyncMetadataItem = {
   last_synced_at?: string | null;
@@ -39,13 +41,18 @@ export function SyncMetadataNote({
   syncMeta,
   showSync,
   isStaffOrAdmin,
+  applicationId,
+  showRequestChange,
 }: {
   syncMeta?: SyncMetadataItem | null;
   showSync: boolean;
   isStaffOrAdmin: boolean;
+  applicationId?: string;
+  showRequestChange?: boolean;
 }) {
   if (!showSync || !isStaffOrAdmin || !syncMeta) return null;
   const errorText = formatSyncError(syncMeta.last_error);
+  const canShowRequestChange = Boolean(showRequestChange && applicationId);
 
   const statusLabel = errorText
     ? "Error"
@@ -61,13 +68,27 @@ export function SyncMetadataNote({
   return (
     <div className="text-xs text-muted-foreground">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={statusVariant} className="text-[10px]">
-          {statusLabel}
-        </Badge>
-        {syncMeta.last_synced_at ? (
-          <span>
-            Last synced: {formatUtcToFriendlyLocal(syncMeta.last_synced_at)}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={statusVariant} className="text-[10px]">
+            {statusLabel}
+          </Badge>
+          {syncMeta.last_synced_at ? (
+            <span>
+              Last synced: {formatUtcToFriendlyLocal(syncMeta.last_synced_at)}
+            </span>
+          ) : null}
+        </div>
+
+        {canShowRequestChange ? (
+          <div className="ml-auto">
+            <CreateThreadButton
+              applicationId={applicationId!}
+              label="Request Change"
+              icon={RefreshCw}
+              showAllFields={false}
+              defaultTitle={"Changes Requested in Documents!"}
+            />
+          </div>
         ) : null}
       </div>
       {errorText ? (

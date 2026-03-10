@@ -44,6 +44,11 @@ interface ApplicationStageProps {
   current_role?: string;
 }
 
+const AGENT_STAGE_FALLBACKS = new Set<APPLICATION_STAGE>([
+  APPLICATION_STAGE.SUBMITTED,
+  APPLICATION_STAGE.IN_REVIEW,
+]);
+
 const SYNC_SECTION_LABELS: Record<string, string> = {
   enrollment_data: "Enrollment",
   personal_details: "Personal details",
@@ -59,6 +64,58 @@ const SYNC_SECTION_LABELS: Record<string, string> = {
   additional_services: "Additional services",
   survey_responses: "Survey/Declaration",
   declaration: "Declaration",
+};
+
+const getAgentStageFallbackCopy = ({
+  stageLabel,
+  isCurrentStage,
+  isFutureStage,
+}: {
+  stageLabel: string;
+  isCurrentStage: boolean;
+  isFutureStage: boolean;
+}) => {
+  if (isCurrentStage) {
+    return {
+      title: "This stage in progress",
+      description: "We are currently working through this stage.",
+    };
+  }
+
+  if (isFutureStage) {
+    return {
+      title: `${stageLabel} stage is not available yet`,
+      description: "Please complete previous stages before proceeding.",
+    };
+  }
+
+  return {
+    title: `${stageLabel} stage completed`,
+    description: "This stage has already been completed.",
+  };
+};
+
+const AgentStageFallbackMessage = ({
+  stageLabel,
+  isCurrentStage,
+  isFutureStage,
+}: {
+  stageLabel: string;
+  isCurrentStage: boolean;
+  isFutureStage: boolean;
+}) => {
+  const { title, description } = getAgentStageFallbackCopy({
+    stageLabel,
+    isCurrentStage,
+    isFutureStage,
+  });
+
+  return (
+    <div className="mb-4">
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
 };
 
 const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
@@ -288,8 +345,10 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           const isCurrent = i === currentIndex;
           const isActive = selectedOrCurrentStage === el;
           const isInteractive = isCurrent && isActive;
+          const isFutureStage = i > currentIndex;
           const stageLabel =
             getStageLabel(el, current_role) ?? formatStageLabel(el);
+          const showAgentFallback = !isStaff && AGENT_STAGE_FALLBACKS.has(el);
 
           return (
             <React.Fragment key={el}>
@@ -315,10 +374,18 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
 
               {isActive ? (
                 <StageCardShell isCurrent={isCurrent}>
-                  {renderStageAction({
-                    stage: el,
-                    isInteractive,
-                  })}
+                  {showAgentFallback ? (
+                    <AgentStageFallbackMessage
+                      stageLabel={stageLabel}
+                      isCurrentStage={isCurrent}
+                      isFutureStage={isFutureStage}
+                    />
+                  ) : (
+                    renderStageAction({
+                      stage: el,
+                      isInteractive,
+                    })
+                  )}
                 </StageCardShell>
               ) : null}
             </React.Fragment>

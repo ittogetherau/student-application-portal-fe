@@ -21,12 +21,14 @@ export function DisabilitySupportSection({
   showSync,
   isStaffOrAdmin,
   syncMeta,
+  showRequestChange,
 }: {
   applicationId: string;
   data: any;
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const queryClient = useQueryClient();
   const syncDisability = useGalaxySyncDisabilityMutation(applicationId);
@@ -39,9 +41,11 @@ export function DisabilitySupportSection({
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
   const action = (

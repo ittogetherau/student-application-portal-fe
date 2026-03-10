@@ -22,12 +22,14 @@ export function EmergencyContactsSection({
   showSync,
   isStaffOrAdmin,
   syncMeta,
+  showRequestChange,
 }: {
   applicationId: string;
   contacts: any[];
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const queryClient = useQueryClient();
   const syncEmergencyContact =
@@ -41,9 +43,11 @@ export function EmergencyContactsSection({
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
   const action = (

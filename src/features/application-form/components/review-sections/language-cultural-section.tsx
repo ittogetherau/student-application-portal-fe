@@ -30,12 +30,14 @@ export function LanguageCulturalSection({
   showSync,
   isStaffOrAdmin,
   syncMeta,
+  showRequestChange,
 }: {
   applicationId: string;
   data: any;
   showSync: boolean;
   isStaffOrAdmin: boolean;
   syncMeta?: SyncMetadataItem | null;
+  showRequestChange?: boolean;
 }) {
   const queryClient = useQueryClient();
   const syncLanguage = useGalaxySyncLanguageMutation(applicationId);
@@ -48,9 +50,11 @@ export function LanguageCulturalSection({
   };
   const syncNote = (
     <SyncMetadataNote
+      applicationId={applicationId}
       syncMeta={syncMeta}
       showSync={showSync}
       isStaffOrAdmin={isStaffOrAdmin}
+      showRequestChange={showRequestChange}
     />
   );
   const action = (
