@@ -9,6 +9,19 @@ const requiredYmdDateSchema = (requiredMessage: string) =>
     .min(1, requiredMessage)
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format");
 
+const coreEnrollmentSchema = z
+  .object({
+    course: z.number().int().min(1),
+    course_name: z.string().min(1),
+    intake: z.number().int().min(1),
+    intake_name: z.string().min(1),
+    campus: z.number().int().min(1),
+    campus_name: z.string().min(1),
+    major_id: z.string().optional(),
+    major: z.string().optional(),
+  })
+  .strict();
+
 const agentEnrollmentSchema = z
   .object({
     course: z.number().int().min(1),
@@ -54,7 +67,7 @@ const staffEnrollmentSchema = z.object({
   calculated_no_of_weeks: z.number().int().min(0).optional(),
   course_end_date: requiredYmdDateSchema("course_end_date is required"),
   offer_issued_date: requiredYmdDateSchema("offer_issued_date is required"),
-  study_reason: z.string().min(1),
+  study_reason: z.string().min(1).optional(),
   course_actual_fee: z.number().min(0),
   course_upfront_fee: z.number().min(0),
   enrollment_fee: z.number().min(0),
@@ -69,6 +82,7 @@ const staffEnrollmentSchema = z.object({
 });
 
 export const enrollmentSchema = z.union([
+  coreEnrollmentSchema,
   staffEnrollmentSchema.strict(),
   agentEnrollmentSchema,
 ]);

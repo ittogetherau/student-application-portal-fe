@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import {
   addWeeksToYmdDateString,
-  normalizeDateStringToYmd,
   parseWeeksFromDurationText,
 } from "@/features/application-form/constants/enrollment-date-utils";
 import {
@@ -68,17 +67,6 @@ const toId = (value: unknown): number | undefined => {
   }
   return undefined;
 };
-
-const toNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-};
-
-const todayYmd = () => new Date().toISOString().slice(0, 10);
 
 const MIN_INTAKE_START_YEAR = new Date().getFullYear();
 
@@ -589,28 +577,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       }
 
       const ensuredApplicationId = await ensureApplicationId();
-      const existingEnrollment =
-        persistedEnrollmentData &&
-        typeof persistedEnrollmentData === "object" &&
-        !Array.isArray(persistedEnrollmentData)
-          ? (persistedEnrollmentData as Record<string, unknown>)
-          : null;
-      const intakeDurationWeeks =
-        typeof selectedIntake?.intake_duration === "number" &&
-        selectedIntake.intake_duration > 0
-          ? selectedIntake.intake_duration
-          : toNumber(selectedIntake?.intake_duration);
-      const baseWeeks =
-        intakeDurationWeeks && intakeDurationWeeks > 0
-          ? Math.trunc(intakeDurationWeeks)
-          : (parseWeeksFromDurationText(selectedCourse?.duration_text) ?? 1);
-      const preferredStartDate =
-        normalizeDateStringToYmd(selectedIntake?.intake_start) ?? "";
-      const courseEndDate =
-        normalizeDateStringToYmd(selectedIntake?.intake_end) ??
-        (preferredStartDate
-          ? (addWeeksToYmdDateString(preferredStartDate, baseWeeks) ?? "")
-          : "");
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
 
@@ -624,58 +590,6 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           selectedCourse?.campuses?.find(
             (campus) => toId(campus.id) === toId(values.campus),
           )?.name ?? "",
-        advanced_standing_credit: "no",
-        preferred_start_date: preferredStartDate,
-        no_of_weeks: baseWeeks,
-        calculated_no_of_weeks: baseWeeks,
-        course_end_date: courseEndDate,
-        offer_issued_date:
-          typeof existingEnrollment?.offer_issued_date === "string" &&
-          existingEnrollment.offer_issued_date
-            ? existingEnrollment.offer_issued_date
-            : todayYmd(),
-        study_reason:
-          typeof existingEnrollment?.study_reason === "string"
-            ? existingEnrollment.study_reason
-            : "",
-        course_actual_fee:
-          typeof existingEnrollment?.course_actual_fee === "number"
-            ? existingEnrollment.course_actual_fee
-            : 0,
-        course_upfront_fee:
-          typeof existingEnrollment?.course_upfront_fee === "number"
-            ? existingEnrollment.course_upfront_fee
-            : 0,
-        enrollment_fee:
-          typeof existingEnrollment?.enrollment_fee === "number"
-            ? existingEnrollment.enrollment_fee
-            : 0,
-        material_fee:
-          typeof existingEnrollment?.material_fee === "number"
-            ? existingEnrollment.material_fee
-            : 0,
-        inclue_material_fee_in_initial_payment:
-          existingEnrollment?.inclue_material_fee_in_initial_payment === "yes"
-            ? "yes"
-            : "no",
-        receiving_scholarship:
-          existingEnrollment?.receiving_scholarship === "yes" ? "yes" : "no",
-        work_integrated_learning:
-          existingEnrollment?.work_integrated_learning === "yes" ||
-          existingEnrollment?.work_integrated_learning === "na"
-            ? (existingEnrollment.work_integrated_learning as "yes" | "na")
-            : "no",
-        third_party_provider:
-          existingEnrollment?.third_party_provider === "yes" ||
-          existingEnrollment?.third_party_provider === "na"
-            ? (existingEnrollment.third_party_provider as "yes" | "na")
-            : "no",
-        class_type:
-          existingEnrollment?.class_type === "classroom" ||
-          existingEnrollment?.class_type === "hybrid" ||
-          existingEnrollment?.class_type === "online"
-            ? existingEnrollment.class_type
-            : "classroom",
         ...(isBitCourse && majorMatch
           ? {
               major_id: majorMatch.secure_id,
