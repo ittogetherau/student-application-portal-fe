@@ -84,9 +84,18 @@ async function svgToPngDataUrl(svgText: string): Promise<string> {
   }
 }
 
-async function loadLogoPngDataUrl(): Promise<string | null> {
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const reader = new FileReader();
+  return await new Promise<string>((resolve, reject) => {
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadImageDataUrl(path: string): Promise<string | null> {
   try {
-    const response = await fetch("/images/logo.svg", { cache: "force-cache" });
+    const response = await fetch(path, { cache: "force-cache" });
     if (!response.ok) return null;
 
     const blob = await response.blob();
@@ -99,12 +108,7 @@ async function loadLogoPngDataUrl(): Promise<string | null> {
       return await svgToPngDataUrl(svgText);
     }
 
-    const reader = new FileReader();
-    return await new Promise<string>((resolve, reject) => {
-      reader.onerror = () => reject(new Error("Failed to read logo"));
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.readAsDataURL(blob);
-    });
+    return await blobToDataUrl(blob);
   } catch {
     return null;
   }
@@ -117,81 +121,20 @@ const LIGHT_FILL = "#FFF7EB";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 52,
-    paddingBottom: 54,
+    paddingTop: 95,
+    paddingBottom: 88,
     paddingHorizontal: 32,
     fontSize: 8,
     color: "#0f172a",
     lineHeight: 1.35,
     fontFamily: "Helvetica",
   },
-  headerContainer: {
+  pageBackground: {
     position: "absolute",
-    left: 32,
-    right: 32,
-    top: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  logo: {
-    width: 170,
-    height: 34,
-    objectFit: "contain",
-  },
-  footerContainer: {
-    position: "absolute",
-    left: 32,
-    right: 32,
-    bottom: 12,
-    fontSize: 7,
-    color: "#475569",
-  },
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  footerLeft: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  footerPageText: {
-    fontSize: 7,
-    color: "#475569",
-    marginBottom: 4,
-  },
-  footerContactList: {
-    gap: 2,
-  },
-  footerContactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  footerBadge: {
-    width: 10,
-    height: 10,
-    borderWidth: 1,
-    borderColor: BORDER_COLOR,
-    borderRadius: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: LIGHT_FILL,
-  },
-  footerBadgeText: {
-    fontSize: 6,
-    lineHeight: 1,
-    color: "#0f172a",
-    fontWeight: "bold",
-  },
-  footerContactText: {
-    fontSize: 7,
-    color: "#475569",
-  },
-  footerRight: {
-    width: 110,
-    textAlign: "right",
+    top: 0,
+    left: 0,
+    width: 595.28,
+    height: 841.89,
   },
   title: {
     fontSize: 9,
@@ -373,45 +316,7 @@ export async function generateGsAssessmentPdfBlob({
 }: {
   data: StaffAssessmentResponse;
 }): Promise<Blob> {
-  const logoDataUrl = await loadLogoPngDataUrl();
-
-  const renderFooter = () => (
-    <View style={styles.footerContainer} fixed>
-      <View style={styles.footerRow}>
-        <View style={styles.footerLeft}>
-          <Text
-            style={styles.footerPageText}
-            render={({ pageNumber }) =>
-              `Page | ${pageNumber} Churchill Institute of Higher Education Staff GS Assessment`
-            }
-          />
-          <View style={styles.footerContactList}>
-            <View style={styles.footerContactRow}>
-              <View style={styles.footerBadge}>
-                <Text style={styles.footerBadgeText}>P</Text>
-              </View>
-              <Text style={styles.footerContactText}>+61 (0) 2 88562997</Text>
-            </View>
-            <View style={styles.footerContactRow}>
-              <View style={styles.footerBadge}>
-                <Text style={styles.footerBadgeText}>W</Text>
-              </View>
-              <Text style={styles.footerContactText}>www.churchill.edu.au</Text>
-            </View>
-            <View style={styles.footerContactRow}>
-              <View style={styles.footerBadge}>
-                <Text style={styles.footerBadgeText}>A</Text>
-              </View>
-              <Text style={styles.footerContactText}>
-                Level 1, 16-18 Wentworth Street Parramatta NSW 2150 Australia
-              </Text>
-            </View>
-          </View>
-        </View>
-        <Text style={styles.footerRight}>February 2026</Text>
-      </View>
-    </View>
-  );
+  const letterheadDataUrl = await loadImageDataUrl("/images/letterhead.png");
 
   const CheckboxMark = ({ checked }: { checked: boolean }) => (
     <View style={styles.checkboxBox}>
@@ -799,12 +704,9 @@ export async function generateGsAssessmentPdfBlob({
   const doc = (
     <Document>
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.headerContainer} fixed>
-          {logoDataUrl ? (
-            <PdfImage style={styles.logo} src={logoDataUrl} />
-          ) : null}
-        </View>
-        {renderFooter()}
+        {letterheadDataUrl ? (
+          <PdfImage fixed style={styles.pageBackground} src={letterheadDataUrl} />
+        ) : null}
 
         <Text style={styles.title}>Genuine Student (GS) Assessment</Text>
 

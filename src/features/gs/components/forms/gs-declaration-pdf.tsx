@@ -190,9 +190,18 @@ export async function generateGsDeclarationPdfBlob({
     }
   };
 
-  const logoDataUrl = await (async () => {
+  const blobToDataUrl = async (blob: Blob) => {
+    const reader = new FileReader();
+    return await new Promise<string>((resolve, reject) => {
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const loadImageDataUrl = async (path: string) => {
     try {
-      const response = await fetch("/images/logo.svg", {
+      const response = await fetch(path, {
         cache: "force-cache",
       });
       if (!response.ok) return null;
@@ -209,16 +218,13 @@ export async function generateGsDeclarationPdfBlob({
         return await svgToPngDataUrl(svgText);
       }
 
-      const reader = new FileReader();
-      return await new Promise<string>((resolve, reject) => {
-        reader.onerror = () => reject(new Error("Failed to read logo"));
-        reader.onload = () => resolve(String(reader.result ?? ""));
-        reader.readAsDataURL(blob);
-      });
+      return await blobToDataUrl(blob);
     } catch {
       return null;
     }
-  })();
+  };
+
+  const letterheadDataUrl = await loadImageDataUrl("/images/letterhead.png");
 
   const applicantSignatureDataUrl = data.applicantSignature
     ? await svgToPngDataUrl(String(data.applicantSignature))
@@ -227,75 +233,25 @@ export async function generateGsDeclarationPdfBlob({
     ? await svgToPngDataUrl(String(data.agentSignature))
     : null;
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ] as const;
-  const now = new Date();
-  const footerMonthYear = `${monthNames[now.getMonth()] ?? "January"} ${now.getFullYear()}`;
+  const A4_PAGE_WIDTH = 595.28;
+  const A4_PAGE_HEIGHT = 841.89;
 
   const styles = StyleSheet.create({
     page: {
-      paddingTop: 58,
-      paddingBottom: 70,
+      paddingTop: 95,
+      paddingBottom: 88,
       paddingHorizontal: 32,
       fontSize: 8,
       color: "#0f172a",
       lineHeight: 1.35,
       fontFamily: "Helvetica",
     },
-    headerContainer: {
+    pageBackground: {
       position: "absolute",
-      left: 32,
-      right: 32,
-      top: 18,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-start",
-    },
-    logoRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      marginBottom: 6,
-    },
-    logo: {
-      width: 160,
-      height: 32,
-      objectFit: "contain",
-    },
-    header: {
-      fontSize: 8,
-      color: "#475569",
-      textAlign: "right",
-      marginBottom: 6,
-    },
-    footerLeftText: {
-      position: "absolute",
-      left: 32,
-      right: 215,
-      bottom: 12,
-      fontSize: 7,
-      color: "#475569",
-      textAlign: "left",
-    },
-    footerRightText: {
-      position: "absolute",
-      right: 32,
-      bottom: 12,
-      fontSize: 7,
-      color: "#475569",
-      textAlign: "right",
+      top: 0,
+      left: 0,
+      width: A4_PAGE_WIDTH,
+      height: A4_PAGE_HEIGHT,
     },
     link: {
       color: PRIMARY_ORANGE,
@@ -558,30 +514,22 @@ export async function generateGsDeclarationPdfBlob({
       borderBottomColor: "#0f172a",
     },
     signatureImage: {
-      width: 160,
-      height: 56,
+      width: 180,
+      height: 42,
       objectFit: "contain",
-      marginTop: 4,
-      marginBottom: 4,
     },
     agentSignatureImage: {
-      width: 130,
-      height: 44,
+      width: 150,
+      height: 36,
       objectFit: "contain",
-      marginTop: 3,
-      marginBottom: 3,
     },
     signatureBox: {
-      borderWidth: 1,
-      borderColor: BORDER_COLOR,
-      paddingVertical: 4,
-      paddingHorizontal: 4,
-      minHeight: 50,
-      borderRadius: 2,
+      height: 42,
       justifyContent: "center",
+      alignItems: "center",
     },
     signaturePlaceholder: {
-      height: 56,
+      height: 42,
     },
     documentLine: {
       fontSize: 8,
@@ -645,18 +593,6 @@ export async function generateGsDeclarationPdfBlob({
     });
   };
 
-  const renderFooter = () => (
-    <>
-      <Text style={styles.footerLeftText} fixed wrap={false}>
-        Churchill Institute of Higher Education Genuine Student (GS) Screening
-        Form
-      </Text>
-      <Text style={styles.footerRightText} fixed wrap={false}>
-        {`CRICOS: 04082E   ${footerMonthYear}`}
-      </Text>
-    </>
-  );
-
   type PdfStyle = (typeof styles)[keyof typeof styles];
 
   const FieldGridItem = ({
@@ -708,7 +644,11 @@ export async function generateGsDeclarationPdfBlob({
       <View style={styles.signatureBox}>
         {signatureDataUrl ? (
           <PdfImage
-            style={imageStyle ? [styles.signatureImage, imageStyle] : styles.signatureImage}
+            style={
+              imageStyle
+                ? [styles.signatureImage, imageStyle]
+                : styles.signatureImage
+            }
             src={signatureDataUrl}
           />
         ) : (
@@ -803,11 +743,13 @@ export async function generateGsDeclarationPdfBlob({
   const doc = (
     <Document>
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.headerContainer} fixed>
-          {logoDataUrl ? (
-            <PdfImage style={styles.logo} src={logoDataUrl} />
-          ) : null}
-        </View>
+        {letterheadDataUrl ? (
+          <PdfImage
+            fixed
+            style={styles.pageBackground}
+            src={letterheadDataUrl}
+          />
+        ) : null}
         <Text style={styles.title}>GENUINE STUDENT (GS) SCREENING FORM</Text>
         <Text style={styles.subtitle}>
           Genuine Student (GS) Form - Student to Complete
@@ -1474,54 +1416,52 @@ export async function generateGsDeclarationPdfBlob({
         <Text style={styles.sectionTitle}>GS CHECKLIST</Text>
         <View style={styles.checklistTable}>
           {(
-            (
-              [
-                {
-                  heading: "A) APPLICATION",
-                  items: [
-                    "Have you explained the academic entry requirements of the course to the applicant (refer to the Admission Policy / Guidelines?)",
-                    "Does the applicant meet the English Language Proficiency (ELP) requirements? (Refer to the Admissions Policy / Guidelines)",
-                    "Has the applicant been advised of the study details, including content, duration, tuition fees, campus location, and career opportunities on completion of the program(s)? Refer the course information on Churchill’s website",
-                    "If the applicant is seeking advanced standing (credit) have the relevant course outlines been provided? Refer to the advanced standing information on Churchill’s website",
-                    "Are you satisfied that the course the applicant has selected is linked to their previous educational background and/or future career aspirations? Has evidence been sighted to support this?",
-                    "Are there any gaps in the applicant’s study or employment history? If yes, provide details with supporting documentation.",
-                    "Has the applicant ever been excluded from another institution? If yes, provide details with supporting documentation.",
-                  ],
-                },
-                {
-                  heading: "B) FINANCIAL REQUIREMENTS",
-                  items: [
-                    "Have you verified that the applicant is able to meet the full financial requirements of the program/package programs applied, including the associated living and travel expenses as specified by DHA?",
-                    "Have you explained to the applicant the financial evidence they must be able to demonstrate to secure a student visa to study in Australia?",
-                    "Has the applicant been advised regarding tuition fee payments and refunds based on Churchill’s Student Fees Policy?",
-                    "Have the scholarship terms & conditions been explained to the applicant, if applicable?",
-                  ],
-                },
-                {
-                  heading: "C) RELATIONS / RELATIVES OF THE APPLICANT",
-                  note: "(If yes to any questions below, the applicant will be required to provide documentary evidence and information in their GS assessment.)",
-                  items: [
-                    "Is the applicant married or in de-facto relationship?",
-                    "Does the applicant have children?",
-                    "Does the applicant intend to travel to Australia with their spouse or other family members?",
-                    "Does the applicant have any relatives living in Australia?",
-                  ],
-                },
-                {
-                  heading: "D) GENUINE STUDENT REQUIREMENTS",
-                  items: [
-                    "Have you explained to the applicant the Genuine Student requirements as defined by THE DHA?",
-                    "Is the applicant aware that they may be interviewed by Australian immigration authorities to determine their status as a Genuine Student?",
-                    "Does the applicant (or accompanying family members) have any visa refusals for Australia or any other country? If yes, attach all visa decision records.",
-                    "Are you satisfied that the applicant is a Genuine Student and can meet the Genuine Student requirements?",
-                  ],
-                },
-              ] satisfies Array<{
-                heading: string;
-                note?: string;
-                items: string[];
-              }>
-            )
+            [
+              {
+                heading: "A) APPLICATION",
+                items: [
+                  "Have you explained the academic entry requirements of the course to the applicant (refer to the Admission Policy / Guidelines?)",
+                  "Does the applicant meet the English Language Proficiency (ELP) requirements? (Refer to the Admissions Policy / Guidelines)",
+                  "Has the applicant been advised of the study details, including content, duration, tuition fees, campus location, and career opportunities on completion of the program(s)? Refer the course information on Churchill’s website",
+                  "If the applicant is seeking advanced standing (credit) have the relevant course outlines been provided? Refer to the advanced standing information on Churchill’s website",
+                  "Are you satisfied that the course the applicant has selected is linked to their previous educational background and/or future career aspirations? Has evidence been sighted to support this?",
+                  "Are there any gaps in the applicant’s study or employment history? If yes, provide details with supporting documentation.",
+                  "Has the applicant ever been excluded from another institution? If yes, provide details with supporting documentation.",
+                ],
+              },
+              {
+                heading: "B) FINANCIAL REQUIREMENTS",
+                items: [
+                  "Have you verified that the applicant is able to meet the full financial requirements of the program/package programs applied, including the associated living and travel expenses as specified by DHA?",
+                  "Have you explained to the applicant the financial evidence they must be able to demonstrate to secure a student visa to study in Australia?",
+                  "Has the applicant been advised regarding tuition fee payments and refunds based on Churchill’s Student Fees Policy?",
+                  "Have the scholarship terms & conditions been explained to the applicant, if applicable?",
+                ],
+              },
+              {
+                heading: "C) RELATIONS / RELATIVES OF THE APPLICANT",
+                note: "(If yes to any questions below, the applicant will be required to provide documentary evidence and information in their GS assessment.)",
+                items: [
+                  "Is the applicant married or in de-facto relationship?",
+                  "Does the applicant have children?",
+                  "Does the applicant intend to travel to Australia with their spouse or other family members?",
+                  "Does the applicant have any relatives living in Australia?",
+                ],
+              },
+              {
+                heading: "D) GENUINE STUDENT REQUIREMENTS",
+                items: [
+                  "Have you explained to the applicant the Genuine Student requirements as defined by THE DHA?",
+                  "Is the applicant aware that they may be interviewed by Australian immigration authorities to determine their status as a Genuine Student?",
+                  "Does the applicant (or accompanying family members) have any visa refusals for Australia or any other country? If yes, attach all visa decision records.",
+                  "Are you satisfied that the applicant is a Genuine Student and can meet the Genuine Student requirements?",
+                ],
+              },
+            ] satisfies Array<{
+              heading: string;
+              note?: string;
+              items: string[];
+            }>
           ).flatMap((section, sectionIdx, sections) => {
             const lastSectionIdx = sections.length - 1;
 
@@ -1563,15 +1503,14 @@ export async function generateGsDeclarationPdfBlob({
 
               const checklistTextStyles = [
                 styles.checklistTextCell,
-                ...(row.kind === "heading" ? [styles.checklistHeadingText] : []),
+                ...(row.kind === "heading"
+                  ? [styles.checklistHeadingText]
+                  : []),
                 ...(row.kind === "note" ? [styles.checklistNoteText] : []),
               ];
 
               return (
-                <View
-                  key={row.key}
-                  style={checklistRowStyles}
-                >
+                <View key={row.key} style={checklistRowStyles}>
                   <Text style={styles.checklistCheckboxCell}>
                     {row.kind === "item" ? "☐" : " "}
                   </Text>
@@ -1585,7 +1524,6 @@ export async function generateGsDeclarationPdfBlob({
             });
           })}
         </View>
-        {renderFooter()}
       </Page>
     </Document>
   );
