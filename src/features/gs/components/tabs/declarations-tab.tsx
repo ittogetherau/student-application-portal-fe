@@ -183,6 +183,11 @@ export default function GSDeclarationsTab({
   )
     ? (studentDeclarationData?.data as Partial<GSScreeningFormValues>)
     : undefined;
+  const studentUploadedDocuments = Array.isArray(
+    studentDeclarationQuery.data?.data?.uploaded_documents,
+  )
+    ? studentDeclarationQuery.data?.data?.uploaded_documents
+    : [];
 
   const shouldPrefillFromApplication =
     Boolean(applicationId) &&
@@ -439,6 +444,7 @@ export default function GSDeclarationsTab({
           <div className="flex justify-end">
             <GSDeclarationPdfDownloadButton
               data={declarationPdfData}
+              uploadedDocuments={studentUploadedDocuments}
               applicationId={applicationId}
               variant="secondary"
               className="gap-2"
@@ -497,12 +503,6 @@ export default function GSDeclarationsTab({
     return { ...studentData, ...pickAgentDeclarationFields(agentData) };
   };
   const initialData = getInitialData();
-  const studentUploadedDocuments = Array.isArray(
-    studentDeclarationQuery.data?.data?.uploaded_documents,
-  )
-    ? studentDeclarationQuery.data?.data?.uploaded_documents
-    : [];
-
   const breadcrumbLabel =
     declarationType === "student"
       ? isReadOnly

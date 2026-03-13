@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import type { GSScreeningFormValues } from "../../utils/gs-screening.validation";
 import {
   generateGsDeclarationPdfBlob,
+  type GsDeclarationUploadedDocument,
   getGsDeclarationPdfFilename,
 } from "./gs-declaration-pdf";
 
@@ -17,11 +18,13 @@ type ButtonLikeProps = ComponentProps<"button"> &
 
 export function GSDeclarationPdfDownloadButton({
   data,
+  uploadedDocuments,
   applicationId,
   buttonText = "Download PDF",
   ...buttonProps
 }: {
   data: GSScreeningFormValues | null | undefined;
+  uploadedDocuments?: GsDeclarationUploadedDocument[];
   applicationId?: string;
   buttonText?: string;
 } & Omit<ButtonLikeProps, "type" | "onClick" | "disabled" | "children">) {
@@ -36,7 +39,10 @@ export function GSDeclarationPdfDownloadButton({
     try {
       setIsDownloading(true);
 
-      const blob = await generateGsDeclarationPdfBlob({ data });
+      const blob = await generateGsDeclarationPdfBlob({
+        data,
+        uploadedDocuments,
+      });
 
       const url = URL.createObjectURL(blob);
       const anchor = window.document.createElement("a");
@@ -52,7 +58,7 @@ export function GSDeclarationPdfDownloadButton({
     } finally {
       setIsDownloading(false);
     }
-  }, [applicationId, data]);
+  }, [applicationId, data, uploadedDocuments]);
 
   return (
     <Button

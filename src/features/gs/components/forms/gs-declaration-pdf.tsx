@@ -3,6 +3,13 @@
 import type { ReactNode } from "react";
 import type { GSScreeningFormValues } from "../../utils/gs-screening.validation";
 
+export type GsDeclarationUploadedDocument = {
+  file_name?: string;
+  view_url?: string;
+  download_url?: string;
+  [key: string]: unknown;
+};
+
 function normalizeText(text: string): string {
   return (
     text
@@ -57,8 +64,10 @@ export function getGsDeclarationPdfFilename(applicationId?: string) {
 
 export async function generateGsDeclarationPdfBlob({
   data,
+  uploadedDocuments = [],
 }: {
   data: GSScreeningFormValues;
+  uploadedDocuments?: GsDeclarationUploadedDocument[];
 }): Promise<Blob> {
   const {
     Document,
@@ -225,6 +234,16 @@ export async function generateGsDeclarationPdfBlob({
   };
 
   const letterheadDataUrl = await loadImageDataUrl("/images/letterhead.png");
+
+  const uploadedDocumentUrlByFileName = new Map(
+    uploadedDocuments.flatMap((document) => {
+      const fileName = getString(document.file_name).trim().toLowerCase();
+      const href = getString(document.view_url ?? document.download_url).trim();
+
+      if (!fileName || !href) return [];
+      return [[fileName, href] as const];
+    }),
+  );
 
   const applicantSignatureDataUrl = data.applicantSignature
     ? await svgToPngDataUrl(String(data.applicantSignature))
@@ -673,6 +692,33 @@ export async function generateGsDeclarationPdfBlob({
     </View>
   );
 
+  const DocumentReferenceBlock = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: unknown;
+  }) => {
+    const answer = getString(value).trim();
+    const href =
+      uploadedDocumentUrlByFileName.get(answer.toLowerCase()) ?? undefined;
+
+    return (
+      <View style={styles.questionBlock}>
+        <Text style={styles.questionLabel}>{normalizeText(label)}</Text>
+        <View style={styles.answerBox}>
+          {href ? (
+            <Link src={href} style={styles.link}>
+              {answer}
+            </Link>
+          ) : (
+            <Text>{answer || " "}</Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const CheckboxRow = ({ label, value }: { label: string; value?: string }) => {
     const normalized = formatAnswer(value ?? "")
       .trim()
@@ -920,9 +966,9 @@ export async function generateGsDeclarationPdfBlob({
             value={formatAnswer(data.currentlyInAustralia)}
           />
           {isYesAnswer(data.currentlyInAustralia) ? (
-            <QuestionBlock
+            <DocumentReferenceBlock
               label="Current visa / bridging visa details"
-              answer={getString(data.currentVisaDocument)}
+              value={data.currentVisaDocument}
             />
           ) : null}
           <CheckboxRow
@@ -943,9 +989,9 @@ export async function generateGsDeclarationPdfBlob({
                 label="Explain the reason for your previous visa refusal, how your circumstances have changed since then, and why you believe your new visa application will be successful."
                 answer={getString(data.visaRefusalExplanation)}
               />
-              <QuestionBlock
+              <DocumentReferenceBlock
                 label="Visa refusal / cancellation notice (document reference)"
-                answer={getString(data.visaRefusalDocument)}
+                value={data.visaRefusalDocument}
               />
             </>
           ) : null}
@@ -954,9 +1000,9 @@ export async function generateGsDeclarationPdfBlob({
             value={formatAnswer(data.familyVisaRefusedOrCancelled)}
           />
           {isYesAnswer(data.familyVisaRefusedOrCancelled) ? (
-            <QuestionBlock
+            <DocumentReferenceBlock
               label="Family visa refusal / cancellation notice (document reference)"
-              answer={getString(data.familyVisaRefusalDocument)}
+              value={data.familyVisaRefusalDocument}
             />
           ) : null}
         </View>
@@ -1005,9 +1051,9 @@ export async function generateGsDeclarationPdfBlob({
           value={formatAnswer(data.isMarried)}
         />
         {isYesAnswer(data.isMarried) ? (
-          <QuestionBlock
+          <DocumentReferenceBlock
             label="Marriage certificate (document reference)"
-            answer={getString(data.marriageCertificate)}
+            value={data.marriageCertificate}
           />
         ) : null}
         <CheckboxRow
@@ -1015,9 +1061,9 @@ export async function generateGsDeclarationPdfBlob({
           value={formatAnswer(data.hasChildren)}
         />
         {isYesAnswer(data.hasChildren) ? (
-          <QuestionBlock
+          <DocumentReferenceBlock
             label="Children birth certificates (document reference)"
-            answer={getString(data.childrenBirthCertificates)}
+            value={data.childrenBirthCertificates}
           />
         ) : null}
         <CheckboxRow
