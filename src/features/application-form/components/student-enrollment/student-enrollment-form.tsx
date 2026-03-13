@@ -23,7 +23,10 @@ import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import { STUDY_REASON_OPTIONS } from "../../constants/enrollment-constants";
-import { normalizeDateStringToYmd } from "../../constants/enrollment-date-utils";
+import {
+  normalizeDateStringToYmd,
+  parseWeeksFromDurationText,
+} from "../../constants/enrollment-date-utils";
 import {
   useCalculateCourseEndDateMutation,
   useSaveEnrollmentMutation,
@@ -138,9 +141,9 @@ const StudentEnrollmentForm = ({
     control: methods.control,
     name: "preferred_start_date",
   });
-  const calculatedWeeksValue = useWatch({
+  const courseWeeksValue = useWatch({
     control: methods.control,
-    name: "calculated_no_of_weeks",
+    name: "no_of_weeks",
   });
   const courseEndDateValue = useWatch({
     control: methods.control,
@@ -206,11 +209,27 @@ const StudentEnrollmentForm = ({
   const resolvedCourseStartDate = normalizeDateStringToYmd(
     enrollmentCore?.intake_start || enrollmentCore?.class_start_date,
   );
+  const resolvedCourseWeeks = useMemo(() => {
+    const intakeWeeks = toNumber(enrollmentCore?.intake_duration);
+    if (intakeWeeks !== null && intakeWeeks > 0) {
+      return Math.trunc(intakeWeeks);
+    }
+
+    const durationWeeks = parseWeeksFromDurationText(
+      enrollmentCore?.course_duration_text,
+    );
+    if (durationWeeks !== null && durationWeeks > 0) {
+      return durationWeeks;
+    }
+
+    return null;
+  }, [enrollmentCore?.course_duration_text, enrollmentCore?.intake_duration]);
 
   const canCalculateCourseEndDate =
     !!enrollmentCore &&
     !!enrollmentCore.course_code &&
     !!resolvedCourseStartDate &&
+    !!resolvedCourseWeeks &&
     (advancedStandingValue !== "Yes" ||
       (numberOfSubjects !== null && numberOfSubjects >= 1));
 
@@ -243,7 +262,7 @@ const StudentEnrollmentForm = ({
   const hasCalculatedSchedule =
     !!normalizeDateStringToYmd(preferredStartDateValue) &&
     !!normalizeDateStringToYmd(courseEndDateValue) &&
-    toNumber(calculatedWeeksValue) !== null;
+    (toNumber(courseWeeksValue) ?? 0) >= 1;
 
   useEffect(() => {
     if (
@@ -316,19 +335,22 @@ const StudentEnrollmentForm = ({
   }, [initialData, methods]);
 
   useEffect(() => {
+    methods.setValue("preferred_start_date", resolvedCourseStartDate ?? "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    methods.setValue("no_of_weeks", resolvedCourseWeeks ?? 0, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    methods.setValue("calculated_no_of_weeks", resolvedCourseWeeks ?? 0, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [methods, resolvedCourseStartDate, resolvedCourseWeeks]);
+
+  useEffect(() => {
     const resetCalculatedFields = () => {
-      methods.setValue("preferred_start_date", "", {
-        shouldDirty: false,
-        shouldValidate: false,
-      });
-      methods.setValue("no_of_weeks", 0, {
-        shouldDirty: false,
-        shouldValidate: false,
-      });
-      methods.setValue("calculated_no_of_weeks", 0, {
-        shouldDirty: false,
-        shouldValidate: false,
-      });
       methods.setValue("course_end_date", "", {
         shouldDirty: false,
         shouldValidate: false,
@@ -360,22 +382,9 @@ const StudentEnrollmentForm = ({
         });
         if (calculationRequestIdRef.current !== requestId) return;
 
-        const preferredStartDate = resolvedCourseStartDate ?? "";
         const courseEndDate =
           normalizeDateStringToYmd(schedule?.course_end_date) ?? "";
 
-        methods.setValue("preferred_start_date", preferredStartDate, {
-          shouldDirty: false,
-          shouldValidate: false,
-        });
-        methods.setValue("no_of_weeks", 0, {
-          shouldDirty: false,
-          shouldValidate: false,
-        });
-        methods.setValue("calculated_no_of_weeks", 0, {
-          shouldDirty: false,
-          shouldValidate: false,
-        });
         methods.setValue("course_end_date", courseEndDate, {
           shouldDirty: false,
           shouldValidate: false,
@@ -438,7 +447,6 @@ const StudentEnrollmentForm = ({
       preferred_start_date: values.preferred_start_date,
       advanced_standing_credit: toYesNoApi(values.advanced_standing_credit),
       no_of_weeks: Number(values.no_of_weeks),
-      calculated_no_of_weeks: Number(values.calculated_no_of_weeks),
       course_end_date: values.course_end_date,
       offer_issued_date: values.offer_issued_date,
       study_reason: values.study_reason,
