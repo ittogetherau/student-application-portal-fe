@@ -933,6 +933,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               selectedCourse && selectedIntake && selectedCampus
                 ? {
                     course: Number(selectedCourse.id),
+                    course_code: selectedCourse.course_code,
                     course_name: selectedCourse.course_name,
                     ...(isBitCourse
                       ? {

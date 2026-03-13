@@ -2,6 +2,8 @@
 
 import applicationStepsService from "@/service/application-steps.service";
 import courseService, {
+  type CalculateCourseEndDateParams,
+  type CalculateCourseEndDateResult,
   type CourseIntakeListParams,
   Course,
   type CourseDetails,
@@ -82,11 +84,32 @@ export const useCourseDetailsQuery = (
   });
 };
 
+export const useCalculateCourseEndDateMutation = () => {
+  return useMutation<
+    CalculateCourseEndDateResult | null,
+    Error,
+    { courseCode: string; params?: CalculateCourseEndDateParams }
+  >({
+    mutationKey: ["course-calculate-end-date"],
+    mutationFn: async ({ courseCode, params }) => {
+      if (!courseCode) throw new Error("Course code is required");
+      const response = await courseService.calculateCourseEndDate(
+        courseCode,
+        params,
+      );
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response.data ?? null;
+    },
+  });
+};
+
 export const useSaveEnrollmentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
-    any,
+    unknown,
     Error,
     { applicationId: string; values: EnrollmentValues }
   >({

@@ -193,6 +193,18 @@ export type CourseIntakeListParams = {
   todate?: string | null;
 };
 
+export type CalculateCourseEndDateParams = {
+  advanced_standing_credit?: "yes" | "no" | null;
+  intake?: string | number | null;
+  number_of_subjects?: number | null;
+  start_date?: string | null;
+  weeks?: number | null;
+};
+
+export type CalculateCourseEndDateResult = {
+  course_end_date: string;
+};
+
 type IntakeListApiResponse =
   | Intake[]
   | Intake
@@ -203,6 +215,14 @@ type IntakeListApiResponse =
       message?: string;
       success?: number | boolean | string;
     };
+
+type CalculateCourseEndDateApiResponse = {
+  data?: CalculateCourseEndDateResult | null;
+  code?: number | string;
+  status?: string;
+  message?: string;
+  success?: number | boolean | string;
+};
 
 class CourseService extends ApiService {
   private readonly coursesUrl =
@@ -220,7 +240,9 @@ class CourseService extends ApiService {
     if (!response) return null;
     if (typeof response === "object" && "data" in response) {
       const payload = response.data;
-      return payload && typeof payload === "object" ? (payload as CourseDetails) : null;
+      return payload && typeof payload === "object"
+        ? (payload as CourseDetails)
+        : null;
     }
     return response as CourseDetails;
   };
@@ -339,6 +361,52 @@ class CourseService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to fetch course", null);
+    }
+  };
+
+  calculateCourseEndDate = async (
+    courseCode: string,
+    params?: CalculateCourseEndDateParams,
+  ): Promise<ServiceResponse<CalculateCourseEndDateResult>> => {
+    if (!courseCode) throw new Error("Course code is required");
+
+    try {
+      const query = new URLSearchParams();
+
+      if (params?.advanced_standing_credit) {
+        query.set("advanced_standing_credit", params.advanced_standing_credit);
+      }
+      if (params?.intake !== undefined && params.intake !== null) {
+        query.set("intake", String(params.intake));
+      }
+      if (
+        typeof params?.number_of_subjects === "number" &&
+        Number.isInteger(params.number_of_subjects) &&
+        params.number_of_subjects >= 1
+      ) {
+        query.set("number_of_subjects", String(params.number_of_subjects));
+      }
+      if (params?.start_date) {
+        query.set("start_date", params.start_date);
+      }
+      if (typeof params?.weeks === "number" && Number.isInteger(params.weeks)) {
+        query.set("weeks", String(params.weeks));
+      }
+
+      const endpoint = query.toString()
+        ? `${this.coursesUrl}/${encodeURIComponent(courseCode)}/calculate-end-date?${query.toString()}`
+        : `${this.coursesUrl}/${encodeURIComponent(courseCode)}/calculate-end-date`;
+
+      const response =
+        await this.get<CalculateCourseEndDateApiResponse>(endpoint);
+
+      return {
+        success: true,
+        message: "Course end date calculated.",
+        data: response.data ?? null,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to calculate course end date", null);
     }
   };
 }

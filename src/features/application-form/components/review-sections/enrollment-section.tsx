@@ -147,6 +147,7 @@ export function EnrollmentSection(props: {
       course,
       intake,
       campus,
+      course_code: selectedCourseFromQuery?.course_code ?? "",
       course_name:
         selectedCourseFromQuery?.course_name ??
         resolvedEnrollmentData.course_name ??
@@ -206,6 +207,7 @@ export function EnrollmentSection(props: {
     resolvedEnrollmentData,
     selectedCampusFromQuery?.name,
     selectedCampusId,
+    selectedCourseFromQuery?.course_code,
     selectedCourseFromQuery?.course_name,
     selectedCourseFromQuery?.duration_text,
     selectedCourseId,
