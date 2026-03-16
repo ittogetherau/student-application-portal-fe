@@ -30,7 +30,9 @@ const Page = () => {
             />
           </div>
 
-          <h3 className="text-3xl mt-6">Application Portal</h3>
+          <h3 className="text-3xl mt-6">
+            Application for Admission Form and Portal
+          </h3>
           <p className="text-sm text-muted-foreground">
             Welcome to Churchill Institute of Higher Education
           </p>
@@ -54,9 +56,9 @@ const Page = () => {
                   <Users className="size-6" />
                 </div>
                 <div className="text-left">
-                  <div className="font-semibold">Education Partner Login</div>
+                  <div className="font-semibold">Education Agent Login</div>
                   <div className="text-xs text-orange-100">
-                    Churchill Institute partners
+                    Churchill Institute Education Agent login.
                   </div>
                 </div>
               </div>
