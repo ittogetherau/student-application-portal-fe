@@ -5,6 +5,7 @@ import {
   Field,
   FieldsGrid,
 } from "@/features/application-form/components/sync-review/field";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import { Section } from "@/features/application-form/components/sync-review/section";
 import { SyncActionButton } from "@/features/application-form/components/sync-review/sync-action-button";
 import {
@@ -63,6 +64,35 @@ export function PersonalDetailsSection({
       syncMeta={syncMeta}
     />
   );
+  const fullName = [
+    personalDetails.title,
+    personalDetails.given_name,
+    personalDetails.middle_name,
+    personalDetails.family_name,
+  ]
+    .filter((value: unknown) => typeof value === "string" && value.trim().length)
+    .join(" ");
+  const extraEntries = getUnhandledReviewEntries(personalDetails, [
+    "title",
+    "given_name",
+    "middle_name",
+    "family_name",
+    "email",
+    "phone",
+    "date_of_birth",
+    "gender",
+    "street_name",
+    "suburb",
+    "state",
+    "postcode",
+    "country",
+    "nationality",
+    "country_of_birth",
+    "passport_number",
+    "passport_expiry",
+  ], {
+    defaultIcon: User2,
+  });
 
   return (
     <Section
@@ -73,21 +103,7 @@ export function PersonalDetailsSection({
       footer={syncNote}
     >
       <FieldsGrid>
-        <Field
-          label="Given Name"
-          value={personalDetails.given_name}
-          icon={User2}
-        />
-        <Field
-          label="Middle Name"
-          value={personalDetails.middle_name}
-          icon={User2}
-        />
-        <Field
-          label="Family Name"
-          value={personalDetails.family_name}
-          icon={User2}
-        />
+        <Field label="Full Name" value={fullName} icon={User2} />
         <Field label="Email" value={personalDetails.email} icon={Contact2} />
         <Field
           label="Phone"
@@ -145,6 +161,21 @@ export function PersonalDetailsSection({
           icon={CalendarDays}
         />
       </FieldsGrid>
+
+      {extraEntries.length ? (
+        <FieldsGrid>
+          {extraEntries.map((entry) => (
+            <Field
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon}
+              format={entry.format}
+              mono={entry.mono}
+            />
+          ))}
+        </FieldsGrid>
+      ) : null}
     </Section>
   );
 }
