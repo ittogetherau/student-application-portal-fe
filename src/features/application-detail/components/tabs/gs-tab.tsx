@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2, FileText, Lock } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, SkipForward } from "lucide-react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { transformGSAssessmentData } from "@/shared/constants/gs-assessment";
+import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
 import GSAssessmentTab from "@/features/gs/components/tabs/assessment-tab";
 import GSDeclarationsTab from "@/features/gs/components/tabs/declarations-tab";
 import GSDocumentsTab from "@/features/gs/components/tabs/gs-documents-tab";
@@ -37,6 +38,8 @@ const STEPS = [
   { id: "assessment", label: "Assessment", stageNumber: 5 },
 ] as const;
 
+const ONSHORE_STUDENT_ORIGIN = "Overseas Student in Australia (Onshore)";
+
 type StepId = (typeof STEPS)[number]["id"];
 
 type GSTabProps = {
@@ -50,6 +53,7 @@ export default function GSTab({
   applicationId,
   isStaff = false,
 }: GSTabProps) {
+  const applicationQuery = useApplicationGetQuery(applicationId ?? null);
   const unresolvedThreadsQuery = useApplicationUnresolvedThreadsQuery(
     applicationId ?? null,
   );
@@ -63,6 +67,9 @@ export default function GSTab({
   );
 
   const [unresolvedAlertOpen, setUnresolvedAlertOpen] = useState(false);
+  const [skipConfirmationStage, setSkipConfirmationStage] = useState<
+    number | null
+  >(null);
   const pendingActionRef = useRef<null | (() => void)>(null);
 
   const unresolvedCount =
@@ -97,10 +104,15 @@ export default function GSTab({
     action?.();
   }, []);
 
+  const handleSkipConfirmationClose = useCallback(() => {
+    setSkipConfirmationStage(null);
+  }, []);
+
   // Fetch GS assessment from dedicated endpoint: /api/v1/gs-assessment/{application_id}
-  const { data: gsAssessmentResponse } = useGSAssessmentQuery(
-    applicationId ?? null,
-  );
+  const {
+    data: gsAssessmentResponse,
+    isFetched: isGSAssessmentFetched,
+  } = useGSAssessmentQuery(applicationId ?? null);
 
   // Transform the API response to frontend format
   const gsAssessmentData = useMemo(
@@ -114,6 +126,8 @@ export default function GSTab({
   const { stepsProgress } = useGSAssessmentProgress(gsAssessmentData);
 
   const currentApiStage = gsAssessmentData?.currentStage ?? 0;
+  const studentOrigin =
+    applicationQuery.data?.data?.personal_details?.student_origin;
 
   const activeTab = useMemo(() => {
     if (userSelectedTab !== null) {
@@ -138,6 +152,7 @@ export default function GSTab({
   const isStageCompleted = (stageIndex: number) => {
     return stepsProgress[stageIndex]?.state === "completed";
   };
+  const isDocumentsStageCompleted = isStageCompleted(0);
 
   const handleTabChange = useCallback(
     (tabId: StepId) => {
@@ -151,17 +166,25 @@ export default function GSTab({
   const stageCompleteMutation = useGSStageCompleteMutation(
     applicationId ?? null,
   );
+  const autoAdvancedStageOneRef = useRef(false);
+
+  useEffect(() => {
+    autoAdvancedStageOneRef.current = false;
+  }, [applicationId]);
 
   // Centralized stage completion handler - calls API and updates UI
-  const handleStageCompleteInternal = async (stageToComplete: number) => {
-    await stageCompleteMutation.mutateAsync({ stageToComplete });
-    // Move to next stage after successful API call
-    const nextStageIndex = Math.min(stageToComplete, STEPS.length - 1);
-    const nextStep = STEPS[nextStageIndex];
-    if (nextStep) {
-      setUserSelectedTab(nextStep.id);
-    }
-  };
+  const handleStageCompleteInternal = useCallback(
+    async (stageToComplete: number) => {
+      await stageCompleteMutation.mutateAsync({ stageToComplete });
+      // Move to next stage after successful API call
+      const nextStageIndex = Math.min(stageToComplete, STEPS.length - 1);
+      const nextStep = STEPS[nextStageIndex];
+      if (nextStep) {
+        setUserSelectedTab(nextStep.id);
+      }
+    },
+    [setUserSelectedTab, stageCompleteMutation],
+  );
 
   const handleStageComplete = async (stageToComplete: number) => {
     if (shouldWarnUnresolvedCommunications) {
@@ -172,6 +195,70 @@ export default function GSTab({
     }
 
     await handleStageCompleteInternal(stageToComplete);
+  };
+
+  useEffect(() => {
+    const shouldAutoAdvanceStageOne =
+      applicationQuery.isFetched &&
+      isGSAssessmentFetched &&
+      gsAssessmentData !== null &&
+      studentOrigin === ONSHORE_STUDENT_ORIGIN &&
+      currentApiStage === 0 &&
+      !isDocumentsStageCompleted;
+
+    if (
+      !shouldAutoAdvanceStageOne ||
+      autoAdvancedStageOneRef.current ||
+      stageCompleteMutation.isPending
+    ) {
+      return;
+    }
+
+    autoAdvancedStageOneRef.current = true;
+
+    void handleStageCompleteInternal(1).catch(() => {
+      autoAdvancedStageOneRef.current = false;
+    });
+  }, [
+    applicationQuery.isFetched,
+    currentApiStage,
+    gsAssessmentData,
+    handleStageCompleteInternal,
+    isGSAssessmentFetched,
+    isDocumentsStageCompleted,
+    stageCompleteMutation.isPending,
+    studentOrigin,
+  ]);
+
+  const canSkipStage = (stageIndex: number) =>
+    isStaff &&
+    stageIndex < STEPS.length - 1 &&
+    currentApiStage >= stageIndex &&
+    !isStageCompleted(stageIndex);
+
+  const renderSkipButton = (stageIndex: number) => {
+    if (!canSkipStage(stageIndex)) {
+      return null;
+    }
+
+    return (
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size={"xs"}
+          onClick={() => setSkipConfirmationStage(stageIndex)}
+          disabled={stageCompleteMutation.isPending}
+        >
+          {stageCompleteMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <SkipForward className="h-4 w-4" />
+          )}
+          <span className="text-[11px]">Skip Step</span>
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -283,43 +370,55 @@ export default function GSTab({
 
       <TabsContent value="documents" className="mt-0">
         {currentApiStage >= 0 && (
-          <GSDocumentsTab
-            applicationId={applicationId}
-            isStaff={isStaff}
-            isStageCompleted={isStageCompleted(0)}
-            onStageComplete={() => handleStageComplete(1)}
-          />
+          <div className="space-y-4">
+            <GSDocumentsTab
+              applicationId={applicationId}
+              isStaff={isStaff}
+              isStageCompleted={isStageCompleted(0)}
+              onStageComplete={() => handleStageComplete(1)}
+            />
+            {renderSkipButton(0)}
+          </div>
         )}
       </TabsContent>
 
       <TabsContent value="declarations" className="mt-0">
         {currentApiStage >= 1 && (
-          <GSDeclarationsTab
-            applicationId={applicationId}
-            isStaff={isStaff}
-            isStageCompleted={isStageCompleted(1)}
-            onStageComplete={() => handleStageComplete(2)}
-          />
+          <div className="space-y-4">
+            <GSDeclarationsTab
+              applicationId={applicationId}
+              isStaff={isStaff}
+              isStageCompleted={isStageCompleted(1)}
+              onStageComplete={() => handleStageComplete(2)}
+            />
+            {renderSkipButton(1)}
+          </div>
         )}
       </TabsContent>
 
       <TabsContent value="schedule" className="mt-0">
         {currentApiStage >= 2 && (
-          <GSScheduleTab
-            applicationId={applicationId}
-            isStageCompleted={isStageCompleted(2)}
-            onStageComplete={() => handleStageComplete(3)}
-            // onSkipToAssessment={() => handleStageComplete(5)}
-          />
+          <div className="space-y-4">
+            <GSScheduleTab
+              applicationId={applicationId}
+              isStageCompleted={isStageCompleted(2)}
+              onStageComplete={() => handleStageComplete(3)}
+              // onSkipToAssessment={() => handleStageComplete(5)}
+            />
+            {renderSkipButton(2)}
+          </div>
         )}
       </TabsContent>
       <TabsContent value="interview" className="mt-0">
         {currentApiStage >= 3 && (
-          <GSInterviewTab
-            applicationId={applicationId}
-            isStageCompleted={isStageCompleted(3)}
-            onStageComplete={() => handleStageComplete(4)}
-          />
+          <div className="space-y-4">
+            <GSInterviewTab
+              applicationId={applicationId}
+              isStageCompleted={isStageCompleted(3)}
+              onStageComplete={() => handleStageComplete(4)}
+            />
+            {renderSkipButton(3)}
+          </div>
         )}
       </TabsContent>
       <TabsContent value="assessment" className="mt-0">
@@ -361,6 +460,48 @@ export default function GSTab({
             </Button>
             <Button onClick={handleIgnoreUnresolvedAndContinue}>
               Ignore warning and continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={skipConfirmationStage !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleSkipConfirmationClose();
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle>Skip this stage?</DialogTitle>
+            <DialogDescription>
+              This will mark the current GS stage as skipped and move the
+              application to the next stage.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="justify-end">
+            <Button
+              variant="secondary"
+              onClick={handleSkipConfirmationClose}
+              disabled={stageCompleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (skipConfirmationStage === null) return;
+                const stageToComplete = skipConfirmationStage + 1;
+                setSkipConfirmationStage(null);
+                void handleStageComplete(stageToComplete);
+              }}
+              disabled={stageCompleteMutation.isPending}
+            >
+              {stageCompleteMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Confirm skip
             </Button>
           </DialogFooter>
         </DialogContent>

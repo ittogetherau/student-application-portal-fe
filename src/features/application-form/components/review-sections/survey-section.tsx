@@ -3,10 +3,15 @@
 
 import { Badge } from "@/components/ui/badge";
 import { CompactTable } from "@/features/application-form/components/sync-review/compact-table";
+import { toText } from "@/features/application-form/components/sync-review/field";
 import {
   Group,
   Section,
 } from "@/features/application-form/components/sync-review/section";
+import {
+  formatReviewLabel,
+  toReviewPrimitive,
+} from "@/features/application-form/components/review-sections/review-utils";
 import { SyncActionButton } from "@/features/application-form/components/sync-review/sync-action-button";
 import {
   SyncMetadataNote,
@@ -83,8 +88,8 @@ export function SurveySection({
             <CompactTable
               headers={["Field", "Value"]}
               rows={Object.entries(resp).map(([key, value]) => [
-                key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-                String(value),
+                formatReviewLabel(key),
+                toText(toReviewPrimitive(value)),
               ])}
             />
           </div>

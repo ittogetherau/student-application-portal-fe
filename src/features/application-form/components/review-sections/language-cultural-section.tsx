@@ -5,6 +5,7 @@ import {
   Field,
   FieldsGrid,
 } from "@/features/application-form/components/sync-review/field";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import {
   EmptyNote,
   Section,
@@ -90,6 +91,33 @@ export function LanguageCulturalSection({
     data.citizenship_status ||
     data.visa_type ||
     data.visa_expiry;
+  const extraEntries = getUnhandledReviewEntries(data, [
+    "is_aus_aboriginal_or_islander",
+    "aboriginal_torres_strait",
+    "is_english_main_language",
+    "main_language",
+    "first_language",
+    "english_speaking_proficiency",
+    "english_proficiency",
+    "english_instruction_previous_studies",
+    "completed_english_test",
+    "english_test_type",
+    "english_test_date",
+    "english_test_score",
+    "english_test_overall",
+    "english_test_listening",
+    "english_test_reading",
+    "english_test_writing",
+    "english_test_speaking",
+    "other_languages",
+    "indigenous_status",
+    "country_of_birth",
+    "citizenship_status",
+    "visa_type",
+    "visa_expiry",
+  ], {
+    defaultIcon: Languages,
+  });
 
   return (
     <Section
@@ -200,6 +228,21 @@ export function LanguageCulturalSection({
       {!hasAny && (
         <EmptyNote>No language or cultural information provided.</EmptyNote>
       )}
+
+      {extraEntries.length ? (
+        <FieldsGrid>
+          {extraEntries.map((entry) => (
+            <Field
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon}
+              format={entry.format}
+              mono={entry.mono}
+            />
+          ))}
+        </FieldsGrid>
+      ) : null}
     </Section>
   );
 }

@@ -8,6 +8,7 @@ import {
   FieldsGrid,
   toText,
 } from "@/features/application-form/components/sync-review/field";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import {
   Group,
   Section,
@@ -54,6 +55,15 @@ export function EmploymentSection({
     "employment_status" in employmentHistory
       ? (employmentHistory as any).employment_status
       : null;
+  const extraEntries = getUnhandledReviewEntries(
+    typeof employmentHistory === "object" && employmentHistory !== null
+      ? employmentHistory
+      : null,
+    ["entries", "employment_status"],
+    {
+      defaultIcon: Briefcase,
+    },
+  );
 
   if (!employmentArray.length && !employmentStatus) return null;
   const syncNote = (
@@ -127,6 +137,21 @@ export function EmploymentSection({
             ])}
           />
         </Group>
+      ) : null}
+
+      {extraEntries.length ? (
+        <FieldsGrid>
+          {extraEntries.map((entry) => (
+            <Field
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon}
+              format={entry.format}
+              mono={entry.mono}
+            />
+          ))}
+        </FieldsGrid>
       ) : null}
     </Section>
   );

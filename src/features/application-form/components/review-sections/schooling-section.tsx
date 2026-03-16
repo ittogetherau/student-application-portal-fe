@@ -7,6 +7,7 @@ import {
   FieldsGrid,
   toText,
 } from "@/features/application-form/components/sync-review/field";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import {
   EmptyNote,
   Group,
@@ -72,6 +73,15 @@ export function SchoolingSection({
       : Array.isArray(schoolingData)
         ? schoolingData
         : null;
+  const extraEntries = getUnhandledReviewEntries(
+    typeof schoolingData === "object" && schoolingData !== null
+      ? schoolingData
+      : null,
+    ["entries"],
+    {
+      defaultIcon: GraduationCap,
+    },
+  );
 
   return (
     <Section
@@ -106,22 +116,37 @@ export function SchoolingSection({
             ])}
           />
         </Group>
-      ) : typeof schoolingData === "object" && schoolingData !== null ? (
+      ) : extraEntries.length ? (
         <FieldsGrid>
-          {Object.entries(schoolingData).map(([key, value]) => (
+          {extraEntries.map((entry) => (
             <Field
-              key={key}
-              label={key
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase())}
-              value={String(value)}
-              icon={FileText}
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon ?? FileText}
+              format={entry.format}
+              mono={entry.mono}
             />
           ))}
         </FieldsGrid>
       ) : (
         <EmptyNote>No schooling history available.</EmptyNote>
       )}
+
+      {schoolingEntries?.length && extraEntries.length ? (
+        <FieldsGrid>
+          {extraEntries.map((entry) => (
+            <Field
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon ?? FileText}
+              format={entry.format}
+              mono={entry.mono}
+            />
+          ))}
+        </FieldsGrid>
+      ) : null}
     </Section>
   );
 }

@@ -45,6 +45,7 @@ import {
   SurveySection,
   UsiSection,
 } from "../review-sections";
+import { normalizeReviewObjects } from "../review-sections/review-utils";
 import { Section } from "../sync-review/section";
 import { SyncActionButton } from "../sync-review/sync-action-button";
 import SyncAllToGalaxyButton, {
@@ -226,6 +227,7 @@ const ReviewForm = ({
     isStaffOrAdmin &&
     application?.current_stage !== APPLICATION_STAGE.DRAFT;
   const emergencyContacts = application?.emergency_contacts || [];
+  const surveyResponses = normalizeReviewObjects(application?.survey_responses);
   const qualificationsData = Array.isArray(application?.qualifications)
     ? { qualifications: application.qualifications, has_qualifications: null }
     : ((application?.qualifications as any) ?? null);
@@ -241,13 +243,11 @@ const ReviewForm = ({
     : !!application?.employment_history;
   const hasAdditionalServices =
     !!application?.additional_services &&
-    ((Array.isArray(application?.additional_services) &&
-      application?.additional_services.length > 0) ||
-      (typeof application?.additional_services === "object" &&
-        application?.additional_services !== null &&
-        "services" in application.additional_services &&
-        Array.isArray((application.additional_services as any).services) &&
-        (application.additional_services as any).services.length > 0));
+    (Array.isArray(application?.additional_services)
+      ? application.additional_services.length > 0
+      : typeof application?.additional_services === "object" &&
+          application?.additional_services !== null &&
+          Object.keys(application.additional_services).length > 0);
 
   const syncAvailability = useMemo<SyncSectionAvailability>(() => {
     return {
@@ -261,7 +261,7 @@ const ReviewForm = ({
       qualifications: hasQualificationsSection,
       employment: hasEmploymentHistory,
       usi: false,
-      survey: (application?.survey_responses?.length ?? 0) > 0,
+      survey: surveyResponses.length > 0,
       documents: true,
     };
   }, [
@@ -270,11 +270,11 @@ const ReviewForm = ({
     application?.language_cultural_data,
     application?.personal_details,
     application?.schooling_history,
-    application?.survey_responses,
     emergencyContacts.length,
     hasEmploymentHistory,
     enrollmentData,
     hasQualificationsSection,
+    surveyResponses.length,
   ]);
 
   const sections = useMemo(() => {
@@ -290,7 +290,7 @@ const ReviewForm = ({
     if (hasEmploymentHistory) values.push("employment");
     if (application?.usi) values.push("usi");
     if (hasAdditionalServices) values.push("additional-services");
-    if (application?.survey_responses?.length) values.push("survey");
+    if (surveyResponses.length) values.push("survey");
     return values;
   }, [
     application?.disability_support,
@@ -298,13 +298,13 @@ const ReviewForm = ({
     application?.language_cultural_data,
     application?.personal_details,
     application?.schooling_history,
-    application?.survey_responses,
     application?.usi,
     emergencyContacts.length,
     hasEmploymentHistory,
     hasAdditionalServices,
     enrollmentData,
     hasQualificationsSection,
+    surveyResponses.length,
   ]);
 
   const defaultOpenValues = useMemo(() => {
@@ -458,7 +458,7 @@ const ReviewForm = ({
         />
         <SurveySection
           applicationId={applicationId}
-          responses={application.survey_responses || []}
+          responses={surveyResponses}
           showSync={showSync}
           isStaffOrAdmin={isStaffOrAdmin}
           syncMeta={syncMetadata?.survey_responses}

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import StudentEnrollmentForm from "@/features/application-form/components/student-enrollment/student-enrollment-form";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import { CompactTable } from "@/features/application-form/components/sync-review/compact-table";
 import {
   Field,
@@ -262,6 +263,42 @@ export function EnrollmentSection(props: {
       />
     </div>
   );
+  const extraEntries = getUnhandledReviewEntries(enrollmentData, [
+    "campus",
+    "campus_name",
+    "course",
+    "course_name",
+    "major",
+    "major_id",
+    "intake",
+    "intake_name",
+    "preferred_start_date",
+    "course_end_date",
+    "no_of_weeks",
+    "offer_issued_date",
+    "study_reason",
+    "class_type",
+    "advanced_standing_credit",
+    "number_of_subjects",
+    "receiving_scholarship",
+    "scholarship_percentage",
+    "inclue_material_fee_in_initial_payment",
+    "work_integrated_learning",
+    "third_party_provider",
+    "course_actual_fee",
+    "calculated_no_of_weeks",
+    "course_upfront_fee",
+    "enrollment_fee",
+    "material_fee",
+    "application_request",
+    "status",
+    "offer_signed_at",
+    "fee_received_at",
+    "coe_uploaded_at",
+    "enrollments",
+  ], {
+    defaultIcon: FileText,
+  });
 
   return (
     <>
@@ -428,6 +465,21 @@ export function EnrollmentSection(props: {
             icon={CalendarDays}
           />
         </FieldsGrid>
+
+        {extraEntries.length ? (
+          <FieldsGrid>
+            {extraEntries.map((entry) => (
+              <Field
+                key={entry.key}
+                label={entry.label}
+                value={entry.value}
+                icon={entry.icon}
+                format={entry.format}
+                mono={entry.mono}
+              />
+            ))}
+          </FieldsGrid>
+        ) : null}
 
         {enrollments.length ? (
           <Group>

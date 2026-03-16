@@ -6,6 +6,7 @@ import {
   FieldsGrid,
   formatMoney,
 } from "@/features/application-form/components/sync-review/field";
+import { getUnhandledReviewEntries } from "@/features/application-form/components/review-sections/review-utils";
 import {
   EmptyNote,
   Section,
@@ -65,6 +66,42 @@ export function HealthCoverSection({
       syncMeta={syncMeta}
     />
   );
+  const hasOshc = policy.has_oshc ?? policy.arrange_OSHC ?? null;
+  const provider = policy.provider ?? policy.OSHC_provider ?? null;
+  const policyNumber = policy.policy_number ?? policy.OSHC_policy_number ?? null;
+  const coverageType = policy.coverage_type ?? policy.OSHC_type ?? null;
+  const startDate = policy.start_date ?? policy.OSHC_start_date ?? null;
+  const endDate = policy.end_date ?? policy.OSHC_end_date ?? null;
+  const duration = policy.duration ?? policy.OSHC_duration ?? null;
+  const fee = policy.fee ?? policy.OSHC_fee ?? null;
+  const hasDetails =
+    provider ||
+    policyNumber ||
+    coverageType ||
+    startDate ||
+    endDate ||
+    duration ||
+    fee;
+  const extraEntries = getUnhandledReviewEntries(policy, [
+    "has_oshc",
+    "arrange_OSHC",
+    "provider",
+    "OSHC_provider",
+    "policy_number",
+    "OSHC_policy_number",
+    "coverage_type",
+    "OSHC_type",
+    "start_date",
+    "OSHC_start_date",
+    "end_date",
+    "OSHC_end_date",
+    "duration",
+    "OSHC_duration",
+    "fee",
+    "OSHC_fee",
+  ], {
+    defaultIcon: HeartPulse,
+  });
 
   return (
     <Section
@@ -75,54 +112,45 @@ export function HealthCoverSection({
       footer={syncNote}
     >
       <FieldsGrid>
-        <Field label="Arrange OSHC" value={policy.arrange_OSHC} icon={Shield} />
+        <Field label="Has OSHC" value={hasOshc} icon={Shield} />
       </FieldsGrid>
 
-      {policy.arrange_OSHC ? (
+      {hasOshc || hasDetails ? (
         <FieldsGrid>
-          <Field
-            label="Provider"
-            value={policy.OSHC_provider}
-            icon={HeartPulse}
-          />
-          <Field
-            label="Coverage Type"
-            value={policy.OSHC_type}
-            icon={FileText}
-          />
+          <Field label="Provider" value={provider} icon={HeartPulse} />
+          <Field label="Policy Number" value={policyNumber} icon={FileText} />
+          <Field label="Coverage Type" value={coverageType} icon={FileText} />
           <Field
             label="Start Date"
-            value={
-              policy.OSHC_start_date
-                ? formatUtcToFriendlyLocal(policy.OSHC_start_date)
-                : null
-            }
+            value={startDate ? formatUtcToFriendlyLocal(String(startDate)) : null}
             icon={CalendarDays}
           />
           <Field
             label="End Date"
-            value={
-              policy.OSHC_end_date
-                ? formatUtcToFriendlyLocal(policy.OSHC_end_date)
-                : null
-            }
+            value={endDate ? formatUtcToFriendlyLocal(String(endDate)) : null}
             icon={CalendarDays}
           />
-          <Field
-            label="Duration"
-            value={policy.OSHC_duration}
-            icon={CalendarDays}
-          />
-          <Field
-            label="Fee"
-            value={policy.OSHC_fee}
-            icon={FileText}
-            format={formatMoney}
-          />
+          <Field label="Duration" value={duration} icon={CalendarDays} />
+          <Field label="Fee" value={fee} icon={FileText} format={formatMoney} />
         </FieldsGrid>
       ) : (
-        <EmptyNote>OSHC will not be arranged.</EmptyNote>
+        <EmptyNote>No health cover details provided.</EmptyNote>
       )}
+
+      {extraEntries.length ? (
+        <FieldsGrid>
+          {extraEntries.map((entry) => (
+            <Field
+              key={entry.key}
+              label={entry.label}
+              value={entry.value}
+              icon={entry.icon}
+              format={entry.format}
+              mono={entry.mono}
+            />
+          ))}
+        </FieldsGrid>
+      ) : null}
     </Section>
   );
 }

@@ -45,16 +45,6 @@ export function AdditionalServicesSection({
   const additionalRequested =
     additionalServicesData?.request_additional_services ?? null;
 
-  const hasServices =
-    (Array.isArray(additionalServicesData) &&
-      additionalServicesData.length > 0) ||
-    (typeof additionalServicesData === "object" &&
-      "services" in additionalServicesData &&
-      Array.isArray(additionalServicesData.services) &&
-      additionalServicesData.services.length > 0);
-
-  if (!hasServices) return null;
-
   return (
     <Section
       value="additional-services"
