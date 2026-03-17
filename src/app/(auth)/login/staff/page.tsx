@@ -30,7 +30,7 @@ const page = () => {
             </div>
 
             <h3 className="text-3xl mt-6 text-foreground">
-              Education Partner Login
+              Education Agent Login
             </h3>
             <p className="text-sm text-muted-foreground">
               Enter your credentials to access the portal{" "}
