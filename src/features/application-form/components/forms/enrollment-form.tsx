@@ -14,8 +14,8 @@ import {
   parseWeeksFromDurationText,
 } from "@/features/application-form/constants/enrollment-date-utils";
 import {
-  useCourseIntakesQuery,
   useCourseDetailsQuery,
+  useCourseIntakesQuery,
   useCoursesQuery,
   useSaveEnrollmentMutation,
 } from "@/features/application-form/hooks/course.hook";
@@ -99,6 +99,11 @@ const matchesBitCampusIntake = (
     normalizedIntakeName.includes("paramatta") ||
     normalizedIntakeName.includes("parramatta")
   );
+};
+
+const hasVisibleIntakeCampuses = (intake: Record<string, unknown>): boolean => {
+  if (!Array.isArray(intake.campuses)) return true;
+  return intake.campuses.length > 0;
 };
 
 const getMajorDisplayName = (majorName?: string | null): string | undefined => {
@@ -391,6 +396,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const availableIntakes = useMemo(
     () =>
       (intakesResponse?.data ?? []).filter((intake) => {
+        if (!hasVisibleIntakeCampuses(intake as Record<string, unknown>)) {
+          return false;
+        }
+
         const intakeYear = toId(intake.intake_year);
         if (intakeYear === undefined || intakeYear < MIN_INTAKE_START_YEAR) {
           return false;
