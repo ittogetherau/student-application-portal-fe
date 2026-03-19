@@ -64,6 +64,9 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
       studentEmail: (item.student_email as string) ?? "",
       stage: normalizedStage,
       stageRaw: rawStage ?? null,
+      hasUploadedCeoPaymentProof:
+        (item.has_uploaded_ceo_payment_proof as boolean | null | undefined) ??
+        null,
       assignedStaffId:
         (item.assigned_staff_id as string) ??
         (item.assigned_staff as { id?: string } | null | undefined)?.id ??

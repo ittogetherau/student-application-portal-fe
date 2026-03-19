@@ -45,6 +45,7 @@ export interface ApplicationDetailResponse {
   course_offering_id: string | null;
   assigned_staff_id: string | null;
   current_stage: APPLICATION_STAGE;
+  has_uploaded_ceo_payment_proof?: boolean | null;
   submitted_at: string | null;
   decision_at?: string | null;
   usi: string | null;

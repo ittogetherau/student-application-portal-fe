@@ -18,12 +18,14 @@ interface ApplicationStagePillProps {
   stage?: APPLICATION_STAGE | string | null;
   className?: string;
   role?: USER_ROLE | string;
+  hasUploadedCeoPaymentProof?: boolean | null;
 }
 
 export function ApplicationStagePill({
   stage,
   className,
   role,
+  hasUploadedCeoPaymentProof,
 }: ApplicationStagePillProps) {
   const roleKey = role ? String(role).toLowerCase() : "";
   const roleVariant =
@@ -41,8 +43,17 @@ export function ApplicationStagePill({
   const formattedStage =
     stage && String(stage) ? formatStageLabel(String(stage)) : undefined;
   const isLegacyStage = !normalizedStage && !!formattedStage;
+  const coeStatusLabel =
+    normalizedStage === APPLICATION_STAGE.COE_ISSUED
+      ? hasUploadedCeoPaymentProof === false
+        ? "Payment Proof Pending"
+        : "CoE Pending"
+      : "CoE Pending";
   const label =
-    roleLabel ?? config?.label ?? (isLegacyStage ? `${formattedStage}` : "N/A");
+    coeStatusLabel ??
+    roleLabel ??
+    config?.label ??
+    (isLegacyStage ? `${formattedStage}` : "N/A");
   const legacyClassName =
     "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 

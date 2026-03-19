@@ -39,6 +39,7 @@ export interface Application {
   status: string;
   deadline: string;
   submittedDate: string;
+  hasUploadedCeoPaymentProof?: boolean | null;
 }
 
 const getColumns = (role?: string): ColumnDef<Application>[] => [
@@ -92,6 +93,7 @@ const getColumns = (role?: string): ColumnDef<Application>[] => [
         stage={row.getValue("status") as string}
         className="text-[10px] font-medium uppercase tracking-wider"
         role={role}
+        hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
       />
     ),
   },
