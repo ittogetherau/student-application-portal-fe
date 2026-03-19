@@ -48,7 +48,7 @@ export function ApplicationStagePill({
       ? hasUploadedCeoPaymentProof === false
         ? "Payment Proof Pending"
         : "CoE Pending"
-      : "CoE Pending";
+      : undefined;
   const label =
     coeStatusLabel ??
     roleLabel ??
