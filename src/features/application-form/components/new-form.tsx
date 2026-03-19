@@ -23,12 +23,19 @@ import { FORM_COMPONENTS } from "./form-step-components";
 import Link from "next/link";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { AgentAssignmentSelect } from "@/features/application-detail/components/toolbar/agent-assignment-select";
-import { APPLICATION_STAGE } from "@/shared/constants/types";
 
 const NewForm = ({
   applicationId: propApplicationId,
+  backHref,
+  title,
+  description,
+  publicMode = false,
 }: {
   applicationId?: string;
+  backHref?: string;
+  title?: string;
+  description?: string;
+  publicMode?: boolean;
 }) => {
   const isDev = process.env.NODE_ENV === "development";
   const [autoFillKey, setAutoFillKey] = useState(0);
@@ -78,6 +85,20 @@ const NewForm = ({
   // Determine mode
   const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
   const isCreateMode = !applicationId;
+  const resolvedBackHref =
+    backHref ||
+    (applicationId
+      ? siteRoutes.dashboard.application.id.details(applicationId)
+      : publicMode
+        ? siteRoutes.student.login
+        : siteRoutes.dashboard.application.root);
+  const resolvedTitle =
+    title || (isEditMode ? "Edit Application" : "Create New Application");
+  const resolvedDescription =
+    description ||
+    (isEditMode
+      ? "Update your application details"
+      : "Complete all steps to submit your application");
 
   const { canNavigateToStep } = useStepNavigation(isEditMode);
   const hasStoredStepData = useMemo(
@@ -190,25 +211,15 @@ const NewForm = ({
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Link
-                href={
-                  applicationId
-                    ? siteRoutes.dashboard.application.id.details(applicationId)
-                    : siteRoutes.dashboard.application.root
-                }
-              >
+              <Link href={resolvedBackHref}>
                 <Button size={"icon-sm"} variant={"outline"}>
                   <ChevronLeft />
                 </Button>
               </Link>
-              <h1 className="text-3xl font-bold">
-                {isEditMode ? "Edit Application" : "Create New Application"}
-              </h1>
+              <h1 className="text-3xl font-bold">{resolvedTitle}</h1>
             </div>
             <p className="text-muted-foreground mt-1">
-              {isEditMode
-                ? "Update your application details"
-                : "Complete all steps to submit your application"}
+              {resolvedDescription}
             </p>
           </div>
 
@@ -300,7 +311,7 @@ const NewForm = ({
               </CardContent>
             </Card>
 
-            {isStaff && applicationId ? (
+            {!publicMode && isStaff && applicationId ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Manage Agent</CardTitle>
