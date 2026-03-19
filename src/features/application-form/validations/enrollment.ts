@@ -19,6 +19,8 @@ const coreEnrollmentSchema = z
     campus_name: z.string().min(1),
     major_id: z.string().optional(),
     major: z.string().optional(),
+    default_num_weeks: z.number().int().min(1).optional(),
+    num_weeks: z.number().int().min(1).optional(),
   })
   .strict();
 
@@ -63,7 +65,9 @@ const staffEnrollmentSchema = z.object({
     "preferred_start_date is required",
   ),
   number_of_subjects: z.number().int().min(1).max(12).optional(),
-  no_of_weeks: z.number().int().min(1),
+  default_num_weeks: z.number().int().min(1),
+  num_weeks: z.number().int().min(1),
+  no_of_weeks: z.number().int().min(1).optional(),
   calculated_no_of_weeks: z.number().int().min(0).optional(),
   course_end_date: requiredYmdDateSchema("course_end_date is required"),
   offer_issued_date: requiredYmdDateSchema("offer_issued_date is required"),

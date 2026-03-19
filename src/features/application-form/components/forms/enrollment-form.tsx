@@ -12,6 +12,7 @@ import {
 import {
   addWeeksToYmdDateString,
   parseWeeksFromDurationText,
+  parseWeeksValue,
 } from "@/features/application-form/constants/enrollment-date-utils";
 import {
   useCourseDetailsQuery,
@@ -531,7 +532,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   const intakeEndDate = (() => {
     if (!selectedIntake?.intake_start) return null;
-    const weeks = parseWeeksFromDurationText(selectedCourse?.duration_text);
+    const weeks =
+      parseWeeksValue(selectedCourse?.number_of_weeks) ??
+      parseWeeksFromDurationText(selectedCourse?.duration_text);
     if (!weeks) return null;
     return addWeeksToYmdDateString(selectedIntake.intake_start, weeks);
   })();
@@ -588,6 +591,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       const ensuredApplicationId = await ensureApplicationId();
 
       toast.loading("Saving enrollment...", { id: "application-flow" });
+      const courseWeeks =
+        parseWeeksValue(selectedCourse?.number_of_weeks) ??
+        parseWeeksFromDurationText(selectedCourse?.duration_text);
 
       const payload: EnrollmentValues = {
         course: Number(values.course),
@@ -599,6 +605,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           selectedCourse?.campuses?.find(
             (campus) => toId(campus.id) === toId(values.campus),
           )?.name ?? "",
+        ...(courseWeeks && courseWeeks > 0
+          ? {
+              default_num_weeks: courseWeeks,
+              num_weeks: courseWeeks,
+            }
+          : {}),
         ...(isBitCourse && majorMatch
           ? {
               major_id: majorMatch.secure_id,
@@ -963,6 +975,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                     class_start_date: selectedIntake.class_start_date,
                     class_end_date: selectedIntake.class_end_date,
                     intake_duration: selectedIntake.intake_duration,
+                    default_num_weeks:
+                      parseWeeksValue(selectedCourse.number_of_weeks) ??
+                      parseWeeksFromDurationText(selectedCourse.duration_text),
                   }
                 : null
             }

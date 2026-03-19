@@ -31,6 +31,7 @@ import {
   useCoursesQuery,
 } from "@/features/application-form/hooks/course.hook";
 import { useApplicationEnrollGalaxyCourseMutation } from "@/shared/hooks/use-applications";
+import { parseWeeksValue } from "@/features/application-form/constants/enrollment-date-utils";
 import {
   formatClassType,
   formatYesNo,
@@ -201,7 +202,17 @@ export function EnrollmentSection(props: {
       intake_duration:
         selectedIntakeFromQuery?.intake_duration ??
         resolvedEnrollmentData.intake_duration ??
+        resolvedEnrollmentData.default_num_weeks ??
+        resolvedEnrollmentData.num_weeks ??
         resolvedEnrollmentData.no_of_weeks ??
+        resolvedEnrollmentData.calculated_no_of_weeks ??
+        null,
+      default_num_weeks:
+        parseWeeksValue(selectedCourseFromQuery?.number_of_weeks) ??
+        parseWeeksValue(resolvedEnrollmentData.default_num_weeks) ??
+        parseWeeksValue(resolvedEnrollmentData.num_weeks) ??
+        parseWeeksValue(resolvedEnrollmentData.no_of_weeks) ??
+        parseWeeksValue(resolvedEnrollmentData.calculated_no_of_weeks) ??
         null,
     };
   }, [
@@ -211,6 +222,7 @@ export function EnrollmentSection(props: {
     selectedCourseFromQuery?.course_code,
     selectedCourseFromQuery?.course_name,
     selectedCourseFromQuery?.duration_text,
+    selectedCourseFromQuery?.number_of_weeks,
     selectedCourseId,
     selectedIntakeFromQuery?.class_end_date,
     selectedIntakeFromQuery?.class_start_date,
@@ -274,6 +286,8 @@ export function EnrollmentSection(props: {
     "intake_name",
     "preferred_start_date",
     "course_end_date",
+    "default_num_weeks",
+    "num_weeks",
     "no_of_weeks",
     "offer_issued_date",
     "study_reason",
@@ -341,8 +355,20 @@ export function EnrollmentSection(props: {
             icon={CalendarDays}
           />
           <Field
+            label="Default No. of Weeks"
+            value={
+              enrollmentData.default_num_weeks ??
+              enrollmentData.no_of_weeks
+            }
+            icon={CalendarDays}
+          />
+          <Field
             label="No. of Weeks"
-            value={enrollmentData.no_of_weeks}
+            value={
+              enrollmentData.num_weeks ??
+              enrollmentData.calculated_no_of_weeks ??
+              enrollmentData.no_of_weeks
+            }
             icon={CalendarDays}
           />
           <Field

@@ -1,6 +1,10 @@
 export const parseWeeksFromDurationText = (durationText?: string) => {
   if (!durationText) return null;
   const normalized = durationText.trim().toLowerCase();
+  if (/^\d+(?:\.\d+)?$/.test(normalized)) {
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+  }
   const match = normalized.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)/);
   if (!match) return null;
 
@@ -22,6 +26,47 @@ export const parseWeeksFromDurationText = (durationText?: string) => {
   }
 
   return null;
+};
+
+export const parseWeeksValue = (value: unknown) => {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.trunc(value);
+  }
+
+  if (typeof value === "string") {
+    return parseWeeksFromDurationText(value);
+  }
+
+  return null;
+};
+
+export const calculateEnrollmentWeeks = (
+  defaultWeeks: number,
+  subjectCredits?: number | null,
+) => {
+  let courseWeeks = Math.max(0, Math.trunc(defaultWeeks));
+  const normalizedSubjectCredits =
+    typeof subjectCredits === "number" && Number.isFinite(subjectCredits)
+      ? Math.trunc(subjectCredits)
+      : null;
+
+  if (normalizedSubjectCredits === null || normalizedSubjectCredits < 4) {
+    return courseWeeks;
+  }
+
+  if (normalizedSubjectCredits < 8) {
+    return Math.max(0, courseWeeks - 26);
+  }
+
+  if (normalizedSubjectCredits <= 11) {
+    return Math.max(0, courseWeeks - 52);
+  }
+
+  if (normalizedSubjectCredits === 12) {
+    return Math.max(0, courseWeeks - 76);
+  }
+
+  return courseWeeks;
 };
 
 export const parseStartDateToUtcDate = (input: string) => {
