@@ -64,6 +64,7 @@ export interface ApplicationTableRow {
   courseCode?: string;
   stage: APPLICATION_STAGE;
   stageRaw?: string | null;
+  hasUploadedCeoPaymentProof?: boolean | null;
   assignedStaffId?: string | null;
   assignedStaffName?: string;
   submittedAt: string;

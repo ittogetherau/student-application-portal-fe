@@ -24,8 +24,10 @@ import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import toast from "react-hot-toast";
 import { STUDY_REASON_OPTIONS } from "../../constants/enrollment-constants";
 import {
+  calculateEnrollmentWeeks,
   normalizeDateStringToYmd,
   parseWeeksFromDurationText,
+  parseWeeksValue,
 } from "../../constants/enrollment-date-utils";
 import {
   useCalculateCourseEndDateMutation,
@@ -40,8 +42,8 @@ const defaultValues: StudentEnrollmentFormValues = {
   preferred_start_date: "",
   advanced_standing_credit: "No",
   number_of_subjects: undefined,
-  no_of_weeks: 0,
-  calculated_no_of_weeks: 0,
+  default_num_weeks: 0,
+  num_weeks: 0,
   course_end_date: "",
   offer_issued_date: "",
   study_reason: "",
@@ -96,6 +98,7 @@ type StudentEnrollmentFormProps = {
     class_start_date?: string | null;
     class_end_date?: string | null;
     intake_duration?: number | string | null;
+    default_num_weeks?: number | string | null;
   } | null;
 };
 
@@ -143,7 +146,7 @@ const StudentEnrollmentForm = ({
   });
   const courseWeeksValue = useWatch({
     control: methods.control,
-    name: "no_of_weeks",
+    name: "num_weeks",
   });
   const courseEndDateValue = useWatch({
     control: methods.control,
@@ -204,15 +207,21 @@ const StudentEnrollmentForm = ({
       class_start_date: selectedCore.class_start_date ?? null,
       class_end_date: selectedCore.class_end_date ?? null,
       intake_duration: selectedCore.intake_duration ?? null,
+      default_num_weeks: selectedCore.default_num_weeks ?? null,
     };
   }, [initialEnrollmentData, selectedCore]);
   const resolvedCourseStartDate = normalizeDateStringToYmd(
     enrollmentCore?.intake_start || enrollmentCore?.class_start_date,
   );
-  const resolvedCourseWeeks = useMemo(() => {
-    const intakeWeeks = toNumber(enrollmentCore?.intake_duration);
+  const resolvedDefaultCourseWeeks = useMemo(() => {
+    const explicitCourseWeeks = parseWeeksValue(enrollmentCore?.default_num_weeks);
+    if (explicitCourseWeeks !== null && explicitCourseWeeks > 0) {
+      return explicitCourseWeeks;
+    }
+
+    const intakeWeeks = parseWeeksValue(enrollmentCore?.intake_duration);
     if (intakeWeeks !== null && intakeWeeks > 0) {
-      return Math.trunc(intakeWeeks);
+      return intakeWeeks;
     }
 
     const durationWeeks = parseWeeksFromDurationText(
@@ -223,13 +232,32 @@ const StudentEnrollmentForm = ({
     }
 
     return null;
-  }, [enrollmentCore?.course_duration_text, enrollmentCore?.intake_duration]);
+  }, [
+    enrollmentCore?.course_duration_text,
+    enrollmentCore?.default_num_weeks,
+    enrollmentCore?.intake_duration,
+  ]);
+  const resolvedCalculatedCourseWeeks = useMemo(() => {
+    if (!resolvedDefaultCourseWeeks || resolvedDefaultCourseWeeks < 1) {
+      return null;
+    }
+
+    if (advancedStandingValue !== "Yes") {
+      return resolvedDefaultCourseWeeks;
+    }
+
+    return calculateEnrollmentWeeks(resolvedDefaultCourseWeeks, numberOfSubjects);
+  }, [
+    advancedStandingValue,
+    numberOfSubjects,
+    resolvedDefaultCourseWeeks,
+  ]);
 
   const canCalculateCourseEndDate =
     !!enrollmentCore &&
     !!enrollmentCore.course_code &&
     !!resolvedCourseStartDate &&
-    !!resolvedCourseWeeks &&
+    !!resolvedDefaultCourseWeeks &&
     (advancedStandingValue !== "Yes" ||
       (numberOfSubjects !== null && numberOfSubjects >= 1));
 
@@ -239,14 +267,22 @@ const StudentEnrollmentForm = ({
         intake: number;
         number_of_subjects?: number;
         start_date: string;
+        weeks: number;
       }
     | undefined => {
-    if (!enrollmentCore || !resolvedCourseStartDate) return undefined;
+    if (
+      !enrollmentCore ||
+      !resolvedCourseStartDate ||
+      !resolvedCalculatedCourseWeeks
+    ) {
+      return undefined;
+    }
 
     return {
       advanced_standing_credit: advancedStandingCreditApiValue,
       intake: enrollmentCore.intake,
       start_date: resolvedCourseStartDate,
+      weeks: resolvedCalculatedCourseWeeks,
       ...(advancedStandingValue === "Yes" && numberOfSubjects
         ? { number_of_subjects: numberOfSubjects }
         : {}),
@@ -256,6 +292,7 @@ const StudentEnrollmentForm = ({
     advancedStandingValue,
     enrollmentCore,
     numberOfSubjects,
+    resolvedCalculatedCourseWeeks,
     resolvedCourseStartDate,
   ]);
 
@@ -296,13 +333,28 @@ const StudentEnrollmentForm = ({
       classTypeRaw === "hybrid" || classTypeRaw === "online"
         ? classTypeRaw
         : "classroom";
+    const defaultNumWeeks =
+      toNumber(
+        raw.default_num_weeks ??
+          raw.num_weeks ??
+          raw.no_of_weeks ??
+          raw.calculated_no_of_weeks,
+      ) ??
+      defaultValues.default_num_weeks;
+    const calculatedNumWeeks =
+      toNumber(
+        raw.num_weeks ??
+          raw.calculated_no_of_weeks ??
+          raw.no_of_weeks ??
+          raw.default_num_weeks,
+      ) ?? defaultNumWeeks;
 
     methods.reset({
       preferred_start_date: defaultValues.preferred_start_date,
       advanced_standing_credit: readYesNo(raw.advanced_standing_credit),
       number_of_subjects: toNumber(raw.number_of_subjects) ?? undefined,
-      no_of_weeks: defaultValues.no_of_weeks,
-      calculated_no_of_weeks: defaultValues.calculated_no_of_weeks,
+      default_num_weeks: defaultNumWeeks,
+      num_weeks: calculatedNumWeeks,
       course_end_date: defaultValues.course_end_date,
       offer_issued_date:
         typeof raw.offer_issued_date === "string" && raw.offer_issued_date
@@ -339,15 +391,20 @@ const StudentEnrollmentForm = ({
       shouldDirty: false,
       shouldValidate: false,
     });
-    methods.setValue("no_of_weeks", resolvedCourseWeeks ?? 0, {
+    methods.setValue("default_num_weeks", resolvedDefaultCourseWeeks ?? 0, {
       shouldDirty: false,
       shouldValidate: false,
     });
-    methods.setValue("calculated_no_of_weeks", resolvedCourseWeeks ?? 0, {
+    methods.setValue("num_weeks", resolvedCalculatedCourseWeeks ?? 0, {
       shouldDirty: false,
       shouldValidate: false,
     });
-  }, [methods, resolvedCourseStartDate, resolvedCourseWeeks]);
+  }, [
+    methods,
+    resolvedCalculatedCourseWeeks,
+    resolvedCourseStartDate,
+    resolvedDefaultCourseWeeks,
+  ]);
 
   useEffect(() => {
     const resetCalculatedFields = () => {
@@ -446,7 +503,8 @@ const StudentEnrollmentForm = ({
       ...(enrollmentCore.major_id ? { major_id: enrollmentCore.major_id } : {}),
       preferred_start_date: values.preferred_start_date,
       advanced_standing_credit: toYesNoApi(values.advanced_standing_credit),
-      no_of_weeks: Number(values.no_of_weeks),
+      default_num_weeks: Number(values.default_num_weeks),
+      num_weeks: Number(values.num_weeks),
       course_end_date: values.course_end_date,
       offer_issued_date: values.offer_issued_date,
       study_reason: values.study_reason,
@@ -548,7 +606,19 @@ const StudentEnrollmentForm = ({
                   <p className="text-muted-foreground">Duration</p>
                   <p className="font-medium">
                     {enrollmentCore.course_duration_text ||
-                      `${methods.getValues("no_of_weeks")} weeks`}
+                      `${methods.getValues("default_num_weeks")} weeks`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Default No. of Weeks</p>
+                  <p className="font-medium">
+                    {methods.getValues("default_num_weeks") || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">No. of Weeks</p>
+                  <p className="font-medium">
+                    {methods.getValues("num_weeks") || "-"}
                   </p>
                 </div>
                 <div>
@@ -593,6 +663,20 @@ const StudentEnrollmentForm = ({
               label="Offer Issued Date *"
               type="date"
               disabled
+            />
+            <FormInput
+              name="default_num_weeks"
+              label="Default No. of Weeks *"
+              type="number"
+              disabled
+              readOnly
+            />
+            <FormInput
+              name="num_weeks"
+              label="No. of Weeks *"
+              type="number"
+              disabled
+              readOnly
             />
 
             <FormSelect

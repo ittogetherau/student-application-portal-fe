@@ -18,6 +18,7 @@ type ApplicationHeaderActionsProps = {
   assignedAgentProfileId?: string | null;
   assignedAgentEmail?: string | null;
   stage: APPLICATION_STAGE;
+  hasUploadedCeoPaymentProof?: boolean | null;
 };
 
 const EDITABLE_STAGES = [
@@ -33,13 +34,18 @@ export default function ApplicationHeaderActions({
   assignedAgentProfileId = null,
   assignedAgentEmail = null,
   stage,
+  hasUploadedCeoPaymentProof,
 }: ApplicationHeaderActionsProps) {
   const { role, isStaffAdmin } = useRoleFlags();
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
-        <ApplicationStagePill stage={stage} role={role} />
+        <ApplicationStagePill
+          stage={stage}
+          role={role}
+          hasUploadedCeoPaymentProof={hasUploadedCeoPaymentProof}
+        />
 
         {EDITABLE_STAGES.includes(stage) ? (
           <Button asChild variant="outline" size="sm" className="gap-2 h-8">

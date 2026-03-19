@@ -344,6 +344,7 @@ export const getApplicationColumns = (
         <ApplicationStagePill
           stage={row.original.stageRaw ?? row.original.stage}
           role={role}
+          hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
         />
       ),
       filterFn: (row, columnId, filterValues) => {

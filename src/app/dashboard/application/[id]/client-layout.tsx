@@ -160,6 +160,9 @@ export default function ClientApplicationLayout({
           assignedAgentProfileId={application.agent_profile_id}
           assignedAgentEmail={agentEmail}
           stage={stage}
+          hasUploadedCeoPaymentProof={
+            application.has_uploaded_ceo_payment_proof
+          }
         />
       </ContainerLayout>
 
