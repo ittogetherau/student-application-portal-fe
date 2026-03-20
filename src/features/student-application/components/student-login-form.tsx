@@ -10,20 +10,46 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import publicStudentApplicationService from "@/service/public-student-application.service";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { toast } from "react-hot-toast";
 
 const StudentLoginForm = () => {
-  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasRequestedAccess, setHasRequestedAccess] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push(siteRoutes.student.manageApplication);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const response =
+        await publicStudentApplicationService.requestAccess(normalizedEmail);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to request application access.");
+      }
+
+      setHasRequestedAccess(true);
+      setEmail(normalizedEmail);
+      toast.success("If an application link is available, it will be sent to the email provided.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to request application access.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -42,9 +68,9 @@ const StudentLoginForm = () => {
               />
             </Link>
             <div className="space-y-2">
-              <CardTitle className="text-3xl">Student Login</CardTitle>
+              <CardTitle className="text-3xl">Manage Application</CardTitle>
               <CardDescription>
-                Enter your email and OTP to continue to the application form.
+                Enter your email to request access to your student application.
               </CardDescription>
             </div>
           </CardHeader>
@@ -59,24 +85,19 @@ const StudentLoginForm = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="student-otp">OTP</Label>
-                <Input
-                  id="student-otp"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value)}
-                  required
-                />
-              </div>
+              {hasRequestedAccess ? (
+                <div className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                  If an application exists for this email, a secure link will be
+                  sent shortly. Check your inbox and spam folder.
+                </div>
+              ) : null}
 
-              <Button type="submit" className="w-full">
-                Continue
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Sending Link..." : "Request Access"}
               </Button>
             </form>
           </CardContent>

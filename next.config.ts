@@ -34,16 +34,6 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
-        source: "/student",
-        destination: "/student/login/",
-        permanent: false,
-      },
-      {
-        source: "/student/",
-        destination: "/student/login/",
-        permanent: false,
-      },
-      {
         source: "/api/v1/auth/microsoft/callback",
         destination: "/login",
         permanent: false,

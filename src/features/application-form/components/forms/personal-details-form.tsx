@@ -52,9 +52,10 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
 import { ExtractedDataPreview } from "../extracted-data-preview";
 import HealthCoverAutoSubmit from "../health-cover-auto-submit";
@@ -79,6 +80,12 @@ type AddressComponent = {
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const studentEmail = usePublicStudentApplicationStore(
+    (state) => state.studentEmail,
+  );
   const yesterdayForInput = getDateInputValueFromToday(-1);
   const tomorrowForInput = getDateInputValueFromToday(1);
 
@@ -152,13 +159,25 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     processingTimeoutMessage: "OCR processing timed out. Please try again.",
   });
 
+  useEffect(() => {
+    if (!isPublicMode || !studentEmail) return;
+    if (methods.getValues("email") === studentEmail) return;
+
+    methods.setValue("email", studentEmail, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [isPublicMode, methods, studentEmail]);
+
   const onSubmit = (values: PersonalDetailsValues) => {
     const normalizedValues: PersonalDetailsValues = {
       ...values,
       email:
-        typeof values.email === "string"
-          ? values.email.trim().toLowerCase()
-          : values.email,
+        isPublicMode && studentEmail
+          ? studentEmail
+          : typeof values.email === "string"
+            ? values.email.trim().toLowerCase()
+            : values.email,
     };
 
     console.log("submitting personal details", normalizedValues);
@@ -520,6 +539,12 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               label="Contact Email Address"
               type="email"
               placeholder="Enter email address"
+              readOnly={isPublicMode}
+              description={
+                isPublicMode
+                  ? "This email is locked to the address linked to your application."
+                  : undefined
+              }
             />
             {/* <FormInput
               name="alternate_email"

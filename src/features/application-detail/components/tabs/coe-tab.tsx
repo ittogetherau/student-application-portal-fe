@@ -342,10 +342,10 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
     refetch: refetchDocs,
   } = useApplicationDocumentsQuery(applicationId || null);
   const agentCoeItem = appDocsResponse?.data?.find(
-    (e) => e.document_type_code === "COE_PAYMENT_PROOF",
+    (e: any) => e.document_type_code === "COE_PAYMENT_PROOF",
   );
   const staffCoeItem = appDocsResponse?.data?.find(
-    (e) => e.document_type_code === "COE_DOCUMENTS",
+    (e: any) => e.document_type_code === "COE_DOCUMENTS",
   );
 
   const { data: applicationResponse } = useApplicationGetQuery(

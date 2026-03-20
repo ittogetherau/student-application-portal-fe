@@ -176,6 +176,11 @@ export const useApplicationFormDataStore = create<FormDataState>()(
           hasEnrollment: !!apiResponse.enrollment_data,
         });
         set(() => {
+          const studentEmail =
+            typeof apiResponse.student_email === "string"
+              ? apiResponse.student_email.trim().toLowerCase()
+              : "";
+
           // Clear previous data to prevent leaking between applications
           const newStepData: Record<number, unknown> = {};
 
@@ -217,8 +222,18 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
           // Map API response fields to step IDs
           // Step 1: Personal Details
-          if (apiResponse.personal_details) {
-            newStepData[1] = apiResponse.personal_details;
+          if (apiResponse.personal_details || studentEmail) {
+            const personalDetails =
+              apiResponse.personal_details &&
+              typeof apiResponse.personal_details === "object" &&
+              !Array.isArray(apiResponse.personal_details)
+                ? (apiResponse.personal_details as Record<string, unknown>)
+                : {};
+
+            newStepData[1] = {
+              ...personalDetails,
+              ...(studentEmail ? { email: studentEmail } : {}),
+            };
           }
 
           // Step 2: Emergency Contact

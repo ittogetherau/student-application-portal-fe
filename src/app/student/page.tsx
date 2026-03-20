@@ -1,7 +1,7 @@
 import StudentLoginForm from "@/features/student-application/components/student-login-form";
 
-const StudentLoginPage = () => {
+const StudentPage = () => {
   return <StudentLoginForm />;
 };
 
-export default StudentLoginPage;
+export default StudentPage;

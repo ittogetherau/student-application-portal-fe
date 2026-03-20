@@ -4,13 +4,14 @@ import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import { useApplicationGetMutation } from "@/shared/hooks/use-applications";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { cn } from "@/shared/lib/utils";
 import type { ApplicationDetailResponse } from "@/service/application.service";
 import { Check, ChevronLeft, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   APPLICATION_FORM_STEPS,
   HIDDEN_STEP_IDS,
@@ -40,10 +41,21 @@ const NewForm = ({
   const isDev = process.env.NODE_ENV === "development";
   const [autoFillKey, setAutoFillKey] = useState(0);
   const searchParams = useSearchParams();
+  const isPublicAccessMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const publicToken = usePublicStudentApplicationStore((state) => state.token);
+
+  const storedApplicationId = useApplicationFormDataStore(
+    (state) => state.applicationId,
+  );
 
   // Get applicationId from either prop or query params
   const applicationId =
-    propApplicationId || searchParams.get("id") || undefined;
+    propApplicationId ||
+    searchParams.get("id") ||
+    storedApplicationId ||
+    undefined;
 
   const {
     currentStep,
@@ -57,9 +69,6 @@ const NewForm = ({
     getNavigationBlockMessage,
   } = useApplicationStepStore();
 
-  const storedApplicationId = useApplicationFormDataStore(
-    (state) => state.applicationId,
-  );
   const stepData = useApplicationFormDataStore((state) => state.stepData);
   const clearAllData = useApplicationFormDataStore(
     (state) => state.clearAllData,
@@ -84,13 +93,13 @@ const NewForm = ({
 
   // Determine mode
   const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
-  const isCreateMode = !applicationId;
+  const isCreateMode = !applicationId && !isPublicAccessMode;
   const resolvedBackHref =
     backHref ||
     (applicationId
       ? siteRoutes.dashboard.application.id.details(applicationId)
       : publicMode
-        ? siteRoutes.student.login
+        ? siteRoutes.student.root
         : siteRoutes.dashboard.application.root);
   const resolvedTitle =
     title || (isEditMode ? "Edit Application" : "Create New Application");
@@ -108,6 +117,11 @@ const NewForm = ({
   const hasCompletedSteps = completedSteps.length > 0;
 
   const fetchedEditApplicationRef = useRef<string | null>(null);
+  const queueInitializationState = useCallback((value: boolean) => {
+    queueMicrotask(() => {
+      setIsInitialized(value);
+    });
+  }, []);
 
   const handleStepNavigation = (targetStep: number, canNavigate: boolean) => {
     if (!canNavigate) return;
@@ -129,7 +143,7 @@ const NewForm = ({
   useEffect(() => {
     if (!isHydrated) return;
 
-    setIsInitialized(false);
+    queueInitializationState(false);
 
     if (isCreateMode) {
       // If we are in create mode but have stale data from a previous session, clear it
@@ -141,47 +155,49 @@ const NewForm = ({
         resetNavigation();
         goToStep(0);
       }
-      setIsInitialized(true);
-    } else if (isEditMode) {
-      // --- EDIT / CONTINUE MODE ---
-      const hasFetchedThisSession =
-        fetchedEditApplicationRef.current === applicationId;
+      queueInitializationState(true);
+    } else if (isEditMode || isPublicAccessMode) {
+      const fetchKey = isPublicAccessMode
+        ? `public:${publicToken ?? "missing"}`
+        : applicationId;
+      const hasFetchedThisSession = fetchedEditApplicationRef.current === fetchKey;
 
-      if (applicationId && !hasFetchedThisSession) {
-        // Load fresh data from API
+      if (fetchKey && !hasFetchedThisSession) {
         getApplication(undefined, {
           onSuccess: (res) => {
             setCurrentApplication(res?.data ?? null);
             if (res?.data) {
-              // Initialize step navigation with loaded data
+              const resolvedApplicationId = res.data.id || applicationId;
               const stepData = useApplicationFormDataStore.getState().stepData;
-              initializeStep(applicationId, stepData);
+              if (resolvedApplicationId) {
+                initializeStep(resolvedApplicationId, stepData);
+              }
               setAutoFillKey((prev) => prev + 1);
             }
-            fetchedEditApplicationRef.current = applicationId;
-            setIsInitialized(true);
+            fetchedEditApplicationRef.current = fetchKey;
+            queueInitializationState(true);
           },
           onError: () => {
             setCurrentApplication(null);
-            fetchedEditApplicationRef.current = applicationId;
-            setIsInitialized(true);
+            fetchedEditApplicationRef.current = fetchKey;
+            queueInitializationState(true);
           },
         });
       } else {
-        // Data already loaded, just initialize navigation
         const stepData = useApplicationFormDataStore.getState().stepData;
-        initializeStep(applicationId, stepData);
-        setIsInitialized(true);
+        if (applicationId) {
+          initializeStep(applicationId, stepData);
+        }
+        queueInitializationState(true);
       }
     } else {
-      // applicationId exists but edit=true is not in params
-      // This means we're in view mode, not form mode
-      setIsInitialized(true);
+      queueInitializationState(true);
     }
   }, [
     applicationId,
     isEditMode,
     isCreateMode,
+    isPublicAccessMode,
     clearAllData,
     resetNavigation,
     goToStep,
@@ -191,6 +207,8 @@ const NewForm = ({
     storedApplicationId,
     hasStoredStepData,
     hasCompletedSteps,
+    publicToken,
+    queueInitializationState,
   ]);
 
   // Loading State

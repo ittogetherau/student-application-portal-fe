@@ -28,6 +28,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import { useApplicationFormDataStore } from "../../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../../store/use-application-step.store";
 import ApplicationStepHeader from "../application-step-header";
@@ -245,6 +246,7 @@ type UploadFilesTableProps = {
   onDeleteApiDocument: (doc: ApiDocument) => void;
   isDeleting: boolean;
   isLoadingUploadedDocuments: boolean;
+  isPublicMode: boolean;
 };
 
 const UploadFilesTable = ({
@@ -253,6 +255,7 @@ const UploadFilesTable = ({
   onDeleteApiDocument,
   isDeleting,
   isLoadingUploadedDocuments,
+  isPublicMode,
 }: UploadFilesTableProps) => {
   if (!state && !isLoadingUploadedDocuments) return null;
 
@@ -322,7 +325,7 @@ const UploadFilesTable = ({
                     size="sm"
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => onDeleteApiDocument(doc)}
-                    disabled={isDeleting}
+                    disabled={isDeleting || isPublicMode}
                     title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -346,6 +349,9 @@ export default function DocumentsUploadForm() {
     (state) => state.applicationId,
   );
   const applicationId = applicationIdFromUrl || storedApplicationId;
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
 
   const { uploadDocument, deleteDocument } = useDocuments(applicationId);
   const {
@@ -445,7 +451,7 @@ export default function DocumentsUploadForm() {
 
   const uploadedDocuments: ApiDocument[] = useMemo(
     () =>
-      (documentsResponse?.data || []).filter(
+      ((documentsResponse?.data ?? []) as ApiDocument[]).filter(
         (doc: ApiDocument) =>
           !IGNORED_DOCUMENT_TYPES.has(getDocumentTypeCode(doc)),
       ),
@@ -582,22 +588,20 @@ export default function DocumentsUploadForm() {
       fileKey: string,
       upload_mode?: "replace" | "new",
     ): Promise<void> => {
-      if (!applicationId) return;
+      if (!applicationId && !isPublicMode) return;
 
       setUploadingFiles((prev) => new Set(prev).add(fileKey));
 
       try {
-        const response: any = await uploadDocument.mutateAsync({
-          application_id: applicationId,
+        const response = await uploadDocument.mutateAsync({
+          application_id: applicationId ?? undefined,
           document_type_id: documentTypeId,
           file,
           process_ocr: false,
           upload_mode,
+          document_name: file.name,
         });
-
-        console.log("Upload response", response);
-
-        const previewUrl = response?.data?.preview_url || response?.preview_url;
+        const previewUrl = response.data?.preview_url ?? undefined;
 
         setDocumentStates((prev) => {
           const current = prev[documentTypeId];
@@ -697,12 +701,14 @@ export default function DocumentsUploadForm() {
         });
       }
     },
-    [applicationId, uploadDocument],
+    [applicationId, isPublicMode, uploadDocument],
   );
 
   const handleFiles = useCallback(
     async (documentTypeId: string, files: File[] | null) => {
-      if (!files || files.length === 0 || !applicationId) return;
+      if (!files || files.length === 0 || (!applicationId && !isPublicMode)) {
+        return;
+      }
 
       // Backend behavior:
       // - "replace" (default): creates a new version if doc type already exists
@@ -769,7 +775,13 @@ export default function DocumentsUploadForm() {
         }
       }
     },
-    [applicationId, documentStates, uploadSingleFile, setStepDirty],
+    [
+      applicationId,
+      documentStates,
+      isPublicMode,
+      uploadSingleFile,
+      setStepDirty,
+    ],
   );
 
   const handleContinue = useCallback(() => {
@@ -913,7 +925,9 @@ export default function DocumentsUploadForm() {
                       accept={DROPZONE_ACCEPT}
                       maxFiles={MAX_FILES_PER_UPLOAD}
                       maxSize={MAX_FILE_SIZE_BYTES}
-                      disabled={isAnyFileUploading || !applicationId}
+                      disabled={
+                        isAnyFileUploading || (!applicationId && !isPublicMode)
+                      }
                       className={cn(
                         "border-2 border-dashed rounded-lg p-16 text-center transition-all duration-200 cursor-pointer",
                         isAnyFileUploading
@@ -956,6 +970,7 @@ export default function DocumentsUploadForm() {
                       onDeleteApiDocument={handleDeleteApiDocument}
                       isDeleting={isDeleting}
                       isLoadingUploadedDocuments={isLoadingApiDocuments}
+                      isPublicMode={isPublicMode}
                     />
                   </div>
                 </CardContent>
