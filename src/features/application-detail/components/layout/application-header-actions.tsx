@@ -2,7 +2,6 @@
 
 import { ApplicationStagePill } from "@/components/shared/ApplicationStagePill";
 import { Button } from "@/components/ui/button";
-import { AgentAssignmentSelect } from "@/features/application-detail/components/toolbar/agent-assignment-select";
 import { ApplicationActionsMenu } from "@/features/application-detail/components/toolbar/application-actions-menu";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import CreateThreadButton from "@/features/threads/components/buttons/create-thread-button";
@@ -15,10 +14,9 @@ import Link from "next/link";
 type ApplicationHeaderActionsProps = {
   applicationId: string;
   assignedStaffId: string | null;
-  assignedAgentProfileId?: string | null;
-  assignedAgentEmail?: string | null;
   stage: APPLICATION_STAGE;
   hasUploadedCeoPaymentProof?: boolean | null;
+  submittedByStudent?: boolean | null;
 };
 
 const EDITABLE_STAGES = [
@@ -31,10 +29,9 @@ const EDITABLE_STAGES = [
 export default function ApplicationHeaderActions({
   applicationId,
   assignedStaffId,
-  assignedAgentProfileId = null,
-  assignedAgentEmail = null,
   stage,
   hasUploadedCeoPaymentProof,
+  submittedByStudent,
 }: ApplicationHeaderActionsProps) {
   const { role, isStaffAdmin } = useRoleFlags();
 
@@ -45,6 +42,7 @@ export default function ApplicationHeaderActions({
           stage={stage}
           role={role}
           hasUploadedCeoPaymentProof={hasUploadedCeoPaymentProof}
+          submittedByStudent={submittedByStudent}
         />
 
         {EDITABLE_STAGES.includes(stage) ? (

@@ -37,6 +37,7 @@ export interface Application {
   university: string;
   program: string;
   status: string;
+  submittedByStudent?: boolean;
   deadline: string;
   submittedDate: string;
   hasUploadedCeoPaymentProof?: boolean | null;
@@ -94,6 +95,7 @@ const getColumns = (role?: string): ColumnDef<Application>[] => [
         className="text-[10px] font-medium uppercase tracking-wider"
         role={role}
         hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
+        submittedByStudent={row.original.submittedByStudent}
       />
     ),
   },

@@ -71,7 +71,10 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
     ServiceResponse<ApplicationDetailResponse>,
     ServiceMutationError
   >({
-    queryKey: ["application-get", isPublicMode ? `public:${token}` : applicationId],
+    queryKey: [
+      "application-get",
+      isPublicMode ? `public:${token}` : applicationId,
+    ],
     queryFn: async () => {
       const response =
         isPublicMode && token
@@ -113,6 +116,7 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
     populateFromApiResponse(data);
 
     setApplicationMeta({
+      trackingCode: data.tracking_code ?? null,
       studentEmail: data.student_email ?? null,
       submittedByStudent: data.submitted_by_student ?? null,
     });
@@ -179,6 +183,9 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
     (state) => state.enabled && !!state.token,
   );
   const token = usePublicStudentApplicationStore((state) => state.token);
+  const trackingCode = usePublicStudentApplicationStore(
+    (state) => state.trackingCode,
+  );
   const resetPublicSession = usePublicStudentApplicationStore(
     (state) => state.reset,
   );
@@ -188,7 +195,10 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
     Error,
     void
   >({
-    mutationKey: ["application-submit", isPublicMode ? `public:${token}` : applicationId],
+    mutationKey: [
+      "application-submit",
+      isPublicMode ? `public:${token}` : applicationId,
+    ],
     mutationFn: async () => {
       const response =
         isPublicMode && token
@@ -214,6 +224,12 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
         applicationId,
         response: data,
       });
+      const redirectTrackingCode =
+        ("tracking_code" in data &&
+        typeof data.tracking_code === "string" &&
+        data.tracking_code.trim()
+          ? data.tracking_code
+          : trackingCode) ?? undefined;
 
       // Clear in-memory and persisted draft state after successful submission.
       clearAllData();
@@ -229,7 +245,7 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
       toast.success("Application submitted successfully.");
       router.push(
         isPublicMode
-          ? siteRoutes.student.root
+          ? siteRoutes.track.root(redirectTrackingCode)
           : siteRoutes.dashboard.application.root,
       );
     },
@@ -252,7 +268,10 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
   );
 
   return useMutation<ServiceResponse<ApplicationDetailResponse>, Error, void>({
-    mutationKey: ["application-get", isPublicMode ? `public:${token}` : applicationId],
+    mutationKey: [
+      "application-get",
+      isPublicMode ? `public:${token}` : applicationId,
+    ],
     mutationFn: async () => {
       if (!applicationId && !(isPublicMode && token)) {
         throw new Error("Missing application reference.");
@@ -274,7 +293,9 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
 
       // Set application ID in store
       if (response?.data?.id) {
-        useApplicationFormDataStore.getState().setApplicationId(response.data.id);
+        useApplicationFormDataStore
+          .getState()
+          .setApplicationId(response.data.id);
       }
 
       // Populate form data from API response
@@ -282,6 +303,7 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
         populateFromApiResponse(response.data);
         if (isPublicMode) {
           setApplicationMeta({
+            trackingCode: response.data.tracking_code ?? null,
             studentEmail: response.data.student_email ?? null,
             submittedByStudent: response.data.submitted_by_student ?? null,
           });

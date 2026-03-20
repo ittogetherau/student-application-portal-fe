@@ -38,6 +38,7 @@ export interface Application {
   intake: string;
   agent: string;
   status: string;
+  submittedByStudent?: boolean;
   priority: "High" | "Medium" | "Low";
   daysInReview: number;
   assignedTo: string;
@@ -101,6 +102,7 @@ const getColumns = (role?: string): ColumnDef<Application>[] => [
         className="text-[10px] font-medium uppercase tracking-wider"
         role={role}
         hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
+        submittedByStudent={row.original.submittedByStudent}
       />
     ),
   },
