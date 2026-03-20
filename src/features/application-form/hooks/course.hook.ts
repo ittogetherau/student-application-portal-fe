@@ -1,6 +1,8 @@
 "use client";
 
 import applicationStepsService from "@/service/application-steps.service";
+import publicStudentApplicationService from "@/service/public-student-application.service";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import courseService, {
   type CalculateCourseEndDateParams,
   type CalculateCourseEndDateResult,
@@ -107,6 +109,10 @@ export const useCalculateCourseEndDateMutation = () => {
 
 export const useSaveEnrollmentMutation = () => {
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
   return useMutation<
     unknown,
@@ -115,20 +121,23 @@ export const useSaveEnrollmentMutation = () => {
   >({
     mutationKey: ["save-enrollment"],
     mutationFn: async ({ applicationId, values }) => {
-      if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationStepsService.updateEnrollment(
-        applicationId,
-        values,
-      );
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.updateEnrollment(token, values)
+          : applicationId
+            ? await applicationStepsService.updateEnrollment(applicationId, values)
+            : null;
+
+      if (!response) throw new Error("Missing application reference.");
       if (!response.success) {
         throw new Error(response.message);
       }
       return response.data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
       console.log("[Enrollment] Save success", data);
       queryClient.invalidateQueries({
-        queryKey: ["application-get", variables.applicationId],
+        queryKey: ["application-get"],
       });
     },
     onError: (error) => {
@@ -138,17 +147,30 @@ export const useSaveEnrollmentMutation = () => {
 };
 
 export const useEnrollmentStepQuery = (applicationId: string | null) => {
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+
   return useQuery<ServiceResponse<{ data?: unknown }>, Error>({
-    queryKey: ["application-enrollments-step", applicationId],
+    queryKey: [
+      "application-enrollments-step",
+      isPublicMode ? `public:${token}` : applicationId,
+    ],
     queryFn: async () => {
-      if (!applicationId) throw new Error("Missing application reference.");
       const response =
-        await applicationStepsService.getEnrollmentDetails(applicationId);
+        isPublicMode && token
+          ? await publicStudentApplicationService.getEnrollmentDetails(token)
+          : applicationId
+            ? await applicationStepsService.getEnrollmentDetails(applicationId)
+            : null;
+
+      if (!response) throw new Error("Missing application reference.");
       if (!response.success) {
         throw new Error(response.message || "Failed to fetch enrollment step");
       }
       return response;
     },
-    enabled: !!applicationId,
+    enabled: !!applicationId || !!(isPublicMode && token),
   });
 };

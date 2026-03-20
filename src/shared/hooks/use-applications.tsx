@@ -1,6 +1,8 @@
 "use client";
 
 import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
+import { useApplicationStepStore } from "@/features/application-form/store/use-application-step.store";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import type {
   ApplicationDeleteResponse,
   ApplicationDetailResponse,
@@ -13,6 +15,9 @@ import type {
   TimelineResponse,
 } from "@/service/application.service";
 import applicationService from "@/service/application.service";
+import publicStudentApplicationService, {
+  type PublicStudentApplicationSubmitResponse,
+} from "@/service/public-student-application.service";
 import signatureService, {
   type SendOfferLetterPayload,
   type SendOfferLetterResponse,
@@ -24,6 +29,8 @@ import type { ServiceResponse } from "@/shared/types/service";
 import type { ApplicationCreateValues } from "@/shared/validation/application.validation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "react-hot-toast";
 
 const GC_TIME_MS = 5 * 60 * 1000;
 
@@ -49,13 +56,34 @@ export const useApplicationListQuery = (params: ApplicationListParams = {}) => {
 };
 
 export const useApplicationGetQuery = (applicationId: string | null) => {
-  return useQuery<ServiceResponse<ApplicationDetailResponse>, ServiceMutationError>({
-    queryKey: ["application-get", applicationId],
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+  const setApplicationMeta = usePublicStudentApplicationStore(
+    (state) => state.setApplicationMeta,
+  );
+  const populateFromApiResponse = useApplicationFormDataStore(
+    (state) => state.populateFromApiResponse,
+  );
+
+  const query = useQuery<
+    ServiceResponse<ApplicationDetailResponse>,
+    ServiceMutationError
+  >({
+    queryKey: ["application-get", isPublicMode ? `public:${token}` : applicationId],
     queryFn: async () => {
-      if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationService.getApplication(applicationId);
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.getApplication(token)
+          : applicationId
+            ? await applicationService.getApplication(applicationId)
+            : null;
+
+      if (!response) throw new Error("Missing application reference.");
+
       if (!response.success) {
-        if (response.status === 404) {
+        if (!isPublicMode && response.status === 404) {
           return {
             ...response,
             success: true,
@@ -70,10 +98,27 @@ export const useApplicationGetQuery = (applicationId: string | null) => {
       }
       return response;
     },
-    enabled: !!applicationId,
+    enabled: !!applicationId || !!(isPublicMode && token),
     staleTime: GC_TIME_MS,
     gcTime: GC_TIME_MS,
   });
+
+  useEffect(() => {
+    if (!isPublicMode) return;
+
+    const data = query.data?.data;
+    if (!data) return;
+
+    useApplicationFormDataStore.getState().setApplicationId(data.id);
+    populateFromApiResponse(data);
+
+    setApplicationMeta({
+      studentEmail: data.student_email ?? null,
+      submittedByStudent: data.submitted_by_student ?? null,
+    });
+  }, [isPublicMode, populateFromApiResponse, query.data, setApplicationMeta]);
+
+  return query;
 };
 
 export const useApplicationRequestSignaturesQuery = (
@@ -126,15 +171,33 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
   const clearAllData = useApplicationFormDataStore(
     (state) => state.clearAllData,
   );
+  const resetNavigation = useApplicationStepStore(
+    (state) => state.resetNavigation,
+  );
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+  const resetPublicSession = usePublicStudentApplicationStore(
+    (state) => state.reset,
+  );
 
-  return useMutation<ApplicationDetailResponse, Error, void>({
-    mutationKey: ["application-submit", applicationId],
+  return useMutation<
+    ApplicationDetailResponse | PublicStudentApplicationSubmitResponse,
+    Error,
+    void
+  >({
+    mutationKey: ["application-submit", isPublicMode ? `public:${token}` : applicationId],
     mutationFn: async () => {
-      if (!applicationId) throw new Error("Missing application reference.");
-
       const response =
-        await applicationService.submitApplication(applicationId);
+        isPublicMode && token
+          ? await publicStudentApplicationService.submitApplication(token)
+          : applicationId
+            ? await applicationService.submitApplication(applicationId)
+            : null;
+
+      if (!response) throw new Error("Missing application reference.");
 
       if (!response.success) {
         const error = new Error(response.message) as ServiceMutationError;
@@ -152,17 +215,23 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
         response: data,
       });
 
-      // Clear all form data after successful submission
+      // Clear in-memory and persisted draft state after successful submission.
       clearAllData();
+      resetNavigation();
+      resetPublicSession();
+      useApplicationFormDataStore.persist.clearStorage();
+      useApplicationStepStore.persist.clearStorage();
 
-      // Invalidate list and detail queries
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
-      queryClient.invalidateQueries({
-        queryKey: ["application-get", applicationId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["application-get"] });
 
-      router.push(siteRoutes.dashboard.application.root);
+      toast.success("Application submitted successfully.");
+      router.push(
+        isPublicMode
+          ? siteRoutes.student.root
+          : siteRoutes.dashboard.application.root,
+      );
     },
     onError: (error) => {
       console.error("[Application] submitApplication failed", error);
@@ -174,14 +243,24 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
   const populateFromApiResponse = useApplicationFormDataStore(
     (state) => state.populateFromApiResponse,
   );
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+  const setApplicationMeta = usePublicStudentApplicationStore(
+    (state) => state.setApplicationMeta,
+  );
 
   return useMutation<ServiceResponse<ApplicationDetailResponse>, Error, void>({
-    mutationKey: ["application-get", applicationId],
+    mutationKey: ["application-get", isPublicMode ? `public:${token}` : applicationId],
     mutationFn: async () => {
-      if (!applicationId) {
+      if (!applicationId && !(isPublicMode && token)) {
         throw new Error("Missing application reference.");
       }
-      const response = await applicationService.getApplication(applicationId);
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.getApplication(token)
+          : await applicationService.getApplication(applicationId as string);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -194,13 +273,19 @@ export const useApplicationGetMutation = (applicationId: string | null) => {
       });
 
       // Set application ID in store
-      if (applicationId) {
-        useApplicationFormDataStore.getState().setApplicationId(applicationId);
+      if (response?.data?.id) {
+        useApplicationFormDataStore.getState().setApplicationId(response.data.id);
       }
 
       // Populate form data from API response
       if (response?.data) {
         populateFromApiResponse(response.data);
+        if (isPublicMode) {
+          setApplicationMeta({
+            studentEmail: response.data.student_email ?? null,
+            submittedByStudent: response.data.submitted_by_student ?? null,
+          });
+        }
       }
     },
     onError: (error) => {
@@ -216,12 +301,20 @@ export const DEFAULT_CREATE_PAYLOAD_temp = {
 
 export const useApplicationCreateMutation = () => {
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
 
   return useMutation<ApplicationResponse, Error, ApplicationCreateValues>({
     mutationKey: ["application-create"],
     mutationFn: async (
       payload: ApplicationCreateValues = DEFAULT_CREATE_PAYLOAD_temp,
     ) => {
+      if (isPublicMode) {
+        throw new Error(
+          "Public application links cannot create a new application draft.",
+        );
+      }
       const response = await applicationService.createApplication(payload);
       if (!response.success) {
         throw new Error(response.message);

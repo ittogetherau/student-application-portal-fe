@@ -40,6 +40,8 @@ export interface ApplicationDetailResponse {
   id: string;
   tracking_code?: string | null;
   reference_number?: string | null;
+  student_email?: string | null;
+  submitted_by_student?: boolean | null;
   student_profile_id: string | null;
   agent_profile_id: string | null;
   course_offering_id: string | null;

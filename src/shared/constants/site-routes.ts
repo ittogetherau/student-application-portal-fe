@@ -15,6 +15,10 @@ export const siteRoutes = {
     signUp: "/sign-up",
     signUpAlt: "/signup",
   },
+  student: {
+    root: "/student",
+    manageApplication: "/student/manage-application",
+  },
   dashboard: {
     root: "/dashboard",
     application: {

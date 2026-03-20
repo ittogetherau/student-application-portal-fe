@@ -140,7 +140,7 @@ export const personalDetailsSchema = z
       ),
     postcode: z
       .string()
-      .max(10, "Post code must be at most 10 characters")
+      .max(8, "Post code must be at most 8 characters")
       .nullish()
       .refine((val) => !!val && val.trim().length > 0, "Post code is required"),
 

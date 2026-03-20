@@ -1,17 +1,28 @@
 "use client";
 
-import documentService, { type DocumentType } from "@/service/document.service";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
+import documentService, {
+  type ApplicationDocumentListItem,
+  type DocumentType,
+} from "@/service/document.service";
+import publicStudentApplicationService from "@/service/public-student-application.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 // Types
 type UploadDocumentParams = {
-  application_id: string;
+  application_id?: string;
   document_type_id: string;
   file: File;
   process_ocr?: boolean;
   upload_mode?: "replace" | "new";
+  document_name?: string;
+};
+
+type UploadDocumentResponse = {
+  process_ocr?: boolean;
+  preview_url?: string;
 };
 
 // type VerifyDocumentParams = Record<string, unknown>;
@@ -23,10 +34,22 @@ export const useDocumentTypesQuery = (options?: {
   initialOnly?: boolean;
 }) => {
   const initialOnly = options?.initialOnly ?? false;
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+
   return useQuery<ServiceResponse<DocumentType[]>, Error>({
-    queryKey: ["document-types", initialOnly],
+    queryKey: ["document-types", isPublicMode ? `public:${token}` : "private", initialOnly],
     queryFn: async () => {
-      const response = await documentService.getDocumentTypes(initialOnly);
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.getDocumentTypes(
+              token,
+              initialOnly,
+            )
+          : await documentService.getDocumentTypes(initialOnly);
+
       if (!response.success) {
         throw new Error(response.message || "Failed to fetch document types");
       }
@@ -62,21 +85,58 @@ export const useApplicationDocumentsQuery = (
   options?: { merged?: boolean },
 ) => {
   const merged = options?.merged;
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
-  return useQuery({
-    queryKey: ["application-documents", applicationId, { merged }],
+  return useQuery<ServiceResponse<ApplicationDocumentListItem[]>, Error>({
+    queryKey: [
+      "application-documents",
+      isPublicMode ? `public:${token}` : applicationId,
+      { merged },
+    ],
     queryFn: async () => {
-      if (!applicationId) throw new Error("Application ID is required");
       const response =
-        await documentService.listApplicationDocuments(applicationId, merged);
+        isPublicMode && token
+          ? await publicStudentApplicationService.getDocuments(token)
+          : applicationId
+            ? await documentService.listApplicationDocuments(applicationId, merged)
+            : null;
+
+      if (!response) throw new Error("Application ID is required");
       if (!response.success) {
         throw new Error(
           response.message || "Failed to fetch application documents",
         );
       }
-      return response;
+
+      const normalizedData = Array.isArray(response.data)
+        ? response.data
+        : response.data &&
+            typeof response.data === "object" &&
+            Array.isArray(
+              (response.data as { documents?: ApplicationDocumentListItem[] })
+                .documents,
+            )
+          ? ((response.data as { documents?: ApplicationDocumentListItem[] })
+              .documents ?? [])
+          : response.data &&
+              typeof response.data === "object" &&
+              Array.isArray(
+                (response.data as { items?: ApplicationDocumentListItem[] })
+                  .items,
+              )
+          ? ((response.data as { items?: ApplicationDocumentListItem[] })
+              .items ?? [])
+          : [];
+
+      return {
+        ...response,
+        data: normalizedData,
+      };
     },
-    enabled: !!applicationId,
+    enabled: !!applicationId || !!(isPublicMode && token),
     staleTime: 1000 * 10, // 10 seconds - documents can change frequently
   });
 };
@@ -84,9 +144,13 @@ export const useApplicationDocumentsQuery = (
 // Mutation hooks
 export const useUploadDocument = () => {
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
   return useMutation<
-    ServiceResponse<{ process_ocr: boolean }>,
+    ServiceResponse<UploadDocumentResponse>,
     Error,
     UploadDocumentParams
   >({
@@ -96,21 +160,46 @@ export const useUploadDocument = () => {
       file,
       process_ocr,
       upload_mode,
+      document_name,
     }) => {
-      const response = await documentService.uploadDocument(
-        application_id,
-        document_type_id,
-        file,
-        process_ocr,
-        upload_mode,
-      );
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.uploadDocument(
+              token,
+              document_type_id,
+              file,
+              process_ocr,
+              upload_mode,
+              document_name,
+            )
+          : application_id
+            ? await documentService.uploadDocument(
+                application_id,
+                document_type_id,
+                file,
+                process_ocr,
+                upload_mode,
+              )
+            : null;
+
+      if (!response) {
+        throw new Error("Application ID is required");
+      }
       if (!response.success) {
         throw new Error(response.message || "Failed to upload document");
       }
-      return response;
+      return response as ServiceResponse<UploadDocumentResponse>;
     },
     onSuccess: async (response, variables) => {
       // Invalidate related queries
+      if (isPublicMode && token) {
+        queryClient.invalidateQueries({
+          queryKey: ["application-documents", `public:${token}`],
+        });
+        return;
+      }
+
+      if (!variables.application_id) return;
       queryClient.invalidateQueries({
         queryKey: ["application-documents", variables.application_id],
       });

@@ -34,6 +34,7 @@ export interface Application {
   agentName: string;
   studentName: string;
   studentEmail: string;
+  submittedByStudent?: boolean;
   studentPhone: string;
   stage: APPLICATION_STAGE;
   assignedStaffId?: string;
@@ -60,6 +61,7 @@ export interface ApplicationTableRow {
   studentName: string;
   studentId?: string;
   studentEmail: string;
+  submittedByStudent?: boolean;
   course: string;
   courseCode?: string;
   stage: APPLICATION_STAGE;

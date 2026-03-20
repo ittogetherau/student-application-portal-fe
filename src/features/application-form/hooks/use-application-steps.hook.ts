@@ -3,11 +3,13 @@ import {
   APPLICATION_STEP_IDS,
   type ApplicationStepId,
 } from "@/shared/constants/application-steps";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import type {
   StepUpdateResponse,
   SurveyAvailabilityCode,
 } from "@/service/application-steps.service";
 import applicationStepsService from "@/service/application-steps.service";
+import publicStudentApplicationService from "@/service/public-student-application.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import {
   AdditionalServicesValues,
@@ -51,14 +53,23 @@ const useStepMutation = <TInput>(
   );
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
   return useMutation<ServiceResponse<StepUpdateResponse>, Error, TInput>({
-    mutationKey: ["application-step", stepId, applicationId],
+    mutationKey: [
+      "application-step",
+      stepId,
+      isPublicMode ? `public:${token}` : applicationId,
+    ],
     mutationFn: async (payload: TInput) => {
-      if (!applicationId) {
+      const reference = isPublicMode ? token : applicationId;
+      if (!reference) {
         throw new Error("Missing application reference.");
       }
-      const response = await mutationFn(applicationId, payload);
+      const response = await mutationFn(reference, payload);
       if (!response?.success) {
         throw new Error(response?.message || `Failed to save step ${stepId}.`);
       }
@@ -77,10 +88,10 @@ const useStepMutation = <TInput>(
       // Save to Zustand store after successful API save
       if (applicationId) {
         setStepData(stepId, payload);
-        queryClient.invalidateQueries({
-          queryKey: ["application-get", applicationId],
-        });
       }
+      queryClient.invalidateQueries({
+        queryKey: ["application-get"],
+      });
 
       clearStepDirty(stepId);
       markStepCompleted(stepId);
@@ -102,69 +113,141 @@ const useStepMutation = <TInput>(
 export const useApplicationStepMutations = (applicationId: string | null) => ({
   0: useStepMutation<EnrollmentValues>(
     0,
-    (id, payload) => applicationStepsService.updateEnrollment(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateEnrollment(reference, payload)
+        : applicationStepsService.updateEnrollment(reference, payload),
     applicationId,
   ),
   1: useStepMutation<PersonalDetailsValues>(
     1,
-    (id, payload) => applicationStepsService.updatePersonalDetails(id, payload),
+    (reference, payload) => {
+      const publicState = usePublicStudentApplicationStore.getState();
+      if (publicState.enabled && publicState.token) {
+        return publicStudentApplicationService.updatePersonalDetails(reference, {
+          ...payload,
+          email: publicState.studentEmail || payload.email,
+          student_email: publicState.studentEmail || payload.email,
+        });
+      }
+
+      return applicationStepsService.updatePersonalDetails(reference, payload);
+    },
     applicationId,
   ),
   2: useStepMutation<EmergencyContactValues>(
     2,
-    (id, payload) =>
-      applicationStepsService.updateEmergencyContact(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateEmergencyContact(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateEmergencyContact(reference, payload),
     applicationId,
   ),
   3: useStepMutation<HealthCoverValues>(
     3,
-    (id, payload) => applicationStepsService.updateHealthCover(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateHealthCover(reference, payload)
+        : applicationStepsService.updateHealthCover(reference, payload),
     applicationId,
   ),
   4: useStepMutation<LanguageCulturalValues>(
     4,
-    (id, payload) =>
-      applicationStepsService.updateLanguageCultural(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateLanguageCultural(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateLanguageCultural(reference, payload),
     applicationId,
   ),
   5: useStepMutation<DisabilitySupportValues>(
     5,
-    (id, payload) =>
-      applicationStepsService.updateDisabilitySupport(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateDisabilitySupport(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateDisabilitySupport(reference, payload),
     applicationId,
   ),
   6: useStepMutation<SchoolingHistoryValues>(
     6,
-    (id, payload) =>
-      applicationStepsService.updateSchoolingHistory(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateSchoolingHistory(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateSchoolingHistory(reference, payload),
     applicationId,
   ),
   7: useStepMutation<PreviousQualificationsValues>(
     7,
-    (id, payload) =>
-      applicationStepsService.updatePreviousQualifications(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updatePreviousQualifications(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updatePreviousQualifications(
+            reference,
+            payload,
+          ),
     applicationId,
   ),
   8: useStepMutation<EmploymentHistoryValues>(
     8,
-    (id, payload) =>
-      applicationStepsService.updateEmploymentHistory(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateEmploymentHistory(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateEmploymentHistory(reference, payload),
     applicationId,
   ),
   9: useStepMutation<UsiValues>(
     9,
-    (id, payload) => applicationStepsService.updateUsi(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateUsi(reference, payload)
+        : applicationStepsService.updateUsi(reference, payload),
     applicationId,
   ),
   10: useStepMutation<AdditionalServicesValues>(
     10,
-    (id, payload) =>
-      applicationStepsService.updateAdditionalServices(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateAdditionalServices(
+            reference,
+            payload,
+          )
+        : applicationStepsService.updateAdditionalServices(reference, payload),
     applicationId,
   ),
   11: useStepMutation<SurveyValues>(
     11,
-    (id, payload) => applicationStepsService.updateSurvey(id, payload),
+    (reference, payload) =>
+      usePublicStudentApplicationStore.getState().enabled &&
+      usePublicStudentApplicationStore.getState().token
+        ? publicStudentApplicationService.updateSurvey(reference, payload)
+        : applicationStepsService.updateSurvey(reference, payload),
     applicationId,
   ),
 });
@@ -174,21 +257,33 @@ export const useApplicationStepQuery = (
   stepId: number,
 ) => {
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
   const query = useQuery<ServiceResponse<{ data?: unknown }>, Error>({
-    queryKey: ["application-step-data", applicationId, stepId],
+    queryKey: [
+      "application-step-data",
+      isPublicMode ? `public:${token}` : applicationId,
+      stepId,
+    ],
     queryFn: async () => {
-      if (!applicationId) throw new Error("Missing application reference.");
-      const response = await applicationStepsService.getStepData(
-        applicationId,
-        stepId,
-      );
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.getStepData(token, stepId)
+          : applicationId
+            ? await applicationStepsService.getStepData(applicationId, stepId)
+            : null;
+
+      if (!response) throw new Error("Missing application reference.");
       if (!response.success) {
         throw new Error(response.message);
       }
       return response;
     },
-    enabled: !!applicationId && stepId !== undefined,
+    enabled:
+      (!!applicationId || !!(isPublicMode && token)) && stepId !== undefined,
   });
 
   useEffect(() => {
