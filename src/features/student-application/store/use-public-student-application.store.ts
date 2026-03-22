@@ -10,6 +10,7 @@ type PublicStudentApplicationState = {
   enabled: boolean;
   token: string | null;
   applicationId: string | null;
+  trackingCode: string | null;
   status: PublicStudentApplicationStatus;
   expiresAt: string | null;
   studentEmail: string | null;
@@ -17,6 +18,7 @@ type PublicStudentApplicationState = {
   setSession: (payload: {
     token: string;
     applicationId?: string | null;
+    trackingCode?: string | null;
     status?: PublicStudentApplicationStatus;
     expiresAt?: string | null;
     studentEmail?: string | null;
@@ -24,6 +26,7 @@ type PublicStudentApplicationState = {
   }) => void;
   setStatus: (status: PublicStudentApplicationStatus) => void;
   setApplicationMeta: (payload: {
+    trackingCode?: string | null;
     studentEmail?: string | null;
     submittedByStudent?: boolean | null;
   }) => void;
@@ -34,6 +37,7 @@ const initialState = {
   enabled: false,
   token: null,
   applicationId: null,
+  trackingCode: null,
   status: "idle" as PublicStudentApplicationStatus,
   expiresAt: null,
   studentEmail: null,
@@ -46,6 +50,7 @@ export const usePublicStudentApplicationStore =
     setSession: ({
       token,
       applicationId = null,
+      trackingCode = null,
       status = "validating",
       expiresAt = null,
       studentEmail = null,
@@ -55,14 +60,16 @@ export const usePublicStudentApplicationStore =
         enabled: true,
         token,
         applicationId,
+        trackingCode,
         status,
         expiresAt,
         studentEmail,
         submittedByStudent,
       }),
     setStatus: (status) => set({ status }),
-    setApplicationMeta: ({ studentEmail, submittedByStudent }) =>
+    setApplicationMeta: ({ trackingCode, studentEmail, submittedByStudent }) =>
       set((state) => ({
+        trackingCode: trackingCode ?? state.trackingCode,
         studentEmail: studentEmail ?? state.studentEmail,
         submittedByStudent: submittedByStudent ?? state.submittedByStudent,
       })),

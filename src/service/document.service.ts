@@ -63,6 +63,12 @@ export interface ApplicationDocumentListItem {
   download_url?: string;
 }
 
+export type DocumentOcrStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
+
 export interface OcrSectionData {
   source_document_id: string;
   document_type: string;
@@ -95,6 +101,71 @@ export interface OcrResult {
     [key: string]: boolean | number;
   };
 }
+
+export interface DocumentOcrResult {
+  document_id: string;
+  ocr_status: DocumentOcrStatus | string;
+  extracted_data: Record<string, unknown>;
+  confidence_scores: Record<string, number>;
+  suggested_mappings: Record<string, unknown>;
+  raw_text: string;
+  processing_time_ms: number;
+}
+
+export interface OcrAutofillSuggestion {
+  field_name: string;
+  field_path: string;
+  extracted_value: string;
+  confidence: number;
+  source_document_id: string;
+  source_text: string;
+}
+
+export interface OcrAutofillSuggestionsResponse {
+  application_id: string;
+  suggestions: OcrAutofillSuggestion[];
+  total_suggestions: number;
+  high_confidence_count: number;
+  medium_confidence_count: number;
+  low_confidence_count: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const normalizeOcrResult = (payload: unknown): OcrResult | null => {
+  if (typeof payload === "string") {
+    try {
+      return normalizeOcrResult(JSON.parse(payload));
+    } catch {
+      return null;
+    }
+  }
+
+  if (!isRecord(payload)) return null;
+
+  const sections = isRecord(payload.sections) ? payload.sections : {};
+  const metadata = isRecord(payload.metadata) ? payload.metadata : {};
+
+  return {
+    application_id:
+      typeof payload.application_id === "string" ? payload.application_id : "",
+    sections: sections as OcrResult["sections"],
+    metadata: {
+      total_documents:
+        typeof metadata.total_documents === "number"
+          ? metadata.total_documents
+          : 0,
+      ocr_completed:
+        typeof metadata.ocr_completed === "number" ? metadata.ocr_completed : 0,
+      ocr_pending:
+        typeof metadata.ocr_pending === "number" ? metadata.ocr_pending : 0,
+      ocr_failed:
+        typeof metadata.ocr_failed === "number" ? metadata.ocr_failed : 0,
+      ...metadata,
+    } as OcrResult["metadata"],
+  };
+};
 
 class DocumentService extends ApiService {
   private readonly basePath = "documents";
@@ -149,11 +220,19 @@ class DocumentService extends ApiService {
 
   getOcrResults(applicationId: string): Promise<ServiceResponse<OcrResult>> {
     return resolveServiceCall<OcrResult>(
-      () =>
-        this.get(
+      async () => {
+        const response = await this.get<unknown>(
           `${this.basePath}/application/${applicationId}/extracted-data`,
           true,
-        ),
+        );
+        const normalized = normalizeOcrResult(response);
+
+        if (!normalized) {
+          throw new Error("Failed to parse extracted data response");
+        }
+
+        return normalized;
+      },
       "Extracted data fetched successfully.",
       "Failed to fetch extracted data",
     );

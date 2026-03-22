@@ -80,12 +80,14 @@ type AddressComponent = {
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
+  const isDev = process.env.NODE_ENV === "development";
   const isPublicMode = usePublicStudentApplicationStore(
     (state) => state.enabled && !!state.token,
   );
   const studentEmail = usePublicStudentApplicationStore(
     (state) => state.studentEmail,
   );
+  const isEmailLocked = isPublicMode && !isDev;
   const yesterdayForInput = getDateInputValueFromToday(-1);
   const tomorrowForInput = getDateInputValueFromToday(1);
 
@@ -160,20 +162,20 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   });
 
   useEffect(() => {
-    if (!isPublicMode || !studentEmail) return;
+    if (!isEmailLocked || !studentEmail) return;
     if (methods.getValues("email") === studentEmail) return;
 
     methods.setValue("email", studentEmail, {
       shouldDirty: false,
       shouldValidate: true,
     });
-  }, [isPublicMode, methods, studentEmail]);
+  }, [isEmailLocked, methods, studentEmail]);
 
   const onSubmit = (values: PersonalDetailsValues) => {
     const normalizedValues: PersonalDetailsValues = {
       ...values,
       email:
-        isPublicMode && studentEmail
+        isEmailLocked && studentEmail
           ? studentEmail
           : typeof values.email === "string"
             ? values.email.trim().toLowerCase()
@@ -539,9 +541,9 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               label="Contact Email Address"
               type="email"
               placeholder="Enter email address"
-              readOnly={isPublicMode}
+              readOnly={isEmailLocked}
               description={
-                isPublicMode
+                isEmailLocked
                   ? "This email is locked to the address linked to your application."
                   : undefined
               }

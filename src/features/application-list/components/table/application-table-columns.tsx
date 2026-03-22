@@ -49,7 +49,7 @@ const ActionCell = ({
       } else {
         toast.error(response.message || "Failed to archive application.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to archive application.");
     }
   };
@@ -62,7 +62,7 @@ const ActionCell = ({
       } else {
         toast.error(response.message || "Failed to restore application.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to restore application.");
     }
   };
@@ -75,7 +75,7 @@ const ActionCell = ({
       } else {
         toast.error(response.message || "Failed to delete application.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete application.");
     }
   };
@@ -345,6 +345,7 @@ export const getApplicationColumns = (
           stage={row.original.stageRaw ?? row.original.stage}
           role={role}
           hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
+          submittedByStudent={row.original.submittedByStudent}
         />
       ),
       filterFn: (row, columnId, filterValues) => {

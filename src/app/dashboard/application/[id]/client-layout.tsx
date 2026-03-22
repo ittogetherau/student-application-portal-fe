@@ -157,12 +157,11 @@ export default function ClientApplicationLayout({
         <ApplicationHeaderActions
           applicationId={application.id}
           assignedStaffId={application.assigned_staff_id}
-          assignedAgentProfileId={application.agent_profile_id}
-          assignedAgentEmail={agentEmail}
           stage={stage}
           hasUploadedCeoPaymentProof={
             application.has_uploaded_ceo_payment_proof
           }
+          submittedByStudent={application.submitted_by_student}
         />
       </ContainerLayout>
 

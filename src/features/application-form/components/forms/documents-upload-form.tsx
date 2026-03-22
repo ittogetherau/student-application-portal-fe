@@ -246,7 +246,6 @@ type UploadFilesTableProps = {
   onDeleteApiDocument: (doc: ApiDocument) => void;
   isDeleting: boolean;
   isLoadingUploadedDocuments: boolean;
-  isPublicMode: boolean;
 };
 
 const UploadFilesTable = ({
@@ -255,7 +254,6 @@ const UploadFilesTable = ({
   onDeleteApiDocument,
   isDeleting,
   isLoadingUploadedDocuments,
-  isPublicMode,
 }: UploadFilesTableProps) => {
   if (!state && !isLoadingUploadedDocuments) return null;
 
@@ -325,7 +323,7 @@ const UploadFilesTable = ({
                     size="sm"
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => onDeleteApiDocument(doc)}
-                    disabled={isDeleting || isPublicMode}
+                    disabled={isDeleting}
                     title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -970,7 +968,6 @@ export default function DocumentsUploadForm() {
                       onDeleteApiDocument={handleDeleteApiDocument}
                       isDeleting={isDeleting}
                       isLoadingUploadedDocuments={isLoadingApiDocuments}
-                      isPublicMode={isPublicMode}
                     />
                   </div>
                 </CardContent>

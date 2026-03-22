@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/ui-kit/states";
 import NewForm from "@/features/application-form/components/new-form";
 import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
-import { useApplicationStepStore } from "@/features/application-form/store/use-application-step.store";
+import { resetApplicationFormSession } from "@/features/application-form/utils/reset-application-form-session";
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import publicStudentApplicationService from "@/service/public-student-application.service";
 import { siteRoutes } from "@/shared/constants/site-routes";
@@ -20,7 +20,7 @@ type QueryError = Error & {
 };
 
 const ExpiredLinkState = () => (
-  <div className="mx-auto max-w-xl p-4">
+  <div className="mx-auto flex min-h-[70vh] max-w-xl items-center p-4">
     <div className="rounded-lg border bg-card p-8 text-center shadow-sm">
       <h1 className="text-2xl font-semibold">Link Expired</h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -34,20 +34,29 @@ const ExpiredLinkState = () => (
   </div>
 );
 
+const SubmittedState = ({ trackingCode }: { trackingCode?: string }) => (
+  <div className="mx-auto flex min-h-[70vh] max-w-xl items-center p-4">
+    <div className="rounded-lg border bg-card p-8 text-center shadow-sm">
+      <h1 className="text-2xl font-semibold">Application Submitted</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This application has already been submitted and can no longer be
+        edited.
+      </p>
+      <Button asChild className="mt-6">
+        <Link href={siteRoutes.track.root(trackingCode)}>Track Application</Link>
+      </Button>
+    </div>
+  </div>
+);
+
 const StudentManageApplicationContent = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const token = searchParams.get("token")?.trim() ?? "";
   const applicationIdFromUrl = searchParams.get("id")?.trim() ?? "";
-  const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData,
-  );
   const setApplicationId = useApplicationFormDataStore(
     (state) => state.setApplicationId,
-  );
-  const resetNavigation = useApplicationStepStore(
-    (state) => state.resetNavigation,
   );
   const setSession = usePublicStudentApplicationStore(
     (state) => state.setSession,
@@ -60,8 +69,7 @@ const StudentManageApplicationContent = () => {
   );
 
   useEffect(() => {
-    clearAllData();
-    resetNavigation();
+    resetApplicationFormSession();
 
     if (token) {
       setSession({ token, status: "validating" });
@@ -70,11 +78,10 @@ const StudentManageApplicationContent = () => {
     }
 
     return () => {
+      resetApplicationFormSession();
       resetPublicSession();
     };
   }, [
-    clearAllData,
-    resetNavigation,
     resetPublicSession,
     setSession,
     setStatus,
@@ -105,6 +112,13 @@ const StudentManageApplicationContent = () => {
     openQuery.isSuccess &&
     openPayload?.valid !== false &&
     validatedApplicationId.length > 0;
+  const validatedTrackingCode =
+    typeof openPayload?.tracking_code === "string"
+      ? openPayload.tracking_code
+      : "";
+  const isSubmittedStage =
+    typeof openPayload?.current_stage === "string" &&
+    openPayload.current_stage.toLowerCase() === "submitted";
   const isUrlSyncedWithValidatedApplication =
     !!validatedApplicationId && applicationIdFromUrl === validatedApplicationId;
 
@@ -124,6 +138,7 @@ const StudentManageApplicationContent = () => {
       setSession({
         token,
         applicationId: resolvedApplicationId,
+        trackingCode: validatedTrackingCode || null,
         status: "ready",
         expiresAt: openQuery.data?.expires_at ?? null,
         studentEmail:
@@ -168,6 +183,7 @@ const StudentManageApplicationContent = () => {
     setSession,
     setStatus,
     token,
+    validatedTrackingCode,
     validatedApplicationId,
   ]);
 
@@ -196,6 +212,10 @@ const StudentManageApplicationContent = () => {
         action={{ label: "Retry", onClick: () => openQuery.refetch() }}
       />
     );
+  }
+
+  if (isSubmittedStage) {
+    return <SubmittedState trackingCode={validatedTrackingCode} />;
   }
 
   if (!isUrlSyncedWithValidatedApplication) {

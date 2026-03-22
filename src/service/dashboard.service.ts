@@ -29,6 +29,7 @@ export interface StaffDashboardPriorityApplication {
   intake: string;
   agent: string;
   status: string;
+  submittedByStudent?: boolean;
   priority: "High" | "Medium" | "Low";
   daysInReview: number;
   assignedTo: string;
@@ -106,6 +107,7 @@ export interface AgentDashboardApplication {
   university: string;
   program: string;
   status: string;
+  submittedByStudent?: boolean;
   deadline: string;
   submittedDate: string;
 }

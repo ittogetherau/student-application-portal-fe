@@ -3,7 +3,10 @@
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import documentService, {
   type ApplicationDocumentListItem,
+  type DocumentOcrResult,
   type DocumentType,
+  type OcrAutofillSuggestionsResponse,
+  type OcrResult,
 } from "@/service/document.service";
 import publicStudentApplicationService from "@/service/public-student-application.service";
 import type { ServiceResponse } from "@/shared/types/service";
@@ -141,6 +144,99 @@ export const useApplicationDocumentsQuery = (
   });
 };
 
+export const useExtractedDataQuery = (applicationId: string | null) => {
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+
+  return useQuery<ServiceResponse<OcrResult>, Error>({
+    queryKey: ["extracted-data", isPublicMode ? `public:${token}` : applicationId],
+    queryFn: async () => {
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.getExtractedData(token)
+          : applicationId
+            ? await documentService.getOcrResults(applicationId)
+            : null;
+
+      if (!response) throw new Error("Application ID is required");
+      if (!response.success) {
+        throw new Error(response.message || "Failed to fetch extracted data");
+      }
+
+      return response;
+    },
+    enabled: !!applicationId || !!(isPublicMode && token),
+    staleTime: 1000 * 2,
+  });
+};
+
+export const useAutofillSuggestionsQuery = () => {
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+
+  return useQuery<ServiceResponse<OcrAutofillSuggestionsResponse>, Error>({
+    queryKey: ["autofill-suggestions", isPublicMode ? `public:${token}` : "private"],
+    queryFn: async () => {
+      if (!(isPublicMode && token)) {
+        throw new Error(
+          "Auto-fill suggestions are only available for public token flows.",
+        );
+      }
+
+      const response =
+        await publicStudentApplicationService.getAutofillSuggestions(token);
+
+      if (!response.success) {
+        throw new Error(
+          response.message || "Failed to fetch auto-fill suggestions",
+        );
+      }
+
+      return response;
+    },
+    enabled: isPublicMode && !!token,
+    staleTime: 1000 * 5,
+  });
+};
+
+export const useDocumentOcrResultQuery = (documentId: string | null) => {
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
+
+  return useQuery<ServiceResponse<DocumentOcrResult>, Error>({
+    queryKey: ["document-ocr", isPublicMode ? `public:${token}` : "private", documentId],
+    queryFn: async () => {
+      if (!documentId) throw new Error("Document ID is required");
+      if (!(isPublicMode && token)) {
+        throw new Error(
+          "Document OCR results are only available for public token flows.",
+        );
+      }
+
+      const response = await publicStudentApplicationService.getDocumentOcrResult(
+        token,
+        documentId,
+      );
+
+      if (!response.success) {
+        throw new Error(
+          response.message || "Failed to fetch document OCR results",
+        );
+      }
+
+      return response;
+    },
+    enabled: isPublicMode && !!token && !!documentId,
+    staleTime: 1000 * 2,
+  });
+};
+
 // Mutation hooks
 export const useUploadDocument = () => {
   const queryClient = useQueryClient();
@@ -195,6 +291,12 @@ export const useUploadDocument = () => {
       if (isPublicMode && token) {
         queryClient.invalidateQueries({
           queryKey: ["application-documents", `public:${token}`],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["extracted-data", `public:${token}`],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["autofill-suggestions", `public:${token}`],
         });
         return;
       }
@@ -258,6 +360,10 @@ export const useVerifyDocument = () => {
 
 export const useDeleteDocument = () => {
   const queryClient = useQueryClient();
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
 
   return useMutation<
     ServiceResponse<unknown>,
@@ -265,13 +371,29 @@ export const useDeleteDocument = () => {
     { documentId: string; applicationId?: string }
   >({
     mutationFn: async ({ documentId }) => {
-      const response = await documentService.deleteDocument(documentId);
+      const response =
+        isPublicMode && token
+          ? await publicStudentApplicationService.deleteDocument(token, documentId)
+          : await documentService.deleteDocument(documentId);
       if (!response.success) {
         throw new Error(response.message || "Failed to delete document");
       }
       return response;
     },
     onSuccess: async (_response, variables) => {
+      if (isPublicMode && token) {
+        queryClient.invalidateQueries({
+          queryKey: ["application-documents", `public:${token}`],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["extracted-data", `public:${token}`],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["autofill-suggestions", `public:${token}`],
+        });
+        return;
+      }
+
       if (variables.applicationId) {
         queryClient.invalidateQueries({
           queryKey: ["application-documents", variables.applicationId],

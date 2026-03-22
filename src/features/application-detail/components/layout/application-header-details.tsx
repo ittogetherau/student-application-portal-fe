@@ -51,7 +51,7 @@ export default function ApplicationHeaderDetails({
   onBack,
 }: ApplicationHeaderDetailsProps) {
   const { role } = useRoleFlags();
-  const canAssignAgent = role === USER_ROLE.STAFF;
+  const canAssignAgent = role !== USER_ROLE.AGENT;
   const [agentAssignOpen, setAgentAssignOpen] = useState(false);
 
   return (

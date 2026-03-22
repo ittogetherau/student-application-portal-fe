@@ -3,13 +3,22 @@
 import ContainerLayout from "@/components/ui-kit/layout/container-layout";
 import TwoColumnLayout from "@/components/ui-kit/layout/two-column-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AgentAssignmentSelect } from "@/features/application-detail/components/toolbar/agent-assignment-select";
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
+import type { ApplicationDetailResponse } from "@/service/application.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { useApplicationGetMutation } from "@/shared/hooks/use-applications";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 import { cn } from "@/shared/lib/utils";
-import type { ApplicationDetailResponse } from "@/service/application.service";
 import { Check, ChevronLeft, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -19,11 +28,9 @@ import {
 import useAutoFill from "../hooks/use-auto-fill";
 import { useApplicationFormDataStore } from "../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../store/use-application-step.store";
+import { resetApplicationFormSession } from "../utils/reset-application-form-session";
 import { useStepNavigation } from "../utils/use-step-navigation";
 import { FORM_COMPONENTS } from "./form-step-components";
-import Link from "next/link";
-import { siteRoutes } from "@/shared/constants/site-routes";
-import { AgentAssignmentSelect } from "@/features/application-detail/components/toolbar/agent-assignment-select";
 
 const NewForm = ({
   applicationId: propApplicationId,
@@ -62,7 +69,6 @@ const NewForm = ({
     goToStep,
     initializeStep,
     isStepCompleted,
-    resetNavigation,
     completedSteps,
     setUnsavedMessage,
     clearUnsavedMessage,
@@ -70,9 +76,6 @@ const NewForm = ({
   } = useApplicationStepStore();
 
   const stepData = useApplicationFormDataStore((state) => state.stepData);
-  const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData,
-  );
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
@@ -81,7 +84,7 @@ const NewForm = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentApplication, setCurrentApplication] =
     useState<ApplicationDetailResponse | null>(null);
-  const { isStaff } = useRoleFlags();
+  const { isAgent } = useRoleFlags();
 
   const hasHydratedData = useApplicationFormDataStore(
     (state) => state._hasHydrated,
@@ -151,18 +154,18 @@ const NewForm = ({
         console.log(
           "[NewForm] Clearing stale application data for new session",
         );
-        clearAllData();
-        resetNavigation();
-        goToStep(0);
+        resetApplicationFormSession();
       }
       queueInitializationState(true);
     } else if (isEditMode || isPublicAccessMode) {
       const fetchKey = isPublicAccessMode
         ? `public:${publicToken ?? "missing"}`
         : applicationId;
-      const hasFetchedThisSession = fetchedEditApplicationRef.current === fetchKey;
+      const hasFetchedThisSession =
+        fetchedEditApplicationRef.current === fetchKey;
 
       if (fetchKey && !hasFetchedThisSession) {
+        resetApplicationFormSession();
         getApplication(undefined, {
           onSuccess: (res) => {
             setCurrentApplication(res?.data ?? null);
@@ -198,9 +201,6 @@ const NewForm = ({
     isEditMode,
     isCreateMode,
     isPublicAccessMode,
-    clearAllData,
-    resetNavigation,
-    goToStep,
     getApplication,
     initializeStep,
     isHydrated,
@@ -236,9 +236,7 @@ const NewForm = ({
               </Link>
               <h1 className="text-3xl font-bold">{resolvedTitle}</h1>
             </div>
-            <p className="text-muted-foreground mt-1">
-              {resolvedDescription}
-            </p>
+            <p className="text-muted-foreground mt-1">{resolvedDescription}</p>
           </div>
 
           {/* Auto-fill button */}
@@ -329,7 +327,7 @@ const NewForm = ({
               </CardContent>
             </Card>
 
-            {!publicMode && isStaff && applicationId ? (
+            {applicationId && !isAgent ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Manage Agent</CardTitle>
@@ -351,6 +349,13 @@ const NewForm = ({
                     }}
                   />
                 </CardContent>
+                {publicMode ? (
+                  <CardFooter className="pt-0 text-xs text-muted-foreground">
+                    Selecting an agent is optional. If you leave this blank, one
+                    can be assigned later. Only choose an agent if you already
+                    know who you want to work with.
+                  </CardFooter>
+                ) : null}
               </Card>
             ) : null}
           </aside>

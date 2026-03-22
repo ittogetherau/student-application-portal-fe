@@ -1,30 +1,25 @@
-import { ApiService } from "@/service/base.service";
-import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { StepUpdateResponse } from "@/service/application-steps.service";
+import type { ApplicationDetailResponse } from "@/service/application.service";
+import { ApiService } from "@/service/base.service";
 import type {
   ApplicationDocumentListItem,
+  DocumentOcrResult,
   DocumentType,
+  OcrAutofillSuggestionsResponse,
+  OcrResult,
+} from "@/service/document.service";
+import {
+  normalizeOcrResult,
 } from "@/service/document.service";
 import {
   buildQueryString,
   resolveServiceCall,
   type QueryValue,
 } from "@/service/service-helpers";
+import type { StaffAgentListItem } from "@/service/staff-agents.service";
 import type { ServiceResponse } from "@/shared/types/service";
 import { handleApiError } from "@/shared/utils/handle-api-error";
 import {
-  type AdditionalServicesValues,
-  type DisabilitySupportValues,
-  type EmergencyContactValues,
-  type EmploymentHistoryValues,
-  type EnrollmentValues,
-  type HealthCoverValues,
-  type LanguageCulturalValues,
-  type PersonalDetailsValues,
-  type PreviousQualificationsValues,
-  type SchoolingHistoryValues,
-  type SurveyValues,
-  type UsiValues,
   additionalServicesSchema,
   disabilitySupportSchema,
   emergencyContactSchema,
@@ -37,6 +32,18 @@ import {
   schoolingHistorySchema,
   surveySchema,
   usiSchema,
+  type AdditionalServicesValues,
+  type DisabilitySupportValues,
+  type EmergencyContactValues,
+  type EmploymentHistoryValues,
+  type EnrollmentValues,
+  type HealthCoverValues,
+  type LanguageCulturalValues,
+  type PersonalDetailsValues,
+  type PreviousQualificationsValues,
+  type SchoolingHistoryValues,
+  type SurveyValues,
+  type UsiValues,
 } from "@/shared/validation/application.validation";
 import { z } from "zod";
 
@@ -69,8 +76,7 @@ export interface PublicStudentApplicationOpenResponse {
   [key: string]: unknown;
 }
 
-export interface PublicStudentApplicationDetailResponse
-  extends ApplicationDetailResponse {
+export interface PublicStudentApplicationDetailResponse extends ApplicationDetailResponse {
   student_email?: string | null;
   submitted_by_student?: boolean | null;
 }
@@ -84,8 +90,28 @@ export interface PublicStudentApplicationSubmitResponse {
 }
 
 export interface PublicStudentDocumentUploadResponse {
+  document_id?: string;
   process_ocr?: boolean;
   preview_url?: string;
+  [key: string]: unknown;
+}
+
+export interface PublicStudentAgentAssignmentResponse {
+  success: boolean;
+  application_id: string;
+  agent_profile_id: string | null;
+  agent?: {
+    id: string;
+    agency_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    commission_rate?: number | null;
+    galaxy_agent_id?: string | null;
+    created_at?: string | null;
+    [key: string]: unknown;
+  } | null;
+  message?: string;
   [key: string]: unknown;
 }
 
@@ -125,21 +151,23 @@ export type PublicStudentApplicationStepName =
 class PublicStudentApplicationService extends ApiService {
   private readonly basePath = "public/student-applications";
 
-  private readonly stepNameMap: Record<number, PublicStudentApplicationStepName> =
-    {
-      0: "enrollment",
-      1: "personal_details",
-      2: "emergency_contact",
-      3: "health_cover",
-      4: "language_cultural",
-      5: "disability",
-      6: "schooling",
-      7: "previous_qualifications",
-      8: "employment",
-      9: "usi",
-      10: "additional_services",
-      11: "survey",
-    };
+  private readonly stepNameMap: Record<
+    number,
+    PublicStudentApplicationStepName
+  > = {
+    0: "enrollment",
+    1: "personal_details",
+    2: "emergency_contact",
+    3: "health_cover",
+    4: "language_cultural",
+    5: "disability",
+    6: "schooling",
+    7: "previous_qualifications",
+    8: "employment",
+    9: "usi",
+    10: "additional_services",
+    11: "survey",
+  };
 
   private readonly stepSlugMap: Record<number, string> = {
     0: "enrollment",
@@ -247,6 +275,20 @@ class PublicStudentApplicationService extends ApiService {
       "Failed to fetch application",
     );
 
+  listAvailableAgents = async (
+    token: string,
+  ): Promise<ServiceResponse<StaffAgentListItem[]>> =>
+    resolveServiceCall<StaffAgentListItem[]>(
+      () =>
+        this.get<StaffAgentListItem[]>(
+          this.buildTokenPath("agents", token),
+          false,
+        ),
+      "Agents fetched successfully.",
+      "Failed to fetch agents",
+      [],
+    );
+
   patchApplication = async (
     token: string,
     payload: Record<string, unknown>,
@@ -317,6 +359,83 @@ class PublicStudentApplicationService extends ApiService {
         ),
       "Documents fetched.",
       "Failed to fetch documents",
+    );
+
+  getExtractedData = async (
+    token: string,
+  ): Promise<ServiceResponse<OcrResult>> =>
+    resolveServiceCall<OcrResult>(
+      async () => {
+        const response = await this.get<unknown>(
+          this.buildTokenPath("documents/extracted-data", token),
+          false,
+        );
+        const normalized = normalizeOcrResult(response);
+
+        if (!normalized) {
+          throw new Error("Failed to parse extracted OCR data");
+        }
+
+        return normalized;
+      },
+      "Extracted data fetched successfully.",
+      "Failed to fetch extracted data",
+    );
+
+  getAutofillSuggestions = async (
+    token: string,
+  ): Promise<ServiceResponse<OcrAutofillSuggestionsResponse>> =>
+    resolveServiceCall<OcrAutofillSuggestionsResponse>(
+      () =>
+        this.get<OcrAutofillSuggestionsResponse>(
+          this.buildTokenPath("documents/autofill", token),
+          false,
+        ),
+      "Auto-fill suggestions fetched successfully.",
+      "Failed to fetch auto-fill suggestions",
+    );
+
+  getDocumentOcrResult = async (
+    token: string,
+    documentId: string,
+  ): Promise<ServiceResponse<DocumentOcrResult>> =>
+    resolveServiceCall<DocumentOcrResult>(
+      () =>
+        this.get<DocumentOcrResult>(
+          this.buildTokenPath(`documents/${documentId}/ocr`, token),
+          false,
+        ),
+      "Document OCR results fetched successfully.",
+      "Failed to fetch document OCR results",
+    );
+
+  assignAgent = async (
+    token: string,
+    agentId: string,
+  ): Promise<ServiceResponse<PublicStudentAgentAssignmentResponse>> =>
+    resolveServiceCall<PublicStudentAgentAssignmentResponse>(
+      () =>
+        this.patch<PublicStudentAgentAssignmentResponse>(
+          this.buildTokenPath("agent", token),
+          { agent_id: agentId },
+          false,
+        ),
+      "Agent assigned successfully.",
+      "Failed to assign agent",
+    );
+
+  deleteDocument = async (
+    token: string,
+    documentId: string,
+  ): Promise<ServiceResponse<unknown>> =>
+    resolveServiceCall<unknown>(
+      () =>
+        this.delete<unknown>(
+          this.buildTokenPath(`documents/${documentId}`, token),
+          false,
+        ),
+      "Document deleted successfully.",
+      "Failed to delete document",
     );
 
   uploadDocument = async (

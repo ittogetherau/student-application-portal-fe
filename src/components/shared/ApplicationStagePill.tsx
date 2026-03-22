@@ -1,4 +1,5 @@
 import type { DataTableFacetedFilterOption } from "@/components/data-table/data-table";
+import { Badge } from "@/components/ui/badge";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -19,6 +20,7 @@ interface ApplicationStagePillProps {
   className?: string;
   role?: USER_ROLE | string;
   hasUploadedCeoPaymentProof?: boolean | null;
+  submittedByStudent?: boolean | null;
 }
 
 export function ApplicationStagePill({
@@ -26,6 +28,7 @@ export function ApplicationStagePill({
   className,
   role,
   hasUploadedCeoPaymentProof,
+  submittedByStudent,
 }: ApplicationStagePillProps) {
   const roleKey = role ? String(role).toLowerCase() : "";
   const roleVariant =
@@ -58,14 +61,24 @@ export function ApplicationStagePill({
     "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        config?.className ?? (isLegacyStage ? legacyClassName : undefined),
-        className,
-      )}
-    >
-      {label}
-    </span>
+    <div className="inline-flex gap-1 flex-wrap">
+      {submittedByStudent ? (
+        <Badge
+          variant="secondary"
+          className="px-2 py-0 text-[10px] font-medium text-muted-foreground"
+        >
+          Student Submitted
+        </Badge>
+      ) : null}
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+          config?.className ?? (isLegacyStage ? legacyClassName : undefined),
+          className,
+        )}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
