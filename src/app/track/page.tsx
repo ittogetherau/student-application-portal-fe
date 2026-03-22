@@ -1,5 +1,14 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import studentService from "@/service/student.service";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
@@ -12,6 +21,7 @@ import {
   Mail,
   User,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, {
@@ -21,10 +31,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
-/* =========================
-   Types
-========================= */
 
 type CanonicalStage =
   | "draft"
@@ -52,7 +58,7 @@ interface RequiredDocument {
 }
 
 interface TrackApplicationResponse {
-  generated_stud_id: string | null; // CIHE ID
+  generated_stud_id: string | null;
   tracking_code: string;
   application_status: string;
   current_stage: CanonicalStage;
@@ -65,10 +71,6 @@ interface TrackApplicationResponse {
   assigned_staff_name: string | null;
   assigned_staff_email: string | null;
 }
-
-/* =========================
-   Constants
-========================= */
 
 const STAGE_LABELS: Record<CanonicalStage, string> = {
   draft: "Draft",
@@ -92,9 +94,7 @@ const STAGE_ICONS: Record<CanonicalStage, React.ElementType> = {
   completed: CheckCircle2,
 };
 
-/* =========================
-   Page
-========================= */
+const TRACKING_CODE_REGEX = /^[A-Z]{3}\d{4}$/;
 
 function ApplicationTrackContent() {
   const searchParams = useSearchParams();
@@ -105,8 +105,18 @@ function ApplicationTrackContent() {
   const lastAutoSubmittedTid = useRef<string | null>(null);
 
   const trackById = useCallback(async (id: string) => {
-    const trackingId = id.trim();
-    if (!trackingId) return;
+    const trackingId = id.trim().toUpperCase();
+    if (!trackingId) {
+      setError("Enter your tracking code.");
+      setData(null);
+      return;
+    }
+
+    if (!TRACKING_CODE_REGEX.test(trackingId)) {
+      setError("Tracking code must be 3 letters followed by 4 digits.");
+      setData(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -125,17 +135,24 @@ function ApplicationTrackContent() {
     }
   }, []);
 
-  const handleTrack = () => {
-    void trackById(applicationId);
-  };
+  const handleTrack = useCallback(
+    (event?: React.FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
+      const trackingId = applicationId.trim().toUpperCase();
+      setApplicationId(trackingId);
+      void trackById(trackingId);
+    },
+    [applicationId, trackById],
+  );
 
   useEffect(() => {
     const tid = searchParams.get("tid")?.trim();
     if (!tid || lastAutoSubmittedTid.current === tid) return;
 
     lastAutoSubmittedTid.current = tid;
-    setApplicationId(tid);
-    void trackById(tid);
+    const normalizedTid = tid.toUpperCase();
+    setApplicationId(normalizedTid);
+    void trackById(normalizedTid);
   }, [searchParams, trackById]);
 
   const StatusIcon = data ? STAGE_ICONS[data.current_stage] : null;
@@ -145,49 +162,92 @@ function ApplicationTrackContent() {
     ) ?? [];
 
   return (
-    <div className="min-h-screen bg-background px-6 py-10">
-      <div className="mx-auto max-w-5xl space-y-6">
-        {/* Back */}
-        <Link
-          href={siteRoutes.auth.login}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+    <div className="min-h-screen bg-muted/30 px-6 py-10">
+      <Link
+        href={siteRoutes.auth.login}
+        className="fixed left-4 top-4 z-10 inline-flex items-center gap-2 rounded-md border border-border bg-background/90 px-3 py-2 text-sm text-muted-foreground shadow-sm backdrop-blur hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Back
+      </Link>
+
+      <div className="mx-auto max-w-5xl pt-12">
+        <div
+          className={
+            data
+              ? "space-y-6"
+              : "flex min-h-[calc(100vh-8rem)] flex-col justify-center"
+          }
         >
-          <ArrowLeft className="size-4" />
-          Back
-        </Link>
+          <div className="flex justify-center">
+            <Card className="w-full max-w-md">
+              <CardHeader className="space-y-4 text-center">
+                <Link href={siteRoutes.home} className="mx-auto block w-fit">
+                  <Image
+                    src="/images/logo.svg"
+                    alt="Churchill Institute of Higher Education"
+                    width={160}
+                    height={64}
+                    className="h-auto w-40"
+                    priority
+                  />
+                </Link>
+                <div className="space-y-2">
+                  <CardTitle className="text-3xl">Track Application</CardTitle>
+                  <CardDescription>
+                    Enter your application ID or tracking code to check your
+                    application status.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-5" onSubmit={handleTrack}>
+                <div className="space-y-2">
+                    <p className="text-sm font-medium">Tracking Code</p>
+                    <div className="relative">
+                      <Hash className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={applicationId}
+                        onChange={(e) => {
+                          setApplicationId(e.target.value.toUpperCase());
+                          if (error) {
+                            setError(null);
+                          }
+                        }}
+                        placeholder="ABC1234"
+                        className="h-10 pl-9"
+                        disabled={loading}
+                        maxLength={7}
+                      />
+                    </div>
+                  </div>
 
-        {/* Search */}
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <input
-                value={applicationId}
-                onChange={(e) => setApplicationId(e.target.value)}
-                placeholder="Application ID or Tracking Code"
-                className="w-full rounded-md border border-input bg-background py-3 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                disabled={loading}
-              />
-            </div>
-            <button
-              onClick={handleTrack}
-              disabled={loading}
-              className="rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? "Searching…" : "Track"}
-            </button>
+                  {error ? (
+                    <p className="text-sm text-destructive">{error}</p>
+                  ) : null}
+
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Searching..." : "Track Application"}
+                  </Button>
+
+                  <p className="text-sm text-muted-foreground">
+                    Haven&apos;t created an application yet?{" "}
+                    <Link
+                      href={siteRoutes.student.root}
+                      className="font-medium text-primary hover:text-primary/80"
+                    >
+                      Create now
+                    </Link>
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
           </div>
+
         </div>
-
-        {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {error}
-          </div>
-        )}
 
         {data && (
           <>
-            {/* Header */}
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -210,7 +270,6 @@ function ApplicationTrackContent() {
               </div>
             </div>
 
-            {/* Status */}
             <div className="rounded-xl border border-border bg-muted p-6">
               <div className="flex items-start gap-4">
                 {StatusIcon && (
@@ -227,7 +286,6 @@ function ApplicationTrackContent() {
               </div>
             </div>
 
-            {/* Timeline */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h3 className="mb-4 text-sm font-semibold">Progress</h3>
               <ul className="space-y-3">
@@ -247,7 +305,6 @@ function ApplicationTrackContent() {
               </ul>
             </div>
 
-            {/* Key Dates */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs text-muted-foreground">Submitted At</p>
@@ -267,7 +324,6 @@ function ApplicationTrackContent() {
               </div>
             </div>
 
-            {/* Documents */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h3 className="mb-4 text-sm font-semibold">Required Documents</h3>
               <table className="w-full text-sm">
@@ -296,7 +352,7 @@ function ApplicationTrackContent() {
                       <td className="py-2 text-muted-foreground">
                         {d.uploaded_at
                           ? formatUtcToFriendlyLocal(d.uploaded_at)
-                          : "—"}
+                          : "-"}
                       </td>
                     </tr>
                   ))}
@@ -304,7 +360,6 @@ function ApplicationTrackContent() {
               </table>
             </div>
 
-            {/* Next Steps */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h3 className="mb-2 text-sm font-semibold">Next Steps</h3>
               <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -314,7 +369,6 @@ function ApplicationTrackContent() {
               </ul>
             </div>
 
-            {/* Assigned Staff */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h3 className="mb-2 text-sm font-semibold">Assigned Staff</h3>
               <div className="flex items-center gap-3 text-sm">
@@ -333,11 +387,12 @@ function ApplicationTrackContent() {
                 </a>
               </div>
             </div>
+
             <p className="text-xs text-muted-foreground">
-              Cant find your Application ID?{" "}
+              Can&apos;t find your Application ID?{" "}
               <a
                 href="mailto:myit@churchill.edu.au"
-                className="text-primary hover:text-primary-foreground transition-all"
+                className="text-primary transition-all hover:text-primary-foreground"
                 target="_blank"
               >
                 Contact Admissions

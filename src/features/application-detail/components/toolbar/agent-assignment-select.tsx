@@ -35,6 +35,7 @@ interface AgentAssignmentSelectProps {
   assignedAgentEmail?: string | null;
   mode?: "dropdown" | "list";
   size?: "base" | "lg";
+  readOnly?: boolean;
   onAssigned?: () => void;
 }
 
@@ -44,6 +45,7 @@ export function AgentAssignmentSelect({
   assignedAgentEmail = null,
   mode = "dropdown",
   size = "base",
+  readOnly = false,
   onAssigned,
 }: AgentAssignmentSelectProps) {
   const [open, setOpen] = useState(false);
@@ -90,6 +92,14 @@ export function AgentAssignmentSelect({
   };
 
   if (mode === "list") {
+    if (readOnly) {
+      return (
+        <div className="p-4 text-sm text-muted-foreground">
+          {assignedAgentEmail || currentAgent?.email || "Unassigned"}
+        </div>
+      );
+    }
+
     return (
       <Command>
         <CommandInput placeholder="Search by email..." className="h-9" />
@@ -138,6 +148,23 @@ export function AgentAssignmentSelect({
   }
 
   const isLarge = size === "lg";
+
+  if (readOnly) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        className={cn(
+          "flex-1 min-w-0 justify-start",
+          isLarge ? "h-11 px-4 text-base text-left" : "h-8 text-sm",
+        )}
+      >
+        <span className="block w-full truncate text-left text-foreground">
+          {currentAgent?.email || assignedAgentEmail || "Unassigned"}
+        </span>
+      </Button>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1 min-w-0 w-full relative">
