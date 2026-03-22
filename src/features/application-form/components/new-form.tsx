@@ -28,6 +28,7 @@ import {
 import useAutoFill from "../hooks/use-auto-fill";
 import { useApplicationFormDataStore } from "../store/use-application-form-data.store";
 import { useApplicationStepStore } from "../store/use-application-step.store";
+import { resetApplicationFormSession } from "../utils/reset-application-form-session";
 import { useStepNavigation } from "../utils/use-step-navigation";
 import { FORM_COMPONENTS } from "./form-step-components";
 
@@ -68,7 +69,6 @@ const NewForm = ({
     goToStep,
     initializeStep,
     isStepCompleted,
-    resetNavigation,
     completedSteps,
     setUnsavedMessage,
     clearUnsavedMessage,
@@ -76,9 +76,6 @@ const NewForm = ({
   } = useApplicationStepStore();
 
   const stepData = useApplicationFormDataStore((state) => state.stepData);
-  const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData,
-  );
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
@@ -157,9 +154,7 @@ const NewForm = ({
         console.log(
           "[NewForm] Clearing stale application data for new session",
         );
-        clearAllData();
-        resetNavigation();
-        goToStep(0);
+        resetApplicationFormSession();
       }
       queueInitializationState(true);
     } else if (isEditMode || isPublicAccessMode) {
@@ -170,6 +165,7 @@ const NewForm = ({
         fetchedEditApplicationRef.current === fetchKey;
 
       if (fetchKey && !hasFetchedThisSession) {
+        resetApplicationFormSession();
         getApplication(undefined, {
           onSuccess: (res) => {
             setCurrentApplication(res?.data ?? null);
@@ -205,9 +201,6 @@ const NewForm = ({
     isEditMode,
     isCreateMode,
     isPublicAccessMode,
-    clearAllData,
-    resetNavigation,
-    goToStep,
     getApplication,
     initializeStep,
     isHydrated,

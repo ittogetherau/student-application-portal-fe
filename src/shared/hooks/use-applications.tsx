@@ -1,7 +1,7 @@
 "use client";
 
 import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
-import { useApplicationStepStore } from "@/features/application-form/store/use-application-step.store";
+import { resetApplicationFormSession } from "@/features/application-form/utils/reset-application-form-session";
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import type {
   ApplicationDeleteResponse,
@@ -172,12 +172,6 @@ export const useApplicationTimelineQuery = (applicationId: string | null) => {
 
 export const useApplicationSubmitMutation = (applicationId: string | null) => {
   const router = useRouter();
-  const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData,
-  );
-  const resetNavigation = useApplicationStepStore(
-    (state) => state.resetNavigation,
-  );
   const queryClient = useQueryClient();
   const isPublicMode = usePublicStudentApplicationStore(
     (state) => state.enabled && !!state.token,
@@ -232,11 +226,8 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
           : trackingCode) ?? undefined;
 
       // Clear in-memory and persisted draft state after successful submission.
-      clearAllData();
-      resetNavigation();
+      resetApplicationFormSession();
       resetPublicSession();
-      useApplicationFormDataStore.persist.clearStorage();
-      useApplicationStepStore.persist.clearStorage();
 
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });

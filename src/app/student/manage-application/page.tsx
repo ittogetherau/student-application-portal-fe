@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState, LoadingState } from "@/components/ui-kit/states";
 import NewForm from "@/features/application-form/components/new-form";
 import { useApplicationFormDataStore } from "@/features/application-form/store/use-application-form-data.store";
-import { useApplicationStepStore } from "@/features/application-form/store/use-application-step.store";
+import { resetApplicationFormSession } from "@/features/application-form/utils/reset-application-form-session";
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import publicStudentApplicationService from "@/service/public-student-application.service";
 import { siteRoutes } from "@/shared/constants/site-routes";
@@ -55,14 +55,8 @@ const StudentManageApplicationContent = () => {
   const searchParams = useSearchParams();
   const token = searchParams.get("token")?.trim() ?? "";
   const applicationIdFromUrl = searchParams.get("id")?.trim() ?? "";
-  const clearAllData = useApplicationFormDataStore(
-    (state) => state.clearAllData,
-  );
   const setApplicationId = useApplicationFormDataStore(
     (state) => state.setApplicationId,
-  );
-  const resetNavigation = useApplicationStepStore(
-    (state) => state.resetNavigation,
   );
   const setSession = usePublicStudentApplicationStore(
     (state) => state.setSession,
@@ -75,8 +69,7 @@ const StudentManageApplicationContent = () => {
   );
 
   useEffect(() => {
-    clearAllData();
-    resetNavigation();
+    resetApplicationFormSession();
 
     if (token) {
       setSession({ token, status: "validating" });
@@ -85,11 +78,10 @@ const StudentManageApplicationContent = () => {
     }
 
     return () => {
+      resetApplicationFormSession();
       resetPublicSession();
     };
   }, [
-    clearAllData,
-    resetNavigation,
     resetPublicSession,
     setSession,
     setStatus,
