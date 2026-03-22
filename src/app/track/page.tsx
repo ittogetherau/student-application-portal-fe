@@ -175,79 +175,79 @@ function ApplicationTrackContent() {
         <div
           className={
             data
-              ? "space-y-6"
+              ? "space-y-8"
               : "flex min-h-[calc(100vh-8rem)] flex-col justify-center"
           }
         >
-          <div className="flex justify-center">
-            <Card className="w-full max-w-md">
-              <CardHeader className="space-y-4 text-center">
-                <Link href={siteRoutes.home} className="mx-auto block w-fit">
-                  <Image
-                    src="/images/logo.svg"
-                    alt="Churchill Institute of Higher Education"
-                    width={160}
-                    height={64}
-                    className="h-auto w-40"
-                    priority
-                  />
-                </Link>
-                <div className="space-y-2">
-                  <CardTitle className="text-3xl">Track Application</CardTitle>
-                  <CardDescription>
-                    Enter your application ID or tracking code to check your
-                    application status.
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-5" onSubmit={handleTrack}>
-                <div className="space-y-2">
-                    <p className="text-sm font-medium">Tracking Code</p>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={applicationId}
-                        onChange={(e) => {
-                          setApplicationId(e.target.value.toUpperCase());
-                          if (error) {
-                            setError(null);
-                          }
-                        }}
-                        placeholder="ABC1234"
-                        className="h-10 pl-9"
-                        disabled={loading}
-                        maxLength={7}
-                      />
-                    </div>
+          {!data ? (
+            <div className="flex justify-center">
+              <Card className="w-full max-w-md">
+                <CardHeader className="space-y-4 text-center">
+                  <Link href={siteRoutes.home} className="mx-auto block w-fit">
+                    <Image
+                      src="/images/logo.svg"
+                      alt="Churchill Institute of Higher Education"
+                      width={160}
+                      height={64}
+                      className="h-auto w-40"
+                      priority
+                    />
+                  </Link>
+                  <div className="space-y-2">
+                    <CardTitle className="text-3xl">Track Application</CardTitle>
+                    <CardDescription>
+                      Enter your application ID or tracking code to check your
+                      application status.
+                    </CardDescription>
                   </div>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-5" onSubmit={handleTrack}>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Tracking Code</p>
+                      <div className="relative">
+                        <Hash className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={applicationId}
+                          onChange={(e) => {
+                            setApplicationId(e.target.value.toUpperCase());
+                            if (error) {
+                              setError(null);
+                            }
+                          }}
+                          placeholder="ABC1234"
+                          className="h-10 pl-9"
+                          disabled={loading}
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
 
-                  {error ? (
-                    <p className="text-sm text-destructive">{error}</p>
-                  ) : null}
+                    {error ? (
+                      <p className="text-sm text-destructive">{error}</p>
+                    ) : null}
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Searching..." : "Track Application"}
-                  </Button>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Searching..." : "Track Application"}
+                    </Button>
 
-                  <p className="text-sm text-muted-foreground">
-                    Haven&apos;t created an application yet?{" "}
-                    <Link
-                      href={siteRoutes.student.root}
-                      className="font-medium text-primary hover:text-primary/80"
-                    >
-                      Create now
-                    </Link>
-                  </p>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+                    <p className="text-sm text-muted-foreground">
+                      Haven&apos;t created an application yet?{" "}
+                      <Link
+                        href={siteRoutes.student.root}
+                        className="font-medium text-primary hover:text-primary/80"
+                      >
+                        Create now
+                      </Link>
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
 
-        </div>
-
-        {data && (
-          <>
+          {data ? (
+            <>
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -398,8 +398,9 @@ function ApplicationTrackContent() {
                 Contact Admissions
               </a>
             </p>
-          </>
-        )}
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );

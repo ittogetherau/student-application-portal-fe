@@ -1,6 +1,8 @@
 "use client";
 
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import documentService, { type OcrResult } from "@/service/document.service";
+import publicStudentApplicationService from "@/service/public-student-application.service";
 import {
   MAX_FILE_SIZE_BYTES,
   isAllowedFileType,
@@ -63,6 +65,10 @@ export const useOcrAutofillUpload = <
   pollIntervalMs = 2000,
   maxAttempts = 15,
 }: UseOcrAutofillUploadOptions<TSummary>) => {
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
+  const token = usePublicStudentApplicationStore((state) => state.token);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -115,7 +121,9 @@ export const useOcrAutofillUpload = <
 
           try {
             const ocrResponse =
-              await documentService.getOcrResults(applicationId);
+              isPublicMode && token
+                ? await publicStudentApplicationService.getExtractedData(token)
+                : await documentService.getOcrResults(applicationId);
 
             if (ocrResponse.success && ocrResponse.data) {
               sawOcrPayload = true;
@@ -164,6 +172,8 @@ export const useOcrAutofillUpload = <
       pollIntervalMs,
       processingTimeoutMessage,
       startSuccessMessage,
+      isPublicMode,
+      token,
       uploadDocument,
       uploadFailureMessage,
     ],

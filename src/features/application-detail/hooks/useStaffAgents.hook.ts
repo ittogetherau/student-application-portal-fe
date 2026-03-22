@@ -2,7 +2,9 @@
 
 import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import type { ApplicationDetailResponse } from "@/service/application.service";
-import publicStudentApplicationService from "@/service/public-student-application.service";
+import publicStudentApplicationService, {
+  type PublicStudentAgentAssignmentResponse,
+} from "@/service/public-student-application.service";
 import staffAgentsService, {
   type StaffAgentListItem,
 } from "@/service/staff-agents.service";
@@ -46,7 +48,11 @@ export const useApplicationAssignAgentMutation = (
   );
   const token = usePublicStudentApplicationStore((state) => state.token);
 
-  return useMutation<ApplicationDetailResponse, Error, string | null>({
+  return useMutation<
+    ApplicationDetailResponse | PublicStudentAgentAssignmentResponse,
+    Error,
+    string | null
+  >({
     mutationKey: [
       "application-assign-agent",
       isPublicMode ? `public:${token}` : applicationId,
@@ -56,11 +62,16 @@ export const useApplicationAssignAgentMutation = (
         throw new Error("Missing application reference.");
       }
 
+      if (isPublicMode && !agentId) {
+        throw new Error("Public application links can only assign an agent.");
+      }
+
       const response =
         isPublicMode && token
-          ? await publicStudentApplicationService.patchApplication(token, {
-              agent_id: agentId,
-            })
+          ? await publicStudentApplicationService.assignAgent(
+              token,
+              agentId as string,
+            )
           : await staffAgentsService.assignAgentToApplication(
               applicationId as string,
               agentId,

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { usePublicStudentApplicationStore } from "@/features/student-application/store/use-public-student-application.store";
 import { cn } from "@/shared/lib/utils";
 import {
   Command,
@@ -49,6 +50,9 @@ export function AgentAssignmentSelect({
   onAssigned,
 }: AgentAssignmentSelectProps) {
   const [open, setOpen] = useState(false);
+  const isPublicMode = usePublicStudentApplicationStore(
+    (state) => state.enabled && !!state.token,
+  );
   const { data: agentsResponse, isLoading: isAgentsLoading } =
     useStaffAgentsQuery();
   const assignMutation = useApplicationAssignAgentMutation(applicationId);
@@ -106,14 +110,19 @@ export function AgentAssignmentSelect({
         <CommandList>
           <CommandEmpty>No agent found.</CommandEmpty>
           <CommandGroup>
-            <CommandItem value="unassigned" onSelect={() => handleAssign(null)}>
-              <Check
-                className={`mr-2 h-4 w-4 ${
-                  !currentAgentId ? "opacity-100" : "opacity-0"
-                }`}
-              />
-              <span className="text-foreground">Unassigned</span>
-            </CommandItem>
+            {!isPublicMode ? (
+              <CommandItem
+                value="unassigned"
+                onSelect={() => handleAssign(null)}
+              >
+                <Check
+                  className={`mr-2 h-4 w-4 ${
+                    !currentAgentId ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+                <span className="text-foreground">Unassigned</span>
+              </CommandItem>
+            ) : null}
             {agents.map((agent) => {
               const assignId = agent.agent_profile_id || agent.id;
               const meta =
@@ -232,18 +241,20 @@ export function AgentAssignmentSelect({
             <CommandList>
               <CommandEmpty>No agent found.</CommandEmpty>
               <CommandGroup>
-                <CommandItem
-                  value="unassigned"
-                  onSelect={() => handleAssign(null)}
-                  className={cn(isLarge && "px-4 py-3")}
-                >
-                  <Check
-                    className={`mr-2 h-4 w-4 ${
-                      !currentAgentId ? "opacity-100" : "opacity-0"
-                    }`}
-                  />
-                  <span className="text-foreground">Unassigned</span>
-                </CommandItem>
+                {!isPublicMode ? (
+                  <CommandItem
+                    value="unassigned"
+                    onSelect={() => handleAssign(null)}
+                    className={cn(isLarge && "px-4 py-3")}
+                  >
+                    <Check
+                      className={`mr-2 h-4 w-4 ${
+                        !currentAgentId ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                    <span className="text-foreground">Unassigned</span>
+                  </CommandItem>
+                ) : null}
                 {agents.map((agent) => {
                   const assignId = agent.agent_profile_id || agent.id;
                   const meta =
