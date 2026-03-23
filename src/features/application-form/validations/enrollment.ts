@@ -8,6 +8,7 @@ const requiredYmdDateSchema = (requiredMessage: string) =>
     .string()
     .min(1, requiredMessage)
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format");
+const nullableMajorSchema = z.string().nullable().optional();
 
 const coreEnrollmentSchema = z
   .object({
@@ -17,8 +18,8 @@ const coreEnrollmentSchema = z
     intake_name: z.string().min(1),
     campus: z.number().int().min(1),
     campus_name: z.string().min(1),
-    major_id: z.string().optional(),
-    major: z.string().optional(),
+    major_id: nullableMajorSchema,
+    major: nullableMajorSchema,
     default_num_weeks: z.number().int().min(1).optional(),
     num_weeks: z.number().int().min(1).optional(),
   })
@@ -32,8 +33,8 @@ const agentEnrollmentSchema = z
     intake_name: z.string().min(1),
     campus: z.number().int().min(1),
     campus_name: z.string().min(1),
-    major_id: z.string().optional(),
-    major: z.string().optional(),
+    major_id: nullableMajorSchema,
+    major: nullableMajorSchema,
 
     advanced_standing_credit: yesNoApiSchema,
     number_of_subjects: z.number().int().min(1).max(12).optional(),
@@ -57,8 +58,8 @@ const staffEnrollmentSchema = z.object({
   intake_name: z.string(),
   campus: z.number(),
   campus_name: z.string(),
-  major_id: z.string().optional(),
-  major: z.string().optional(),
+  major_id: nullableMajorSchema,
+  major: nullableMajorSchema,
 
   advanced_standing_credit: yesNoApiSchema,
   preferred_start_date: requiredYmdDateSchema(

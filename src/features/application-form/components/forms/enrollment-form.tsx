@@ -37,7 +37,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+import {
+  Controller,
+  FormProvider,
+  type SubmitErrorHandler,
+  useForm,
+  useWatch,
+} from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
 import StudentEnrollmentForm from "../student-enrollment/student-enrollment-form";
@@ -54,8 +60,8 @@ const enrollmentCoreSchema = z.object({
   course: requiredSelectId("Please select a course"),
   intake: requiredSelectId("Please select an intake"),
   campus: requiredSelectId("Please select a campus"),
-  major_id: z.string().optional(),
-  major: z.string().optional(),
+  major_id: z.string().nullable().optional(),
+  major: z.string().nullable().optional(),
 });
 
 type EnrollmentCoreFormValues = z.infer<typeof enrollmentCoreSchema>;
@@ -627,6 +633,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
       if (isBitCourse) {
         if (isMajorsLoading) {
+          console.error("[EnrollmentForm] Major validation blocked submit", {
+            reason: "majors_loading",
+            values,
+            selectedCourseCode: selectedCourse?.course_code ?? null,
+          });
           methods.setError("major_id", {
             type: "manual",
             message: "Majors are still loading. Please wait.",
@@ -635,6 +646,15 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
         }
 
         if (!majorId || !majorMatch) {
+          console.error("[EnrollmentForm] Major validation blocked submit", {
+            reason: !majorId ? "missing_major" : "invalid_major",
+            values,
+            availableMajors: majors.map((major) => ({
+              secure_id: major.secure_id,
+              major_name: major.major_name,
+            })),
+            selectedCourseCode: selectedCourse?.course_code ?? null,
+          });
           methods.setError("major_id", {
             type: "manual",
             message: "Please select a major",
@@ -671,7 +691,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               major_id: majorMatch.secure_id,
               major: majorMatch.major_name,
             }
-          : {}),
+          : {
+              major_id: null,
+              major: null,
+            }),
       };
 
       await saveEnrollment({
@@ -699,10 +722,31 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to save enrollment";
+      console.error("[EnrollmentForm] Save failed", {
+        error: err,
+        values,
+        formErrors: methods.formState.errors,
+      });
       toast.error(message, {
         id: "application-flow",
       });
     }
+  };
+
+  const onInvalidSubmit: SubmitErrorHandler<EnrollmentCoreFormValues> = (
+    errors,
+  ) => {
+    console.error("[EnrollmentForm] Submit blocked by validation", {
+      errors,
+      values: methods.getValues(),
+      selectedCourseCode: selectedCourse?.course_code ?? null,
+      isBitCourse,
+      isMajorsLoading,
+      availableMajors: majors.map((major) => ({
+        secure_id: major.secure_id,
+        major_name: major.major_name,
+      })),
+    });
   };
 
   const handleManagedEnrollmentSuccess = (savedPayload?: EnrollmentValues) => {
@@ -754,7 +798,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)}>
+      <form onSubmit={methods.handleSubmit(onSubmit, onInvalidSubmit)}>
         <div className={cn("space-y-8 p-4 border rounded-lg mb-6")}>
           <div
             className={cn(

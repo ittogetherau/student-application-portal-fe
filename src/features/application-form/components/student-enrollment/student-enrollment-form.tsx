@@ -88,7 +88,7 @@ type StudentEnrollmentFormProps = {
     intake: number;
     campus: number;
     course_name?: string;
-    major?: string;
+    major?: string | null;
     major_id?: string | null;
     intake_name?: string;
     campus_name?: string;
@@ -156,17 +156,6 @@ const StudentEnrollmentForm = ({
     advancedStandingValue === "Yes" ? "yes" : "no";
   const numberOfSubjects = toNumber(numberOfSubjectsValue);
 
-  const initialEnrollmentData = useMemo(() => {
-    if (
-      !initialData ||
-      typeof initialData !== "object" ||
-      Array.isArray(initialData)
-    ) {
-      return null;
-    }
-    return initialData as Record<string, unknown>;
-  }, [initialData]);
-
   const enrollmentCore = useMemo(() => {
     if (!selectedCore) return null;
 
@@ -180,17 +169,6 @@ const StudentEnrollmentForm = ({
         ? selectedCore.major_id
         : undefined;
 
-    const initialMajor =
-      typeof initialEnrollmentData?.major === "string" &&
-      initialEnrollmentData.major.trim().length
-        ? initialEnrollmentData.major
-        : undefined;
-    const initialMajorId =
-      typeof initialEnrollmentData?.major_id === "string" &&
-      initialEnrollmentData.major_id.trim().length
-        ? initialEnrollmentData.major_id
-        : undefined;
-
     return {
       course: selectedCore.course,
       course_code: selectedCore.course_code ?? "",
@@ -199,8 +177,8 @@ const StudentEnrollmentForm = ({
       intake_name: selectedCore.intake_name ?? "",
       campus: selectedCore.campus,
       campus_name: selectedCore.campus_name ?? "",
-      major: selectedMajor ?? initialMajor ?? "",
-      major_id: selectedMajorId ?? initialMajorId ?? null,
+      major: selectedMajor ?? null,
+      major_id: selectedMajorId ?? null,
       course_duration_text: selectedCore.course_duration_text ?? "",
       intake_start: selectedCore.intake_start ?? null,
       intake_end: selectedCore.intake_end ?? null,
@@ -209,7 +187,7 @@ const StudentEnrollmentForm = ({
       intake_duration: selectedCore.intake_duration ?? null,
       default_num_weeks: selectedCore.default_num_weeks ?? null,
     };
-  }, [initialEnrollmentData, selectedCore]);
+  }, [selectedCore]);
   const resolvedCourseStartDate = normalizeDateStringToYmd(
     enrollmentCore?.intake_start || enrollmentCore?.class_start_date,
   );
@@ -499,8 +477,8 @@ const StudentEnrollmentForm = ({
       intake_name: enrollmentCore.intake_name,
       campus: enrollmentCore.campus,
       campus_name: enrollmentCore.campus_name,
-      ...(enrollmentCore.major ? { major: enrollmentCore.major } : {}),
-      ...(enrollmentCore.major_id ? { major_id: enrollmentCore.major_id } : {}),
+      major: enrollmentCore.major,
+      major_id: enrollmentCore.major_id,
       preferred_start_date: values.preferred_start_date,
       advanced_standing_credit: toYesNoApi(values.advanced_standing_credit),
       default_num_weeks: Number(values.default_num_weeks),
