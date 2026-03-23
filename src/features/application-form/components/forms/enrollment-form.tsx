@@ -59,6 +59,23 @@ const enrollmentCoreSchema = z.object({
 });
 
 type EnrollmentCoreFormValues = z.infer<typeof enrollmentCoreSchema>;
+type PersistedEnrollmentSnapshot = {
+  courseId?: number | string;
+  intakeId?: number | string;
+  campusId?: number | string;
+  course_id?: number | string;
+  intake_id?: number | string;
+  campus_id?: number | string;
+  course?: number | string;
+  intake?: number | string;
+  campus?: number | string;
+  course_name?: string | null;
+  intake_name?: string | null;
+  campus_name?: string | null;
+  majorId?: string | null;
+  major_id?: string | null;
+  major?: string | null;
+};
 
 const toId = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -119,7 +136,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
   const [resolvedApplicationId, setResolvedApplicationId] = useState<
     string | undefined
-  >(applicationId);
+  >();
 
   const { goToNext, markStepCompleted, clearStepDirty } =
     useApplicationStepStore();
@@ -130,7 +147,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const persistedEnrollmentData = useApplicationFormDataStore(
     (state) => state.stepData[0],
   );
-  const currentApplicationId = resolvedApplicationId ?? applicationId;
+  const currentApplicationId = applicationId ?? resolvedApplicationId;
   const { isStaffOrAdmin } = useRoleFlags();
   const { data: applicationResponse } = useApplicationGetQuery(
     currentApplicationId ?? null,
@@ -152,7 +169,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { mutateAsync: saveEnrollment, isPending: isSaving } =
     useSaveEnrollmentMutation();
 
-  const courses = coursesResponse?.data ?? [];
+  const courses = useMemo(() => coursesResponse?.data ?? [], [coursesResponse?.data]);
 
   const methods = useForm<EnrollmentCoreFormValues>({
     resolver: zodResolver(enrollmentCoreSchema),
@@ -172,12 +189,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const searchParams = useSearchParams();
 
   const hasRestoredRef = useRef(false);
-
-  useEffect(() => {
-    if (applicationId && applicationId !== resolvedApplicationId) {
-      setResolvedApplicationId(applicationId);
-    }
-  }, [applicationId, resolvedApplicationId]);
+  const pendingEnrollmentRestoreRef = useRef<PersistedEnrollmentSnapshot | null>(
+    null,
+  );
 
   useApplicationStepQuery(currentApplicationId ?? null, 0);
 
@@ -188,22 +202,9 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     enabled: true,
     autoSave: false,
     onDataLoaded: (data) => {
+      const saved = data as unknown as PersistedEnrollmentSnapshot;
+      pendingEnrollmentRestoreRef.current = saved;
       if (hasRestoredRef.current) return;
-
-      const saved = data as unknown as {
-        courseId?: number | string;
-        intakeId?: number | string;
-        campusId?: number | string;
-        course_id?: number | string;
-        intake_id?: number | string;
-        campus_id?: number | string;
-        course?: number | string;
-        intake?: number | string;
-        campus?: number | string;
-        majorId?: string | null;
-        major_id?: string | null;
-        major?: string | null;
-      };
 
       const legacyCourse = toId(
         saved.courseId ?? saved.course_id ?? saved.course,
@@ -417,6 +418,60 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     const course = courses.find((item) => toId(item.id) === selectedCourseId);
     return course?.campuses ?? [];
   }, [courses, selectedCourseId]);
+
+  useEffect(() => {
+    const saved = pendingEnrollmentRestoreRef.current;
+    if (!saved || !courses.length) return;
+
+    const currentCourse = toId(methods.getValues("course"));
+    if (!currentCourse && saved.course_name) {
+      const matchedCourse = courses.find(
+        (course) =>
+          (course.course_name ?? "").trim().toLowerCase() ===
+          saved.course_name?.trim().toLowerCase(),
+      );
+      const matchedCourseId = toId(matchedCourse?.id);
+      if (matchedCourseId) {
+        methods.setValue("course", matchedCourseId, { shouldDirty: false });
+      }
+    }
+  }, [courses, methods]);
+
+  useEffect(() => {
+    const saved = pendingEnrollmentRestoreRef.current;
+    if (!saved || !availableCampuses.length) return;
+
+    const currentCampus = toId(methods.getValues("campus"));
+    if (!currentCampus && saved.campus_name) {
+      const matchedCampus = availableCampuses.find(
+        (campus) =>
+          (campus.name ?? "").trim().toLowerCase() ===
+          saved.campus_name?.trim().toLowerCase(),
+      );
+      const matchedCampusId = toId(matchedCampus?.id);
+      if (matchedCampusId) {
+        methods.setValue("campus", matchedCampusId, { shouldDirty: false });
+      }
+    }
+  }, [availableCampuses, methods]);
+
+  useEffect(() => {
+    const saved = pendingEnrollmentRestoreRef.current;
+    if (!saved || !availableIntakes.length) return;
+
+    const currentIntake = toId(methods.getValues("intake"));
+    if (!currentIntake && saved.intake_name) {
+      const matchedIntake = availableIntakes.find(
+        (intake) =>
+          (intake.intake_name ?? "").trim().toLowerCase() ===
+          saved.intake_name?.trim().toLowerCase(),
+      );
+      const matchedIntakeId = toId(matchedIntake?.id);
+      if (matchedIntakeId) {
+        methods.setValue("intake", matchedIntakeId, { shouldDirty: false });
+      }
+    }
+  }, [availableIntakes, methods]);
 
   const canFetchIntakes = !!courseValue && !!campusValue;
   const isIntakesLoading =

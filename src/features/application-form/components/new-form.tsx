@@ -52,6 +52,9 @@ const NewForm = ({
     (state) => state.enabled && !!state.token,
   );
   const publicToken = usePublicStudentApplicationStore((state) => state.token);
+  const publicApplicationId = usePublicStudentApplicationStore(
+    (state) => state.applicationId,
+  );
 
   const storedApplicationId = useApplicationFormDataStore(
     (state) => state.applicationId,
@@ -61,6 +64,7 @@ const NewForm = ({
   const applicationId =
     propApplicationId ||
     searchParams.get("id") ||
+    publicApplicationId ||
     storedApplicationId ||
     undefined;
 
@@ -97,6 +101,17 @@ const NewForm = ({
   // Determine mode
   const isEditMode = searchParams.get("edit") === "true" && !!applicationId;
   const isCreateMode = !applicationId && !isPublicAccessMode;
+  const activeFetchKey = useMemo(() => {
+    if (isPublicAccessMode && publicToken) {
+      return `public:${publicToken}`;
+    }
+
+    if (isEditMode && applicationId) {
+      return applicationId;
+    }
+
+    return null;
+  }, [applicationId, isEditMode, isPublicAccessMode, publicToken]);
   const resolvedBackHref =
     backHref ||
     (applicationId
@@ -119,10 +134,22 @@ const NewForm = ({
   );
   const hasCompletedSteps = completedSteps.length > 0;
 
-  const fetchedEditApplicationRef = useRef<string | null>(null);
+  const [resolvedFetchKey, setResolvedFetchKey] = useState<string | null>(null);
+  const [inFlightFetchKey, setInFlightFetchKey] = useState<string | null>(null);
+  const hydratedFetchedApplicationRef = useRef<string | null>(null);
   const queueInitializationState = useCallback((value: boolean) => {
     queueMicrotask(() => {
       setIsInitialized(value);
+    });
+  }, []);
+  const queueInFlightFetchKey = useCallback((value: string | null) => {
+    queueMicrotask(() => {
+      setInFlightFetchKey(value);
+    });
+  }, []);
+  const queueAutoFillRefresh = useCallback(() => {
+    queueMicrotask(() => {
+      setAutoFillKey((prev) => prev + 1);
     });
   }, []);
 
@@ -146,8 +173,6 @@ const NewForm = ({
   useEffect(() => {
     if (!isHydrated) return;
 
-    queueInitializationState(false);
-
     if (isCreateMode) {
       // If we are in create mode but have stale data from a previous session, clear it
       if (storedApplicationId || hasStoredStepData || hasCompletedSteps) {
@@ -158,13 +183,14 @@ const NewForm = ({
       }
       queueInitializationState(true);
     } else if (isEditMode || isPublicAccessMode) {
-      const fetchKey = isPublicAccessMode
-        ? `public:${publicToken ?? "missing"}`
-        : applicationId;
-      const hasFetchedThisSession =
-        fetchedEditApplicationRef.current === fetchKey;
+      const fetchKey = activeFetchKey;
+      const hasFetchedThisSession = resolvedFetchKey === fetchKey;
+      const isFetchingThisSession = inFlightFetchKey === fetchKey;
 
-      if (fetchKey && !hasFetchedThisSession) {
+      if (fetchKey && !hasFetchedThisSession && !isFetchingThisSession) {
+        queueInitializationState(false);
+        queueInFlightFetchKey(fetchKey);
+        hydratedFetchedApplicationRef.current = null;
         resetApplicationFormSession();
         getApplication(undefined, {
           onSuccess: (res) => {
@@ -175,21 +201,36 @@ const NewForm = ({
               if (resolvedApplicationId) {
                 initializeStep(resolvedApplicationId, stepData);
               }
-              setAutoFillKey((prev) => prev + 1);
+              hydratedFetchedApplicationRef.current = fetchKey;
+              queueAutoFillRefresh();
             }
-            fetchedEditApplicationRef.current = fetchKey;
+            setInFlightFetchKey(null);
+            setResolvedFetchKey(fetchKey);
             queueInitializationState(true);
           },
           onError: () => {
             setCurrentApplication(null);
-            fetchedEditApplicationRef.current = fetchKey;
+            setInFlightFetchKey(null);
+            setResolvedFetchKey(fetchKey);
             queueInitializationState(true);
           },
         });
+      } else if (isFetchingThisSession) {
+        return;
       } else {
         const stepData = useApplicationFormDataStore.getState().stepData;
-        if (applicationId) {
-          initializeStep(applicationId, stepData);
+        const resolvedApplicationId =
+          applicationId ?? publicApplicationId ?? null;
+        if (resolvedApplicationId) {
+          initializeStep(resolvedApplicationId, stepData);
+        }
+        if (
+          fetchKey &&
+          hasStoredStepData &&
+          hydratedFetchedApplicationRef.current !== fetchKey
+        ) {
+          hydratedFetchedApplicationRef.current = fetchKey;
+          queueAutoFillRefresh();
         }
         queueInitializationState(true);
       }
@@ -208,11 +249,27 @@ const NewForm = ({
     hasStoredStepData,
     hasCompletedSteps,
     publicToken,
+    publicApplicationId,
+    activeFetchKey,
+    resolvedFetchKey,
+    inFlightFetchKey,
+    queueInFlightFetchKey,
+    queueAutoFillRefresh,
     queueInitializationState,
   ]);
 
   // Loading State
-  if (isFetching || !isInitialized || !isHydrated) {
+  const isResolvingExistingApplication =
+    !!activeFetchKey &&
+    (inFlightFetchKey === activeFetchKey ||
+      resolvedFetchKey !== activeFetchKey);
+
+  if (
+    !isHydrated ||
+    isFetching ||
+    isResolvingExistingApplication ||
+    (!activeFetchKey && !isInitialized)
+  ) {
     return (
       <div className="flex items-center justify-center p-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

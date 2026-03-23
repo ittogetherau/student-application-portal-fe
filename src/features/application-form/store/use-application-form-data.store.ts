@@ -28,6 +28,62 @@ type FormDataState = {
   setHasHydrated: (state: boolean) => void;
 };
 
+const toRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const toRecordArray = (value: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+
+  const record = toRecord(value);
+  if (!record) return [];
+
+  if (Array.isArray(record.contacts)) {
+    return record.contacts.filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+
+  if (Array.isArray(record.qualifications)) {
+    return record.qualifications.filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+
+  if (Array.isArray(record.items)) {
+    return record.items.filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+
+  return [];
+};
+
+const toBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "yes", "1"].includes(normalized)) return true;
+    if (["false", "no", "0"].includes(normalized)) return false;
+  }
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  return undefined;
+};
+
 // Helper to merge OCR data with user data (user data takes precedence)
 const mergeData = <T>(
   ocrData: T | undefined,
@@ -180,56 +236,51 @@ export const useApplicationFormDataStore = create<FormDataState>()(
             typeof apiResponse.student_email === "string"
               ? apiResponse.student_email.trim().toLowerCase()
               : "";
+          const enrollment = toRecord(apiResponse.enrollment_data);
+          const personalDetails = toRecord(apiResponse.personal_details) ?? {};
+          const emergencyContacts = toRecordArray(apiResponse.emergency_contacts);
+          const healthCoverPolicy = toRecord(apiResponse.health_cover_policy);
+          const languageCulturalData =
+            toRecord(apiResponse.language_cultural_data);
+          const disabilitySupport = toRecord(apiResponse.disability_support);
+          const qualifications = toRecordArray(apiResponse.qualifications);
 
           // Clear previous data to prevent leaking between applications
           const newStepData: Record<number, unknown> = {};
 
           // Step 0: Enrollment
-          if (apiResponse.enrollment_data) {
-            const enrollment =
-              typeof apiResponse.enrollment_data === "object" &&
-              apiResponse.enrollment_data !== null &&
-              !Array.isArray(apiResponse.enrollment_data)
-                ? (apiResponse.enrollment_data as Record<string, unknown>)
-                : null;
+          if (enrollment) {
+            const courseId =
+              enrollment.courseId ??
+              enrollment.course_id ??
+              enrollment.course ??
+              null;
+            const intakeId =
+              enrollment.intakeId ??
+              enrollment.intake_id ??
+              enrollment.intake ??
+              null;
+            const campusId =
+              enrollment.campusId ??
+              enrollment.campus_id ??
+              enrollment.campus ??
+              null;
 
-            if (enrollment) {
-              const courseId =
-                (enrollment.courseId as number | undefined) ??
-                (enrollment.course_id as number | undefined) ??
-                (enrollment.course as number | undefined);
-              const intakeId =
-                (enrollment.intakeId as number | undefined) ??
-                (enrollment.intake_id as number | undefined) ??
-                (enrollment.intake as number | undefined);
-              const campusId =
-                (enrollment.campusId as number | undefined) ??
-                (enrollment.campus_id as number | undefined) ??
-                (enrollment.campus as number | undefined);
-
-              // Preserve all enrollment fields so edit mode can prefill the full form.
-              newStepData[0] = {
-                ...enrollment,
-                courseId,
-                intakeId,
-                campusId,
-                course: courseId ?? (enrollment.course as number | undefined),
-                intake: intakeId ?? (enrollment.intake as number | undefined),
-                campus: campusId ?? (enrollment.campus as number | undefined),
-              };
-            }
+            // Preserve all enrollment fields so edit mode can prefill the full form.
+            newStepData[0] = {
+              ...enrollment,
+              courseId,
+              intakeId,
+              campusId,
+              course: courseId ?? enrollment.course ?? undefined,
+              intake: intakeId ?? enrollment.intake ?? undefined,
+              campus: campusId ?? enrollment.campus ?? undefined,
+            };
           }
 
           // Map API response fields to step IDs
           // Step 1: Personal Details
           if (apiResponse.personal_details || studentEmail) {
-            const personalDetails =
-              apiResponse.personal_details &&
-              typeof apiResponse.personal_details === "object" &&
-              !Array.isArray(apiResponse.personal_details)
-                ? (apiResponse.personal_details as Record<string, unknown>)
-                : {};
-
             newStepData[1] = {
               ...personalDetails,
               ...(studentEmail ? { email: studentEmail } : {}),
@@ -238,26 +289,73 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
           // Step 2: Emergency Contact
           if (apiResponse.emergency_contacts) {
-            newStepData[2] = { contacts: apiResponse.emergency_contacts };
+            newStepData[2] = { contacts: emergencyContacts };
           }
 
-          // Step 3 (Health Cover) is hidden; skip prefilling.
+          // Step 3: Health Cover
+          if (healthCoverPolicy) {
+            const arrangeOSHC =
+              toBoolean(
+                healthCoverPolicy.arrange_OSHC ?? healthCoverPolicy.has_oshc,
+              ) ?? false;
+
+            newStepData[3] = {
+              arrange_OSHC: arrangeOSHC,
+              OSHC_provider:
+                healthCoverPolicy.OSHC_provider ?? healthCoverPolicy.provider ?? "",
+              OSHC_type:
+                healthCoverPolicy.OSHC_type ??
+                healthCoverPolicy.coverage_type ??
+                undefined,
+              OSHC_start_date:
+                healthCoverPolicy.OSHC_start_date ??
+                healthCoverPolicy.start_date ??
+                "",
+              OSHC_end_date:
+                healthCoverPolicy.OSHC_end_date ??
+                healthCoverPolicy.end_date ??
+                "",
+              OSHC_duration:
+                healthCoverPolicy.OSHC_duration ??
+                healthCoverPolicy.duration ??
+                "",
+              OSHC_fee:
+                typeof healthCoverPolicy.OSHC_fee === "number"
+                  ? healthCoverPolicy.OSHC_fee
+                  : typeof healthCoverPolicy.fee === "number"
+                    ? healthCoverPolicy.fee
+                    : 0,
+            };
+          }
 
           // Step 4: Language & Culture
-          if (apiResponse.language_cultural_data) {
-            newStepData[4] = apiResponse.language_cultural_data;
+          if (languageCulturalData) {
+            newStepData[4] = {
+              ...languageCulturalData,
+              is_aus_aboriginal_or_islander:
+                languageCulturalData.is_aus_aboriginal_or_islander ??
+                languageCulturalData.aboriginal_torres_strait ??
+                languageCulturalData.indigenous_status ??
+                "4",
+              english_test_overall:
+                languageCulturalData.english_test_overall ??
+                languageCulturalData.english_test_score ??
+                null,
+            };
           }
 
           // Step 5: Disability Support
-          if (apiResponse.disability_support) {
-            const ds = { ...apiResponse.disability_support } as Record<
-              string,
-              unknown
-            >;
+          if (disabilitySupport) {
+            const ds = { ...disabilitySupport } as Record<string, unknown>;
 
             // Normalize has_disability
             if (typeof ds.has_disability === "boolean") {
               ds.has_disability = ds.has_disability ? "Yes" : "No";
+            } else {
+              const normalizedHasDisability = toBoolean(ds.has_disability);
+              if (typeof normalizedHasDisability === "boolean") {
+                ds.has_disability = normalizedHasDisability ? "Yes" : "No";
+              }
             }
 
             // Map legacy disability_type string to booleans if needed
@@ -288,14 +386,6 @@ export const useApplicationFormDataStore = create<FormDataState>()(
 
           // Step 7: Qualifications
           if (apiResponse.qualifications) {
-            const qualificationsSource = apiResponse.qualifications as
-              | unknown[]
-              | Record<string, unknown>;
-            const qualifications = Array.isArray(qualificationsSource)
-              ? qualificationsSource
-              : Array.isArray(qualificationsSource?.qualifications)
-                ? (qualificationsSource.qualifications as unknown[])
-                : [];
             newStepData[7] = {
               has_qualifications: qualifications.length > 0 ? "Yes" : "No",
               qualifications,

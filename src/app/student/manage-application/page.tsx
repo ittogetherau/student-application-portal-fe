@@ -10,8 +10,10 @@ import publicStudentApplicationService from "@/service/public-student-applicatio
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+const OPEN_QUERY_CACHE_MS = 5 * 60 * 1000;
 
 type QueryError = Error & {
   response?: {
@@ -39,11 +41,12 @@ const SubmittedState = ({ trackingCode }: { trackingCode?: string }) => (
     <div className="rounded-lg border bg-card p-8 text-center shadow-sm">
       <h1 className="text-2xl font-semibold">Application Submitted</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        This application has already been submitted and can no longer be
-        edited.
+        This application has already been submitted and can no longer be edited.
       </p>
       <Button asChild className="mt-6">
-        <Link href={siteRoutes.track.root(trackingCode)}>Track Application</Link>
+        <Link href={siteRoutes.track.root(trackingCode)}>
+          Track Application
+        </Link>
       </Button>
     </div>
   </div>
@@ -53,8 +56,10 @@ const StudentManageApplicationContent = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const token = searchParams.get("token")?.trim() ?? "";
   const applicationIdFromUrl = searchParams.get("id")?.trim() ?? "";
+  const isEditModeFromUrl = searchParams.get("edit") === "true";
   const setApplicationId = useApplicationFormDataStore(
     (state) => state.setApplicationId,
   );
@@ -67,9 +72,11 @@ const StudentManageApplicationContent = () => {
   const resetPublicSession = usePublicStudentApplicationStore(
     (state) => state.reset,
   );
+  const appliedOpenSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     resetApplicationFormSession();
+    appliedOpenSessionRef.current = null;
 
     if (token) {
       setSession({ token, status: "validating" });
@@ -81,17 +88,17 @@ const StudentManageApplicationContent = () => {
       resetApplicationFormSession();
       resetPublicSession();
     };
-  }, [
-    resetPublicSession,
-    setSession,
-    setStatus,
-    token,
-  ]);
+  }, [resetPublicSession, setSession, setStatus, token]);
 
   const openQuery = useQuery({
     queryKey: ["public-student-application-open", token],
     enabled: !!token,
     retry: false,
+    staleTime: OPEN_QUERY_CACHE_MS,
+    gcTime: OPEN_QUERY_CACHE_MS,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const response =
         await publicStudentApplicationService.openApplication(token);
@@ -120,7 +127,9 @@ const StudentManageApplicationContent = () => {
     typeof openPayload?.current_stage === "string" &&
     openPayload.current_stage.toLowerCase() === "submitted";
   const isUrlSyncedWithValidatedApplication =
-    !!validatedApplicationId && applicationIdFromUrl === validatedApplicationId;
+    !!validatedApplicationId &&
+    applicationIdFromUrl === validatedApplicationId &&
+    isEditModeFromUrl;
 
   useEffect(() => {
     if (!token) return;
@@ -135,38 +144,58 @@ const StudentManageApplicationContent = () => {
         return;
       }
 
-      setSession({
+      const studentEmail =
+        typeof openQuery.data?.student_email === "string"
+          ? openQuery.data.student_email
+          : null;
+      const submittedByStudent =
+        typeof openQuery.data?.submitted_by_student === "boolean"
+          ? openQuery.data.submitted_by_student
+          : null;
+      const appliedSessionKey = JSON.stringify({
         token,
         applicationId: resolvedApplicationId,
         trackingCode: validatedTrackingCode || null,
-        status: "ready",
         expiresAt: openQuery.data?.expires_at ?? null,
-        studentEmail:
-          typeof openQuery.data?.student_email === "string"
-            ? openQuery.data.student_email
-            : null,
-        submittedByStudent:
-          typeof openQuery.data?.submitted_by_student === "boolean"
-            ? openQuery.data.submitted_by_student
-            : null,
+        studentEmail,
+        submittedByStudent,
       });
 
-      if (resolvedApplicationId) {
-        setApplicationId(resolvedApplicationId);
+      if (appliedOpenSessionRef.current !== appliedSessionKey) {
+        setSession({
+          token,
+          applicationId: resolvedApplicationId,
+          trackingCode: validatedTrackingCode || null,
+          status: "ready",
+          expiresAt: openQuery.data?.expires_at ?? null,
+          studentEmail,
+          submittedByStudent,
+        });
 
-        if (applicationIdFromUrl !== resolvedApplicationId) {
-          const params = new URLSearchParams(searchParams.toString());
-          params.set("id", resolvedApplicationId);
-          router.replace(`${pathname}?${params.toString()}`, {
-            scroll: false,
-          });
+        if (resolvedApplicationId) {
+          setApplicationId(resolvedApplicationId);
         }
+
+        appliedOpenSessionRef.current = appliedSessionKey;
+      }
+
+      if (
+        resolvedApplicationId &&
+        (applicationIdFromUrl !== resolvedApplicationId || !isEditModeFromUrl)
+      ) {
+        const params = new URLSearchParams(searchParamsString);
+        params.set("id", resolvedApplicationId);
+        params.set("edit", "true");
+        router.replace(`${pathname}?${params.toString()}`, {
+          scroll: false,
+        });
       }
 
       return;
     }
 
     if (openQuery.isError) {
+      appliedOpenSessionRef.current = null;
       const status = (openQuery.error as QueryError).response?.status;
       setStatus(status === 400 ? "expired" : "idle");
     }
@@ -178,7 +207,8 @@ const StudentManageApplicationContent = () => {
     openQuery.isSuccess,
     pathname,
     router,
-    searchParams,
+    searchParamsString,
+    isEditModeFromUrl,
     setApplicationId,
     setSession,
     setStatus,
