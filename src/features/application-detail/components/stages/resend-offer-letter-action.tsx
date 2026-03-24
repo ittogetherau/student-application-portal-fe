@@ -83,8 +83,8 @@ export default function ResendOfferLetterAction({
           <DialogHeader>
             <DialogTitle>Reset signatures</DialogTitle>
             <DialogDescription>
-              Existing signatures will be invalidated. Both parties must sign
-              again.
+              Existing student signatures will be invalidated. The student must
+              sign again.
             </DialogDescription>
           </DialogHeader>
 

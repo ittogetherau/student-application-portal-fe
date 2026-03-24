@@ -221,14 +221,13 @@ const ApplicationSignStage = ({
     currentRole === USER_ROLE.STAFF && (data?.items?.length ?? 0) > 0;
 
   const isReSignFlow = signatureRequestCount > 1;
-  const isCurrentRequestFullySigned =
-    !!firstItem?.student.signed_at && !!firstItem?.agent.signed_at;
+  const hasStudentSignedCurrentRequest = !!firstItem?.student.signed_at;
 
   const canStartGs =
-    currentRole === USER_ROLE.STAFF && isCurrentRequestFullySigned;
+    currentRole === USER_ROLE.STAFF && hasStudentSignedCurrentRequest;
 
   const offerLetterHeading = isReSignFlow
-    ? isCurrentRequestFullySigned
+    ? hasStudentSignedCurrentRequest
       ? "Re-signed offer letter"
       : "Re-sign offer letter"
     : "Sign Offer Letter Agreement";
@@ -266,14 +265,6 @@ const ApplicationSignStage = ({
                 email={firstItem?.student.email ?? ""}
                 url={firstItem?.student.signing_url ?? "#"}
                 signedAt={firstItem?.student.signed_at}
-                isReSignFlow={isReSignFlow}
-                isInteractive={true}
-              />
-              <SignerRow
-                name={firstItem?.agent.name ?? ""}
-                email={firstItem?.agent.email ?? ""}
-                url={firstItem?.agent.signing_url ?? "#"}
-                signedAt={firstItem?.agent.signed_at}
                 isReSignFlow={isReSignFlow}
                 isInteractive={true}
               />
