@@ -4,6 +4,9 @@ import type { ApplicationDetailResponse } from "@/service/application.service";
 import type { OcrResult } from "@/service/document.service";
 import { useApplicationStepStore } from "./use-application-step.store";
 
+const APPLICATION_FORM_STORAGE_KEY = "application-form-storage";
+const ANONYMOUS_APPLICATION_STORAGE_ID = "__anonymous__";
+
 type FormDataState = {
   // User input data for each step
   stepData: Record<number, unknown>;
@@ -27,6 +30,11 @@ type FormDataState = {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
 };
+
+type PersistedFormDataState = Pick<
+  FormDataState,
+  "applicationId" | "stepData" | "ocrData"
+>;
 
 const toRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -82,6 +90,31 @@ const toBoolean = (value: unknown): boolean | undefined => {
     if (value === 0) return false;
   }
   return undefined;
+};
+
+const getFormDataStorageKey = (applicationId: string | null) =>
+  `${APPLICATION_FORM_STORAGE_KEY}:${
+    applicationId ?? ANONYMOUS_APPLICATION_STORAGE_ID
+  }`;
+
+const readPersistedFormDataState = (
+  storageKey: string,
+): PersistedFormDataState | null => {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { state?: PersistedFormDataState };
+    return parsed?.state ?? null;
+  } catch (error) {
+    console.error("[Store] Failed to read persisted form data", {
+      storageKey,
+      error,
+    });
+    return null;
+  }
 };
 
 // Helper to merge OCR data with user data (user data takes precedence)
@@ -147,7 +180,24 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
 
       setApplicationId: (id) => {
-        set({ applicationId: id });
+        const nextStorageKey = getFormDataStorageKey(id);
+        const currentStorageKey =
+          useApplicationFormDataStore.persist.getOptions().name;
+
+        if (currentStorageKey === nextStorageKey) {
+          set({ applicationId: id, _hasHydrated: true });
+          return;
+        }
+
+        const persistedState = readPersistedFormDataState(nextStorageKey);
+        useApplicationFormDataStore.persist.setOptions({ name: nextStorageKey });
+
+        set({
+          applicationId: id,
+          stepData: persistedState?.stepData ?? {},
+          ocrData: persistedState?.ocrData ?? {},
+          _hasHydrated: true,
+        });
       },
 
       setStepData: <T>(stepId: number, data: T) => {
@@ -525,7 +575,7 @@ export const useApplicationFormDataStore = create<FormDataState>()(
       },
     }),
     {
-      name: "application-form-storage",
+      name: getFormDataStorageKey(null),
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         applicationId: state.applicationId,

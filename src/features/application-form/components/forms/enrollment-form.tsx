@@ -144,13 +144,13 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     string | undefined
   >();
 
-  const { goToNext, markStepCompleted, clearStepDirty } =
+  const { goToNext, markStepCompleted, clearStepDirty, setStorageScope } =
     useApplicationStepStore();
   const setApplicationId = useApplicationFormDataStore(
     (state) => state.setApplicationId,
   );
   const setStepData = useApplicationFormDataStore((state) => state.setStepData);
-  const persistedEnrollmentData = useApplicationFormDataStore(
+  const persistedEnrollmentDataFromStore = useApplicationFormDataStore(
     (state) => state.stepData[0],
   );
   const currentApplicationId = applicationId ?? resolvedApplicationId;
@@ -158,6 +158,10 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   const { data: applicationResponse } = useApplicationGetQuery(
     currentApplicationId ?? null,
   );
+  const persistedEnrollmentData =
+    isStaffOrAdmin && applicationResponse?.data?.enrollment_data
+      ? applicationResponse.data.enrollment_data
+      : persistedEnrollmentDataFromStore;
   const currentStage = applicationResponse?.data?.current_stage;
   const shouldShowManageEnrollment =
     !!currentApplicationId &&
@@ -612,6 +616,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
 
     setResolvedApplicationId(createdId);
     setApplicationId(createdId);
+    setStorageScope(createdId);
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", createdId);
@@ -709,10 +714,12 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           ? (persistedEnrollmentData as Record<string, unknown>)
           : {};
 
-      setStepData(0, {
-        ...existingData,
-        ...payload,
-      });
+      if (!isStaffOrAdmin) {
+        setStepData(0, {
+          ...existingData,
+          ...payload,
+        });
+      }
 
       toast.success("Enrollment saved", { id: "application-flow" });
       methods.reset(values);
@@ -750,7 +757,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   };
 
   const handleManagedEnrollmentSuccess = (savedPayload?: EnrollmentValues) => {
-    if (savedPayload) {
+    if (savedPayload && !isStaffOrAdmin) {
       setStepData(0, savedPayload);
     }
     setIsEnrollmentDialogOpen(false);

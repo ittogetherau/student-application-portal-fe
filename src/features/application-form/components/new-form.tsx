@@ -56,16 +56,11 @@ const NewForm = ({
     (state) => state.applicationId,
   );
 
-  const storedApplicationId = useApplicationFormDataStore(
-    (state) => state.applicationId,
-  );
-
   // Get applicationId from either prop or query params
   const applicationId =
     propApplicationId ||
     searchParams.get("id") ||
     publicApplicationId ||
-    storedApplicationId ||
     undefined;
 
   const {
@@ -74,12 +69,16 @@ const NewForm = ({
     initializeStep,
     isStepCompleted,
     completedSteps,
+    setStorageScope,
     setUnsavedMessage,
     clearUnsavedMessage,
     getNavigationBlockMessage,
   } = useApplicationStepStore();
 
   const stepData = useApplicationFormDataStore((state) => state.stepData);
+  const setApplicationId = useApplicationFormDataStore(
+    (state) => state.setApplicationId,
+  );
   const { mutate: getApplication, isPending: isFetching } =
     useApplicationGetMutation(applicationId || null);
   const { performAutoFill } = useAutoFill({ applicationId, setAutoFillKey });
@@ -137,6 +136,20 @@ const NewForm = ({
   const [resolvedFetchKey, setResolvedFetchKey] = useState<string | null>(null);
   const [inFlightFetchKey, setInFlightFetchKey] = useState<string | null>(null);
   const hydratedFetchedApplicationRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!hasHydratedData || !hasHydratedSteps) return;
+
+    setApplicationId(applicationId ?? null);
+    setStorageScope(applicationId ?? null);
+  }, [
+    applicationId,
+    hasHydratedData,
+    hasHydratedSteps,
+    setApplicationId,
+    setStorageScope,
+  ]);
+
   const queueInitializationState = useCallback((value: boolean) => {
     queueMicrotask(() => {
       setIsInitialized(value);
@@ -175,7 +188,7 @@ const NewForm = ({
 
     if (isCreateMode) {
       // If we are in create mode but have stale data from a previous session, clear it
-      if (storedApplicationId || hasStoredStepData || hasCompletedSteps) {
+      if (hasStoredStepData || hasCompletedSteps) {
         console.log(
           "[NewForm] Clearing stale application data for new session",
         );
@@ -192,6 +205,8 @@ const NewForm = ({
         queueInFlightFetchKey(fetchKey);
         hydratedFetchedApplicationRef.current = null;
         resetApplicationFormSession();
+        setApplicationId(applicationId ?? publicApplicationId ?? null);
+        setStorageScope(applicationId ?? publicApplicationId ?? null);
         getApplication(undefined, {
           onSuccess: (res) => {
             setCurrentApplication(res?.data ?? null);
@@ -245,11 +260,12 @@ const NewForm = ({
     getApplication,
     initializeStep,
     isHydrated,
-    storedApplicationId,
     hasStoredStepData,
     hasCompletedSteps,
     publicToken,
     publicApplicationId,
+    setApplicationId,
+    setStorageScope,
     activeFetchKey,
     resolvedFetchKey,
     inFlightFetchKey,

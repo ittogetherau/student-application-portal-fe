@@ -22,10 +22,11 @@ const useAutoFill = ({
   const searchParams = useSearchParams();
   const { setStepData, setApplicationId } =
     useApplicationFormDataStore.getState();
-  const { markStepCompleted } = useApplicationStepStore.getState();
+  const { markStepCompleted, setStorageScope } =
+    useApplicationStepStore.getState();
 
   const { data: coursesResponse } = useCoursesQuery();
-  const courses = coursesResponse?.data || [];
+  const courses = useMemo(() => coursesResponse?.data ?? [], [coursesResponse?.data]);
 
   const createApplication = useApplicationCreateMutation();
   const {
@@ -41,8 +42,6 @@ const useAutoFill = ({
     usiData,
     additionalServicesData,
     surveyData,
-    documentsData,
-    reviewData,
   } = DEFAULT_AUTO_FILL_DATA;
 
   // Resolve dynamic enrollment data based on available courses
@@ -122,6 +121,7 @@ const useAutoFill = ({
 
     // Set the applicationId in the store
     setApplicationId(currentApplicationId);
+    setStorageScope(currentApplicationId);
 
     try {
       console.log("Starting auto-fill with backend submission...");
@@ -316,8 +316,8 @@ const useAutoFill = ({
     usiData,
     additionalServicesData,
     surveyData,
-    documentsData,
-    reviewData,
+    setAutoFillKey,
+    setStorageScope,
   ]);
 
   return {

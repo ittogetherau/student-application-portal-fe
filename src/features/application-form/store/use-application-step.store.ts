@@ -5,17 +5,22 @@ import {
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+const APPLICATION_STEP_STORAGE_KEY = "application-step-storage";
+const ANONYMOUS_APPLICATION_STORAGE_ID = "__anonymous__";
+
 const REVIEW_STEP_ID =
   APPLICATION_FORM_STEPS[APPLICATION_FORM_STEPS.length - 1].id;
 
 type StepData = Record<number, unknown>;
 
 type ApplicationStepState = {
+  activeApplicationId: string | null;
   currentStep: number;
   totalSteps: number;
   completedSteps: number[];
   dirtySteps: number[];
   unsavedMessage: string | null;
+  setStorageScope: (applicationId: string | null) => void;
   initializeStep: (applicationId: string | null, stepData: StepData) => void;
   goToStep: (step: number) => void;
   goToNext: () => void;
@@ -41,6 +46,36 @@ type ApplicationStepState = {
 
 const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max);
 const isHiddenStep = (stepId: number) => HIDDEN_STEP_IDS.includes(stepId);
+
+type PersistedApplicationStepState = Pick<
+  ApplicationStepState,
+  "activeApplicationId" | "currentStep" | "completedSteps"
+>;
+
+const getApplicationStepStorageKey = (applicationId: string | null) =>
+  `${APPLICATION_STEP_STORAGE_KEY}:${
+    applicationId ?? ANONYMOUS_APPLICATION_STORAGE_ID
+  }`;
+
+const readPersistedApplicationStepState = (
+  storageKey: string,
+): PersistedApplicationStepState | null => {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { state?: PersistedApplicationStepState };
+    return parsed?.state ?? null;
+  } catch (error) {
+    console.error("[ApplicationStepStore] Failed to read persisted state", {
+      storageKey,
+      error,
+    });
+    return null;
+  }
+};
 
 const getNextVisibleStep = (current: number, totalSteps: number) => {
   for (let i = current + 1; i < totalSteps; i++) {
@@ -110,6 +145,7 @@ const getCompletedStepsFromData = (
 export const useApplicationStepStore = create<ApplicationStepState>()(
   persist(
     (set, get) => ({
+      activeApplicationId: null,
       currentStep: 0,
       totalSteps: APPLICATION_FORM_STEPS.length,
       completedSteps: [],
@@ -117,12 +153,35 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       unsavedMessage: null,
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+      setStorageScope: (applicationId) => {
+        const nextStorageKey = getApplicationStepStorageKey(applicationId);
+        const currentStorageKey =
+          useApplicationStepStore.persist.getOptions().name;
+
+        if (currentStorageKey === nextStorageKey) {
+          set({ activeApplicationId: applicationId, _hasHydrated: true });
+          return;
+        }
+
+        const persistedState = readPersistedApplicationStepState(nextStorageKey);
+        useApplicationStepStore.persist.setOptions({ name: nextStorageKey });
+
+        set({
+          activeApplicationId: applicationId,
+          currentStep: persistedState?.currentStep ?? 0,
+          completedSteps: persistedState?.completedSteps ?? [],
+          dirtySteps: [],
+          unsavedMessage: null,
+          _hasHydrated: true,
+        });
+      },
       initializeStep: (applicationId, stepData) => {
         const totalSteps = get().totalSteps;
         const step = getInitialStep(applicationId, stepData, totalSteps);
         const completedSteps = getCompletedStepsFromData(stepData, totalSteps);
 
         set({
+          activeApplicationId: applicationId,
           currentStep: clamp(step, totalSteps),
           completedSteps: completedSteps,
         });
@@ -225,9 +284,10 @@ export const useApplicationStepStore = create<ApplicationStepState>()(
       },
     }),
     {
-      name: "application-step-storage",
+      name: getApplicationStepStorageKey(null),
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        activeApplicationId: state.activeApplicationId,
         currentStep: state.currentStep,
         completedSteps: state.completedSteps,
       }),

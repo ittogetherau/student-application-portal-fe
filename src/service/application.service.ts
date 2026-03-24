@@ -25,14 +25,12 @@ export interface ApplicationEnrollmentData {
   offer_signed_at?: string | null;
   fee_received_at?: string | null;
   coe_uploaded_at?: string | null;
-
   course?: number | null;
   course_name?: string | null;
   intake?: number | null;
   intake_name?: string | null;
   campus?: number | null;
   campus_name?: string | null;
-
   [key: string]: unknown;
 }
 

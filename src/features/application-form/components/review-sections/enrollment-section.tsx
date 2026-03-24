@@ -275,44 +275,48 @@ export function EnrollmentSection(props: {
       />
     </div>
   );
-  const extraEntries = getUnhandledReviewEntries(enrollmentData, [
-    "campus",
-    "campus_name",
-    "course",
-    "course_name",
-    "major",
-    "major_id",
-    "intake",
-    "intake_name",
-    "preferred_start_date",
-    "course_end_date",
-    "default_num_weeks",
-    "num_weeks",
-    "no_of_weeks",
-    "offer_issued_date",
-    "study_reason",
-    "class_type",
-    "advanced_standing_credit",
-    "number_of_subjects",
-    "receiving_scholarship",
-    "scholarship_percentage",
-    "inclue_material_fee_in_initial_payment",
-    "work_integrated_learning",
-    "third_party_provider",
-    "course_actual_fee",
-    "calculated_no_of_weeks",
-    "course_upfront_fee",
-    "enrollment_fee",
-    "material_fee",
-    "application_request",
-    "status",
-    "offer_signed_at",
-    "fee_received_at",
-    "coe_uploaded_at",
-    "enrollments",
-  ], {
-    defaultIcon: FileText,
-  });
+  const extraEntries = getUnhandledReviewEntries(
+    enrollmentData,
+    [
+      "campus",
+      "campus_name",
+      "course",
+      "course_name",
+      "major",
+      "major_id",
+      "intake",
+      "intake_name",
+      "preferred_start_date",
+      "course_end_date",
+      "default_num_weeks",
+      "num_weeks",
+      "no_of_weeks",
+      "offer_issued_date",
+      "study_reason",
+      "class_type",
+      "advanced_standing_credit",
+      "number_of_subjects",
+      "receiving_scholarship",
+      "scholarship_percentage",
+      "inclue_material_fee_in_initial_payment",
+      "work_integrated_learning",
+      "third_party_provider",
+      "course_actual_fee",
+      "calculated_no_of_weeks",
+      "course_upfront_fee",
+      "enrollment_fee",
+      "material_fee",
+      "application_request",
+      "status",
+      "offer_signed_at",
+      "fee_received_at",
+      "coe_uploaded_at",
+      "enrollments",
+    ],
+    {
+      defaultIcon: FileText,
+    },
+  );
 
   return (
     <>
@@ -357,8 +361,7 @@ export function EnrollmentSection(props: {
           <Field
             label="Default No. of Weeks"
             value={
-              enrollmentData.default_num_weeks ??
-              enrollmentData.no_of_weeks
+              enrollmentData.default_num_weeks ?? enrollmentData.no_of_weeks
             }
             icon={CalendarDays}
           />
@@ -492,7 +495,7 @@ export function EnrollmentSection(props: {
           />
         </FieldsGrid>
 
-        {extraEntries.length ? (
+        {/* {extraEntries.length ? (
           <FieldsGrid>
             {extraEntries.map((entry) => (
               <Field
@@ -505,7 +508,7 @@ export function EnrollmentSection(props: {
               />
             ))}
           </FieldsGrid>
-        ) : null}
+        ) : null} */}
 
         {enrollments.length ? (
           <Group>
