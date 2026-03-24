@@ -7,6 +7,8 @@ export const APPLICATION_SYNC_COMPLETION_IGNORED_KEYS: (keyof ApplicationSyncMet
     "declaration",
     "enrollment_data",
     "employment_history",
+    "health_cover_policy",
+    "schooling_history",
     "usi",
   ];
 
