@@ -152,8 +152,6 @@ const StudentEnrollmentForm = ({
     control: methods.control,
     name: "course_end_date",
   });
-  const advancedStandingCreditApiValue: "yes" | "no" =
-    advancedStandingValue === "Yes" ? "yes" : "no";
   const numberOfSubjects = toNumber(numberOfSubjectsValue);
 
   const enrollmentCore = useMemo(() => {
@@ -241,9 +239,6 @@ const StudentEnrollmentForm = ({
 
   const calculationParams = useMemo(():
     | {
-        advanced_standing_credit: "yes" | "no";
-        intake: number;
-        number_of_subjects?: number;
         start_date: string;
         weeks: number;
       }
@@ -257,19 +252,11 @@ const StudentEnrollmentForm = ({
     }
 
     return {
-      advanced_standing_credit: advancedStandingCreditApiValue,
-      intake: enrollmentCore.intake,
       start_date: resolvedCourseStartDate,
       weeks: resolvedCalculatedCourseWeeks,
-      ...(advancedStandingValue === "Yes" && numberOfSubjects
-        ? { number_of_subjects: numberOfSubjects }
-        : {}),
     };
   }, [
-    advancedStandingCreditApiValue,
-    advancedStandingValue,
     enrollmentCore,
-    numberOfSubjects,
     resolvedCalculatedCourseWeeks,
     resolvedCourseStartDate,
   ]);

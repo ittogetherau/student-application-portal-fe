@@ -194,9 +194,6 @@ export type CourseIntakeListParams = {
 };
 
 export type CalculateCourseEndDateParams = {
-  advanced_standing_credit?: "yes" | "no" | null;
-  intake?: string | number | null;
-  number_of_subjects?: number | null;
   start_date?: string | null;
   weeks?: number | null;
 };
@@ -373,19 +370,6 @@ class CourseService extends ApiService {
     try {
       const query = new URLSearchParams();
 
-      if (params?.advanced_standing_credit) {
-        query.set("advanced_standing_credit", params.advanced_standing_credit);
-      }
-      if (params?.intake !== undefined && params.intake !== null) {
-        query.set("intake", String(params.intake));
-      }
-      if (
-        typeof params?.number_of_subjects === "number" &&
-        Number.isInteger(params.number_of_subjects) &&
-        params.number_of_subjects >= 1
-      ) {
-        query.set("number_of_subjects", String(params.number_of_subjects));
-      }
       if (params?.start_date) {
         query.set("start_date", params.start_date);
       }
