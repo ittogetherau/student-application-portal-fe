@@ -5,7 +5,8 @@ import authService, { type LoginResponse } from "@/service/auth.service";
 import { jwtDecode } from "jwt-decode";
 import { JWT } from "next-auth/jwt";
 
-export const AUTH_SECRET = process.env.NEXTAUTH_SECRET ?? "dev-secret";
+export const AUTH_SECRET =
+  process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "dev-secret";
 
 type DecodedAccessToken = {
   exp?: number;
