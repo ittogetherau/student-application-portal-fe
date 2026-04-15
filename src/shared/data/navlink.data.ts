@@ -14,6 +14,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
   agent: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
     {
+      label: "Agent Network",
+      href: siteRoutes.dashboard.agents.root,
+      icon: "agents",
+    },
+    {
       label: "Applications",
       href: siteRoutes.dashboard.application.root,
       icon: "applications",
@@ -36,6 +41,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
+    {
+      label: "Agent Network",
+      href: siteRoutes.dashboard.agents.root,
+      icon: "agents",
+    },
     {
       label: "Application Queue",
       href: siteRoutes.dashboard.application.root,

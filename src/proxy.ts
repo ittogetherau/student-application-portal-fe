@@ -11,12 +11,10 @@ import { NextResponse } from "next/server";
 const SHARED_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.application.root,
+  siteRoutes.dashboard.agents.root,
 ];
 
-const STAFF_ONLY_PATHS = [
-  siteRoutes.dashboard.agents.root,
-  siteRoutes.dashboard.tasks,
-];
+const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,
@@ -77,7 +75,9 @@ export async function proxy(request: NextRequest) {
     token &&
     (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
   ) {
-    const storedRedirect = request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value;
+    const storedRedirect = request.cookies.get(
+      POST_LOGIN_REDIRECT_COOKIE,
+    )?.value;
     const destination =
       storedRedirect && isSafeInternalRedirect(storedRedirect)
         ? storedRedirect
