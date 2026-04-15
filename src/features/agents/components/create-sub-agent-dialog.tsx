@@ -76,7 +76,7 @@ export default function CreateSubAgentDialog({
     try {
       const response = await createMutation.mutateAsync(values);
       toast.success(response.message || "Sub-agent created successfully.");
-      onCreated?.({ values, result: response.data });
+      onCreated?.({ values, result: response.data ?? undefined });
       setOpen(false);
       resetFlow();
     } catch (error: any) {
