@@ -12,10 +12,12 @@ export type AgentNetworkRow = TeamMember;
 
 type GetAgentNetworkColumnsOptions = {
   onToggleStatus: (agent: AgentNetworkRow) => void;
+  isTogglingStatus?: boolean;
 };
 
 export const getAgentNetworkColumns = ({
   onToggleStatus,
+  isTogglingStatus = false,
 }: GetAgentNetworkColumnsOptions): ColumnDef<AgentNetworkRow>[] => {
   return [
     {
@@ -158,17 +160,22 @@ export const getAgentNetworkColumns = ({
             onClick={(event) => event.stopPropagation()}
           >
             <Button
-              variant={isActive ? "outline" : "default"}
+              variant={isActive ? "outline" : "secondary"}
               size="sm"
               onClick={() => onToggleStatus(row.original)}
+              disabled={!isActive || isTogglingStatus}
               className={
                 isActive
                   ? "h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  : "h-8"
+                  : "h-8 cursor-not-allowed opacity-70"
               }
             >
               <PowerOff className="mr-1.5 h-3.5 w-3.5" />
-              {isActive ? "Deactivate" : "Activate"}
+              {isActive
+                ? isTogglingStatus
+                  ? "Deactivating..."
+                  : "Deactivate"
+                : "Inactive"}
             </Button>
           </div>
         );

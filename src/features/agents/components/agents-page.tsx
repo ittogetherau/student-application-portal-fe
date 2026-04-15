@@ -9,6 +9,7 @@ import {
   type AgentNetworkRow,
   getAgentNetworkColumns,
 } from "@/features/agents/components/agents-table-columns";
+import { useDeactivateSubAgentMutation } from "@/features/agents/hooks/useSubAgents.hook";
 import subAgentsService, {
   type SubAgentCreateResponse,
 } from "@/service/sub-agents.service";
@@ -17,9 +18,12 @@ import CreateSubAgentDialog from "@/features/agents/components/create-sub-agent-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import * as React from "react";
+import { toast } from "react-hot-toast";
 
 export default function AgentsPage() {
   const queryClient = useQueryClient();
+  const { mutateAsync: deactivateSubAgent, isPending: isDeactivating } =
+    useDeactivateSubAgentMutation();
 
   const { data: teamData, isLoading } = useQuery({
     queryKey: ["agents/team"],
@@ -38,13 +42,36 @@ export default function AgentsPage() {
     queryClient.invalidateQueries({ queryKey: ["agents/team"] });
   };
 
-  const handleToggleStatus = React.useCallback((agent: AgentNetworkRow) => {
-    console.log(`Toggle status action for ${agent.user_id}`);
-  }, []);
+  const handleToggleStatus = React.useCallback(
+    async (agent: AgentNetworkRow) => {
+      if (agent.status !== "active") {
+        toast("This sub-agent is already inactive.");
+        return;
+      }
+
+      try {
+        const response = await deactivateSubAgent(agent.user_id);
+        toast.success(
+          response.message || "Sub-agent deactivated successfully.",
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to deactivate sub-agent.";
+        toast.error(message);
+      }
+    },
+    [deactivateSubAgent],
+  );
 
   const columns = React.useMemo(
-    () => getAgentNetworkColumns({ onToggleStatus: handleToggleStatus }),
-    [handleToggleStatus],
+    () =>
+      getAgentNetworkColumns({
+        onToggleStatus: handleToggleStatus,
+        isTogglingStatus: isDeactivating,
+      }),
+    [handleToggleStatus, isDeactivating],
   );
 
   const statusFilters = React.useMemo<DataTableFacetedFilter[]>(() => {

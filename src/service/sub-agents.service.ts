@@ -19,6 +19,8 @@ export type SubAgentCreateResponse = {
   status?: string;
 };
 
+export type SubAgentStatusResponse = string;
+
 export type TeamMember = {
   user_id: string;
   agent_profile_id: string;
@@ -55,6 +57,21 @@ class SubAgentsService extends ApiService {
       () => this.post(this.basePath, payload, true),
       "Sub-agent created successfully.",
       "Failed to create sub-agent",
+    );
+  }
+
+  deactivateSubAgent(
+    subAgentUserId: string,
+  ): Promise<ServiceResponse<SubAgentStatusResponse>> {
+    return resolveServiceCall<SubAgentStatusResponse>(
+      () =>
+        this.patch<SubAgentStatusResponse>(
+          `${this.basePath}/${subAgentUserId}/deactivate`,
+          {},
+          true,
+        ),
+      "Sub-agent deactivated successfully.",
+      "Failed to deactivate sub-agent",
     );
   }
 }
