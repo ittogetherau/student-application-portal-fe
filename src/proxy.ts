@@ -11,7 +11,6 @@ import { NextResponse } from "next/server";
 const SHARED_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.application.root,
-  siteRoutes.dashboard.agents.root,
 ];
 
 const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
