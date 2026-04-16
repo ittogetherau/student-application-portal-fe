@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 const SHARED_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.application.root,
-  siteRoutes.dashboard.agents.root,
+  siteRoutes.dashboard.settings.root,
 ];
 
 const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
@@ -52,7 +52,7 @@ const isAllowedPath = (pathname: string, role: string): boolean => {
   return false;
 };
 
-const getDefaultRedirect = (role: string): string => {
+const getDefaultRedirect = (): string => {
   return siteRoutes.dashboard.root;
 };
 
@@ -81,7 +81,7 @@ export async function proxy(request: NextRequest) {
     const destination =
       storedRedirect && isSafeInternalRedirect(storedRedirect)
         ? storedRedirect
-        : getDefaultRedirect(token.role as string);
+        : getDefaultRedirect();
 
     const redirectUrl = new URL(destination, request.url);
     const response = NextResponse.redirect(redirectUrl);
