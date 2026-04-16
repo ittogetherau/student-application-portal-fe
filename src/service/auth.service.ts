@@ -102,6 +102,14 @@ class AuthService extends ApiService {
     );
   }
 
+  updateCurrentUser(payload: Payload): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.patch(`${this.basePath}/me`, payload, true),
+      "Account updated.",
+      "Failed to update account",
+    );
+  }
+
   forgotPassword(payload: Payload): Promise<ServiceResponse<unknown>> {
     return resolveServiceCall<unknown>(
       () => this.post(`${this.basePath}/forgot-password`, payload, false),
