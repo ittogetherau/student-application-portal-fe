@@ -1,6 +1,7 @@
 "use client";
 
 import subAgentsService, {
+  type SubAgentCredentialsPayload,
   type SubAgentCreateResponse,
   type SubAgentStatusResponse,
 } from "@/service/sub-agents.service";
@@ -40,6 +41,34 @@ export const useDeactivateSubAgentMutation = () => {
         await subAgentsService.deactivateSubAgent(subAgentUserId);
       if (!response.success) {
         throw new Error(response.message || "Failed to deactivate sub-agent.");
+      }
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agents/team"] });
+      queryClient.invalidateQueries({ queryKey: ["sub-agents"] });
+    },
+  });
+};
+
+export const useUpdateSubAgentCredentialsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ServiceResponse<unknown>,
+    Error,
+    { subAgentUserId: string; payload: SubAgentCredentialsPayload }
+  >({
+    mutationKey: ["sub-agent-credentials-update"],
+    mutationFn: async ({ subAgentUserId, payload }) => {
+      const response = await subAgentsService.updateSubAgentCredentials(
+        subAgentUserId,
+        payload,
+      );
+      if (!response.success) {
+        throw new Error(
+          response.message || "Failed to update sub-agent credentials.",
+        );
       }
       return response;
     },

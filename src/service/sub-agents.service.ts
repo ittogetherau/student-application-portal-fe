@@ -21,6 +21,11 @@ export type SubAgentCreateResponse = {
 
 export type SubAgentStatusResponse = string;
 
+export type SubAgentCredentialsPayload = {
+  email: string;
+  password?: string;
+};
+
 export type TeamMember = {
   user_id: string;
   agent_profile_id: string;
@@ -72,6 +77,17 @@ class SubAgentsService extends ApiService {
         ),
       "Sub-agent deactivated successfully.",
       "Failed to deactivate sub-agent",
+    );
+  }
+
+  updateSubAgentCredentials(
+    subAgentUserId: string,
+    payload: SubAgentCredentialsPayload,
+  ): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.patch(`${this.basePath}/${subAgentUserId}/credentials`, payload, true),
+      "Sub-agent credentials updated successfully.",
+      "Failed to update sub-agent credentials",
     );
   }
 }
