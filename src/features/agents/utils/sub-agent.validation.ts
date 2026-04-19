@@ -31,3 +31,27 @@ export const subAgentCreateSchema = z.object({
 });
 
 export type SubAgentCreateValues = z.infer<typeof subAgentCreateSchema>;
+
+export const subAgentCredentialsSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required.")
+    .email("Please enter a valid email."),
+  password: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true;
+        return value.length >= 8 && /^(?=.*[A-Za-z])(?=.*\d).+$/.test(value);
+      },
+      {
+        message:
+          "Password must be at least 8 characters and include at least one letter and one number.",
+      },
+    ),
+});
+
+export type SubAgentCredentialsValues = z.infer<typeof subAgentCredentialsSchema>;

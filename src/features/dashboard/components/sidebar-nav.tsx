@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   ListTodo,
   LogOut,
+  Settings,
   UserRound,
   Users,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const ICONS = {
   tasks: ListTodo,
   calendar: Calendar,
   notifications: Bell,
+  settings: Settings,
 };
 
 export type SidebarIconName = keyof typeof ICONS;

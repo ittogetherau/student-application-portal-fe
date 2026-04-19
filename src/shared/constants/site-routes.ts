@@ -39,8 +39,10 @@ export const siteRoutes = {
         coe: (id: string) => `/dashboard/application/${id}/coe`,
       },
     },
-    agents: {
-      root: "/dashboard/agents",
+    settings: {
+      root: "/dashboard/settings",
+      profile: "/dashboard/settings/profile",
+      subAgents: "/dashboard/settings/sub-agents",
     },
     tasks: "/dashboard/tasks",
     notifications: "/dashboard/notifications",
