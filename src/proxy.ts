@@ -11,10 +11,10 @@ import { NextResponse } from "next/server";
 const SHARED_PATHS = [
   siteRoutes.dashboard.root,
   siteRoutes.dashboard.application.root,
-  siteRoutes.dashboard.settings.root,
 ];
 
 const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
+const AGENT_ONLY_PATHS = [siteRoutes.dashboard.settings.root];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,
@@ -45,6 +45,11 @@ const isAllowedPath = (pathname: string, role: string): boolean => {
   const isStaffOnlyPath = STAFF_ONLY_PATHS.some((route) =>
     matchesRoute(pathname, route),
   );
+  const isAgentOnlyPath = AGENT_ONLY_PATHS.some((route) =>
+    matchesRoute(pathname, route),
+  );
+
+  if (isAgentOnlyPath) return role === "agent";
 
   if (role === "staff") return isStaffOnlyPath;
   if (role === "agent") return !isStaffOnlyPath;

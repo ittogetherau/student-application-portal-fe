@@ -3,12 +3,32 @@
 import { cn } from "@/shared/lib/utils";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import NextLink from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 import { User, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const role = session?.user?.role;
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (role !== "agent") {
+      router.replace(siteRoutes.dashboard.root);
+    }
+  }, [role, router, status]);
+
+  if (status === "loading") {
+    return null;
+  }
+
+  if (role !== "agent") {
+    return null;
+  }
 
   const navItems = [
     {
