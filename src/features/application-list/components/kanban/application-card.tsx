@@ -1,3 +1,6 @@
+import SubAgentApplicationBadge from "@/features/agents/components/sub-agent-application-badge";
+import { useSubAgentTeamQuery } from "@/features/agents/hooks/useSubAgents.hook";
+import { resolveSubAgentApplicationPreview } from "@/features/agents/utils/sub-agent-application-preview";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +12,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Eye, GripVertical } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function ApplicationCard({
   app,
@@ -17,7 +21,14 @@ export function ApplicationCard({
   app: ApplicationTableRow;
   isallowMovingInKanban: boolean;
 }) {
+  const router = useRouter();
   const { role, isStaffAdmin } = useRoleFlags();
+  const { data: teamData } = useSubAgentTeamQuery();
+  const subAgentPreview = resolveSubAgentApplicationPreview(
+    app,
+    teamData?.members ?? [],
+  );
+  const destination = siteRoutes.dashboard.application.id.details(app.id);
 
   const {
     attributes,
@@ -45,6 +56,15 @@ export function ApplicationCard({
   return (
     <div ref={setNodeRef} style={style} className="w-full">
       <Card
+        role="link"
+        tabIndex={0}
+        onClick={() => router.push(destination)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            router.push(destination);
+          }
+        }}
         className={cn(
           "hover:shadow-md transition-shadow cursor-pointer border-border/40 w-full",
           isDragging && "ring-2 ring-primary",
@@ -89,6 +109,14 @@ export function ApplicationCard({
                   {app.courseCode || "N/A"} · {app.intake || "N/A"}
                 </p>
               )}
+              {subAgentPreview ? (
+                <div className="pt-1">
+                  <SubAgentApplicationBadge
+                    preview={subAgentPreview}
+                    className="max-w-full"
+                  />
+                </div>
+              ) : null}
             </div>
 
             {role === USER_ROLE.STAFF ? (
@@ -136,8 +164,9 @@ export function ApplicationCard({
                 </div>
               )}
               <Link
-                href={siteRoutes.dashboard.application.id.details(app.id)}
+                href={destination}
                 className="flex-1 w-full"
+                onClick={(event) => event.stopPropagation()}
               >
                 <Button
                   variant="outline"

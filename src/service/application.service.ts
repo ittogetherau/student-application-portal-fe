@@ -106,9 +106,11 @@ export interface ApplicationSyncMetadata {
 }
 
 export interface ApplicationListParams {
+  scope?: "all" | "own" | "sub_agents";
   stage?: APPLICATION_STAGE | string;
   studentId?: string;
   agentId?: string;
+  ownerAgentProfileId?: string;
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
@@ -171,16 +173,23 @@ export interface GalaxySyncResponse {
 
 class ApplicationService extends ApiService {
   private readonly basePath = "applications";
+  private readonly agentHierarchyListPath = "agents/applications";
 
   private buildQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
+    if (params.scope) searchParams.set("scope", params.scope);
     if (params.stage) searchParams.set("stage", params.stage);
     if (params.studentId) searchParams.set("student_id", params.studentId);
-    if (params.agentId) searchParams.set("agent_id", params.agentId);
+    if (params.ownerAgentProfileId || params.agentId) {
+      searchParams.set(
+        "owner_agent_profile_id",
+        params.ownerAgentProfileId ?? params.agentId ?? "",
+      );
+    }
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }
-    if (params.search) searchParams.set("query", params.search);
+    if (params.search) searchParams.set("search", params.search);
     if (params.fromDate) searchParams.set("from_date", params.fromDate);
     if (params.toDate) searchParams.set("to_date", params.toDate);
     if (params.limit) searchParams.set("limit", params.limit.toString());
@@ -197,7 +206,7 @@ class ApplicationService extends ApiService {
     params: ApplicationListParams = {},
   ): Promise<ServiceResponse<Application[]>> => {
     try {
-      const path = `${this.basePath}${this.buildQuery(params)}`;
+      const path = `${this.agentHierarchyListPath}${this.buildQuery(params)}`;
       const data = await this.get<Application[]>(path, true);
       return {
         success: true,
