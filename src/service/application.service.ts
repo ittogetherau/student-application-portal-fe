@@ -175,11 +175,32 @@ class ApplicationService extends ApiService {
   private readonly basePath = "applications";
   private readonly agentHierarchyListPath = "agents/applications";
 
-  private buildQuery(params: ApplicationListParams = {}) {
+  private buildLegacyQuery(params: ApplicationListParams = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.stage) searchParams.set("stage", params.stage);
+    if (params.studentId) searchParams.set("student_id", params.studentId);
+    if (params.agentId) searchParams.set("agent_id", params.agentId);
+    if (params.assignedStaffId) {
+      searchParams.set("assigned_staff_id", params.assignedStaffId);
+    }
+    if (params.search) searchParams.set("query", params.search);
+    if (params.fromDate) searchParams.set("from_date", params.fromDate);
+    if (params.toDate) searchParams.set("to_date", params.toDate);
+    if (params.limit) searchParams.set("limit", params.limit.toString());
+    if (typeof params.offset === "number") {
+      searchParams.set("offset", params.offset.toString());
+    }
+    if (params.includeArchived) searchParams.set("include_archived", "true");
+    if (params.archivedOnly) searchParams.set("archived_only", "true");
+    const query = searchParams.toString();
+    return query ? `?${query}` : "";
+  }
+
+  private buildHierarchyQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
     if (params.scope) searchParams.set("scope", params.scope);
     if (params.stage) searchParams.set("stage", params.stage);
-    if (params.studentId) searchParams.set("student_id", params.studentId);
+    if (params.search) searchParams.set("search", params.search);
     if (params.ownerAgentProfileId || params.agentId) {
       searchParams.set(
         "owner_agent_profile_id",
@@ -189,7 +210,6 @@ class ApplicationService extends ApiService {
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }
-    if (params.search) searchParams.set("search", params.search);
     if (params.fromDate) searchParams.set("from_date", params.fromDate);
     if (params.toDate) searchParams.set("to_date", params.toDate);
     if (params.limit) searchParams.set("limit", params.limit.toString());
@@ -206,7 +226,23 @@ class ApplicationService extends ApiService {
     params: ApplicationListParams = {},
   ): Promise<ServiceResponse<Application[]>> => {
     try {
-      const path = `${this.agentHierarchyListPath}${this.buildQuery(params)}`;
+      const path = `${this.basePath}${this.buildLegacyQuery(params)}`;
+      const data = await this.get<Application[]>(path, true);
+      return {
+        success: true,
+        message: "Applications fetched successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch applications", []);
+    }
+  };
+
+  listHierarchyApplications = async (
+    params: ApplicationListParams = {},
+  ): Promise<ServiceResponse<Application[]>> => {
+    try {
+      const path = `${this.agentHierarchyListPath}${this.buildHierarchyQuery(params)}`;
       const data = await this.get<Application[]>(path, true);
       return {
         success: true,

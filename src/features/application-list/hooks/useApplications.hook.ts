@@ -188,12 +188,18 @@ export const useApplications = ({
       },
     ],
     queryFn: async () => {
-      const response = await applicationService.listApplications({
+      const requestParams = {
         ...effectiveFilters,
         search: debouncedQuery || undefined,
         limit: perPage,
         offset: (page - 1) * perPage,
-      });
+      };
+      const shouldUseHierarchyApi = Boolean(
+        requestParams.ownerAgentProfileId || requestParams.scope,
+      );
+      const response = shouldUseHierarchyApi
+        ? await applicationService.listHierarchyApplications(requestParams)
+        : await applicationService.listApplications(requestParams);
 
       console.log(response, "api response");
 
