@@ -26,10 +26,22 @@ export type SubAgentCredentialsPayload = {
   password?: string;
 };
 
+export type SubAgentResetPasswordPayload = {
+  new_password: string;
+};
+
+export type SubAgentProfilePayload = {
+  name: string;
+  organization_name: string;
+  phone: string;
+  address: string;
+};
+
 export type TeamMember = {
   user_id: string;
   agent_profile_id: string;
   email: string;
+  name?: string | null;
   status: string;
   agent_level: string;
   agency_name: string;
@@ -77,6 +89,43 @@ class SubAgentsService extends ApiService {
         ),
       "Sub-agent deactivated successfully.",
       "Failed to deactivate sub-agent",
+    );
+  }
+
+  reactivateSubAgent(
+    subAgentUserId: string,
+  ): Promise<ServiceResponse<SubAgentStatusResponse>> {
+    return resolveServiceCall<SubAgentStatusResponse>(
+      () =>
+        this.patch<SubAgentStatusResponse>(
+          `${this.basePath}/${subAgentUserId}/reactivate`,
+          {},
+          true,
+        ),
+      "Sub-agent reactivated successfully.",
+      "Failed to reactivate sub-agent",
+    );
+  }
+
+  resetSubAgentPassword(
+    subAgentUserId: string,
+    payload: SubAgentResetPasswordPayload,
+  ): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.patch(`${this.basePath}/${subAgentUserId}/reset-password`, payload, true),
+      "Sub-agent password reset successfully.",
+      "Failed to reset sub-agent password",
+    );
+  }
+
+  updateSubAgentProfile(
+    subAgentUserId: string,
+    payload: SubAgentProfilePayload,
+  ): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.patch(`${this.basePath}/${subAgentUserId}/profile`, payload, true),
+      "Sub-agent profile updated successfully.",
+      "Failed to update sub-agent profile",
     );
   }
 

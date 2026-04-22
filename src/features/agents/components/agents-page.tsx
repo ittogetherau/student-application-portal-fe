@@ -18,18 +18,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeactivateSubAgentMutation } from "@/features/agents/hooks/useSubAgents.hook";
-import subAgentsService, {
+import {
+  useDeactivateSubAgentMutation,
+  useReactivateSubAgentMutation,
+  useSubAgentTeamQuery,
+} from "@/features/agents/hooks/useSubAgents.hook";
+import {
   type SubAgentCreateResponse,
   type TeamMember,
 } from "@/service/sub-agents.service";
+import { siteRoutes } from "@/shared/constants/site-routes";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import type { SubAgentCreateValues } from "@/features/agents/utils/sub-agent.validation";
 import CreateSubAgentDialog from "@/features/agents/components/create-sub-agent-dialog";
 import UpdateSubAgentCredentialsDialog from "@/features/agents/components/update-sub-agent-credentials-dialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import UpdateSubAgentPasswordDialog from "@/features/agents/components/update-sub-agent-password-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, KeyRound, MoreHorizontal, PowerOff } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Copy,
+  ExternalLink,
+  Network,
+  KeyRound,
+  MoreHorizontal,
+  PowerOff,
+  ShieldCheck,
+  User,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "react-hot-toast";
 
@@ -39,18 +56,21 @@ type AgentsPageProps = {
 
 export default function AgentsPage({ compact = false }: AgentsPageProps) {
   const queryClient = useQueryClient();
-  const [credentialsTarget, setCredentialsTarget] =
-    React.useState<TeamMember | null>(null);
-  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] =
-    React.useState(false);
+  const [profileTarget, setProfileTarget] = React.useState<TeamMember | null>(
+    null,
+  );
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
+  const [passwordTarget, setPasswordTarget] = React.useState<TeamMember | null>(
+    null,
+  );
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
 
   const { mutateAsync: deactivateSubAgent, isPending: isDeactivating } =
     useDeactivateSubAgentMutation();
+  const { mutateAsync: reactivateSubAgent, isPending: isReactivating } =
+    useReactivateSubAgentMutation();
 
-  const { data: teamData, isLoading } = useQuery({
-    queryKey: ["agents/team"],
-    queryFn: () => subAgentsService.getTeamMembers(),
-  });
+  const { data: teamData, isLoading } = useSubAgentTeamQuery();
 
   const latestSubAgents = React.useMemo(
     () => teamData?.members ?? [],
@@ -65,7 +85,7 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
   };
 
   const getAvatarLabel = React.useCallback((member: TeamMember) => {
-    const source = member.agency_name || member.email || "SA";
+    const source = member.name || member.agency_name || member.email || "SA";
     const parts = source.trim().split(/\s+/).filter(Boolean);
     const first = parts[0]?.[0] ?? "S";
     const second = parts[1]?.[0] ?? parts[0]?.[1] ?? "A";
@@ -74,26 +94,30 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
 
   const handleToggleStatus = React.useCallback(
     async (agent: TeamMember) => {
-      if (agent.status !== "active") {
-        toast("This sub-agent is already inactive.");
-        return;
-      }
+      const isActive = agent.status === "active";
 
       try {
-        const response = await deactivateSubAgent(agent.user_id);
+        const response = isActive
+          ? await deactivateSubAgent(agent.user_id)
+          : await reactivateSubAgent(agent.user_id);
         toast.success(
-          response.message || "Sub-agent deactivated successfully.",
+          response.message ||
+            (isActive
+              ? "Sub-agent deactivated successfully."
+              : "Sub-agent reactivated successfully."),
         );
       } catch (error) {
         const message =
           error instanceof Error
             ? error.message
-            : "Failed to deactivate sub-agent.";
+            : "Failed to update sub-agent status.";
         toast.error(message);
       }
     },
-    [deactivateSubAgent],
+    [deactivateSubAgent, reactivateSubAgent],
   );
+
+  const isUpdatingStatus = isDeactivating || isReactivating;
 
   const copyValue = React.useCallback(async (label: string, value: string) => {
     if (!value) {
@@ -109,31 +133,88 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
     }
   }, []);
 
-  const openCredentialsDialog = React.useCallback((agent: TeamMember) => {
-    setCredentialsTarget(agent);
-    setIsCredentialsDialogOpen(true);
+  const openProfileDialog = React.useCallback((agent: TeamMember) => {
+    setProfileTarget(agent);
+    setIsProfileDialogOpen(true);
+  }, []);
+
+  const openPasswordDialog = React.useCallback((agent: TeamMember) => {
+    setPasswordTarget(agent);
+    setIsPasswordDialogOpen(true);
   }, []);
 
   const content = (
     <>
-      <Card className="bg-card text-card-foreground">
-        <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-xl sm:text-2xl font-semibold">
-              Sub-Agent Management
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Manage your sub-agents and organization hierarchy from your
-              account settings.
-            </p>
+      <Card className="overflow-hidden border-border/70 bg-card/95 shadow-sm">
+        <CardContent className="space-y-6 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3">
+              <Badge variant="secondary" className="w-fit rounded-md px-2.5 py-1">
+                Team workspace
+              </Badge>
+              <div className="space-y-2">
+                <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                  Sub-Agent Management
+                </h1>
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Manage your sub-agents, keep account access current, and jump
+                  straight into each teammate&apos;s application pipeline.
+                </p>
+              </div>
+            </div>
+            <CreateSubAgentDialog onCreated={handleCreated} />
           </div>
-          <CreateSubAgentDialog onCreated={handleCreated} />
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border bg-background/70 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Team members
+              </div>
+              <p className="text-2xl font-semibold tracking-tight">
+                {latestSubAgents.length}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Active and inactive accounts across your hierarchy.
+              </p>
+            </div>
+
+            <div className="rounded-xl border bg-background/70 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                Active accounts
+              </div>
+              <p className="text-2xl font-semibold tracking-tight">
+                {latestSubAgents.filter((member) => member.status === "active").length}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ready to sign in and manage applications.
+              </p>
+            </div>
+
+            <div className="rounded-xl border bg-background/70 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                <Network className="h-4 w-4 text-muted-foreground" />
+                Hierarchy coverage
+              </div>
+              <p className="text-2xl font-semibold tracking-tight">
+                {latestSubAgents.filter((member) => !member.is_current_user).length}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Delegated sub-agent accounts linked to your workspace.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="space-y-1 border-b bg-muted/20">
           <CardTitle>Sub-Agents</CardTitle>
+          <CardDescription>
+            Review access, keep account details updated, and open each
+            sub-agent&apos;s filtered application list.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -158,7 +239,7 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                 return (
                   <Card
                     key={agent.user_id}
-                    className="bg-background/95 border-border shadow-sm"
+                    className="border-border/70 bg-background shadow-sm transition-colors hover:bg-muted/20"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
@@ -171,9 +252,11 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                           <div className="min-w-0">
                             <CardTitle
                               className="truncate text-base"
-                              title={agent.agency_name}
+                              title={
+                                agent.agency_name || agent.name || agent.email
+                              }
                             >
-                              {agent.agency_name}
+                              {agent.agency_name || agent.name || "Sub-agent"}
                             </CardTitle>
                             <CardDescription
                               className="truncate"
@@ -185,7 +268,7 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge
-                            variant={isActive ? "default" : "secondary"}
+                            variant={isActive ? "secondary" : "outline"}
                             className="capitalize"
                           >
                             {agent.status || "unknown"}
@@ -200,7 +283,9 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                                   size="icon"
                                   className="h-8 w-8"
                                 >
-                                  <span className="sr-only">Open sub-agent actions</span>
+                                  <span className="sr-only">
+                                    Open sub-agent actions
+                                  </span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -227,21 +312,36 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem
-                                  onSelect={() => openCredentialsDialog(agent)}
+                                  onSelect={() => openProfileDialog(agent)}
+                                >
+                                  <User className="mr-2 h-4 w-4" />
+                                  Update Profile
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onSelect={() => openPasswordDialog(agent)}
                                 >
                                   <KeyRound className="mr-2 h-4 w-4" />
-                                  Change Credentials
+                                  Update Password
                                 </DropdownMenuItem>
 
                                 <DropdownMenuSeparator />
 
                                 <DropdownMenuItem
                                   onSelect={() => handleToggleStatus(agent)}
-                                  disabled={!isActive || isDeactivating}
-                                  className="text-destructive focus:text-destructive"
+                                  disabled={isUpdatingStatus}
+                                  className={
+                                    isActive
+                                      ? "text-destructive focus:text-destructive"
+                                      : ""
+                                  }
                                 >
                                   <PowerOff className="mr-2 h-4 w-4" />
-                                  {isActive ? "Deactivate" : "Inactive"}
+                                  {isUpdatingStatus
+                                    ? "Updating..."
+                                    : isActive
+                                      ? "Deactivate"
+                                      : "Reactivate"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -251,41 +351,57 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
                     </CardHeader>
 
                     <CardContent className="space-y-3">
-                      <div className="space-y-1 text-sm">
-                        <p className="text-muted-foreground">
+                      <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Level</span>
                           <span className="font-medium text-foreground">
-                            Level:
-                          </span>{" "}
-                          {agent.agent_level || "-"}
-                        </p>
-                        <p className="text-muted-foreground">
+                            {agent.agent_level || "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Phone</span>
+                          <span className="text-right font-medium text-foreground">
+                            {agent.phone || "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-muted-foreground">Address</span>
+                          <span
+                            className="max-w-[65%] text-right font-medium text-foreground"
+                            title={agent.address || "-"}
+                          >
+                            {agent.address || "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Created</span>
                           <span className="font-medium text-foreground">
-                            Phone:
-                          </span>{" "}
-                          {agent.phone || "-"}
-                        </p>
-                        <p
-                          className="truncate text-muted-foreground"
-                          title={agent.address || "-"}
-                        >
-                          <span className="font-medium text-foreground">
-                            Address:
-                          </span>{" "}
-                          {agent.address || "-"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          <span className="font-medium text-foreground">
-                            Created:
-                          </span>{" "}
-                          {created || "-"}
-                        </p>
+                            {created || "-"}
+                          </span>
+                        </div>
                       </div>
 
                       {agent.is_current_user ? (
                         <div className="pt-1">
                           <Badge variant="outline">Current account</Badge>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="pt-1">
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                          >
+                            <Link
+                              href={`${siteRoutes.dashboard.application.filteredBySubAgent(agent.agent_profile_id)}&subAgentName=${encodeURIComponent(agent.agency_name || agent.email)}`}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              View applications
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -296,12 +412,23 @@ export default function AgentsPage({ compact = false }: AgentsPageProps) {
       </Card>
 
       <UpdateSubAgentCredentialsDialog
-        agent={credentialsTarget}
-        open={isCredentialsDialogOpen}
+        agent={profileTarget}
+        open={isProfileDialogOpen}
         onOpenChange={(open) => {
-          setIsCredentialsDialogOpen(open);
+          setIsProfileDialogOpen(open);
           if (!open) {
-            setCredentialsTarget(null);
+            setProfileTarget(null);
+          }
+        }}
+      />
+
+      <UpdateSubAgentPasswordDialog
+        agent={passwordTarget}
+        open={isPasswordDialogOpen}
+        onOpenChange={(open) => {
+          setIsPasswordDialogOpen(open);
+          if (!open) {
+            setPasswordTarget(null);
           }
         }}
       />
