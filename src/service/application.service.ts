@@ -106,9 +106,11 @@ export interface ApplicationSyncMetadata {
 }
 
 export interface ApplicationListParams {
+  scope?: "all" | "own" | "sub_agents";
   stage?: APPLICATION_STAGE | string;
   studentId?: string;
   agentId?: string;
+  ownerAgentProfileId?: string;
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
@@ -171,8 +173,9 @@ export interface GalaxySyncResponse {
 
 class ApplicationService extends ApiService {
   private readonly basePath = "applications";
+  private readonly agentHierarchyListPath = "agents/applications";
 
-  private buildQuery(params: ApplicationListParams = {}) {
+  private buildLegacyQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
     if (params.stage) searchParams.set("stage", params.stage);
     if (params.studentId) searchParams.set("student_id", params.studentId);
@@ -193,11 +196,53 @@ class ApplicationService extends ApiService {
     return query ? `?${query}` : "";
   }
 
+  private buildHierarchyQuery(params: ApplicationListParams = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.scope) searchParams.set("scope", params.scope);
+    if (params.stage) searchParams.set("stage", params.stage);
+    if (params.search) searchParams.set("search", params.search);
+    if (params.ownerAgentProfileId || params.agentId) {
+      searchParams.set(
+        "owner_agent_profile_id",
+        params.ownerAgentProfileId ?? params.agentId ?? "",
+      );
+    }
+    if (params.assignedStaffId) {
+      searchParams.set("assigned_staff_id", params.assignedStaffId);
+    }
+    if (params.fromDate) searchParams.set("from_date", params.fromDate);
+    if (params.toDate) searchParams.set("to_date", params.toDate);
+    if (params.limit) searchParams.set("limit", params.limit.toString());
+    if (typeof params.offset === "number") {
+      searchParams.set("offset", params.offset.toString());
+    }
+    if (params.includeArchived) searchParams.set("include_archived", "true");
+    if (params.archivedOnly) searchParams.set("archived_only", "true");
+    const query = searchParams.toString();
+    return query ? `?${query}` : "";
+  }
+
   listApplications = async (
     params: ApplicationListParams = {},
   ): Promise<ServiceResponse<Application[]>> => {
     try {
-      const path = `${this.basePath}${this.buildQuery(params)}`;
+      const path = `${this.basePath}${this.buildLegacyQuery(params)}`;
+      const data = await this.get<Application[]>(path, true);
+      return {
+        success: true,
+        message: "Applications fetched successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to fetch applications", []);
+    }
+  };
+
+  listHierarchyApplications = async (
+    params: ApplicationListParams = {},
+  ): Promise<ServiceResponse<Application[]>> => {
+    try {
+      const path = `${this.agentHierarchyListPath}${this.buildHierarchyQuery(params)}`;
       const data = await this.get<Application[]>(path, true);
       return {
         success: true,

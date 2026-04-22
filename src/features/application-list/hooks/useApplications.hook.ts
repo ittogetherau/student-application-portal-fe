@@ -46,6 +46,15 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
         (item.tracking_code as string) ??
         (item.reference_number as string) ??
         String(item.id ?? `ERR-${index + 1}`),
+      agentId:
+        (item.owner_agent_profile_id as string) ??
+        (item.agent_profile_id as string) ??
+        (item.agent_id as string) ??
+        (item.agent as { id?: string; agent_profile_id?: string } | null | undefined)
+          ?.agent_profile_id ??
+        (item.agent as { id?: string; agent_profile_id?: string } | null | undefined)
+          ?.id ??
+        "",
       agentName: (item.agent_name as string) ?? "",
       agentEmail:
         (item.agent_email as string) ??
@@ -143,8 +152,11 @@ export const useApplications = ({
   const prevPage = paginationStore((state) => state.prevPage);
 
   // Additional filters state
-  const [extraFilters, setExtraFilters] =
-    useState<ApplicationListParams>(initialFilters);
+  const [extraFilters, setExtraFilters] = useState<ApplicationListParams>({});
+  const effectiveFilters = {
+    ...initialFilters,
+    ...extraFilters,
+  };
 
   // Debounce search query
   const [debouncedQuery, setDebouncedQuery] = useState(query);
@@ -159,7 +171,7 @@ export const useApplications = ({
 
   const isSearchingOrFiltering =
     !!debouncedQuery ||
-    Object.entries(extraFilters).some(([key, value]) => {
+    Object.entries(effectiveFilters).some(([key, value]) => {
       if (value === undefined) return false;
       const initialValue = initialFilters[key as keyof ApplicationListParams];
       return value !== initialValue;
@@ -169,19 +181,25 @@ export const useApplications = ({
     queryKey: [
       "applications",
       {
-        ...extraFilters,
+        ...effectiveFilters,
         search: debouncedQuery,
         page: page,
         perPage,
       },
     ],
     queryFn: async () => {
-      const response = await applicationService.listApplications({
-        ...extraFilters,
+      const requestParams = {
+        ...effectiveFilters,
         search: debouncedQuery || undefined,
         limit: perPage,
         offset: (page - 1) * perPage,
-      });
+      };
+      const shouldUseHierarchyApi = Boolean(
+        requestParams.ownerAgentProfileId || requestParams.scope,
+      );
+      const response = shouldUseHierarchyApi
+        ? await applicationService.listHierarchyApplications(requestParams)
+        : await applicationService.listApplications(requestParams);
 
       console.log(response, "api response");
 
@@ -216,7 +234,7 @@ export const useApplications = ({
   const resetFilters = () => {
     setPage(1);
     setQuery("");
-    setExtraFilters(initialFilters);
+    setExtraFilters({});
   };
 
   return {
@@ -234,7 +252,7 @@ export const useApplications = ({
     setPerPage,
     setQuery: handleSearch,
     searchValue: query,
-    extraFilters,
+    extraFilters: effectiveFilters,
     setExtraFilters: handleFilterChange,
     isSearchingOrFiltering,
     resetFilters,

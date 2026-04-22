@@ -13,10 +13,8 @@ const SHARED_PATHS = [
   siteRoutes.dashboard.application.root,
 ];
 
-const STAFF_ONLY_PATHS = [
-  siteRoutes.dashboard.agents.root,
-  siteRoutes.dashboard.tasks,
-];
+const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
+const AGENT_ONLY_PATHS = [siteRoutes.dashboard.settings.root];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,
@@ -47,6 +45,11 @@ const isAllowedPath = (pathname: string, role: string): boolean => {
   const isStaffOnlyPath = STAFF_ONLY_PATHS.some((route) =>
     matchesRoute(pathname, route),
   );
+  const isAgentOnlyPath = AGENT_ONLY_PATHS.some((route) =>
+    matchesRoute(pathname, route),
+  );
+
+  if (isAgentOnlyPath) return role === "agent";
 
   if (role === "staff") return isStaffOnlyPath;
   if (role === "agent") return !isStaffOnlyPath;
@@ -54,7 +57,7 @@ const isAllowedPath = (pathname: string, role: string): boolean => {
   return false;
 };
 
-const getDefaultRedirect = (role: string): string => {
+const getDefaultRedirect = (): string => {
   return siteRoutes.dashboard.root;
 };
 
@@ -77,11 +80,13 @@ export async function proxy(request: NextRequest) {
     token &&
     (AUTH_PAGES as readonly string[]).includes(normalizePath(pathname))
   ) {
-    const storedRedirect = request.cookies.get(POST_LOGIN_REDIRECT_COOKIE)?.value;
+    const storedRedirect = request.cookies.get(
+      POST_LOGIN_REDIRECT_COOKIE,
+    )?.value;
     const destination =
       storedRedirect && isSafeInternalRedirect(storedRedirect)
         ? storedRedirect
-        : getDefaultRedirect(token.role as string);
+        : getDefaultRedirect();
 
     const redirectUrl = new URL(destination, request.url);
     const response = NextResponse.redirect(redirectUrl);

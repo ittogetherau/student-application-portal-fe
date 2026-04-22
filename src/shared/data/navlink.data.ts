@@ -33,6 +33,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       href: siteRoutes.dashboard.gsInterviews,
       icon: "calendar",
     },
+    {
+      label: "Settings",
+      href: siteRoutes.dashboard.settings.root,
+      icon: "settings",
+    },
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },

@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Bot,
   BookOpen,
   CalendarCheck,
   Hash,
@@ -12,6 +13,9 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import SubAgentApplicationBadge from "@/features/agents/components/sub-agent-application-badge";
+import { useSubAgentTeamQuery } from "@/features/agents/hooks/useSubAgents.hook";
+import { resolveSubAgentApplicationPreview } from "@/features/agents/utils/sub-agent-application-preview";
 import {
   Popover,
   PopoverContent,
@@ -24,6 +28,8 @@ import { AgentAssignmentSelect } from "../toolbar/agent-assignment-select";
 import ApplicationInfoRow from "./application-info-row";
 
 export type ApplicationHeaderDetailsData = {
+  applicationRecordId: string;
+  agentProfileId?: string | null;
   studentName: string;
   trackingCode?: string | null;
   studentEmail?: string | null;
@@ -51,8 +57,16 @@ export default function ApplicationHeaderDetails({
   onBack,
 }: ApplicationHeaderDetailsProps) {
   const { role } = useRoleFlags();
+  const { data: teamData } = useSubAgentTeamQuery();
   const canAssignAgent = role !== USER_ROLE.AGENT;
   const [agentAssignOpen, setAgentAssignOpen] = useState(false);
+  const subAgentPreview = resolveSubAgentApplicationPreview(
+    {
+      id: data.applicationRecordId,
+      agentId: data.agentProfileId ?? "",
+    },
+    teamData?.members ?? [],
+  );
 
   return (
     <div className="flex items-start gap-3">
@@ -101,6 +115,18 @@ export default function ApplicationHeaderDetails({
             icon={<CalendarCheck className="h-3.5 w-3.5" />}
             label="Submitted"
             value={data.submittedLabel}
+          />
+
+          <ApplicationInfoRow
+            icon={<Bot className="h-3.5 w-3.5" />}
+            label="Processed By"
+            value={
+              subAgentPreview ? (
+                <SubAgentApplicationBadge preview={subAgentPreview} />
+              ) : (
+                "Primary agent"
+              )
+            }
           />
         </div>
 
