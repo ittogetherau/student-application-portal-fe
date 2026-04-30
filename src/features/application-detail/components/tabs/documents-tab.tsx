@@ -26,6 +26,7 @@ interface DocumentsTabProps {
 const DocumentsTab = ({ applicationId }: DocumentsTabProps) => {
   const { data: documentsResponse, isLoading } =
     useApplicationDocumentsQuery(applicationId);
+  
   const documents = (documentsResponse?.data || []) as Document[];
   const { role } = useRoleFlags();
   const canCreateThread = role === USER_ROLE.STAFF;

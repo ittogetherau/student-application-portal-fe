@@ -46,7 +46,6 @@ interface ApplicationStageProps {
 
 const AGENT_STAGE_FALLBACKS = new Set<APPLICATION_STAGE>([
   APPLICATION_STAGE.SUBMITTED,
-  APPLICATION_STAGE.IN_REVIEW,
 ]);
 
 const SYNC_SECTION_LABELS: Record<string, string> = {
@@ -286,8 +285,6 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       }
 
       case APPLICATION_STAGE.IN_REVIEW: {
-        if (!isStaff) return null;
-
         const studentName = `${application?.personal_details?.given_name} ${
           application?.personal_details?.middle_name || ""
         } ${application?.personal_details?.family_name}`;
@@ -295,6 +292,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
         return (
           <InReviewStageCard
             applicationId={id}
+            currentRole={current_role}
             isInteractive={isInteractive}
             isAllStagesSynced={isAllStagesSynced}
             onSyncBlocked={() => setSyncAlertOpen(true)}

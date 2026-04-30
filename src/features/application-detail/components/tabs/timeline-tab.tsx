@@ -8,6 +8,21 @@ interface props {
   id: string;
 }
 
+const formatTimelineMessage = (message: string) => {
+  // Handle technical change logs for Advanced Standing
+  if (message.includes("advanced_standing_requested: 'None' -> 'True'") || 
+      message.includes('advanced_standing_requested: "None" -> "True"')) {
+    return "Staff requested Advanced Standing Form from the student.";
+  }
+  
+  if (message.includes("enrollment_data changed:")) {
+    // If it's a generic enrollment data change, try to make it cleaner
+    return message.replace("enrollment_data changed:", "Application details updated:");
+  }
+
+  return message;
+};
+
 const TimelineTab = ({ id }: props) => {
   const {
     data: response,
@@ -53,7 +68,9 @@ const TimelineTab = ({ id }: props) => {
             )}
           </div>
           <div className="flex-1 pb-3">
-            <p className="text-sm font-medium leading-tight">{el.message}</p>
+            <p className="text-sm font-medium leading-tight">
+              {formatTimelineMessage(el.message)}
+            </p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {formatUtcToFriendlyLocal(el.created_at)}
             </p>
