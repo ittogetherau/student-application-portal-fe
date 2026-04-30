@@ -21,6 +21,7 @@ export const siteRoutes = {
   },
   dashboard: {
     root: "/dashboard",
+    subAgents: "/dashboard/sub-agents",
     application: {
       root: "/dashboard/application",
       filteredBySubAgent: (subAgentId: string) =>

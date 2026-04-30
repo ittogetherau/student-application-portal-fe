@@ -34,6 +34,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       icon: "calendar",
     },
     {
+      label: "Sub-Agents",
+      href: siteRoutes.dashboard.subAgents,
+      icon: "agents",
+    },
+    {
       label: "Settings",
       href: siteRoutes.dashboard.settings.root,
       icon: "settings",
