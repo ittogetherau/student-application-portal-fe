@@ -126,15 +126,19 @@ export default function InReviewStageCard({
       {(isStaff || (isAgent && isAdvancedStandingRequested)) && (
         <div className="mb-6 overflow-hidden rounded-xl border-2 border-primary/20 bg-primary/5 shadow-sm">
           <div className="bg-primary/10 px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Advanced Standing</h3>
+            <div className="flex flex-col w-full">
+              {isAdvancedStandingRequested && (
+                <div className="flex w-full justify-end mb-1">
+                  <span className="text-[8px] bg-primary/20 px-2 py-0.5 rounded-full font-semibold">
+                    REQUESTED
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h3 className="text-[14px] font-bold uppercase tracking-wider">Advanced Standing</h3>
+              </div>
             </div>
-            {isAdvancedStandingRequested && (
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
-                REQUESTED
-              </span>
-            )}
           </div>
           <div className="p-4">
             <p className="text-xs text-muted-foreground leading-relaxed mb-4">
@@ -164,21 +168,29 @@ export default function InReviewStageCard({
                     }
                   });
                 }}
-                className="w-full text-xs font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                className="w-full flex items-center gap-2 text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 break-words"
               >
-                {updateApplication.isPending ? (
-                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                ) : (
-                  <FileText className="h-3 w-3 mr-2" />
-                )}
-                {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
+                <span className="flex-shrink-0 flex items-center justify-center">
+                  {updateApplication.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <FileText className="h-5 w-5" />
+                  )}
+                </span>
+                <span className="flex-1 text-left whitespace-normal">
+                  {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
+                </span>
               </Button>
             ) : (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="w-full text-xs font-bold shadow-md hover:shadow-lg transition-all duration-300 bg-primary text-primary-foreground">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Fill Advanced Standing Form
+                  <Button className="w-full flex items-center gap-2 text-[10px] font-bold shadow-md hover:shadow-lg transition-all duration-300 bg-primary text-primary-foreground px-4 py-2">
+                    <span className="flex-shrink-0 flex items-center justify-center">
+                      <FileText className="h-4 w-4" />
+                    </span>
+                    <span className="flex-1 text-left whitespace-normal truncate">
+                      Fill Advanced Standing Form
+                    </span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden p-0 border-none">
