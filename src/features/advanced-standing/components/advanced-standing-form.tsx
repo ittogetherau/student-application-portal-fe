@@ -4,16 +4,20 @@ import React, { useState, useEffect } from "react";
 import { useFieldArray, useForm, FormProvider, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { Plus, Trash, FileText, Loader2, PenTool, RefreshCw, Sparkles } from "lucide-react";
+import { Plus, Trash, FileText, Loader2, PenTool, RefreshCw, Sparkles, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { FormInput } from "@/components/forms/form-input";
 import { FormRadio } from "@/components/forms/form-radio";
+import { cn } from "@/shared/lib/utils";
 import { useUploadDocument, useDocumentTypesQuery } from "@/shared/hooks/document.hook";
-import { useApplicationGetQuery } from "@/shared/hooks/use-applications";
+import { useApplicationGetQuery, useApplicationUpdateMutation } from "@/shared/hooks/use-applications";
 import SignatureModal from "@/features/gs/components/signature-modal";
 
 import {
@@ -25,33 +29,37 @@ import { generateAdvancedStandingPdf } from "../utils/advanced-standing-pdf.util
 type AdvancedStandingFormProps = {
   applicationId: string;
   onSuccess?: () => void;
+  isStaffMode?: boolean;
 };
 
 export default function AdvancedStandingForm({
   applicationId,
   onSuccess,
+  isStaffMode = false,
 }: AdvancedStandingFormProps) {
   const { data: appData, isLoading: isLoadingApp } =
     useApplicationGetQuery(applicationId);
-  
+
   const { data: docTypesResponse } = useDocumentTypesQuery();
   const uploadMutation = useUploadDocument();
-  
+  const updateApplication = useApplicationUpdateMutation(applicationId);
+
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
   const methods = useForm<AdvancedStandingFormValues>({
     resolver: zodResolver(advancedStandingSchema),
     defaultValues: {
       studentType: "Future Student",
-      studentIdAndName: "",
+      studentName: "",
       dateOfBirth: "",
       mobile: "",
       email: "",
       courseName: "",
       basisForCredit: [{ institution: "", country: "", courseCode: "", courseName: "" }],
-      courseEquivalences: [{ unitCodeAndName: "", ciheEquivalent: "" }],
+      courseEquivalences: [{ unitCodeAndName: "", ciheEquivalent: "", approved: "" }],
       studentSignatureSvg: "",
       signatureDate: new Date().toISOString().split("T")[0],
     },
@@ -68,10 +76,10 @@ export default function AdvancedStandingForm({
       const values = getValues();
       const pdfFile = await generateAdvancedStandingPdf(values, applicationId);
       const url = URL.createObjectURL(pdfFile);
-      
+
       // Revoke old URL to avoid memory leaks
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-      
+
       setPdfUrl(url);
     } catch (error) {
       console.error("Failed to generate PDF preview:", error);
@@ -85,16 +93,20 @@ export default function AdvancedStandingForm({
     if (appData?.data) {
       const personal = appData.data.personal_details;
       const enrollment = appData.data.enrollment_data;
-      
+
       reset({
         ...getValues(),
-        studentIdAndName: `${appData.data.tracking_code || ""} ${personal?.given_name || ""} ${personal?.family_name || ""}`.trim(),
+        // User requested: only write on student name, leave ID blank.
+        // So we only pre-fill the name part.
+        studentName: `${personal?.given_name || ""} ${personal?.family_name || ""}`.trim(),
         dateOfBirth: personal?.date_of_birth || "",
         mobile: personal?.phone || "",
         email: personal?.email || "",
         courseName: enrollment?.course_name || "",
+        // If there's existing form data in enrollment_data, we should pre-fill it here
+        ...(enrollment?.advanced_standing_data as any || {}),
       });
-      
+
       // Initial preview generation
       setTimeout(handleGeneratePreview, 100);
     }
@@ -127,11 +139,11 @@ export default function AdvancedStandingForm({
 
   const onSubmit = async (values: AdvancedStandingFormValues) => {
     try {
-      const loadingToast = toast.loading("Generating PDF...");
-      
-      // Generate the PDF file (leaves staff boxes editable!)
+      const loadingToast = toast.loading(isStaffMode ? "Finalizing assessment..." : "Submitting application...");
+
+      // Generate the PDF file
       const pdfFile = await generateAdvancedStandingPdf(values, applicationId);
-      
+
       toast.loading("Uploading document...", { id: loadingToast });
 
       // Find the ID for "OTHER" document type or similar
@@ -144,18 +156,35 @@ export default function AdvancedStandingForm({
         return;
       }
 
-      // Upload it to the backend as a new document
+      // Upload it to the backend
       uploadMutation.mutate(
         {
           application_id: applicationId,
           document_type_id: otherType.id,
           file: pdfFile,
-          document_name: "Advanced Standing Form",
+          document_name: isStaffMode ? "Advanced Standing Form (Assessed)" : "Advanced Standing Form",
         },
         {
           onSuccess: () => {
-            toast.success("Advanced Standing form submitted successfully!", { id: loadingToast });
-            onSuccess?.();
+            // After upload, update application metadata to track form status
+            const currentEnrollmentData = (appData?.data?.enrollment_data || {}) as Record<string, unknown>;
+            
+            updateApplication.mutate({
+              enrollment_data: {
+                ...currentEnrollmentData,
+                advanced_standing_submitted: true,
+                advanced_standing_status: isStaffMode ? "Approved" : "Pending",
+                advanced_standing_data: values, // Save raw data for re-editing
+              }
+            }, {
+              onSuccess: () => {
+                toast.success(isStaffMode ? "Assessment finalized!" : "Form submitted successfully!", { id: loadingToast });
+                onSuccess?.();
+              },
+              onError: (error) => {
+                toast.error("Form uploaded but status update failed.", { id: loadingToast });
+              }
+            });
           },
           onError: (error) => {
             toast.error(error.message || "Failed to upload document.", { id: loadingToast });
@@ -187,253 +216,275 @@ export default function AdvancedStandingForm({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleGeneratePreview}
-            disabled={isPreviewLoading}
-            className="text-muted-foreground hover:text-primary"
-          >
-            {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Refresh Preview
-          </Button>
-          <Button 
-            type="button" 
-            form="advanced-standing-form"
-            disabled={uploadMutation.isPending}
-            className="font-bold px-8 shadow-lg shadow-primary/20"
-          >
-            {uploadMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit Application"}
-          </Button>
-        </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Side: Form Scroll Area */}
-        <div className="flex-1 overflow-y-auto p-8 bg-muted/5">
-          <div className="max-w-3xl mx-auto space-y-12 pb-20">
-            <FormProvider {...methods}>
-              <form id="advanced-standing-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12">
-                
-                {/* Section 1: Student Details */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">1</span>
-                    <h3 className="text-lg font-bold">Student Identification</h3>
-                  </div>
-                  
-                  <div className="bg-card p-6 rounded-xl border shadow-sm space-y-6">
-                    <FormRadio
-                      name="studentType"
-                      label="Application Category"
-                      options={[
-                        { label: "Future Student", value: "Future Student" },
-                        { label: "Currently Enrolled Student", value: "Currently Enrolled Student" },
-                      ]}
-                    />
+      <div className="flex-1 overflow-y-auto bg-muted/5">
+        <div className="max-w-4xl mx-auto p-8 space-y-8 pb-24">
+          <FormProvider {...methods}>
+            <form id="advanced-standing-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              
+              {/* Section 1: Student Details */}
+              <Card className="border-primary/10 shadow-md">
+                <CardHeader className="bg-primary/5 border-b border-primary/10">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm shadow-sm">1</span>
+                    Student Identification
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-6 space-y-6">
+                  <FormRadio
+                    name="studentType"
+                    label="Application Category"
+                    options={[
+                      { label: "Future Student", value: "Future Student" },
+                      { label: "Currently Enrolled Student", value: "Currently Enrolled Student" },
+                    ]}
+                    disabled={isStaffMode}
+                  />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormInput name="studentIdAndName" label="Student ID & Full Name" placeholder="Enter ID and Name" />
-                      <FormInput name="courseName" label="Churchill Course Name" placeholder="Target Course" />
-                      <FormInput name="dateOfBirth" label="Date of Birth" type="date" />
-                      <FormInput name="mobile" label="Mobile Phone" placeholder="+61..." />
-                      <div className="md:col-span-2">
-                        <FormInput name="email" label="Official Email Address" placeholder="email@example.com" />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormInput name="studentName" label="Student Full Name" placeholder="Enter Full Name" disabled={isStaffMode} />
+                    <FormInput name="courseName" label="Churchill Course Name" placeholder="Target Course" disabled={isStaffMode} />
+                    <FormInput name="dateOfBirth" label="Date of Birth" type="date" disabled={isStaffMode} />
+                    <FormInput name="mobile" label="Mobile Phone" placeholder="+61..." disabled={isStaffMode} />
+                    <div className="md:col-span-2">
+                      <FormInput name="email" label="Official Email Address" placeholder="email@example.com" disabled={isStaffMode} />
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <Separator />
-
-                {/* Section 2: Basis for Credit */}
-                <div className="space-y-6">
+              {/* Section 2: Basis for Credit */}
+              <Card className="border-primary/10 shadow-md">
+                <CardHeader className="bg-primary/5 border-b border-primary/10">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">2</span>
-                      <h3 className="text-lg font-bold">Basis for Credit / RPL</h3>
-                    </div>
-                    {basisFields.length < 2 && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendBasis({ institution: "", country: "", courseCode: "", courseName: "" })} className="rounded-full">
+                    <CardTitle className="text-lg flex items-center gap-3">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm shadow-sm">2</span>
+                      Basis for Credit / RPL
+                    </CardTitle>
+                    {basisFields.length < 2 && !isStaffMode && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendBasis({ institution: "", country: "", courseCode: "", courseName: "" })} className="rounded-full bg-background">
                         <Plus className="h-4 w-4 mr-1" /> Add Institution
                       </Button>
                     )}
                   </div>
-
-                  <div className="space-y-4">
-                    {basisFields.map((field, index) => (
-                      <div key={field.id} className="bg-card p-6 rounded-xl border shadow-sm relative group hover:border-primary/50 transition-colors">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormInput name={`basisForCredit.${index}.institution`} label="Institution Name" placeholder="University / College" />
-                          <FormInput name={`basisForCredit.${index}.country`} label="Country of Study" placeholder="Australia, etc." />
-                          <FormInput name={`basisForCredit.${index}.courseCode`} label="Previous Course Code" placeholder="e.g. BSB50420" />
-                          <FormInput name={`basisForCredit.${index}.courseName`} label="Previous Course Name" placeholder="e.g. Diploma of Leadership" />
-                        </div>
-                        {index > 0 && (
-                          <Button 
-                            type="button" 
-                            variant="destructive" 
-                            size="icon" 
-                            onClick={() => removeBasis(index)} 
-                            className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-md"
-                          >
-                            <Trash className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
+                </CardHeader>
+                <CardContent className="p-6 pt-6 space-y-4">
+                  {basisFields.map((field, index) => (
+                    <div key={field.id} className="p-6 rounded-xl border bg-card/50 relative group hover:border-primary/50 transition-colors">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormInput name={`basisForCredit.${index}.institution`} label="Institution Name" placeholder="University / College" disabled={isStaffMode} />
+                        <FormInput name={`basisForCredit.${index}.country`} label="Country of Study" placeholder="Australia, etc." disabled={isStaffMode} />
+                        <FormInput name={`basisForCredit.${index}.courseCode`} label="Previous Course Code" placeholder="e.g. BSB50420" disabled={isStaffMode} />
+                        <FormInput name={`basisForCredit.${index}.courseName`} label="Previous Course Name" placeholder="e.g. Diploma of Leadership" disabled={isStaffMode} />
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Section 3: Course Equivalence */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">3</span>
-                      <h3 className="text-lg font-bold">Course Equivalence Mapping</h3>
+                      {index > 0 && !isStaffMode && (
+                        <Button 
+                          type="button" 
+                          variant="destructive" 
+                          size="icon" 
+                          onClick={() => removeBasis(index)} 
+                          className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-md"
+                        >
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
-                    {equivalenceFields.length < 7 && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendEquivalence({ unitCodeAndName: "", ciheEquivalent: "" })} className="rounded-full">
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Section 3: Course Equivalence */}
+              <Card className="border-primary/10 shadow-md">
+                <CardHeader className="bg-primary/5 border-b border-primary/10">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-3">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm shadow-sm">3</span>
+                      Course Equivalence Mapping
+                    </CardTitle>
+                    {equivalenceFields.length < 7 && !isStaffMode && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendEquivalence({ unitCodeAndName: "", ciheEquivalent: "" })} className="rounded-full bg-background">
                         <Plus className="h-4 w-4 mr-1" /> Add Mapping
                       </Button>
                     )}
                   </div>
-
-                  <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-12 bg-muted/50 p-3 border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      <div className="col-span-5 px-2">Previous Unit Details</div>
-                      <div className="col-span-6 px-2">Churchill Equivalent Unit</div>
-                      <div className="col-span-1"></div>
-                    </div>
-                    <div className="divide-y">
-                      {equivalenceFields.map((field, index) => (
-                        <div key={field.id} className="grid grid-cols-12 gap-4 p-4 items-start group hover:bg-muted/30 transition-colors">
-                          <div className="col-span-5">
-                            <FormInput name={`courseEquivalences.${index}.unitCodeAndName`} label="" placeholder="Code & Title" />
-                          </div>
-                          <div className="col-span-6">
-                            <FormInput name={`courseEquivalences.${index}.ciheEquivalent`} label="" placeholder="CIHE Unit Title" />
-                          </div>
-                          <div className="col-span-1 pt-2">
-                            {index > 0 && (
-                              <Button type="button" variant="ghost" size="icon" onClick={() => removeEquivalence(index)} className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-12 bg-muted/30 p-3 border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-6">
+                    <div className="col-span-4 px-2">Previous Unit Details</div>
+                    <div className="col-span-5 px-2">Churchill Equivalent Unit</div>
+                    <div className="col-span-3 px-2 text-center">Approved (Y/N)</div>
+                  </div>
+                  <div className="divide-y px-6">
+                    {equivalenceFields.map((field, index) => (
+                      <div key={field.id} className="grid grid-cols-12 gap-4 py-4 items-start group">
+                        <div className="col-span-4">
+                          <FormInput name={`courseEquivalences.${index}.unitCodeAndName`} label="" placeholder="Code & Title" disabled={isStaffMode} />
                         </div>
-                      ))}
-                    </div>
+                        <div className="col-span-5">
+                          <FormInput name={`courseEquivalences.${index}.ciheEquivalent`} label="" placeholder="CIHE Unit Title" disabled={isStaffMode} />
+                        </div>
+                        <div className="col-span-3 flex items-center justify-center gap-2 pt-2">
+                          {isStaffMode ? (
+                            <FormRadio
+                              name={`courseEquivalences.${index}.approved`}
+                              label=""
+                              options={[
+                                { label: "Yes", value: "Yes" },
+                                { label: "No", value: "No" },
+                              ]}
+                            />
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground italic">Office Use</div>
+                          )}
+                          {!isStaffMode && index > 0 && (
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeEquivalence(index)} className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <Separator />
-
-                {/* Signature Section */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">4</span>
-                    <h3 className="text-lg font-bold">Declaration & Digital Signature</h3>
+              {/* Signature Section */}
+              <Card className="border-primary/10 shadow-md">
+                <CardHeader className="bg-primary/5 border-b border-primary/10">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm shadow-sm">4</span>
+                    Declaration & Digital Signature
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-6 space-y-6">
+                  <div className="text-xs text-muted-foreground leading-relaxed italic bg-primary/5 p-4 rounded-lg border border-primary/10">
+                    I declare that the information provided in this application is true and correct. I authorize Churchill Institute of Higher Education to verify any information provided in this application.
                   </div>
-
-                  <div className="bg-primary/5 p-6 rounded-xl border border-primary/20 space-y-6">
-                    <div className="text-xs text-muted-foreground leading-relaxed italic">
-                      I declare that the information provided in this application is true and correct. I authorize Churchill Institute of Higher Education to verify any information provided in this application.
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      <div className="md:col-span-2 space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wide">Student Signature</Label>
-                        <Controller
-                          control={control}
-                          name="studentSignatureSvg"
-                          render={({ field: { value } }) => (
-                            <div className="relative">
-                              {value ? (
-                                <div className="border-2 border-primary/30 rounded-xl p-4 bg-white shadow-inner flex justify-center items-center h-32 group">
-                                  <img src={`data:image/svg+xml;base64,${btoa(value)}`} className="h-full object-contain" alt="Signature" />
-                                  <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="md:col-span-2 space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wide">Student Signature</Label>
+                      <Controller
+                        control={control}
+                        name="studentSignatureSvg"
+                        render={({ field: { value } }) => (
+                          <div className="relative">
+                            {value ? (
+                              <div className="border-2 border-primary/30 rounded-xl p-4 bg-white shadow-inner flex justify-center items-center h-32 group">
+                                <img src={`data:image/svg+xml;base64,${btoa(value)}`} className="h-full object-contain" alt="Signature" />
+                                <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                                  {!isStaffMode && (
                                     <Button type="button" variant="secondary" size="sm" onClick={() => setSignatureModalOpen(true)} className="font-bold shadow-xl">
                                       <PenTool className="h-4 w-4 mr-2" /> Redraw Signature
                                     </Button>
-                                  </div>
+                                  )}
                                 </div>
-                              ) : (
-                                <Button 
-                                  type="button" 
-                                  variant="outline" 
-                                  className="w-full h-32 border-2 border-dashed border-primary/30 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group" 
-                                  onClick={() => setSignatureModalOpen(true)}
-                                >
-                                  <div className="flex flex-col items-center gap-2">
-                                    <PenTool className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                                    <span className="text-sm font-bold text-primary">Click here to sign</span>
-                                    <span className="text-[10px] text-muted-foreground">Legally binding digital signature</span>
-                                  </div>
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        />
-                      </div>
-                      <div className="flex flex-col justify-end">
-                        <FormInput name="signatureDate" label="Signature Date" type="date" />
-                      </div>
+                              </div>
+                            ) : (
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="w-full h-32 border-2 border-dashed border-primary/30 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group" 
+                                onClick={() => setSignatureModalOpen(true)}
+                              >
+                                <div className="flex flex-col items-center gap-2">
+                                  <PenTool className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                                  <span className="text-sm font-bold text-primary">Click here to sign</span>
+                                  <span className="text-[10px] text-muted-foreground">Legally binding digital signature</span>
+                                </div>
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+                    <div className="flex flex-col justify-end">
+                      <FormInput name="signatureDate" label="Signature Date" type="date" disabled={isStaffMode} />
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="flex justify-center pt-8">
-                  <Button 
-                    type="submit" 
-                    size="lg" 
-                    disabled={uploadMutation.isPending}
-                    className="w-full max-w-sm h-14 text-lg font-bold shadow-xl shadow-primary/30 hover:scale-[1.02] transition-transform"
-                  >
-                    {uploadMutation.isPending ? (
-                      <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                    ) : (
-                      <Sparkles className="mr-3 h-5 w-5" />
-                    )}
-                    Submit Final Application
-                  </Button>
-                </div>
-              </form>
-            </FormProvider>
-          </div>
-        </div>
+              {/* Form Footer Actions */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 border-t bg-card/50 p-6 rounded-b-xl -mx-8 -mb-8">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    handleGeneratePreview();
+                    setPreviewDialogOpen(true);
+                  }}
+                  className="w-full sm:w-auto min-w-[160px] h-12 flex items-center gap-2 font-semibold"
+                >
+                  {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                  View Form
+                </Button>
 
-        {/* Right Side: PDF Preview */}
-        <div className="hidden lg:block w-[450px] border-l bg-muted/20 relative">
-          <div className="absolute inset-0 flex flex-col">
-            <div className="p-3 border-b bg-card text-[10px] font-bold uppercase tracking-wider flex items-center justify-between">
-              <span>Document Preview</span>
-              {isPreviewLoading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {pdfUrl ? (
-                <iframe 
-                  src={pdfUrl + "#toolbar=0&navpanes=0&view=FitH"} 
-                  className="w-full h-full border-none"
-                  title="PDF Preview"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-12 text-center">
-                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-                    <FileText className="h-10 w-10 opacity-20" />
-                  </div>
-                  <h4 className="font-bold text-foreground mb-2">Generating Preview</h4>
-                  <p className="text-xs">Your document is being prepared with the latest information...</p>
-                </div>
-              )}
-            </div>
-          </div>
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  disabled={uploadMutation.isPending || updateApplication.isPending}
+                  className="w-full sm:w-auto min-w-[200px] h-12 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center gap-2"
+                >
+                  {uploadMutation.isPending || updateApplication.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    ""
+                  )}
+                  {isStaffMode ? "Finalize Assessment" : "Submit Application"}
+                </Button>
+              </div>
+            </form>
+          </FormProvider>
         </div>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-auto flex flex-col border-none">
+          <DialogHeader className="p-4 border-b bg-card shrink-0">
+            <VisuallyHidden>
+              <DialogTitle>Advanced Standing Form Preview</DialogTitle>
+            </VisuallyHidden>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Advanced Standing Form Preview
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleGeneratePreview}
+                  disabled={isPreviewLoading}
+                >
+                  {isPreviewLoading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <RefreshCw className="h-3 w-3 mr-2" />}
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/20 relative overflow-hidden">
+            {pdfUrl ? (
+              <iframe 
+                src={pdfUrl + "#toolbar=0&navpanes=0&view=FitH"} 
+                className="w-full h-full border-none"
+                title="PDF Preview"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-12 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                  <FileText className="h-10 w-10 opacity-20" />
+                </div>
+                <h4 className="font-bold text-foreground mb-2">Generating Preview</h4>
+                <p className="text-xs">Your document is being prepared with the latest information...</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <SignatureModal
         open={signatureModalOpen}

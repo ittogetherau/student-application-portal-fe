@@ -1,5 +1,37 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, PDFTextField } from "pdf-lib";
 import { AdvancedStandingFormValues } from "./advanced-standing.validation";
+
+/**
+ * Converts an SVG string to a PNG data URL using a hidden canvas.
+ */
+async function svgToPng(svgString: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    // Set dimensions for signature - adjust as needed for the PDF space
+    canvas.width = 400;
+    canvas.height = 150;
+
+    img.onload = () => {
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw image onto canvas
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        reject(new Error("Could not get canvas context"));
+      }
+    };
+
+    img.onerror = (err) => reject(err);
+
+    // Convert SVG string to data URL
+    const svgDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
+    img.src = svgDataUrl;
+  });
+}
 
 /**
  * Takes the React Hook Form data, loads the blank PDF template,
@@ -16,6 +48,8 @@ export async function generateAdvancedStandingPdf(
   // 2. Load the PDF into pdf-lib
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
   const form = pdfDoc.getForm();
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
 
   // 3. Helper to safely fill text fields
   const fillField = (fieldName: string, value?: string) => {
@@ -23,24 +57,43 @@ export async function generateAdvancedStandingPdf(
       const field = form.getTextField(fieldName);
       if (value) field.setText(value);
     } catch (error) {
-      console.warn(`Could not find or fill field: ${fieldName}`);
+      // console.warn(`Could not find or fill field: ${fieldName}`);
     }
   };
 
-  // --- SECTION 1: Student Details (These will be autofilled in the UI) ---
+  // --- SECTION 1: Student Details ---
+  fillField("Student Name", data.studentName);
   fillField("Date of Birth", data.dateOfBirth);
   fillField("Mobile", data.mobile);
   fillField("Email Address", data.email);
   fillField("Churchill Course Name", data.courseName);
-  fillField("Churchill Student ID Student Name", data.studentIdAndName);
-
-  // Handle the "studentType" checkbox/textfield weirdness
+  
+  // User requested: Churchill Student ID leave blank, write only Student Name
   try {
-    const typeField = form.getTextField("I am applying as a Future Student Currently Enrolled Student");
-    typeField.setText(data.studentType);
+    // Clear the field so it doesn't duplicate into the ID section
+    const combinedField = form.getTextField("Churchill Student ID Student Name");
+    combinedField.setText("");
+    
+    // Draw the name directly over the "Student Name" section of the page
+    firstPage.drawText(data.studentName || "", {
+      x: 365,
+      y: 520,
+      size: 11,
+    });
   } catch (e) {
-    // ignore
+    // Fallback to separate fields if they exist
+    fillField("Student Name", data.studentName);
+    fillField("Churchill Student ID", "");
   }
+
+  // Handle the "studentType" checkbox by drawing an "X" directly
+  try {
+    if (data.studentType === "Future Student") {
+      firstPage.drawText("X", { x: 151, y: 566, size: 12 });
+    } else if (data.studentType === "Currently Enrolled Student") {
+      firstPage.drawText("X", { x: 234, y: 566  , size: 12 });
+    }
+  } catch (e) { /* ignore */ }
 
   // --- SECTION 2: Basis for Credit ---
   data.basisForCredit.forEach((item, index) => {
@@ -56,30 +109,79 @@ export async function generateAdvancedStandingPdf(
     const rowNum = index + 1; // Row1 to Row7
     fillField(`Unit code and nameRow${rowNum}`, item.unitCodeAndName);
     fillField(`CIHE equivalent unit code and nameRow${rowNum}`, item.ciheEquivalent);
+    
+    // Office Use Only: Approved Y/N
+    // If we have assessment data, we can fill these. 
+    // They are usually radio groups or checkboxes in the PDF.
+    if ("staffAssessments" in data && data.staffAssessments?.[index]) {
+      const approved = data.staffAssessments[index].approved;
+      try {
+        const radioGroup = form.getRadioGroup(`Approved YNRow${rowNum}`);
+        if (approved === "Yes") radioGroup.select("Yes");
+        else if (approved === "No") radioGroup.select("No");
+      } catch (e) {
+        // If it's not a radio group, try as a text field
+        fillField(`Approved YNRow${rowNum}`, approved);
+      }
+    }
   });
 
   // --- SIGNATURE & DATE ---
   fillField("Student Signature Date", data.signatureDate);
 
-  // For the actual signature SVG, we would draw it onto the PDF canvas here.
-  // Because placing SVGs directly into pdf-lib requires paths mapping or drawing an image,
-  // we will add the signature image drawing logic if required.
+  // Draw the Student Signature Image
   if (data.studentSignatureSvg) {
-    // To properly stamp an SVG string onto a PDF using pdf-lib, we usually need to
-    // convert the SVG to a PNG first, or parse the SVG paths.
-    // For now, we are skipping the complex SVG drawing logic just for this step,
-    // but the data is safely passed!
+    try {
+      const pngDataUrl = await svgToPng(data.studentSignatureSvg);
+      const pngImage = await pdfDoc.embedPng(pngDataUrl);
+      
+      const targetPage = pages.length > 1 ? pages[1] : pages[0];
+      
+      // Draw signature on the correct page, just left of the Date field (y=552)
+      try {
+        const sigField = form.getTextField("Student Signature");
+        targetPage.drawImage(pngImage, {
+          x: 100,
+          y: 545,
+          width: 150,
+          height: 40,
+        });
+      } catch (e) {
+        // Fallback drawing if field not found
+        targetPage.drawImage(pngImage, {
+          x: 120,
+          y: 545, // Moved up to be next to the Date field
+          width: 150,
+          height: 40,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to render signature onto PDF:", error);
+    }
   }
 
-  // We purposefully DO NOT flatten the form here.
-  // This allows the Staff to open the PDF later, check the "Approved Y/N" 
-  // boxes, and sign it before final flattening.
-  // form.flatten();
+  // Office Use Only: Staff Signature & Date
+  if ("staffDate" in data && data.staffDate) {
+    fillField("Staff Signature Date", data.staffDate as string);
+  }
+  
+  // Update all fields to use the standard font and force font size 11
+  // to avoid auto-sizing which makes the text too big.
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  
+  form.getFields().forEach(field => {
+    if (field instanceof PDFTextField) {
+      field.setFontSize(11);
+    }
+  });
+
+  form.updateFieldAppearances(helveticaFont);
+  form.flatten();
 
   // 4. Serialize the PDF Document to bytes
   const pdfBytes = await pdfDoc.save();
 
   // 5. Create a standard JavaScript File object
-  const fileName = `Advanced_Standing_Form_${data.studentIdAndName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+  const fileName = `Advanced_Standing_Form_${data.studentName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
   return new File([pdfBytes.buffer as ArrayBuffer], fileName, { type: "application/pdf" });
 }

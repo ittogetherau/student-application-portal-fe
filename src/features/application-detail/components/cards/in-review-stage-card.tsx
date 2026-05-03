@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import AdvancedStandingForm from "@/features/advanced-standing/components/advanced-standing-form";
 import { useGalaxySyncDeclarationMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
@@ -11,8 +12,9 @@ import {
   useApplicationSendOfferLetterMutation,
   useApplicationUpdateMutation,
 } from "@/shared/hooks/use-applications";
-import { ArrowRight, Loader2, FileText, Sparkles, Clock } from "lucide-react";
+import { ArrowRight, Loader2, FileText, Sparkles, Clock, PenTool, Check, X, Eye } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { cn } from "@/shared/lib/utils";
 
 type InReviewStageCardProps = {
   applicationId: string;
@@ -52,6 +54,8 @@ export default function InReviewStageCard({
 
   const enrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
   const isAdvancedStandingRequested = enrollmentData?.advanced_standing_requested === true;
+  const isAdvancedStandingSubmitted = enrollmentData?.advanced_standing_submitted === true;
+  const advancedStandingStatus = enrollmentData?.advanced_standing_status as string || "Pending";
 
   const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
@@ -127,76 +131,175 @@ export default function InReviewStageCard({
         <div className="mb-6 overflow-hidden rounded-xl border-2 border-primary/20 bg-primary/5 shadow-sm">
           <div className="bg-primary/10 px-4 py-3 flex items-center justify-between">
             <div className="flex flex-col w-full">
-              {isAdvancedStandingRequested && (
-                <div className="flex w-full justify-end mb-1">
-                  <span className="text-[8px] bg-primary/20 px-2 py-0.5 rounded-full font-semibold">
-                    REQUESTED
-                  </span>
+              <div className="flex w-full justify-between items-center mb-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="text-[14px] font-bold uppercase tracking-wider">Advanced Standing</h3>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="text-[14px] font-bold uppercase tracking-wider">Advanced Standing</h3>
+                {isAdvancedStandingRequested && (
+                  <span className={cn(
+                    "text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter",
+                    advancedStandingStatus === "Approved" ? "bg-green-500/20 text-green-700" :
+                    advancedStandingStatus === "Rejected" ? "bg-red-500/20 text-red-700" :
+                    isAdvancedStandingSubmitted ? "bg-blue-500/20 text-blue-700" :
+                    "bg-primary/20 text-primary-700"
+                  )}>
+                    {advancedStandingStatus === "Approved" ? "Approved" :
+                     advancedStandingStatus === "Rejected" ? "Rejected" :
+                     isAdvancedStandingSubmitted ? "Submitted" : "Requested"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <div className="p-4">
             <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-              {isStaff 
+              {isStaff
                 ? "If the student requires Course Credit, request the form from them. They will be notified and can fill it directly in their portal."
                 : "The staff has requested you to fill the Advanced Standing (Course Credit) form. Please provide the details of your previous studies."
               }
             </p>
-            
+
             {isStaff ? (
-              <Button 
-                variant="outline" 
-                disabled={isPending}
-                onClick={() => {
-                  const currentEnrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
-                  updateApplication.mutate({
-                    enrollment_data: {
-                      ...currentEnrollmentData,
-                      advanced_standing_requested: true,
-                    }
-                  }, {
-                    onSuccess: () => {
-                      toast.success("Requested Advanced Standing form from student.");
-                    },
-                    onError: (error) => {
-                      toast.error(error.message || "Failed to request Advanced Standing");
-                    }
-                  });
-                }}
-                className="w-full flex items-center gap-2 text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 break-words"
-              >
-                <span className="flex-shrink-0 flex items-center justify-center">
-                  {updateApplication.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <FileText className="h-5 w-5" />
-                  )}
-                </span>
-                <span className="flex-1 text-left whitespace-normal">
-                  {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
-                </span>
-              </Button>
-            ) : (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full flex items-center gap-2 text-[10px] font-bold shadow-md hover:shadow-lg transition-all duration-300 bg-primary text-primary-foreground px-4 py-2">
+              <div className="space-y-3">
+                {!isAdvancedStandingSubmitted ? (
+                  <Button
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() => {
+                      const currentEnrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+                      updateApplication.mutate({
+                        enrollment_data: {
+                          ...currentEnrollmentData,
+                          advanced_standing_requested: true,
+                        }
+                      }, {
+                        onSuccess: () => {
+                          toast.success("Requested Advanced Standing form from student.");
+                        },
+                        onError: (error) => {
+                          toast.error(error.message || "Failed to request Advanced Standing");
+                        }
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 break-words"
+                  >
                     <span className="flex-shrink-0 flex items-center justify-center">
-                      <FileText className="h-4 w-4" />
+                      {updateApplication.isPending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <FileText className="h-5 w-5" />
+                      )}
                     </span>
-                    <span className="flex-1 text-left whitespace-normal truncate">
-                      Fill Advanced Standing Form
+                    <span className="flex-1 text-left whitespace-normal">
+                      {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
                     </span>
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden p-0 border-none">
-                  <AdvancedStandingForm applicationId={applicationId} />
-                </DialogContent>
-              </Dialog>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="w-full flex items-center gap-2 text-[10px] font-bold bg-primary text-primary-foreground">
+                          <PenTool className="h-3.5 w-3.5" />
+                          Assess Form
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                        <VisuallyHidden>
+                          <DialogTitle>Assess Advanced Standing Form</DialogTitle>
+                        </VisuallyHidden>
+                        <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
+                      </DialogContent>
+                    </Dialog>
+
+                    <Button 
+                      variant="destructive" 
+                      className="w-full flex items-center gap-2 text-[10px] font-bold"
+                      disabled={isPending}
+                      onClick={() => {
+                        if (!confirm("Are you sure you want to reject this Advanced Standing application?")) return;
+                        const currentEnrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+                        updateApplication.mutate({
+                          enrollment_data: {
+                            ...currentEnrollmentData,
+                            advanced_standing_status: "Rejected",
+                          }
+                        }, {
+                          onSuccess: () => toast.success("Advanced Standing rejected."),
+                        });
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Reject Form
+                    </Button>
+
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full col-span-2 flex items-center gap-2 text-[10px] font-bold">
+                          <Eye className="h-3.5 w-3.5" />
+                          View Document
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl h-[90vh] p-6">
+                        <VisuallyHidden>
+                          <DialogTitle>View Advanced Standing Document</DialogTitle>
+                        </VisuallyHidden>
+                        <AdvancedStandingForm applicationId={applicationId} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {advancedStandingStatus === "Rejected" ? (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-center">
+                    <p className="text-[10px] font-bold text-red-700 uppercase">Assessment Rejected</p>
+                    <p className="text-[10px] text-red-600 mt-1">No course credit points have been granted.</p>
+                  </div>
+                ) : advancedStandingStatus === "Approved" ? (
+                  <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-center space-y-2">
+                    <p className="text-[10px] font-bold text-green-700 uppercase">Assessment Approved</p>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full h-8 text-[10px] border-green-200 hover:bg-green-100 text-green-700">
+                          <Eye className="h-3 w-3 mr-2" /> View Assessed Form
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl h-[90vh] p-6">
+                        <VisuallyHidden>
+                          <DialogTitle>View Assessed Advanced Standing Form</DialogTitle>
+                        </VisuallyHidden>
+                        <AdvancedStandingForm applicationId={applicationId} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className={cn(
+                        "w-full flex items-center gap-2 text-[10px] font-bold shadow-md transition-all duration-300 px-4 py-2",
+                        isAdvancedStandingSubmitted ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+                      )}>
+                        <span className="flex-shrink-0 flex items-center justify-center">
+                          {isAdvancedStandingSubmitted ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                        </span>
+                        <span className="flex-1 text-left whitespace-normal truncate">
+                          {isAdvancedStandingSubmitted ? "View / Edit Submitted Form" : "Fill Advanced Standing Form"}
+                        </span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                      <VisuallyHidden>
+                        <DialogTitle>Advanced Standing Form</DialogTitle>
+                      </VisuallyHidden>
+                      <div aria-labelledby="advanced-standing-form-title">
+                        <AdvancedStandingForm applicationId={applicationId} />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -222,7 +325,7 @@ export default function InReviewStageCard({
           </Button>
         </>
       )}
-      
+
       {!isStaff && !isAdvancedStandingRequested && (
         <div className="py-8 text-center bg-muted/20 rounded-lg border-dashed border-2">
           <Clock className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />

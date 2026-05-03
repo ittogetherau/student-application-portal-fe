@@ -23,7 +23,7 @@ export const basisForCreditSchema = z.object({
 export const courseEquivalenceSchema = z.object({
   unitCodeAndName: z.string().optional(),
   ciheEquivalent: z.string().optional(),
-  // "Approved YN" is intentionally left out here because it is for OFFICE USE ONLY
+  approved: z.enum(["Yes", "No", ""]).optional(), // OFFICE USE ONLY
 });
 
 // Main Schema for the Student Form
@@ -31,7 +31,7 @@ export const advancedStandingSchema = z.object({
   studentType: z.enum(["Future Student", "Currently Enrolled Student"]),
   
   // Section 1: Student Details
-  studentIdAndName: requiredString("Student ID and Name"),
+  studentName: requiredString("Student Name"),
   dateOfBirth: requiredString("Date of Birth"),
   mobile: requiredString("Mobile"),
   email: requiredEmail("Email"),
@@ -46,6 +46,11 @@ export const advancedStandingSchema = z.object({
   // Signature
   studentSignatureSvg: z.string().min(1, "Signature is required"),
   signatureDate: requiredString("Signature Date"),
+  
+  // Office Use Only
+  staffSignatureSvg: z.string().optional(),
+  staffDate: z.string().optional(),
+  staffAssessments: z.array(z.object({ approved: z.enum(["Yes", "No", ""]) })).optional(),
 });
 
 export type AdvancedStandingFormValues = z.infer<typeof advancedStandingSchema>;
