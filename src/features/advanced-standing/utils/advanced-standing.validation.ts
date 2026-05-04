@@ -48,6 +48,7 @@ export const advancedStandingSchema = z.object({
   signatureDate: requiredString("Signature Date"),
   
   // Office Use Only
+  staffName: z.string().optional(),
   staffSignatureSvg: z.string().optional(),
   staffDate: z.string().optional(),
   staffAssessments: z.array(z.object({ approved: z.enum(["Yes", "No", ""]) })).optional(),

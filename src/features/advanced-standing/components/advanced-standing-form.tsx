@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useFieldArray, useForm, FormProvider, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { Plus, Trash, FileText, Loader2, PenTool, RefreshCw, Sparkles, Eye } from "lucide-react";
+import { Plus, Trash, FileText, Loader2, PenTool, RefreshCw, Sparkles, Eye, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ export default function AdvancedStandingForm({
   const updateApplication = useApplicationUpdateMutation(applicationId);
 
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [staffSignatureModalOpen, setStaffSignatureModalOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -62,6 +63,9 @@ export default function AdvancedStandingForm({
       courseEquivalences: [{ unitCodeAndName: "", ciheEquivalent: "", approved: "" }],
       studentSignatureSvg: "",
       signatureDate: new Date().toISOString().split("T")[0],
+      staffName: "",
+      staffSignatureSvg: "",
+      staffDate: new Date().toISOString().split("T")[0],
     },
   });
 
@@ -195,6 +199,26 @@ export default function AdvancedStandingForm({
       console.error(error);
       toast.error("An error occurred while preparing the document.");
     }
+  };
+
+  const handleReject = () => {
+    if (!confirm("Are you sure you want to reject this Advanced Standing application?")) return;
+    const currentEnrollmentData = (appData?.data?.enrollment_data || {}) as Record<string, unknown>;
+    const loadingToast = toast.loading("Rejecting application...");
+    updateApplication.mutate({
+      enrollment_data: {
+        ...currentEnrollmentData,
+        advanced_standing_status: "Rejected",
+      }
+    }, {
+      onSuccess: () => {
+        toast.success("Advanced Standing rejected.", { id: loadingToast });
+        onSuccess?.();
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to reject.", { id: loadingToast });
+      }
+    });
   };
 
   if (isLoadingApp) {
@@ -362,8 +386,8 @@ export default function AdvancedStandingForm({
                     I declare that the information provided in this application is true and correct. I authorize Churchill Institute of Higher Education to verify any information provided in this application.
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2 space-y-2">
+                  <div className="flex flex-col md:flex-row gap-8">
+                    <div className="flex-1 space-y-2 min-w-0">
                       <Label className="text-xs font-bold uppercase tracking-wide">Student Signature</Label>
                       <Controller
                         control={control}
@@ -399,15 +423,71 @@ export default function AdvancedStandingForm({
                         )}
                       />
                     </div>
-                    <div className="flex flex-col justify-end">
+                    <div className="flex flex-col justify-end w-full md:w-56 shrink-0">
                       <FormInput name="signatureDate" label="Signature Date" type="date" disabled={isStaffMode} />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Section 5: Office Use Only (Staff Mode) */}
+              {isStaffMode && (
+                <Card className="border-amber-500/20 shadow-md bg-amber-50/30">
+                  <CardHeader className="bg-amber-500/10 border-b border-amber-500/20">
+                    <CardTitle className="text-lg flex items-center gap-3 text-amber-900">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-600 text-white font-bold text-sm shadow-sm">5</span>
+                      Office Use Only — Assessment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormInput name="staffName" label="Credits Assessed By" placeholder="Staff Full Name" />
+                      <FormInput name="staffDate" label="Application Received On / Signature Date" type="date" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wide text-amber-900">Staff Signature</Label>
+                      <Controller
+                        control={control}
+                        name="staffSignatureSvg"
+                        render={({ field: { value } }) => (
+                          <div className="relative">
+                            {value ? (
+                              <div className="border-2 border-amber-500/30 rounded-xl p-4 bg-white shadow-inner flex justify-center items-center h-32 group">
+                                <img src={`data:image/svg+xml;base64,${btoa(value)}`} className="h-full object-contain" alt="Staff Signature" />
+                                <div className="absolute inset-0 bg-amber-500/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                                  <Button type="button" variant="secondary" size="sm" onClick={() => setStaffSignatureModalOpen(true)} className="font-bold shadow-xl">
+                                    <PenTool className="h-4 w-4 mr-2" /> Redraw Signature
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full h-32 border-2 border-dashed border-amber-500/30 rounded-xl hover:border-amber-600 hover:bg-amber-50 transition-all group"
+                                onClick={() => setStaffSignatureModalOpen(true)}
+                              >
+                                <div className="flex flex-col items-center gap-2">
+                                  <PenTool className="h-6 w-6 text-amber-600 group-hover:scale-110 transition-transform" />
+                                  <span className="text-sm font-bold text-amber-700">Click here to sign</span>
+                                  <span className="text-[10px] text-muted-foreground">Staff assessment signature</span>
+                                </div>
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Form Footer Actions */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 border-t bg-card/50 p-6 rounded-b-xl -mx-8 -mb-8">
+              <div className={cn(
+                "flex items-center justify-center gap-4 pt-8 border-t bg-card/50 p-6 rounded-b-xl -mx-8 -mb-8",
+                isStaffMode ? "flex-col" : "flex-col sm:flex-row"
+              )}>
                 <Button 
                   type="button"
                   variant="outline"
@@ -416,24 +496,44 @@ export default function AdvancedStandingForm({
                     handleGeneratePreview();
                     setPreviewDialogOpen(true);
                   }}
-                  className="w-full sm:w-auto min-w-[160px] h-12 flex items-center gap-2 font-semibold"
+                  className={cn(
+                    "h-12 flex items-center justify-center gap-2 font-semibold",
+                    isStaffMode ? "w-full sm:w-64" : "w-full sm:w-auto min-w-[160px]"
+                  )}
                 >
                   {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                   View Form
                 </Button>
 
+                {isStaffMode && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="lg"
+                    disabled={updateApplication.isPending}
+                    onClick={handleReject}
+                    className="w-full sm:w-64 h-12 flex items-center justify-center gap-2 font-bold"
+                  >
+                    <X className="h-5 w-5" />
+                    Reject Application
+                  </Button>
+                )}
+
                 <Button 
                   type="submit" 
                   size="lg" 
                   disabled={uploadMutation.isPending || updateApplication.isPending}
-                  className="w-full sm:w-auto min-w-[200px] h-12 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center gap-2"
+                  className={cn(
+                    "h-12 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2",
+                    isStaffMode ? "w-full sm:w-64" : "w-full sm:w-auto min-w-[200px]"
+                  )}
                 >
                   {uploadMutation.isPending || updateApplication.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     ""
                   )}
-                  {isStaffMode ? "Finalize Assessment" : "Submit Application"}
+                  {isStaffMode ? "Approve & Finalize" : "Submit Application"}
                 </Button>
               </div>
             </form>
@@ -492,7 +592,17 @@ export default function AdvancedStandingForm({
         onConfirm={(svg) => {
           setValue("studentSignatureSvg", svg, { shouldValidate: true });
           setSignatureModalOpen(false);
-          // Refresh preview after signing
+          setTimeout(handleGeneratePreview, 100);
+        }}
+      />
+
+      {/* Staff Signature Modal */}
+      <SignatureModal
+        open={staffSignatureModalOpen}
+        onOpenChange={setStaffSignatureModalOpen}
+        onConfirm={(svg) => {
+          setValue("staffSignatureSvg", svg, { shouldValidate: true });
+          setStaffSignatureModalOpen(false);
           setTimeout(handleGeneratePreview, 100);
         }}
       />

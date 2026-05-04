@@ -160,9 +160,32 @@ export async function generateAdvancedStandingPdf(
     }
   }
 
-  // Office Use Only: Staff Signature & Date
+  // --- OFFICE USE ONLY: Staff Assessment Fields ---
   if ("staffDate" in data && data.staffDate) {
-    fillField("Staff Signature Date", data.staffDate as string);
+    fillField("Application received on", data.staffDate as string);
+    fillField("Date", data.staffDate as string);
+  }
+  if ("staffName" in data && data.staffName) {
+    fillField("Credits Assessed By", data.staffName as string);
+  }
+
+  // Draw Staff Signature Image onto Page 2
+  if (data.staffSignatureSvg) {
+    try {
+      const staffPngDataUrl = await svgToPng(data.staffSignatureSvg);
+      const staffPngImage = await pdfDoc.embedPng(staffPngDataUrl);
+      const targetPage = pages.length > 1 ? pages[1] : pages[0];
+
+      // Coordinates from find-sig-page.js: "Signature" widget on Page 2, x=113.64, y=437.16
+      targetPage.drawImage(staffPngImage, {
+        x: 110,
+        y: 435,
+        width: 150,
+        height: 40,
+      });
+    } catch (error) {
+      console.error("Failed to render staff signature onto PDF:", error);
+    }
   }
   
   // Update all fields to use the standard font and force font size 11

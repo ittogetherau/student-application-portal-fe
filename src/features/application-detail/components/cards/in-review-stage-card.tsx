@@ -195,59 +195,55 @@ export default function InReviewStageCard({
                       {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
                     </span>
                   </Button>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                ) : advancedStandingStatus === "Approved" ? (
+                  <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-center space-y-2">
+                    <p className="text-[10px] font-bold text-green-700 uppercase">Assessment Approved</p>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="w-full flex items-center gap-2 text-[10px] font-bold bg-primary text-primary-foreground">
-                          <PenTool className="h-3.5 w-3.5" />
-                          Assess Form
+                        <Button variant="outline" size="sm" className="w-full h-8 text-[10px] border-green-200 hover:bg-green-100 text-green-700">
+                          <Eye className="h-3 w-3 mr-2" /> View Assessed Form
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
                         <VisuallyHidden>
-                          <DialogTitle>Assess Advanced Standing Form</DialogTitle>
+                          <DialogTitle>View Assessed Advanced Standing Form</DialogTitle>
                         </VisuallyHidden>
                         <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
                       </DialogContent>
                     </Dialog>
-
-                    <Button 
-                      variant="destructive" 
-                      className="w-full flex items-center gap-2 text-[10px] font-bold"
-                      disabled={isPending}
-                      onClick={() => {
-                        if (!confirm("Are you sure you want to reject this Advanced Standing application?")) return;
-                        const currentEnrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
-                        updateApplication.mutate({
-                          enrollment_data: {
-                            ...currentEnrollmentData,
-                            advanced_standing_status: "Rejected",
-                          }
-                        }, {
-                          onSuccess: () => toast.success("Advanced Standing rejected."),
-                        });
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Reject Form
-                    </Button>
-
+                  </div>
+                ) : advancedStandingStatus === "Rejected" ? (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-center space-y-2">
+                    <p className="text-[10px] font-bold text-red-700 uppercase">Assessment Rejected</p>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full col-span-2 flex items-center gap-2 text-[10px] font-bold">
-                          <Eye className="h-3.5 w-3.5" />
-                          View Document
+                        <Button variant="outline" size="sm" className="w-full h-8 text-[10px] border-red-200 hover:bg-red-100 text-red-700">
+                          <Eye className="h-3 w-3 mr-2" /> View Form
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-5xl h-[90vh] p-6">
+                      <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
                         <VisuallyHidden>
-                          <DialogTitle>View Advanced Standing Document</DialogTitle>
+                          <DialogTitle>View Advanced Standing Form</DialogTitle>
                         </VisuallyHidden>
-                        <AdvancedStandingForm applicationId={applicationId} />
+                        <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
                       </DialogContent>
                     </Dialog>
                   </div>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full flex items-center gap-2 text-[10px] font-bold bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300">
+                        <PenTool className="h-3.5 w-3.5" />
+                        Assess the Advanced Standing Form
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                      <VisuallyHidden>
+                        <DialogTitle>Assess Advanced Standing Form</DialogTitle>
+                      </VisuallyHidden>
+                      <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
+                    </DialogContent>
+                  </Dialog>
                 )}
               </div>
             ) : (
@@ -274,18 +270,24 @@ export default function InReviewStageCard({
                       </DialogContent>
                     </Dialog>
                   </div>
+                ) : isAdvancedStandingSubmitted ? (
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-center">
+                    <Check className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+                    <p className="text-[10px] font-bold text-blue-700 uppercase">Form Submitted</p>
+                    <p className="text-[10px] text-blue-600 mt-1">Your application is being reviewed by Churchill staff.</p>
+                  </div>
                 ) : (
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button className={cn(
                         "w-full flex items-center gap-2 text-[10px] font-bold shadow-md transition-all duration-300 px-4 py-2",
-                        isAdvancedStandingSubmitted ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+                        "bg-primary text-primary-foreground"
                       )}>
                         <span className="flex-shrink-0 flex items-center justify-center">
-                          {isAdvancedStandingSubmitted ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                          <FileText className="h-4 w-4" />
                         </span>
                         <span className="flex-1 text-left whitespace-normal truncate">
-                          {isAdvancedStandingSubmitted ? "View / Edit Submitted Form" : "Fill Advanced Standing Form"}
+                          Fill Advanced Standing Form
                         </span>
                       </Button>
                     </DialogTrigger>
