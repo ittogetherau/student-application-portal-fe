@@ -50,10 +50,12 @@ const UrlDrivenSheet = ({
   const view = searchParams.get("view");
   const shouldOpen = useMemo(() => view === viewValue, [view, viewValue]);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(shouldOpen);
+  const [everOpened, setEverOpened] = useState(shouldOpen);
 
   useEffect(() => {
     setOpen(shouldOpen);
+    if (shouldOpen) setEverOpened(true);
   }, [shouldOpen]);
 
   const clearFromUrl = () => {
@@ -81,7 +83,7 @@ const UrlDrivenSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={side} className={contentClassName}>
+      {everOpened && <SheetContent side={side} className={contentClassName}>
         <div className="flex h-full flex-col">
           <SheetHeader>
             <SheetTitle>{title}</SheetTitle>
@@ -111,7 +113,7 @@ const UrlDrivenSheet = ({
             </SheetFooter>
           </div>
         </div>
-      </SheetContent>
+      </SheetContent>}
     </Sheet>
   );
 };

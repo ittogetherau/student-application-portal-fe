@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormTextarea } from "@/components/forms/form-textarea";
@@ -12,7 +11,6 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import {
-  useApplicationThreadsQuery,
   useCreateThreadMutation,
 } from "../../hooks/application-threads.hook";
 
@@ -69,19 +67,6 @@ const CreateThreadForm = ({
   });
 
   const { mutateAsync, isPending } = useCreateThreadMutation(applicationId);
-
-  useApplicationThreadsQuery(applicationId);
-
-  useEffect(() => {
-    form.reset({
-      subject: defaultTitle ?? "",
-      issue_type: undefined,
-      target_section: undefined,
-      priority: undefined,
-      deadline: "",
-      message: "",
-    });
-  }, [defaultTitle, form]);
 
   const onSubmit = async (values: ThreadCreateValues) => {
     const normalizedValues = {

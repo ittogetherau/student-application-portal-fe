@@ -71,6 +71,8 @@ export interface ApplicationTableRow {
   assignedStaffName?: string;
   submittedAt: string;
   intake: string;
+  offerLetterSigned?: boolean;
+  studentOrigin?: string | null;
 }
 
 // Document Types
