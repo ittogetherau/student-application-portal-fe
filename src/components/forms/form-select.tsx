@@ -49,7 +49,6 @@ export function FormSelect({
             <Select
               value={displayValue}
               onValueChange={onChange}
-              defaultValue={displayValue}
             >
               <SelectTrigger ref={ref} id={name} aria-invalid={!!error}>
                 <SelectValue placeholder={placeholder} />

@@ -342,20 +342,35 @@ export const getApplicationColumns = (
         <DataTableColumnHeader column={column} title="Course" />
       ),
       cell: ({ row }) => {
-        // const code = row.original.courseCode || "N/A";
         const name = row.original.course || "N/A";
+        const intake = row.original.intake && row.original.intake !== "N/A" ? row.original.intake : null;
+        const origin = row.original.studentOrigin;
+        const originLower = origin?.toLowerCase() ?? "";
+        const originLabel = origin
+          ? originLower.includes("offshore")
+            ? "Offshore"
+            : originLower.includes("onshore")
+              ? "Onshore"
+              : originLower.includes("domestic")
+                ? "Domestic"
+                : origin
+          : null;
 
         return (
-          <div className="text-sm text-muted-foreground text-start truncate">
-            {/* <div className="truncate" title={code}>
-              {code}
-            </div> */}
-            <div
-              className="text-sm text-muted-foreground/80 text-wrap"
-              title={name}
-            >
+          <div className="text-sm text-muted-foreground text-start">
+            <div className="text-sm text-muted-foreground/80 text-wrap" title={name}>
               {name}
             </div>
+            {intake ? (
+              <div className="text-xs text-muted-foreground/70 truncate" title={intake}>
+                {intake}
+              </div>
+            ) : null}
+            {originLabel ? (
+              <div className="text-xs text-muted-foreground/60 italic">
+                {originLabel}
+              </div>
+            ) : null}
           </div>
         );
       },
@@ -373,6 +388,7 @@ export const getApplicationColumns = (
           role={role}
           hasUploadedCeoPaymentProof={row.original.hasUploadedCeoPaymentProof}
           submittedByStudent={row.original.submittedByStudent}
+          offerLetterSigned={row.original.offerLetterSigned}
         />
       ),
       filterFn: (row, columnId, filterValues) => {

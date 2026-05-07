@@ -21,6 +21,7 @@ interface ApplicationStagePillProps {
   role?: USER_ROLE | string;
   hasUploadedCeoPaymentProof?: boolean | null;
   submittedByStudent?: boolean | null;
+  offerLetterSigned?: boolean;
 }
 
 export function ApplicationStagePill({
@@ -29,6 +30,7 @@ export function ApplicationStagePill({
   role,
   hasUploadedCeoPaymentProof,
   submittedByStudent,
+  offerLetterSigned,
 }: ApplicationStagePillProps) {
   const roleKey = role ? String(role).toLowerCase() : "";
   const roleVariant =
@@ -52,11 +54,18 @@ export function ApplicationStagePill({
         ? "Payment Proof Pending"
         : "CoE Pending"
       : undefined;
+  const offerSignedLabel =
+    offerLetterSigned && normalizedStage === APPLICATION_STAGE.OFFER_LETTER
+      ? "Offer Letter Signed"
+      : undefined;
   const label =
+    offerSignedLabel ??
     coeStatusLabel ??
     roleLabel ??
     config?.label ??
     (isLegacyStage ? `${formattedStage}` : "N/A");
+  const offerSignedClassName =
+    "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-200";
   const legacyClassName =
     "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-100";
 
@@ -73,7 +82,9 @@ export function ApplicationStagePill({
       <span
         className={cn(
           "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-          config?.className ?? (isLegacyStage ? legacyClassName : undefined),
+          offerSignedLabel
+            ? offerSignedClassName
+            : config?.className ?? (isLegacyStage ? legacyClassName : undefined),
           className,
         )}
       >

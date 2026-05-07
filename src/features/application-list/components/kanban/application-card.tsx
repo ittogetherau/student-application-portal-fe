@@ -117,6 +117,17 @@ export function ApplicationCard({
                   />
                 </div>
               ) : null}
+              {app.studentOrigin ? (
+                <p className="text-[10px] sm:text-xs text-muted-foreground/60 italic">
+                  {app.studentOrigin.toLowerCase().includes("offshore")
+                    ? "Offshore"
+                    : app.studentOrigin.toLowerCase().includes("onshore")
+                      ? "Onshore"
+                      : app.studentOrigin.toLowerCase().includes("domestic")
+                        ? "Domestic"
+                        : app.studentOrigin}
+                </p>
+              ) : null}
             </div>
 
             {role === USER_ROLE.STAFF ? (
