@@ -37,12 +37,13 @@ export default function UpdateSubAgentPasswordDialog({
     resolver: zodResolver(subAgentResetPasswordSchema),
     defaultValues: {
       new_password: "",
+      confirm_password: "",
     },
   });
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
-      form.reset({ new_password: "" });
+      form.reset({ new_password: "", confirm_password: "" });
     }
 
     onOpenChange(next);
@@ -93,6 +94,14 @@ export default function UpdateSubAgentPasswordDialog({
               type="password"
               placeholder="Enter a new password"
               description="Minimum 8 characters, with at least one letter and one number."
+              disabled={resetPasswordMutation.isPending}
+            />
+
+            <FormInput
+              name="confirm_password"
+              label="Confirm Password"
+              type="password"
+              placeholder="Confirm your new password"
               disabled={resetPasswordMutation.isPending}
             />
 

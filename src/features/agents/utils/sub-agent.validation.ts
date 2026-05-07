@@ -53,15 +53,21 @@ export const subAgentProfileSchema = z.object({
 
 export type SubAgentProfileValues = z.infer<typeof subAgentProfileSchema>;
 
-export const subAgentResetPasswordSchema = z.object({
-  new_password: z
-    .string()
-    .trim()
-    .min(8, "Password must be at least 8 characters.")
-    .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-      message: "Password must include at least one letter and one number.",
-    }),
-});
+export const subAgentResetPasswordSchema = z
+  .object({
+    new_password: z
+      .string()
+      .trim()
+      .min(8, "Password must be at least 8 characters.")
+      .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
+        message: "Password must include at least one letter and one number.",
+      }),
+    confirm_password: z.string().trim().min(1, "Confirm password is required."),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match.",
+    path: ["confirm_password"],
+  });
 
 export type SubAgentResetPasswordValues = z.infer<typeof subAgentResetPasswordSchema>;
 
