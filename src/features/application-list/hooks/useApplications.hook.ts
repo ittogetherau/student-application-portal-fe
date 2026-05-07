@@ -84,6 +84,8 @@ const normalizeApplicationList = (raw: unknown): ApplicationsResult => {
         "",
       intake: (item.intake as string) || "N/A",
       submittedAt: (item.submitted_at as string) ?? "",
+      offerLetterSigned: (item.offer_letter_signed as boolean) ?? false,
+      studentOrigin: (item.student_origin as string) ?? null,
     };
 
     applications.push(mapped);
