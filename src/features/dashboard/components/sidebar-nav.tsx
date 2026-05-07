@@ -152,10 +152,12 @@ const SidebarNav = ({ items, user }: SidebarNavProps) => {
             align="start"
             className="w-60 rounded-2xl border bg-card p-2"
           >
-            {/* <DropdownMenuItem className="flex items-center gap-2 text-muted-foreground focus:text-foreground">
-              <UserRound className="h-4 w-4" />
-              Profile
-            </DropdownMenuItem> */}
+            <DropdownMenuItem asChild className="flex items-center gap-2 text-muted-foreground focus:text-foreground cursor-pointer">
+              <Link href={siteRoutes.dashboard.profile}>
+                <UserRound className="h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="flex items-center gap-2 text-muted-foreground focus:text-foreground"
               onSelect={(event) => {

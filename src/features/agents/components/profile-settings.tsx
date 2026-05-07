@@ -357,7 +357,7 @@ export default function ProfileSettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="space-y-1">
         <h3 className="text-xl font-medium tracking-tight">Account Profile</h3>
         <p className="text-sm text-muted-foreground">
@@ -393,14 +393,10 @@ export default function ProfileSettingsPage() {
       <Card className="backdrop-blur-xl bg-background/95 border-border shadow-sm">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
-          <CardDescription>
-            Profile details are fetched from auth data and saved through
-            role-based APIs.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="first-name">First name</Label>
               {isLoading ? (
                 <Skeleton className="h-10 w-full" />
@@ -429,23 +425,8 @@ export default function ProfileSettingsPage() {
                   }
                 />
               )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              {isLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={formValues.phone}
-                  onChange={(event) =>
-                    handleChange("phone", event.target.value)
-                  }
-                />
-              )}
-            </div>
+            </div> */}
+
             <div className="space-y-2">
               <Label htmlFor="organization-name">Organization Name</Label>
               {isLoading ? (
@@ -461,6 +442,7 @@ export default function ProfileSettingsPage() {
                 />
               )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               {isLoading ? (
@@ -489,6 +471,23 @@ export default function ProfileSettingsPage() {
                   }
                 />
               )}
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              {isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={formValues.phone}
+                  onChange={(event) =>
+                    handleChange("phone", event.target.value)
+                  }
+                />
+              )}
+            </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>

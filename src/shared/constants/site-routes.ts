@@ -42,11 +42,7 @@ export const siteRoutes = {
         coe: (id: string) => `/dashboard/application/${id}/coe`,
       },
     },
-    settings: {
-      root: "/dashboard/settings",
-      profile: "/dashboard/settings/profile",
-      subAgents: "/dashboard/settings/sub-agents",
-    },
+    profile: "/dashboard/profile",
     tasks: "/dashboard/tasks",
     notifications: "/dashboard/notifications",
     gsInterviews: "/dashboard/gs-interviews",

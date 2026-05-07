@@ -14,7 +14,7 @@ const SHARED_PATHS = [
 ];
 
 const STAFF_ONLY_PATHS = [siteRoutes.dashboard.tasks];
-const AGENT_ONLY_PATHS = [siteRoutes.dashboard.settings.root];
+const AGENT_ONLY_PATHS = [siteRoutes.dashboard.profile, siteRoutes.dashboard.subAgents];
 
 const AUTH_PAGES = [
   siteRoutes.auth.login,
