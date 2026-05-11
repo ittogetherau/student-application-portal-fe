@@ -140,6 +140,8 @@ export default function ClientApplicationLayout({
           applicationId={application.id}
           assignedAgentProfileId={application.agent_profile_id}
           data={{
+            applicationRecordId: application.id,
+            agentProfileId: application.agent_profile_id,
             studentName,
             trackingCode: application.tracking_code,
             studentEmail: application.personal_details?.email,

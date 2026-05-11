@@ -237,50 +237,57 @@ export function DataTable<TData, TValue>({
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    onClick={() => {
-                      const data = row.original as Record<string, unknown>;
-                      const applicationId =
-                        typeof data.id === "string" && data.id
-                          ? data.id
-                          : typeof data.referenceNumber === "string"
-                            ? data.referenceNumber
-                            : "";
+                table.getRowModel().rows.map((row) => {
+                  const data = row.original as Record<string, unknown>;
+                  const applicationId =
+                    typeof data.id === "string" && data.id
+                      ? data.id
+                      : typeof data.referenceNumber === "string"
+                        ? data.referenceNumber
+                        : "";
+                  const isNavigable = Boolean(applicationId);
 
-                      if (applicationId) {
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={() => {
+                        if (!isNavigable) return;
+
                         router.push(
                           siteRoutes.dashboard.application.id.details(
                             applicationId,
                           ),
                         );
+                      }}
+                      className={
+                        isNavigable
+                          ? "cursor-pointer hover:bg-muted/50"
+                          : "hover:bg-muted/30"
                       }
-                    }}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const size = cell.column.getSize();
-                      return (
-                        <TableCell
-                          key={cell.id}
-                          style={{
-                            width: `${size}px`,
-                            minWidth: `${size}px`,
-                            maxWidth: `${size}px`,
-                          }}
-                          className="overflow-hidden"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const size = cell.column.getSize();
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              width: `${size}px`,
+                              minWidth: `${size}px`,
+                              maxWidth: `${size}px`,
+                            }}
+                            className="overflow-hidden"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell

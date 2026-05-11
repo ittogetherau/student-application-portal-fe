@@ -21,8 +21,11 @@ export const siteRoutes = {
   },
   dashboard: {
     root: "/dashboard",
+    subAgents: "/dashboard/sub-agents",
     application: {
       root: "/dashboard/application",
+      filteredBySubAgent: (subAgentId: string) =>
+        `/dashboard/application?subAgentId=${encodeURIComponent(subAgentId)}`,
       create: "/dashboard/application/manage-application",
       edit: (id: string) =>
         `/dashboard/application/manage-application?id=${id}&edit=true`,
@@ -39,9 +42,7 @@ export const siteRoutes = {
         coe: (id: string) => `/dashboard/application/${id}/coe`,
       },
     },
-    agents: {
-      root: "/dashboard/agents",
-    },
+    profile: "/dashboard/profile",
     tasks: "/dashboard/tasks",
     notifications: "/dashboard/notifications",
     gsInterviews: "/dashboard/gs-interviews",

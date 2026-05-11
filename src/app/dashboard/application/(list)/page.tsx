@@ -1,7 +1,13 @@
+import { Suspense } from "react";
+
 import ApplicationListPage from "./list-page";
 
 const Page = () => {
-  return <ApplicationListPage />;
+  return (
+    <Suspense fallback={null}>
+      <ApplicationListPage />
+    </Suspense>
+  );
 };
 
 export default Page;

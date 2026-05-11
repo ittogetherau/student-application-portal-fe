@@ -19,6 +19,11 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       icon: "applications",
     },
     {
+      label: "Sub-Agents",
+      href: siteRoutes.dashboard.subAgents,
+      icon: "agents",
+    },
+    {
       label: "Archived Applications",
       href: siteRoutes.dashboard.application.archived,
       icon: "queue",
@@ -32,7 +37,7 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       label: "GS Interviews",
       href: siteRoutes.dashboard.gsInterviews,
       icon: "calendar",
-    },
+    }
   ],
   staff: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },

@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 type InfoRowProps = {
   icon: ReactNode;
   label: string;
-  value?: string | null;
+  value?: ReactNode;
   action?: ReactNode;
 };
 

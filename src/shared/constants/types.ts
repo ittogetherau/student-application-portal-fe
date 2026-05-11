@@ -55,6 +55,7 @@ export interface Application {
 export interface ApplicationTableRow {
   id: string;
   referenceNumber: string;
+  agentId?: string;
   agentName: string;
   agentEmail?: string;
   agentAgencyName?: string;

@@ -18,6 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import SubAgentApplicationBadge from "@/features/agents/components/sub-agent-application-badge";
+import { useSubAgentTeamQuery } from "@/features/agents/hooks/useSubAgents.hook";
+import { resolveSubAgentApplicationPreview } from "@/features/agents/utils/sub-agent-application-preview";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { StaffAssignmentSelect } from "@/features/application-detail/components/toolbar/staff-assignment-select";
 import { ApplicationTableRow, USER_ROLE } from "@/shared/constants/types";
@@ -29,6 +32,20 @@ import {
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
 import { Archive, ArchiveRestore, Edit, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+const SubAgentCell = ({ row }: { row: any }) => {
+  const { data: teamData } = useSubAgentTeamQuery();
+  const preview = resolveSubAgentApplicationPreview(
+    row.original,
+    teamData?.members ?? [],
+  );
+
+  if (!preview) {
+    return <span className="text-xs text-muted-foreground">Primary agent</span>;
+  }
+
+  return <SubAgentApplicationBadge preview={preview} className="max-w-full" />;
+};
 
 const ActionCell = ({
   row,
@@ -304,6 +321,16 @@ export const getApplicationColumns = (
           </div>
         );
       },
+    },
+    {
+      id: "processedBy",
+      accessorFn: (row) => row.agentId ?? "",
+      meta: { columnTitle: "Processed By" },
+      size: 180,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Processed By" />
+      ),
+      cell: ({ row }) => <SubAgentCell row={row} />,
     },
     {
       accessorKey: "course",

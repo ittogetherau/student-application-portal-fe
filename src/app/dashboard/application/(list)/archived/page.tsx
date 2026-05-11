@@ -1,7 +1,13 @@
+import { Suspense } from "react";
+
 import ApplicationListPage from "../list-page";
 
 const Page = () => {
-  return <ApplicationListPage isArchived={true} />;
+  return (
+    <Suspense fallback={null}>
+      <ApplicationListPage isArchived={true} />
+    </Suspense>
+  );
 };
 
 export default Page;
