@@ -176,7 +176,6 @@ export async function generateAdvancedStandingPdf(
       const staffPngImage = await pdfDoc.embedPng(staffPngDataUrl);
       const targetPage = pages.length > 1 ? pages[1] : pages[0];
 
-      // Coordinates from find-sig-page.js: "Signature" widget on Page 2, x=113.64, y=437.16
       targetPage.drawImage(staffPngImage, {
         x: 110,
         y: 435,
