@@ -150,13 +150,13 @@ export default function AdvancedStandingForm({
 
       toast.loading("Uploading document...", { id: loadingToast });
 
-      // Find the ID for "OTHER" document type or similar
-      const otherType = docTypesResponse?.data?.find(
-        (t) => t.code === "OTHER" || t.name.toLowerCase().includes("other")
+      // Find the ID for "ADVANCE_STANDING" document type
+      const advancedStandingType = docTypesResponse?.data?.find(
+        (t) => t.code === "ADVANCE_STANDING"
       );
 
-      if (!otherType) {
-        toast.error("Document type 'OTHER' not found. Please contact support.", { id: loadingToast });
+      if (!advancedStandingType) {
+        toast.error("Document type 'ADVANCE_STANDING' not found. Please contact support.", { id: loadingToast });
         return;
       }
 
@@ -164,8 +164,9 @@ export default function AdvancedStandingForm({
       uploadMutation.mutate(
         {
           application_id: applicationId,
-          document_type_id: otherType.id,
+          document_type_id: advancedStandingType.id,
           file: pdfFile,
+          upload_mode: "replace",
           document_name: isStaffMode ? "Advanced Standing Form (Assessed)" : "Advanced Standing Form",
         },
         {

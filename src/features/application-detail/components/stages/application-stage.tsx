@@ -123,7 +123,8 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
   const router = useRouter();
 
   const application = response?.data;
-  const isStaff = current_role === USER_ROLE.STAFF;
+  const isStaff =
+    current_role === USER_ROLE.STAFF || current_role === USER_ROLE.ADMIN;
   const currentStage = application?.current_stage;
   const [activeStage, setActiveStage] = useState<APPLICATION_STAGE | null>(
     null,

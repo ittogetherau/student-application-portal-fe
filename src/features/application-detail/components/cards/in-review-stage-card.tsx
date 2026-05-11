@@ -49,7 +49,8 @@ export default function InReviewStageCard({
   currentRole,
 }: InReviewStageCardProps) {
   const { data: appResponse } = useApplicationGetQuery(applicationId);
-  const isStaff = currentRole === USER_ROLE.STAFF;
+  const isStaff =
+    currentRole === USER_ROLE.STAFF || currentRole === USER_ROLE.ADMIN;
   const isAgent = currentRole === USER_ROLE.AGENT;
 
   const enrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
@@ -139,10 +140,10 @@ export default function InReviewStageCard({
                 {isAdvancedStandingRequested && (
                   <span className={cn(
                     "text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter",
-                    advancedStandingStatus === "Approved" ? "bg-green-500/20 text-green-700" :
-                    advancedStandingStatus === "Rejected" ? "bg-red-500/20 text-red-700" :
-                    isAdvancedStandingSubmitted ? "bg-blue-500/20 text-blue-700" :
-                    "bg-primary/20 text-primary-700"
+                    advancedStandingStatus === "Approved" ? "bg-green-200 text-green-900 ring-1 ring-green-300" :
+                    advancedStandingStatus === "Rejected" ? "bg-red-200 text-red-900 ring-1 ring-red-300" :
+                    isAdvancedStandingSubmitted ? "bg-sky-200 text-sky-900 ring-1 ring-sky-300" :
+                    "bg-amber-200 text-amber-900 ring-1 ring-amber-300"
                   )}>
                     {advancedStandingStatus === "Approved" ? "Approved" :
                      advancedStandingStatus === "Rejected" ? "Rejected" :
@@ -232,9 +233,11 @@ export default function InReviewStageCard({
                 ) : (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="w-full flex items-center gap-2 text-[10px] font-bold bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300">
-                        <PenTool className="h-3.5 w-3.5" />
-                        Assess the Advanced Standing Form
+                      <Button className="w-full min-h-12 flex items-center gap-2 px-3 py-3 text-[11px] font-bold leading-snug bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300">
+                        <PenTool className="h-3.5 w-3.5 shrink-0" />
+                        <span className="text-left whitespace-normal">
+                          Assess the Advanced Standing Form
+                        </span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
@@ -271,10 +274,12 @@ export default function InReviewStageCard({
                     </Dialog>
                   </div>
                 ) : isAdvancedStandingSubmitted ? (
-                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-center">
-                    <Check className="h-5 w-5 mx-auto text-blue-600 mb-1" />
-                    <p className="text-[10px] font-bold text-blue-700 uppercase">Form Submitted</p>
-                    <p className="text-[10px] text-blue-600 mt-1">Your application is being reviewed by Churchill staff.</p>
+                  <div className="p-3 bg-blue-100 border border-blue-200 rounded-lg text-center">
+                    <Check className="h-5 w-5 mx-auto text-blue-700 mb-1" />
+                    <p className="text-[11px] font-bold text-blue-900 uppercase">Form Submitted</p>
+                    <p className="text-[11px] text-blue-800 mt-1 leading-snug">
+                      Your application is being reviewed by Churchill staff.
+                    </p>
                   </div>
                 ) : (
                   <Dialog>

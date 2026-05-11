@@ -2,6 +2,7 @@
 export enum USER_ROLE {
   AGENT = "agent",
   STAFF = "staff",
+  ADMIN = "admin",
 }
 
 export enum APPLICATION_STAGE {
