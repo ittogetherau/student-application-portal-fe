@@ -391,6 +391,9 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
         queryClient.invalidateQueries({
           queryKey: ["application-get", applicationId],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["application-timeline", applicationId],
+        });
         queryClient.invalidateQueries({ queryKey: ["application-list"] });
       },
       onError: (error) => {
