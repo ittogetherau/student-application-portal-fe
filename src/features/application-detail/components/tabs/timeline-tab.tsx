@@ -9,15 +9,36 @@ interface props {
 }
 
 const formatTimelineMessage = (message: string) => {
-  // Handle technical change logs for Advanced Standing
-  if (message.includes("advanced_standing_requested: 'None' -> 'True'") || 
-      message.includes('advanced_standing_requested: "None" -> "True"')) {
-    return "Staff requested Advanced Standing Form from the student.";
+  const requestedPattern =
+    /advanced_standing_requested:\s*['"]?(?:none|false)?['"]?\s*->\s*['"]?true['"]?/i;
+  const submittedPattern =
+    /advanced_standing_submitted:\s*['"]?(?:none|false)?['"]?\s*->\s*['"]?true['"]?/i;
+  const approvedPattern =
+    /advanced_standing_status:\s*['"]?(?:none|pending|submitted)?['"]?\s*->\s*['"]?approved['"]?/i;
+  const rejectedPattern =
+    /advanced_standing_status:\s*['"]?(?:none|pending|submitted)?['"]?\s*->\s*['"]?rejected['"]?/i;
+
+  if (approvedPattern.test(message)) {
+    return "Staff approved Advanced Standing for credit.";
   }
-  
+
+  if (rejectedPattern.test(message)) {
+    return "Staff rejected Advanced Standing for credit.";
+  }
+
+  if (submittedPattern.test(message)) {
+    return "Student submitted the Advanced Standing Form.";
+  }
+
+  if (requestedPattern.test(message)) {
+    return "Staff requested the Advanced Standing Form from the student.";
+  }
+
   if (message.includes("enrollment_data changed:")) {
-    // If it's a generic enrollment data change, try to make it cleaner
-    return message.replace("enrollment_data changed:", "Application details updated:");
+    return message.replace(
+      "enrollment_data changed:",
+      "Application details updated:",
+    );
   }
 
   return message;
