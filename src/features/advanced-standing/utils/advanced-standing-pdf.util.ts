@@ -39,7 +39,8 @@ async function svgToPng(svgString: string): Promise<string> {
  */
 export async function generateAdvancedStandingPdf(
   data: AdvancedStandingFormValues,
-  applicationId: string
+  applicationId: string,
+  options?: { flatten?: boolean }
 ): Promise<File> {
   // 1. Fetch the blank PDF template from the public folder
   const url = "/docs/advanced_standing_form.pdf";
@@ -55,7 +56,7 @@ export async function generateAdvancedStandingPdf(
   const fillField = (fieldName: string, value?: string) => {
     try {
       const field = form.getTextField(fieldName);
-      if (value) field.setText(value);
+      field.setText(value ?? "");
     } catch (error) {
       // console.warn(`Could not find or fill field: ${fieldName}`);
     }
@@ -79,6 +80,7 @@ export async function generateAdvancedStandingPdf(
       x: 365,
       y: 520,
       size: 11,
+      color: rgb(0, 0, 0),
     });
   } catch (e) {
     // Fallback to separate fields if they exist
@@ -89,9 +91,9 @@ export async function generateAdvancedStandingPdf(
   // Handle the "studentType" checkbox by drawing an "X" directly
   try {
     if (data.studentType === "Future Student") {
-      firstPage.drawText("X", { x: 151, y: 566, size: 12 });
+      firstPage.drawText("X", { x: 151, y: 566, size: 12, color: rgb(0, 0, 0) });
     } else if (data.studentType === "Currently Enrolled Student") {
-      firstPage.drawText("X", { x: 234, y: 566  , size: 12 });
+      firstPage.drawText("X", { x: 234, y: 566, size: 12, color: rgb(0, 0, 0) });
     }
   } catch (e) { /* ignore */ }
 
@@ -109,20 +111,24 @@ export async function generateAdvancedStandingPdf(
     const rowNum = index + 1; // Row1 to Row7
     fillField(`Unit code and nameRow${rowNum}`, item.unitCodeAndName);
     fillField(`CIHE equivalent unit code and nameRow${rowNum}`, item.ciheEquivalent);
-    
-    // Office Use Only: Approved Y/N
-    // If we have assessment data, we can fill these. 
-    // They are usually radio groups or checkboxes in the PDF.
-    if ("staffAssessments" in data && data.staffAssessments?.[index]) {
-      const approved = data.staffAssessments[index].approved;
-      try {
-        const radioGroup = form.getRadioGroup(`Approved YNRow${rowNum}`);
-        if (approved === "Yes") radioGroup.select("Yes");
-        else if (approved === "No") radioGroup.select("No");
-      } catch (e) {
-        // If it's not a radio group, try as a text field
-        fillField(`Approved YNRow${rowNum}`, approved);
+
+    const approved =
+      item.approved ||
+      data.staffAssessments?.[index]?.approved ||
+      "";
+    try {
+      const radioGroup = form.getRadioGroup(`Approved YNRow${rowNum}`);
+      if (approved === "Yes") radioGroup.select("Yes");
+      else if (approved === "No") radioGroup.select("No");
+      else {
+        try {
+          radioGroup.clear();
+        } catch {
+          fillField(`Approved YNRow${rowNum}`, "");
+        }
       }
+    } catch {
+      fillField(`Approved YNRow${rowNum}`, approved);
     }
   });
 
@@ -194,11 +200,14 @@ export async function generateAdvancedStandingPdf(
   form.getFields().forEach(field => {
     if (field instanceof PDFTextField) {
       field.setFontSize(11);
+      (field as { setTextColor?: (color: ReturnType<typeof rgb>) => void }).setTextColor?.(rgb(0, 0, 0));
     }
   });
 
   form.updateFieldAppearances(helveticaFont);
-  form.flatten();
+  if (options?.flatten ?? true) {
+    form.flatten();
+  }
 
   // 4. Serialize the PDF Document to bytes
   const pdfBytes = await pdfDoc.save();

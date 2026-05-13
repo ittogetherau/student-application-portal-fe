@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import AdvancedStandingForm from "@/features/advanced-standing/components/advanced-standing-form";
 import { useGalaxySyncDeclarationMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
@@ -205,9 +205,14 @@ export default function InReviewStageCard({
                           <Eye className="h-3 w-3 mr-2" /> View Assessed Form
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                      <DialogContent className="w-[92vw] max-w-7xl max-h-[95vh] min-h-0 overflow-y-auto p-0 border-none [scrollbar-gutter:stable]">
                         <VisuallyHidden>
                           <DialogTitle>View Assessed Advanced Standing Form</DialogTitle>
+                        </VisuallyHidden>
+                        <VisuallyHidden>
+                          <DialogDescription>
+                            View the assessed advanced standing form in a full-screen dialog.
+                          </DialogDescription>
                         </VisuallyHidden>
                         <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
                       </DialogContent>
@@ -222,9 +227,14 @@ export default function InReviewStageCard({
                           <Eye className="h-3 w-3 mr-2" /> View Form
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                      <DialogContent className="w-[92vw] max-w-7xl max-h-[95vh] min-h-0 overflow-y-auto p-0 border-none [scrollbar-gutter:stable]">
                         <VisuallyHidden>
                           <DialogTitle>View Advanced Standing Form</DialogTitle>
+                        </VisuallyHidden>
+                        <VisuallyHidden>
+                          <DialogDescription>
+                            View the advanced standing form in a full-screen dialog.
+                          </DialogDescription>
                         </VisuallyHidden>
                         <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
                       </DialogContent>
@@ -240,9 +250,14 @@ export default function InReviewStageCard({
                         </span>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                    <DialogContent className="w-[92vw] max-w-7xl max-h-[95vh] min-h-0 overflow-y-auto p-0 border-none [scrollbar-gutter:stable]">
                       <VisuallyHidden>
                         <DialogTitle>Assess Advanced Standing Form</DialogTitle>
+                      </VisuallyHidden>
+                      <VisuallyHidden>
+                        <DialogDescription>
+                          Assess the advanced standing form in a full-screen dialog.
+                        </DialogDescription>
                       </VisuallyHidden>
                       <AdvancedStandingForm applicationId={applicationId} isStaffMode={true} />
                     </DialogContent>
@@ -265,9 +280,14 @@ export default function InReviewStageCard({
                           <Eye className="h-3 w-3 mr-2" /> View Assessed Form
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-5xl h-[90vh] p-6">
+                      <DialogContent className="w-[92vw] max-w-7xl max-h-[95vh] min-h-0 overflow-y-auto p-6 [scrollbar-gutter:stable]">
                         <VisuallyHidden>
                           <DialogTitle>View Assessed Advanced Standing Form</DialogTitle>
+                        </VisuallyHidden>
+                        <VisuallyHidden>
+                          <DialogDescription>
+                            View the assessed advanced standing form in a full-screen dialog.
+                          </DialogDescription>
                         </VisuallyHidden>
                         <AdvancedStandingForm applicationId={applicationId} />
                       </DialogContent>
@@ -296,9 +316,14 @@ export default function InReviewStageCard({
                         </span>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-6xl max-h-[95vh] overflow-auto p-0 border-none">
+                    <DialogContent className="w-[92vw] max-w-7xl max-h-[95vh] min-h-0 overflow-y-auto p-0 border-none [scrollbar-gutter:stable]">
                       <VisuallyHidden>
                         <DialogTitle>Advanced Standing Form</DialogTitle>
+                      </VisuallyHidden>
+                      <VisuallyHidden>
+                        <DialogDescription>
+                          Fill the advanced standing form in a full-screen dialog.
+                        </DialogDescription>
                       </VisuallyHidden>
                       <div aria-labelledby="advanced-standing-form-title">
                         <AdvancedStandingForm applicationId={applicationId} />
