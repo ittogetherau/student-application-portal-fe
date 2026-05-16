@@ -481,6 +481,27 @@ class ApplicationService extends ApiService {
     }
   };
 
+  // Staff - Request Credit Form
+  requestCreditForm = async (
+    applicationId: string,
+  ): Promise<ServiceResponse<any>> => {
+    if (!applicationId) throw new Error("Application id is required");
+    try {
+      const data = await this.post<any>(
+        `staff/applications/${applicationId}/request-credit-form`,
+        { form_type: "ADVANCED_STANDING" },
+        true,
+      );
+      return {
+        success: true,
+        message: "Credit form requested successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to request credit form");
+    }
+  };
+
   // Staff - Reject application
   rejectApplication = async (
     applicationId: string,

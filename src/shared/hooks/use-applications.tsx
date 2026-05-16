@@ -644,6 +644,37 @@ export const useApplicationRejectMutation = (applicationId: string | null) => {
   });
 };
 
+// Staff - Request credit form
+export const useApplicationRequestCreditFormMutation = (applicationId: string | null) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<unknown, Error, void>({
+    mutationKey: ["application-request-credit-form", applicationId],
+    mutationFn: async () => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.requestCreditForm(applicationId);
+
+      if (!response.success) throw new Error(response.message);
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] requestCreditForm success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] requestCreditForm failed", error);
+    },
+  });
+};
+
 // Staff - Generate offer letter hook
 export const useApplicationGenerateOfferLetterMutation = (
   applicationId: string | null,

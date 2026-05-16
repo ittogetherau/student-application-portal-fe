@@ -11,6 +11,7 @@ import {
   useApplicationGetQuery,
   useApplicationSendOfferLetterMutation,
   useApplicationUpdateMutation,
+  useApplicationRequestCreditFormMutation,
 } from "@/shared/hooks/use-applications";
 import { ArrowRight, Loader2, FileText, Sparkles, Clock, PenTool, Check, X, Eye } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -62,8 +63,9 @@ export default function InReviewStageCard({
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
   const changeStage = useApplicationChangeStageMutation(applicationId);
   const updateApplication = useApplicationUpdateMutation(applicationId);
+  const requestCreditForm = useApplicationRequestCreditFormMutation(applicationId);
 
-  const isPending = syncDeclaration.isPending || sendOfferLetter.isPending || updateApplication.isPending;
+  const isPending = syncDeclaration.isPending || sendOfferLetter.isPending || updateApplication.isPending || requestCreditForm.isPending;
 
   const handleSendOfferLetter = () => {
     if (!studentEmail) {
@@ -177,6 +179,11 @@ export default function InReviewStageCard({
                       }, {
                         onSuccess: () => {
                           toast.success("Requested Advanced Standing form from student.");
+                          requestCreditForm.mutate(undefined, {
+                            onError: (error) => {
+                              console.error("Failed to trigger request credit form email", error);
+                            }
+                          });
                         },
                         onError: (error) => {
                           toast.error(error.message || "Failed to request Advanced Standing");
@@ -186,7 +193,7 @@ export default function InReviewStageCard({
                     className="w-full flex items-center gap-2 text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 break-words"
                   >
                     <span className="flex-shrink-0 flex items-center justify-center">
-                      {updateApplication.isPending ? (
+                      {updateApplication.isPending || requestCreditForm.isPending ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <FileText className="h-5 w-5" />

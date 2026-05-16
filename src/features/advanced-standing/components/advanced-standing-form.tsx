@@ -157,7 +157,9 @@ export default function AdvancedStandingForm({
       const loadingToast = toast.loading(isStaffMode ? "Finalizing assessment..." : "Submitting application...");
 
       // Generate the PDF file
-      const pdfFile = await generateAdvancedStandingPdf(values, applicationId);
+      const pdfFile = await generateAdvancedStandingPdf(values, applicationId, {
+        flatten: false,
+      });
 
       toast.loading("Uploading document...", { id: loadingToast });
 
