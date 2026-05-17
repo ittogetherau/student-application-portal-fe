@@ -5,8 +5,9 @@ import { useSession } from "next-auth/react";
 
 const normalizeRole = (role?: string | null): USER_ROLE | undefined => {
   if (!role) return undefined;
-  return Object.values(USER_ROLE).includes(role as USER_ROLE)
-    ? (role as USER_ROLE)
+  const normalized = role.toLowerCase();
+  return Object.values(USER_ROLE).includes(normalized as USER_ROLE)
+    ? (normalized as USER_ROLE)
     : undefined;
 };
 
