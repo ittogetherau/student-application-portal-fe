@@ -86,7 +86,13 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
     enabled: !!applicationId,
     normalizeBeforeSave: sanitizeQualifications,
     onDataLoaded: (data) => {
-      methods.reset(sanitizeQualifications(data));
+      const sanitized = sanitizeQualifications(data);
+      console.log("[QualificationsForm] onDataLoaded", {
+        stepId,
+        data,
+        sanitized,
+      });
+      methods.reset(sanitized);
     },
   });
 
@@ -101,6 +107,8 @@ const QualificationsForm = ({ applicationId }: { applicationId: string }) => {
     control,
     name: "has_qualifications",
   });
+
+  console.log("[QualificationsForm] hasQualifications value:", hasQualifications);
 
   // Reset qualifications when "No" is selected
   useEffect(() => {

@@ -38,9 +38,6 @@ export const useFormPersistence = <T extends FieldValues>({
     (state) => state.getMergedStepData,
   );
   const ocrData = useApplicationFormDataStore((state) => state.ocrData);
-  const stepData = useApplicationFormDataStore(
-    (state) => state.stepData[stepId],
-  );
   const stepOcrData = useApplicationFormDataStore(
     (state) => state.ocrData[stepId],
   );
@@ -55,6 +52,14 @@ export const useFormPersistence = <T extends FieldValues>({
   const lastWatchedValueRef = useRef<T | null>(null);
   const lastOcrDataRef = useRef<string | null>(null);
   const lastLoadedDataRef = useRef<string | null>(null);
+  const onDataLoadedRef = useRef(onDataLoaded);
+  // Tracks whether the user has interacted with the form since mount.
+  // Once true, the reload branch won't override pending unsaved changes.
+  const userHasInteractedRef = useRef(false);
+
+  useEffect(() => {
+    onDataLoadedRef.current = onDataLoaded;
+  }, [onDataLoaded]);
 
   // Load persisted data on mount (using merged data: OCR + user data)
   // Also reload when stepId changes (navigating to a different step)
@@ -67,17 +72,23 @@ export const useFormPersistence = <T extends FieldValues>({
 
     if (hasLoadedPersistedDataRef.current) {
       const mergedData = getMergedStepData<T>(stepId);
+      console.log(`[FormPersistence] reload check stepId=${stepId} hasData=${!!mergedData} isDirty=${form.formState.isDirty} userInteracted=${userHasInteractedRef.current}`);
       if (!mergedData || form.formState.isDirty) return;
+
+      // If the user has already interacted with this form, the store may hold
+      // their previous saves (debounce not yet propagated). Reloading at this
+      // point would silently revert their latest input, so we bail out.
+      if (userHasInteractedRef.current) return;
 
       const serialized = JSON.stringify(mergedData);
       if (serialized === lastLoadedDataRef.current) return;
 
       try {
-        console.log("[FormPersistence] reload", { stepId, mergedData });
+        console.log("[FormPersistence] CALLING form.reset() in reload branch", { stepId, mergedData });
         form.reset(mergedData as T);
         lastLoadedDataRef.current = serialized;
-        if (onDataLoaded) {
-          onDataLoaded(mergedData);
+        if (onDataLoadedRef.current) {
+          onDataLoadedRef.current(mergedData);
         }
       } catch (error) {
         console.error(
@@ -103,8 +114,8 @@ export const useFormPersistence = <T extends FieldValues>({
           lastLoadedDataRef.current = JSON.stringify(mergedData);
 
           // Call optional callback
-          if (onDataLoaded) {
-            onDataLoaded(mergedData);
+          if (onDataLoadedRef.current) {
+            onDataLoadedRef.current(mergedData);
           }
         } catch (error) {
           console.error(
@@ -119,6 +130,8 @@ export const useFormPersistence = <T extends FieldValues>({
         const maxRetries = 3;
 
         const tryLoadData = () => {
+          // Don't overwrite user input with background-loaded data
+          if (userHasInteractedRef.current) return;
           const retryData = getMergedStepData<T>(stepId);
           if (retryData) {
             try {
@@ -129,8 +142,8 @@ export const useFormPersistence = <T extends FieldValues>({
               form.reset(retryData as T);
               hasLoadedPersistedDataRef.current = true;
               lastLoadedDataRef.current = JSON.stringify(retryData);
-              if (onDataLoaded) {
-                onDataLoaded(retryData);
+              if (onDataLoadedRef.current) {
+                onDataLoadedRef.current(retryData);
               }
             } catch (error) {
               console.error(
@@ -163,10 +176,7 @@ export const useFormPersistence = <T extends FieldValues>({
     stepId,
     form,
     getMergedStepData,
-    onDataLoaded,
     _hasHydrated,
-    stepData,
-    stepOcrData,
   ]);
 
   // Watch for OCR data changes and update form if needed
@@ -177,14 +187,31 @@ export const useFormPersistence = <T extends FieldValues>({
     const stepOcrData = ocrData[stepId];
     const currentOcrDataKey = stepOcrData ? JSON.stringify(stepOcrData) : null;
 
+    console.log("[FormPersistence] OCR effect check", {
+      stepId,
+      currentOcrDataKey,
+      isDirty: form.formState.isDirty,
+      userHasInteracted: userHasInteractedRef.current,
+    });
+
     // Update if OCR data for this step has changed or just arrived
     if (currentOcrDataKey && currentOcrDataKey !== lastOcrDataRef.current) {
       // Small delay to ensure store has been updated
       const timeoutId = setTimeout(() => {
         const mergedData = getMergedStepData<T>(stepId);
         if (mergedData) {
+          console.log("[FormPersistence] OCR effect timeout", {
+            stepId,
+            isDirty: form.formState.isDirty,
+            userHasInteracted: userHasInteractedRef.current,
+            mergedData,
+          });
           if (!form.formState.isDirty) {
             // Form is empty, safe to prefill with OCR data
+            console.log("[FormPersistence] CALLING form.reset() in OCR effect", {
+              stepId,
+              mergedData,
+            });
             form.reset(mergedData as T);
             lastOcrDataRef.current = currentOcrDataKey;
             lastLoadedDataRef.current = JSON.stringify(mergedData);
@@ -193,6 +220,10 @@ export const useFormPersistence = <T extends FieldValues>({
             if (onDataLoaded) {
               onDataLoaded(mergedData);
             }
+          } else {
+            console.log("[FormPersistence] OCR reset skipped because form is dirty", {
+              stepId,
+            });
           }
         }
       }, 100); // Small delay to ensure store is updated
@@ -206,7 +237,6 @@ export const useFormPersistence = <T extends FieldValues>({
     form,
     getMergedStepData,
     ocrData,
-    onDataLoaded,
     _hasHydrated,
     stepOcrData,
   ]);
@@ -225,6 +255,7 @@ export const useFormPersistence = <T extends FieldValues>({
 
       // Set new timeout
       debounceTimeoutRef.current = setTimeout(() => {
+        debounceTimeoutRef.current = null;
         setStepData(stepId, data);
       }, debounceMs);
     },
@@ -238,7 +269,21 @@ export const useFormPersistence = <T extends FieldValues>({
     // Wait for initial load to complete before starting auto-save
     if (isInitialLoadRef.current) return;
 
+    // RHF's form.watch() fires once immediately on subscribe with the current
+    // values (not a real user change). Skip that first fire so we don't treat
+    // it as a user interaction and don't schedule a redundant save.
+    let isFirstFire = true;
+
     const subscription = form.watch((value) => {
+      if (isFirstFire) {
+        isFirstFire = false;
+        // Sync lastLoadedDataRef to the post-onDataLoaded form values so the
+        // reload branch baseline stays accurate after any sanitization reset.
+        lastLoadedDataRef.current = JSON.stringify(value);
+        return;
+      }
+      // Genuine user interaction — block future spurious reloads.
+      userHasInteractedRef.current = true;
       saveStepDataDebounced(value as T);
     });
 

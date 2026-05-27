@@ -2,6 +2,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getFieldError } from "./form-errors";
+import { useRef } from "react";
 
 interface FormRadioProps {
   name: string;
@@ -18,12 +19,17 @@ export function FormRadio({
   colMode = false,
   disabled = false,
 }: FormRadioProps) {
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+
   const {
     control,
-    formState: { errors, isSubmitted },
+    formState: { errors, isSubmitted, isDirty },
   } = useFormContext<Record<string, unknown>>();
 
   const error = getFieldError(errors, name)?.message;
+
+  console.log(`[FormRadio] component render count=${renderCountRef.current} name=${name}`);
 
   return (
     <div className={`flex gap-2 ${colMode ? "flex-col" : "items-center"}`}>
@@ -34,10 +40,17 @@ export function FormRadio({
       <Controller
         name={name}
         control={control}
-        render={({ field: { value, onChange } }) => (
+        render={({ field: { value, onChange } }) => {
+          console.log(`[FormRadio] render name=${name} value=${value} isDirty=${isDirty}`);
+          return (
           <RadioGroup
             value={value as string}
-            onValueChange={onChange}
+            onValueChange={(newVal) => {
+              console.log(`[FormRadio] onValueChange START name=${name} newVal=${newVal} prev=${value} isDirty=${isDirty}`);
+              console.log(`[FormRadio] calling onChange(${newVal})...`);
+              onChange(newVal);
+              console.log(`[FormRadio] onChange returned, isDirty=${isDirty}`);
+            }}
             className="flex gap-1 flex-wrap"
             disabled={disabled}
           >
@@ -57,7 +70,8 @@ export function FormRadio({
               );
             })}
           </RadioGroup>
-        )}
+          );
+        }}
       />
 
       {isSubmitted && error && <p className="text-red-500 text-sm">{error}</p>}
