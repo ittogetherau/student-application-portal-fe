@@ -7,13 +7,17 @@ WORKDIR /app
 # RUN npm install -g pnpm
 
 # Copy dependency files
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
 RUN npm install
 
 # Copy the rest of the app
 COPY . .
+
+# Invalidate cache with git commit SHA
+ARG COMMIT_SHA=unknown
+RUN echo "Building from commit: $COMMIT_SHA"
 
 # Build the Next.js app
 RUN npm run build
