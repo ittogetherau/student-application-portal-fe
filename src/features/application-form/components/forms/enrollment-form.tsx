@@ -271,6 +271,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     error: intakesError,
   } = useCourseIntakesQuery(selectedCourse?.course_code, {
     campus: campusValue,
+    show: 100,
   });
 
   const isBitCourse =
