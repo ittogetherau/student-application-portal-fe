@@ -37,7 +37,7 @@ const stepItems = [
 
 const getStepFields = (step: number) => {
   if (step === 1) {
-    return ["email", "password"] as const;
+    return ["email", "password"] as const; 
   }
   return ["organization_name", "phone", "address"] as const;
 };

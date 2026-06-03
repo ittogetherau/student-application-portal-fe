@@ -12,6 +12,14 @@ export type AgentProfileUpdatePayload = {
 class AgentProfileService extends ApiService {
   private readonly basePath = "agents/profile";
 
+  getCurrentAgentProfile(): Promise<ServiceResponse<unknown>> {
+    return resolveServiceCall<unknown>(
+      () => this.get(this.basePath, true),
+      "Fetched agent profile.",
+      "Failed to fetch agent profile",
+    );
+  }
+
   updateCurrentAgentProfile(
     payload: AgentProfileUpdatePayload,
   ): Promise<ServiceResponse<unknown>> {
