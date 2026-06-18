@@ -194,6 +194,26 @@ export const useApplicationSubmitMutation = (applicationId: string | null) => {
       isPublicMode ? `public:${token}` : applicationId,
     ],
     mutationFn: async () => {
+      if (!isPublicMode && applicationId) {
+        try {
+          const appRes = await applicationService.getApplication(applicationId);
+          if (appRes.success && appRes.data) {
+            const studentOrigin = appRes.data.personal_details?.student_origin;
+            if (studentOrigin === "Overseas Student in Australia (Onshore)") {
+              const currentEnrollment = appRes.data.enrollment_data || {};
+              await applicationService.updateApplication(applicationId, {
+                enrollment_data: {
+                  ...currentEnrollment,
+                  esos_agent_assessment_date: new Date().toISOString(),
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Failed to update ESOS agent self-assessment timestamp on submit:", e);
+        }
+      }
+
       const response =
         isPublicMode && token
           ? await publicStudentApplicationService.submitApplication(token)

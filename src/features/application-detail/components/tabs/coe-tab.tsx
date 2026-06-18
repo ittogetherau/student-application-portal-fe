@@ -25,6 +25,7 @@ import {
 import {
   useApplicationChangeStageMutation,
   useApplicationGetQuery,
+  useApplicationUpdateMutation,
 } from "@/shared/hooks/use-applications";
 import {
   DROPZONE_ACCEPT,
@@ -32,6 +33,11 @@ import {
   isAllowedFileType,
 } from "@/shared/lib/document-file-helpers";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { cn } from "@/shared/lib/utils";
+import {
+  generateEsosCompliancePdfBlob,
+  getEsosCompliancePdfFilename,
+} from "@/features/esos-compliance/esos-compliance-pdf";
 import {
   AlertCircle,
   CheckCircle2,
@@ -328,10 +334,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const uploadMutation = useUploadDocument();
   const verifyMutation = useVerifyDocument();
   const changeStage = useApplicationChangeStageMutation(applicationId ?? "");
-
-  const handleStageChange = (str: APPLICATION_STAGE) => {
-    changeStage.mutateAsync({ to_stage: str });
-  };
+  const updateApplication = useApplicationUpdateMutation(applicationId ?? "");
 
   // get all documents
   const {
@@ -354,6 +357,24 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const isCoeStage =
     applicationResponse?.data?.current_stage === APPLICATION_STAGE.COE_ISSUED;
 
+  // ─── ESOS enrollment_data ────────────────────────────────────────────────
+  const enrollmentData = (applicationResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+  const studentOrigin = applicationResponse?.data?.personal_details?.student_origin as string | undefined;
+  const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
+
+  const esosAgentAssessment = enrollmentData?.esos_agent_assessment as string ?? "";
+  const esosAgentAssessmentDate = enrollmentData?.esos_agent_assessment_date as string ?? "";
+  const esosAdmissionsReview = enrollmentData?.esos_admissions_review as string ?? "";
+  const esosAdmissionsReviewDate = enrollmentData?.esos_admissions_review_date as string ?? "";
+  const esosCoeConfirmation = enrollmentData?.esos_coe_confirmation as string ?? "";
+
+  const studentName = [
+    applicationResponse?.data?.personal_details?.given_name,
+    applicationResponse?.data?.personal_details?.family_name,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   // get doc types
   const {
     data: docTypesResponse,
@@ -365,6 +386,10 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const coeDocTypes = useMemo(() => {
     if (!docTypesResponse?.data) return [];
     return docTypesResponse.data.filter((dt) => dt.stage === "coe");
+  }, [docTypesResponse]);
+  const otherDocType = useMemo(() => {
+    if (!docTypesResponse?.data) return null;
+    return docTypesResponse.data.find((dt) => dt.code === "OTHER") ?? null;
   }, [docTypesResponse]);
 
   // docs for agent and staff
@@ -378,7 +403,53 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const [reuploadOpen, setReuploadOpen] = useState(false);
   const [staffReuploadOpen, setStaffReuploadOpen] = useState(false);
 
+  const handleStageChange = async (str: APPLICATION_STAGE) => {
+    if (str === APPLICATION_STAGE.ACCEPTED && isOnshore) {
+      try {
+        const now = new Date().toISOString();
+        const pdfBlob = await generateEsosCompliancePdfBlob({
+          studentName,
+          studentOrigin: studentOrigin ?? "",
+          applicationId: applicationId ?? "",
+          esosAgentAssessment,
+          esosAgentAssessmentDate,
+          esosAdmissionsReview,
+          esosAdmissionsReviewDate,
+          esosCoeConfirmation,
+          esosCoeConfirmationDate: now,
+        });
+        const pdfFile = new File(
+          [pdfBlob],
+          getEsosCompliancePdfFilename(applicationId),
+          { type: "application/pdf" },
+        );
+        if (otherDocType && applicationId) {
+          await uploadMutation.mutateAsync({
+            application_id: applicationId,
+            document_type_id: otherDocType.id,
+            file: pdfFile,
+            document_name: getEsosCompliancePdfFilename(applicationId),
+          });
+        }
+        await updateApplication.mutateAsync({
+          enrollment_data: {
+            ...enrollmentData,
+            esos_coe_confirmation_date: now,
+            esos_pdf_generated_at: now,
+          },
+        });
+        toast.success("ESOS compliance record generated and saved.");
+      } catch (err) {
+        console.error("ESOS PDF generation error:", err);
+        toast.error("Failed to generate ESOS compliance PDF.");
+        return;
+      }
+    }
+    changeStage.mutateAsync({ to_stage: str });
+  };
+
   const isUploading = uploadMutation.isPending;
+
 
   const handleAgentUploadFIle = async (files: File[] | null) => {
     if (!files?.length || !applicationId || !agentUploadRequiredDoc)
@@ -507,6 +578,136 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
 
   return (
     <div className="space-y-4">
+      {/* ESOS COE Compliance — Stage 3 (staff, onshore only) */}
+      {isStaff && isOnshore && (
+        <Card className="overflow-hidden rounded-xl border-2 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 shadow-sm">
+          <CardHeader className="bg-amber-100/60 dark:bg-amber-900/20 px-4 py-3">
+            <CardTitle className="text-[14px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              ESOS Onshore Commission — COE Compliance Confirmation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Before issuing the COE, confirm this student's commission eligibility status under the ESOS ban on onshore agent commissions.
+            </p>
+
+            {/* Stage 1 — Agent (read-only) */}
+            <div className="rounded-lg border bg-background p-3 space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                Stage 1 — Agent Self-Assessment
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn(
+                  "text-[11px] px-2 py-0.5 rounded-full font-semibold",
+                  esosAgentAssessment === "eligible"
+                    ? "bg-green-100 text-green-800 ring-1 ring-green-300"
+                    : esosAgentAssessment === "not_eligible"
+                      ? "bg-red-100 text-red-800 ring-1 ring-red-300"
+                      : "bg-gray-100 text-gray-600 ring-1 ring-gray-300"
+                )}>
+                  {esosAgentAssessment === "eligible"
+                    ? "Agent declared: Eligible"
+                    : esosAgentAssessment === "not_eligible"
+                      ? "Agent declared: Not Eligible"
+                      : "Not yet assessed"}
+                </span>
+                {esosAgentAssessmentDate && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatUtcToFriendlyLocal(esosAgentAssessmentDate)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Stage 2 — Admissions (read-only) */}
+            <div className="rounded-lg border bg-background p-3 space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                Stage 2 — Admissions Officer Review
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn(
+                  "text-[11px] px-2 py-0.5 rounded-full font-semibold",
+                  esosAdmissionsReview === "eligible"
+                    ? "bg-green-100 text-green-800 ring-1 ring-green-300"
+                    : esosAdmissionsReview === "not_eligible"
+                      ? "bg-red-100 text-red-800 ring-1 ring-red-300"
+                      : esosAdmissionsReview === "further_review"
+                        ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
+                        : "bg-gray-100 text-gray-600 ring-1 ring-gray-300"
+                )}>
+                  {esosAdmissionsReview === "eligible"
+                    ? "Assessed: Eligible"
+                    : esosAdmissionsReview === "not_eligible"
+                      ? "Assessed: Not Eligible"
+                      : esosAdmissionsReview === "further_review"
+                        ? "Requires Further Review"
+                        : "Not yet reviewed"}
+                </span>
+                {esosAdmissionsReviewDate && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatUtcToFriendlyLocal(esosAdmissionsReviewDate)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Stage 3 — COE Confirmation (editable) */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                Stage 3 — COE Confirmation
+              </p>
+              <div className="flex flex-col gap-2">
+                {[
+                  { value: "confirmed_eligible", label: "Confirmed eligible — commission may be paid" },
+                  { value: "confirmed_not_eligible", label: "Confirmed not eligible — commission must NOT be paid" },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
+                      esosCoeConfirmation === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/40"
+                    )}
+                    onClick={() => {
+                      updateApplication.mutate({
+                        enrollment_data: {
+                          ...enrollmentData,
+                          esos_coe_confirmation: opt.value,
+                        }
+                      });
+                    }}
+                  >
+                    <div className={cn(
+                      "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                      esosCoeConfirmation === opt.value
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground"
+                    )}>
+                      {esosCoeConfirmation === opt.value && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {!esosCoeConfirmation && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700">
+                <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                  Please complete the <strong>ESOS COE Compliance Confirmation</strong> section above to unlock the COE document upload and acceptance.
+                  The ESOS compliance PDF will be automatically generated and saved when you accept.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {agentCoeItem ? (
         <Card>
           <CardHeader className="pb-3">
@@ -633,14 +834,28 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
         </Card>
       ) : isAgentDocVerified ? (
         isStaff ? (
-          <UploadCard
-            title="Upload COE Document"
-            description="Upload the COE document for the agent."
-            onDrop={async (files) => {
-              await handleStaffUploadFIle(files);
-            }}
-            isUploading={isUploading}
-          />
+          <>
+            {isOnshore && !esosCoeConfirmation && (
+              <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-amber-50 border border-amber-300 dark:bg-amber-950/20 dark:border-amber-700">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                  Complete the <strong>ESOS COE Compliance Confirmation</strong> section above before uploading the COE document.
+                </p>
+              </div>
+            )}
+            <UploadCard
+              title="Upload COE Document"
+              description="Upload the COE document for the agent."
+              onDrop={async (files) => {
+                if (isOnshore && !esosCoeConfirmation) {
+                  toast.error("Please complete ESOS COE Compliance Confirmation first.");
+                  return;
+                }
+                await handleStaffUploadFIle(files);
+              }}
+              isUploading={isUploading}
+            />
+          </>
         ) : (
           <Card>
             <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -677,10 +892,12 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                 {isCoeStage ? (
                   <Button
                     size="sm"
+                    disabled={changeStage.isPending || (isOnshore && !esosCoeConfirmation)}
                     onClick={() =>
                       handleStageChange(APPLICATION_STAGE.ACCEPTED)
                     }
                   >
+                    {changeStage.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
                     Accept
                   </Button>
                 ) : null}

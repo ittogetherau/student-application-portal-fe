@@ -268,45 +268,57 @@ export const AdditionalDocumentsUpload = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {unmergedOtherDocuments.map((doc) => (
-                      <tr key={doc.id} className="border-b last:border-0">
-                        <td className="py-2 text-xs">
-                          {doc.document_type_name || "Uploaded document"}
-                        </td>
-                        <td className="py-2 text-xs">
-                          {humanFileSize(doc.file_size_bytes)}
-                        </td>
-                        <td className="py-2 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {doc.view_url ? (
+                    {unmergedOtherDocuments.map((doc) => {
+                      const isCommissionCompliance = 
+                        doc.document_type_code === "OTHER" && 
+                        (
+                          String((doc as any).document_name || "").toLowerCase().includes("esos-commission-compliance") ||
+                          String((doc as any).file_name || "").toLowerCase().includes("esos-commission-compliance") ||
+                          String(doc.view_url || "").toLowerCase().includes("esos-commission-compliance") ||
+                          String(doc.download_url || "").toLowerCase().includes("esos-commission-compliance")
+                        );
+                      const displayName = isCommissionCompliance ? "Commission Compliance" : (doc.document_type_name || "Uploaded document");
+
+                      return (
+                        <tr key={doc.id} className="border-b last:border-0">
+                          <td className="py-2 text-xs">
+                            {displayName}
+                          </td>
+                          <td className="py-2 text-xs">
+                            {humanFileSize(doc.file_size_bytes)}
+                          </td>
+                          <td className="py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {doc.view_url ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                  onClick={() =>
+                                    window.open(doc.view_url, "_blank")
+                                  }
+                                  title="View"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              ) : null}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                onClick={() =>
-                                  window.open(doc.view_url, "_blank")
-                                }
-                                title="View"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDelete(doc)}
+                                disabled={isDeleting}
+                                title="Delete"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            ) : null}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(doc)}
-                              disabled={isDeleting}
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
