@@ -7,21 +7,33 @@ interface Props {
   doc: ApplicationDocumentListItem;
 }
 
-export const DocumentCard = ({ doc }: Props) => (
-  <div className="flex items-center justify-between p-2 rounded-lg border bg-muted/30">
-    <div className="flex items-center gap-2">
-      <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
-        <FileText className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs">
-          {doc.document_type_name}
-        </p>
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span>{formatBytes(doc.file_size_bytes)}</span>
+export const DocumentCard = ({ doc }: Props) => {
+  const isCommissionCompliance = 
+    doc.document_type_code === "OTHER" && 
+    (
+      String((doc as any).document_name || "").toLowerCase().includes("esos-commission-compliance") ||
+      String((doc as any).file_name || "").toLowerCase().includes("esos-commission-compliance") ||
+      String(doc.view_url || "").toLowerCase().includes("esos-commission-compliance") ||
+      String(doc.download_url || "").toLowerCase().includes("esos-commission-compliance")
+    );
+
+  const displayName = isCommissionCompliance ? "Commission Compliance" : doc.document_type_name;
+
+  return (
+    <div className="flex items-center justify-between p-2 rounded-lg border bg-muted/30">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 bg-background rounded-md border text-muted-foreground">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-medium truncate max-w-[150px] lg:max-w-xs" title={displayName}>
+            {displayName}
+          </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span>{formatBytes(doc.file_size_bytes)}</span>
+          </div>
         </div>
       </div>
-    </div>
     <div className="flex items-center gap-1">
       {doc.view_url && (
         <Button
@@ -51,4 +63,5 @@ export const DocumentCard = ({ doc }: Props) => (
       )}
     </div>
   </div>
-);
+  );
+};

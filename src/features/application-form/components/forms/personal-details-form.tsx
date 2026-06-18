@@ -51,6 +51,7 @@ import {
   Loader2,
   Upload,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -59,6 +60,10 @@ import { usePublicStudentApplicationStore } from "@/features/student-application
 import { useApplicationStepMutations } from "../../hooks/use-application-steps.hook";
 import { ExtractedDataPreview } from "../extracted-data-preview";
 import HealthCoverAutoSubmit from "../health-cover-auto-submit";
+import {
+  useApplicationGetQuery,
+  useApplicationUpdateMutation,
+} from "@/shared/hooks/use-applications";
 
 const stepId = 1;
 
@@ -80,6 +85,9 @@ type AddressComponent = {
 const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
+  const updateApplication = useApplicationUpdateMutation(applicationId);
+  const { data: applicationResponse } = useApplicationGetQuery(applicationId);
+  const enrollmentData = applicationResponse?.data?.enrollment_data;
   const isDev = process.env.NODE_ENV === "development";
   const isPublicMode = usePublicStudentApplicationStore(
     (state) => state.enabled && !!state.token,
@@ -171,6 +179,15 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     });
   }, [isEmailLocked, methods, studentEmail]);
 
+  useEffect(() => {
+    if (enrollmentData?.esos_agent_assessment) {
+      methods.setValue("esos_agent_assessment", enrollmentData.esos_agent_assessment as string, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
+  }, [enrollmentData, methods]);
+
   const onSubmit = (values: PersonalDetailsValues) => {
     const normalizedValues: PersonalDetailsValues = {
       ...values,
@@ -185,6 +202,18 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     console.log("submitting personal details", normalizedValues);
     if (applicationId) {
       saveOnSubmit(normalizedValues);
+
+      const currentEnrollment = (enrollmentData || {}) as Record<string, unknown>;
+      const nextEnrollment = { ...currentEnrollment };
+      if (values.student_origin === "Overseas Student in Australia (Onshore)") {
+        nextEnrollment.esos_agent_assessment = values.esos_agent_assessment;
+      } else {
+        delete nextEnrollment.esos_agent_assessment;
+        delete nextEnrollment.esos_agent_assessment_date;
+      }
+      updateApplication.mutate({
+        enrollment_data: nextEnrollment,
+      });
     }
     personalDetailsMutation.mutate(normalizedValues);
   };
@@ -466,6 +495,53 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                 "Resident Student (Domestic)",
               ]}
             />
+
+            {methods.watch("student_origin") ===
+              "Overseas Student in Australia (Onshore)" && (
+              <Card className="border-primary/20 bg-primary/5 shadow-sm mt-3 animate-in fade-in-0 duration-200">
+                <CardContent className="p-4 space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-sm flex items-center gap-1.5 text-primary">
+                      <Info className="h-4 w-4 shrink-0" />
+                      ESOS Onshore Commission Self-Assessment
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Due to National Code regulations, education providers are prohibited from paying commissions to education agents for the recruitment of onshore transfer students who have already commenced study in Australia with another provider (unless accepted on or before 31 March 2026).
+                    </p>
+                  </div>
+                  
+                  <div className="flex">
+                    <a
+                      href="https://www.education.gov.au/esos-framework/resources/ban-payment-agent-commissions-onshore-transfers"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 bg-primary/10 px-2.5 py-1.5 rounded"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View Onshore Transfer Commission Policy
+                    </a>
+                  </div>
+
+                  <div className="pt-2 border-t border-primary/10">
+                    <FormRadio
+                      name="esos_agent_assessment"
+                      label="Eligibility Self-Assessment Declaration"
+                      options={[
+                        {
+                          label: "I believe this student is eligible for onshore commission under ESOS",
+                          value: "eligible",
+                        },
+                        {
+                          label: "I believe this student is not eligible for onshore commission under ESOS",
+                          value: "not_eligible",
+                        },
+                      ]}
+                      colMode={true}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Title */}
             <div>
