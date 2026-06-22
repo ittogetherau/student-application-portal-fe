@@ -181,17 +181,11 @@ export const personalDetailsSchema = z
       ),
     // ESOS Onshore Commission Self-Assessment
     esos_agent_assessment: z.string().nullish(),
+    esos_agent_assessment_reason: z.string().nullish(),
   })
   .superRefine((data, ctx) => {
     // Visa details are only required if student_origin is "Overseas Student in Australia (Onshore)"
     if (data.student_origin === "Overseas Student in Australia (Onshore)") {
-      if (!data.esos_agent_assessment || data.esos_agent_assessment.trim().length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Please complete the ESOS commission eligibility declaration",
-          path: ["esos_agent_assessment"],
-        });
-      }
       if (!data.visa_type || data.visa_type.trim().length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -327,4 +321,5 @@ export const defaultPersonalDetailsValues: PersonalDetailsValues = {
   overseas_country: "",
   overseas_address: "",
   esos_agent_assessment: "",
+  esos_agent_assessment_reason: "",
 };

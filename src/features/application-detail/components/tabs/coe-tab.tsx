@@ -49,7 +49,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "react-hot-toast";
 
 function formatFileSize(bytes: number | undefined): string {
@@ -364,9 +364,18 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
 
   const esosAgentAssessment = enrollmentData?.esos_agent_assessment as string ?? "";
   const esosAgentAssessmentDate = enrollmentData?.esos_agent_assessment_date as string ?? "";
+  const esosAgentAssessmentReason = enrollmentData?.esos_agent_assessment_reason as string ?? "";
   const esosAdmissionsReview = enrollmentData?.esos_admissions_review as string ?? "";
   const esosAdmissionsReviewDate = enrollmentData?.esos_admissions_review_date as string ?? "";
+  const esosAdmissionsReviewReason = enrollmentData?.esos_admissions_review_reason as string ?? "";
   const esosCoeConfirmation = enrollmentData?.esos_coe_confirmation as string ?? "";
+
+  const [esosCoeConfirmationReason, setEsosCoeConfirmationReason] = useState(
+    enrollmentData?.esos_coe_confirmation_reason as string ?? "",
+  );
+  useEffect(() => {
+    setEsosCoeConfirmationReason(enrollmentData?.esos_coe_confirmation_reason as string ?? "");
+  }, [enrollmentData?.esos_coe_confirmation_reason]);
 
   const studentName = [
     applicationResponse?.data?.personal_details?.given_name,
@@ -413,10 +422,13 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
           applicationId: applicationId ?? "",
           esosAgentAssessment,
           esosAgentAssessmentDate,
+          esosAgentAssessmentReason,
           esosAdmissionsReview,
           esosAdmissionsReviewDate,
+          esosAdmissionsReviewReason,
           esosCoeConfirmation,
           esosCoeConfirmationDate: now,
+          esosCoeConfirmationReason,
         });
         const pdfFile = new File(
           [pdfBlob],
@@ -593,7 +605,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
             </p>
 
             {/* Stage 1 — Agent (read-only) */}
-            <div className="rounded-lg border bg-background p-3 space-y-1">
+            <div className="rounded-lg border bg-background p-3 space-y-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                 Stage 1 — Agent Self-Assessment
               </p>
@@ -618,10 +630,16 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                   </span>
                 )}
               </div>
+              {esosAgentAssessmentReason && (
+                <div className="mt-1.5 rounded-md bg-muted/40 border px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Agent's Reason</p>
+                  <p className="text-[11px] text-foreground/80 whitespace-pre-wrap">{esosAgentAssessmentReason}</p>
+                </div>
+              )}
             </div>
 
             {/* Stage 2 — Admissions (read-only) */}
-            <div className="rounded-lg border bg-background p-3 space-y-1">
+            <div className="rounded-lg border bg-background p-3 space-y-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                 Stage 2 — Admissions Officer Review
               </p>
@@ -650,6 +668,12 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                   </span>
                 )}
               </div>
+              {esosAdmissionsReviewReason && (
+                <div className="mt-1.5 rounded-md bg-muted/40 border px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Admissions Reason</p>
+                  <p className="text-[11px] text-foreground/80 whitespace-pre-wrap">{esosAdmissionsReviewReason}</p>
+                </div>
+              )}
             </div>
 
             {/* Stage 3 — COE Confirmation (editable) */}
@@ -692,6 +716,32 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                     <span className="text-xs font-medium">{opt.label}</span>
                   </label>
                 ))}
+              </div>
+
+              {/* COE Reason (optional) */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="esos-coe-reason"
+                  className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Reason / Notes <span className="normal-case font-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="esos-coe-reason"
+                  rows={3}
+                  placeholder="Explain why this student is or is not eligible for commission under ESOS..."
+                  value={esosCoeConfirmationReason}
+                  onChange={(e) => setEsosCoeConfirmationReason(e.target.value)}
+                  onBlur={() => {
+                    updateApplication.mutate({
+                      enrollment_data: {
+                        ...enrollmentData,
+                        esos_coe_confirmation_reason: esosCoeConfirmationReason,
+                      },
+                    });
+                  }}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
               </div>
             </div>
 

@@ -241,6 +241,36 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e2e8f0",
     marginVertical: 6,
   },
+  reasonBox: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 6,
+  },
+  reasonRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  reasonRowLast: {
+    borderBottomWidth: 0,
+  },
+  reasonStageCell: {
+    width: "28%",
+    paddingVertical: 3,
+    paddingHorizontal: 4,
+    backgroundColor: LABEL_FILL,
+    borderRightWidth: 1,
+    borderRightColor: BORDER,
+    fontSize: 7.5,
+    fontWeight: "bold",
+  },
+  reasonTextCell: {
+    flex: 1,
+    paddingVertical: 3,
+    paddingHorizontal: 4,
+    fontSize: 7.5,
+    color: "#1e293b",
+  },
 });
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -252,12 +282,15 @@ export type EsosCompliancePdfData = {
   // Stage 1 — Agent
   esosAgentAssessment: string;
   esosAgentAssessmentDate: string;
+  esosAgentAssessmentReason?: string;
   // Stage 2 — Admissions
   esosAdmissionsReview: string;
   esosAdmissionsReviewDate: string;
+  esosAdmissionsReviewReason?: string;
   // Stage 3 — COE
   esosCoeConfirmation: string;
   esosCoeConfirmationDate: string;
+  esosCoeConfirmationReason?: string;
 };
 
 // ─── filename helper ──────────────────────────────────────────────────────────
@@ -272,6 +305,8 @@ function assessmentLabel(value: string): string {
   if (value === "eligible") return "Eligible";
   if (value === "not_eligible") return "Not Eligible";
   if (value === "further_review") return "Requires Further Review";
+  if (value === "confirmed_eligible") return "Confirmed Eligible";
+  if (value === "confirmed_not_eligible") return "Confirmed Not Eligible";
   if (!value) return "Not assessed";
   return value;
 }
@@ -307,9 +342,9 @@ export async function generateEsosCompliancePdfBlob(
   }) => {
     const label = assessmentLabel(value);
     const textStyle =
-      value === "eligible"
+      value === "eligible" || value === "confirmed_eligible"
         ? styles.eligibleText
-        : value === "not_eligible"
+        : value === "not_eligible" || value === "confirmed_not_eligible"
           ? styles.notEligibleText
           : value === "further_review"
             ? styles.furtherReviewText
@@ -491,6 +526,62 @@ export async function generateEsosCompliancePdfBlob(
             </View>
           </View>
         </View>
+
+        {/* ── Assessment Reason Notes ───────────────────────────────────── */}
+        {(data.esosAgentAssessmentReason ||
+          data.esosAdmissionsReviewReason ||
+          data.esosCoeConfirmationReason) && (
+          <>
+            <Text style={styles.sectionTitle}>Assessment Reason Notes</Text>
+            <View style={styles.reasonBox}>
+              {data.esosAgentAssessmentReason ? (
+                <View
+                  style={[
+                    styles.reasonRow,
+                    !data.esosAdmissionsReviewReason &&
+                    !data.esosCoeConfirmationReason
+                      ? styles.reasonRowLast
+                      : {},
+                  ]}
+                >
+                  <Text style={styles.reasonStageCell}>
+                    Stage 1 — Agent
+                  </Text>
+                  <Text style={styles.reasonTextCell}>
+                    {data.esosAgentAssessmentReason}
+                  </Text>
+                </View>
+              ) : null}
+              {data.esosAdmissionsReviewReason ? (
+                <View
+                  style={[
+                    styles.reasonRow,
+                    !data.esosCoeConfirmationReason
+                      ? styles.reasonRowLast
+                      : {},
+                  ]}
+                >
+                  <Text style={styles.reasonStageCell}>
+                    Stage 2 — Admissions
+                  </Text>
+                  <Text style={styles.reasonTextCell}>
+                    {data.esosAdmissionsReviewReason}
+                  </Text>
+                </View>
+              ) : null}
+              {data.esosCoeConfirmationReason ? (
+                <View style={[styles.reasonRow, styles.reasonRowLast]}>
+                  <Text style={styles.reasonStageCell}>
+                    Stage 3 — COE
+                  </Text>
+                  <Text style={styles.reasonTextCell}>
+                    {data.esosCoeConfirmationReason}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        )}
 
         {/* Footer note */}
         <Text style={styles.footerNote}>

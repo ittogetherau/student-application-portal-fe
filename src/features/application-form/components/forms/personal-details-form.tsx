@@ -64,6 +64,7 @@ import {
   useApplicationGetQuery,
   useApplicationUpdateMutation,
 } from "@/shared/hooks/use-applications";
+import { useRoleFlags } from "@/shared/hooks/use-role-flags";
 
 const stepId = 1;
 
@@ -86,6 +87,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
   const updateApplication = useApplicationUpdateMutation(applicationId);
+  const { isAgent } = useRoleFlags();
   const { data: applicationResponse } = useApplicationGetQuery(applicationId);
   const enrollmentData = applicationResponse?.data?.enrollment_data;
   const isDev = process.env.NODE_ENV === "development";
@@ -186,9 +188,26 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         shouldValidate: true,
       });
     }
+    if (enrollmentData?.esos_agent_assessment_reason) {
+      methods.setValue("esos_agent_assessment_reason", enrollmentData.esos_agent_assessment_reason as string, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
   }, [enrollmentData, methods]);
 
   const onSubmit = (values: PersonalDetailsValues) => {
+    if (isAgent && values.student_origin === "Overseas Student in Australia (Onshore)") {
+      if (!values.esos_agent_assessment || values.esos_agent_assessment.trim().length === 0) {
+        methods.setError("esos_agent_assessment", {
+          type: "manual",
+          message: "Please complete the ESOS commission eligibility declaration",
+        });
+        toast.error("Please complete the ESOS commission eligibility declaration");
+        return;
+      }
+    }
+
     const normalizedValues: PersonalDetailsValues = {
       ...values,
       email:
@@ -205,11 +224,13 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
       const currentEnrollment = (enrollmentData || {}) as Record<string, unknown>;
       const nextEnrollment = { ...currentEnrollment };
-      if (values.student_origin === "Overseas Student in Australia (Onshore)") {
+      if (isAgent && values.student_origin === "Overseas Student in Australia (Onshore)") {
         nextEnrollment.esos_agent_assessment = values.esos_agent_assessment;
+        nextEnrollment.esos_agent_assessment_reason = values.esos_agent_assessment_reason;
       } else {
         delete nextEnrollment.esos_agent_assessment;
         delete nextEnrollment.esos_agent_assessment_date;
+        delete nextEnrollment.esos_agent_assessment_reason;
       }
       updateApplication.mutate({
         enrollment_data: nextEnrollment,
@@ -496,7 +517,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               ]}
             />
 
-            {methods.watch("student_origin") ===
+            {isAgent && methods.watch("student_origin") ===
               "Overseas Student in Australia (Onshore)" && (
               <Card className="border-primary/20 bg-primary/5 shadow-sm mt-3 animate-in fade-in-0 duration-200">
                 <CardContent className="p-4 space-y-4">
@@ -522,7 +543,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                     </a>
                   </div>
 
-                  <div className="pt-2 border-t border-primary/10">
+                  <div className="pt-2 border-t border-primary/10 space-y-3">
                     <FormRadio
                       name="esos_agent_assessment"
                       label="Eligibility Self-Assessment Declaration"
@@ -538,6 +559,15 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                       ]}
                       colMode={true}
                     />
+
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <FormTextarea
+                        name="esos_agent_assessment_reason"
+                        label="Reason for Eligibility / Non-Eligibility (Optional)"
+                        placeholder="Explain why the student is eligible or not eligible for onshore commission..."
+                        rows={3}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

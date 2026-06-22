@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -57,6 +59,19 @@ export default function InReviewStageCard({
   const isAgent = currentRole === USER_ROLE.AGENT;
 
   const enrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+
+  const esosAgentAssessmentReason = enrollmentData?.esos_agent_assessment_reason as string | undefined;
+
+  const [admissionsReason, setAdmissionsReason] = useState(
+    (enrollmentData?.esos_admissions_review_reason as string) || ""
+  );
+
+  useEffect(() => {
+    if (enrollmentData?.esos_admissions_review_reason !== undefined) {
+      setAdmissionsReason((enrollmentData.esos_admissions_review_reason as string) || "");
+    }
+  }, [enrollmentData?.esos_admissions_review_reason]);
+
   const studentOrigin = appResponse?.data?.personal_details?.student_origin;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
 
@@ -377,29 +392,37 @@ export default function InReviewStageCard({
             </p>
 
             {/* Agent Self-Assessment (read-only) */}
-            <div className="rounded-lg border bg-background p-3 space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Stage 1 — Agent Self-Assessment</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn(
-                  "text-[11px] px-2 py-0.5 rounded-full font-semibold",
-                  esosAgentAssessment === "eligible"
-                    ? "bg-green-100 text-green-800 ring-1 ring-green-300"
-                    : esosAgentAssessment === "not_eligible"
-                      ? "bg-red-100 text-red-800 ring-1 ring-red-300"
-                      : "bg-gray-100 text-gray-600 ring-1 ring-gray-300"
-                )}>
-                  {esosAgentAssessment === "eligible"
-                    ? "Agent declared: Eligible"
-                    : esosAgentAssessment === "not_eligible"
-                      ? "Agent declared: Not Eligible"
-                      : "Not yet assessed"}
-                </span>
-                {esosAgentAssessmentDate && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatUtcToFriendlyLocal(esosAgentAssessmentDate)}
+            <div className="rounded-lg border bg-background p-3 space-y-2">
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Stage 1 — Agent Self-Assessment</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={cn(
+                    "text-[11px] px-2 py-0.5 rounded-full font-semibold",
+                    esosAgentAssessment === "eligible"
+                      ? "bg-green-100 text-green-800 ring-1 ring-green-300"
+                      : esosAgentAssessment === "not_eligible"
+                        ? "bg-red-100 text-red-800 ring-1 ring-red-300"
+                        : "bg-gray-100 text-gray-600 ring-1 ring-gray-300"
+                  )}>
+                    {esosAgentAssessment === "eligible"
+                      ? "Agent declared: Eligible"
+                      : esosAgentAssessment === "not_eligible"
+                        ? "Agent declared: Not Eligible"
+                        : "Not yet assessed"}
                   </span>
-                )}
+                  {esosAgentAssessmentDate && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatUtcToFriendlyLocal(esosAgentAssessmentDate)}
+                    </span>
+                  )}
+                </div>
               </div>
+              {esosAgentAssessmentReason && (
+                <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border border-dashed">
+                  <span className="font-semibold text-foreground">Reason:</span>{" "}
+                  {esosAgentAssessmentReason}
+                </div>
+              )}
             </div>
 
             {/* Admissions Officer Review */}
@@ -441,6 +464,29 @@ export default function InReviewStageCard({
                     <span className="text-xs font-medium">{opt.label}</span>
                   </label>
                 ))}
+              </div>
+
+              {/* Admissions Officer Review Reason */}
+              <div className="space-y-1.5 mt-3">
+                <label htmlFor="esos_admissions_review_reason" className="text-[11px] font-semibold text-muted-foreground">
+                  Reason for Admissions Assessment (Optional)
+                </label>
+                <Textarea
+                  id="esos_admissions_review_reason"
+                  placeholder="Explain the reason for this eligibility assessment..."
+                  value={admissionsReason}
+                  onChange={(e) => setAdmissionsReason(e.target.value)}
+                  onBlur={(e) => {
+                    updateApplication.mutate({
+                      enrollment_data: {
+                        ...enrollmentData,
+                        esos_admissions_review_reason: e.target.value,
+                      }
+                    });
+                  }}
+                  rows={3}
+                  className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
+                />
               </div>
             </div>
 
