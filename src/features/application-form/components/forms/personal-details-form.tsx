@@ -87,7 +87,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   const personalDetailsMutation =
     useApplicationStepMutations(applicationId)[stepId];
   const updateApplication = useApplicationUpdateMutation(applicationId);
-  const { isAgent } = useRoleFlags();
+  const { isAgent, isStaffOrAdmin } = useRoleFlags();
   const { data: applicationResponse } = useApplicationGetQuery(applicationId);
   const enrollmentData = applicationResponse?.data?.enrollment_data;
   const isDev = process.env.NODE_ENV === "development";
@@ -197,7 +197,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
   }, [enrollmentData, methods]);
 
   const onSubmit = (values: PersonalDetailsValues) => {
-    if (isAgent && values.student_origin === "Overseas Student in Australia (Onshore)") {
+    if ((isAgent || isStaffOrAdmin) && values.student_origin === "Overseas Student in Australia (Onshore)") {
       if (!values.esos_agent_assessment || values.esos_agent_assessment.trim().length === 0) {
         methods.setError("esos_agent_assessment", {
           type: "manual",
@@ -224,7 +224,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
 
       const currentEnrollment = (enrollmentData || {}) as Record<string, unknown>;
       const nextEnrollment = { ...currentEnrollment };
-      if (isAgent && values.student_origin === "Overseas Student in Australia (Onshore)") {
+      if ((isAgent || isStaffOrAdmin) && values.student_origin === "Overseas Student in Australia (Onshore)") {
         nextEnrollment.esos_agent_assessment = values.esos_agent_assessment;
         nextEnrollment.esos_agent_assessment_reason = values.esos_agent_assessment_reason;
       } else {
@@ -517,7 +517,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
               ]}
             />
 
-            {isAgent && methods.watch("student_origin") ===
+            {(isAgent || isStaffOrAdmin) && methods.watch("student_origin") ===
               "Overseas Student in Australia (Onshore)" && (
               <Card className="border-primary/20 bg-primary/5 shadow-sm mt-3 animate-in fade-in-0 duration-200">
                 <CardContent className="p-4 space-y-4">
