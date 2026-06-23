@@ -42,9 +42,12 @@ export async function generateAdvancedStandingPdf(
   applicationId: string,
   options?: { flatten?: boolean }
 ): Promise<File> {
-  // 1. Fetch the blank PDF template from the public folder
-  const url = "/docs/advanced_standing_form.pdf";
-  const existingPdfBytes = await fetch(url).then((res) => res.arrayBuffer());
+  // 1. Fetch the blank PDF template via absolute URL to avoid subdirectory 404s
+  const url = `${window.location.origin}/templates/advanced_standing_form.pdf`;
+  const existingPdfBytes = await fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`Failed to fetch PDF template: ${res.statusText}`);
+    return res.arrayBuffer();
+  });
 
   // 2. Load the PDF into pdf-lib
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
