@@ -19,15 +19,15 @@ const formatTimelineMessage = (rawMessage: string) => {
 
 
   // ESOS Onshore patterns
-  const esosAgentEligible = /esos_agent_assessment:\s*['"]?(?:none|not_eligible|eligible)?['"]?\s*->\s*['"]?eligible['"]?/i;
-  const esosAgentNotEligible = /esos_agent_assessment:\s*['"]?(?:none|not_eligible|eligible)?['"]?\s*->\s*['"]?not_eligible['"]?/i;
+  const esosAgentEligible = /esos_agent_assessment:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?eligible['"]?/i;
+  const esosAgentNotEligible = /esos_agent_assessment:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?not_eligible['"]?/i;
   
-  const esosAdmissionsEligible = /esos_admissions_review:\s*['"]?(?:none|further_review|not_eligible|eligible)?['"]?\s*->\s*['"]?eligible['"]?/i;
-  const esosAdmissionsNotEligible = /esos_admissions_review:\s*['"]?(?:none|further_review|not_eligible|eligible)?['"]?\s*->\s*['"]?not_eligible['"]?/i;
-  const esosAdmissionsFurther = /esos_admissions_review:\s*['"]?(?:none|further_review|not_eligible|eligible)?['"]?\s*->\s*['"]?further_review['"]?/i;
+  const esosAdmissionsEligible = /esos_admissions_review:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?eligible['"]?/i;
+  const esosAdmissionsNotEligible = /esos_admissions_review:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?not_eligible['"]?/i;
+  const esosAdmissionsFurther = /esos_admissions_review:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?further_review['"]?/i;
 
-  const esosCoeEligible = /esos_coe_confirmation:\s*['"]?(?:none|confirmed_not_eligible|confirmed_eligible)?['"]?\s*->\s*['"]?confirmed_eligible['"]?/i;
-  const esosCoeNotEligible = /esos_coe_confirmation:\s*['"]?(?:none|confirmed_not_eligible|confirmed_eligible)?['"]?\s*->\s*['"]?confirmed_not_eligible['"]?/i;
+  const esosCoeEligible = /esos_coe_confirmation:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?confirmed_eligible['"]?/i;
+  const esosCoeNotEligible = /esos_coe_confirmation:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?confirmed_not_eligible['"]?/i;
 
   const esosAgentDate = /esos_agent_assessment_date:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
   const esosAdmissionsDate = /esos_admissions_review_date:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
@@ -71,6 +71,11 @@ const formatTimelineMessage = (rawMessage: string) => {
   }
   if (esosAgentDate.test(message)) {
     return message.replace(/Application details updated:.*$/i, "Agent submitted ESOS Commission self-assessment timestamp");
+  }
+
+  const esosAdmissionsReason = /esos_admissions_review_reason:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
+  if (esosAdmissionsReason.test(message)) {
+    return message.replace(/Application details updated:.*$/i, "Updated ESOS Admissions review reason");
   }
 
   return message;
