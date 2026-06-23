@@ -301,6 +301,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
             studentEmail={application?.personal_details?.email}
             studentName={studentName}
             withUnresolvedWarning={runWithUnresolvedCommunicationsWarning}
+            currentRole={current_role}
           />
         );
       }

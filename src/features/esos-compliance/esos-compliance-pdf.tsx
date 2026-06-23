@@ -269,8 +269,8 @@ export function getEsosCompliancePdfFilename(applicationId?: string): string {
 // ─── label helpers ────────────────────────────────────────────────────────────
 
 function assessmentLabel(value: string): string {
-  if (value === "eligible") return "Eligible";
-  if (value === "not_eligible") return "Not Eligible";
+  if (value === "eligible" || value === "confirmed_eligible") return "Eligible";
+  if (value === "not_eligible" || value === "confirmed_not_eligible") return "Not Eligible";
   if (value === "further_review") return "Requires Further Review";
   if (!value) return "Not assessed";
   return value;
@@ -307,9 +307,9 @@ export async function generateEsosCompliancePdfBlob(
   }) => {
     const label = assessmentLabel(value);
     const textStyle =
-      value === "eligible"
+      value === "eligible" || value === "confirmed_eligible"
         ? styles.eligibleText
-        : value === "not_eligible"
+        : value === "not_eligible" || value === "confirmed_not_eligible"
           ? styles.notEligibleText
           : value === "further_review"
             ? styles.furtherReviewText

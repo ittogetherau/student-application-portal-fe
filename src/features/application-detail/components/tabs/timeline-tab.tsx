@@ -29,9 +29,9 @@ const formatTimelineMessage = (rawMessage: string) => {
   const esosCoeEligible = /esos_coe_confirmation:\s*['"]?(?:none|confirmed_not_eligible|confirmed_eligible)?['"]?\s*->\s*['"]?confirmed_eligible['"]?/i;
   const esosCoeNotEligible = /esos_coe_confirmation:\s*['"]?(?:none|confirmed_not_eligible|confirmed_eligible)?['"]?\s*->\s*['"]?confirmed_not_eligible['"]?/i;
 
-  const esosAgentDate = /esos_agent_assessment_date:\s*['"]?(?:none)?['"]?\s*->\s*['"]?[^'"]+['"]?/i;
-  const esosAdmissionsDate = /esos_admissions_review_date:\s*['"]?(?:none)?['"]?\s*->\s*['"]?[^'"]+['"]?/i;
-  const esosCoeDate = /esos_coe_confirmation_date:\s*['"]?(?:none)?['"]?\s*->\s*['"]?[^'"]+['"]?/i;
+  const esosAgentDate = /esos_agent_assessment_date:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
+  const esosAdmissionsDate = /esos_admissions_review_date:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
+  const esosCoeDate = /esos_coe_confirmation_date:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?[^'"]+['"]?/i;
 
 
   // ESOS overrides
@@ -121,7 +121,7 @@ const TimelineTab = ({ id }: props) => {
             )}
           </div>
           <div className="flex-1 pb-3">
-            <p className="text-sm font-medium leading-tight">{el.message}</p>
+            <p className="text-sm font-medium leading-tight">{formatTimelineMessage(el.message)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {formatUtcToFriendlyLocal(el.created_at)}
             </p>
