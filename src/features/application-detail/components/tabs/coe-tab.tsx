@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Dropzone, DropzoneEmptyState } from "@/components/ui/dropzone";
+import { Textarea } from "@/components/ui/textarea";
 import { siteRoutes } from "@/shared/constants/site-routes";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
@@ -22,6 +23,7 @@ import {
   useUploadDocument,
   useVerifyDocument,
 } from "@/shared/hooks/document.hook";
+import { useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import {
   useApplicationChangeStageMutation,
   useApplicationGetQuery,
@@ -49,7 +51,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { toast } from "react-hot-toast";
 
 function formatFileSize(bytes: number | undefined): string {
@@ -362,11 +364,22 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const studentOrigin = applicationResponse?.data?.personal_details?.student_origin as string | undefined;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
 
-  const esosAgentAssessment = enrollmentData?.esos_agent_assessment as string ?? "";
-  const esosAgentAssessmentDate = enrollmentData?.esos_agent_assessment_date as string ?? "";
-  const esosAdmissionsReview = enrollmentData?.esos_admissions_review as string ?? "";
-  const esosAdmissionsReviewDate = enrollmentData?.esos_admissions_review_date as string ?? "";
-  const esosCoeConfirmation = enrollmentData?.esos_coe_confirmation as string ?? "";
+  const esosAgentAssessment = isOnshore ? (typeof enrollmentData?.esos_agent_assessment === "string" ? enrollmentData.esos_agent_assessment : "") : "";
+  const esosAgentAssessmentDate = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_date === "string" ? enrollmentData.esos_agent_assessment_date : "") : "";
+  const esosAgentAssessmentReason = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_reason === "string" ? enrollmentData.esos_agent_assessment_reason : "") : "";
+  const esosAdmissionsReview = isOnshore ? (typeof enrollmentData?.esos_admissions_review === "string" ? enrollmentData.esos_admissions_review : "") : "";
+  const esosAdmissionsReviewDate = isOnshore ? (typeof enrollmentData?.esos_admissions_review_date === "string" ? enrollmentData.esos_admissions_review_date : "") : "";
+  const esosAdmissionsReviewReason = isOnshore ? (typeof enrollmentData?.esos_admissions_review_reason === "string" ? enrollmentData.esos_admissions_review_reason : "") : "";
+  const esosCoeConfirmation = isOnshore ? (typeof enrollmentData?.esos_coe_confirmation === "string" ? enrollmentData.esos_coe_confirmation : "") : "";
+  const esosCoeReasonString = isOnshore ? (typeof enrollmentData?.esos_coe_reason === "string" ? enrollmentData.esos_coe_reason : "") : "";
+
+  const [coeReason, setCoeReason] = useState("");
+
+  useEffect(() => {
+    if (!isOnshore) return;
+    setCoeReason(esosCoeReasonString);
+  }, [isOnshore, esosCoeReasonString]);
+  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId ?? null);
 
   const studentName = [
     applicationResponse?.data?.personal_details?.given_name,
@@ -413,10 +426,13 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
           applicationId: applicationId ?? "",
           esosAgentAssessment,
           esosAgentAssessmentDate,
+          esosAgentAssessmentReason,
           esosAdmissionsReview,
           esosAdmissionsReviewDate,
+          esosAdmissionsReviewReason,
           esosCoeConfirmation,
           esosCoeConfirmationDate: now,
+          esosCoeReason: coeReason,
         });
         const pdfFile = new File(
           [pdfBlob],
@@ -676,6 +692,8 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                           ...enrollmentData,
                           esos_coe_confirmation: opt.value,
                         }
+                      }, {
+                        onSuccess: () => syncEnrollment.mutate()
                       });
                     }}
                   >
@@ -693,6 +711,27 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                   </label>
                 ))}
               </div>
+              <div className="mt-4 border-t border-primary/10 pt-4">
+                 <label className="text-sm font-medium mb-1 block">Reason / Additional Notes (Optional)</label>
+                 <Textarea
+                   placeholder="Add any notes regarding this COE issuance..."
+                   rows={3}
+                   value={coeReason}
+                   onChange={(e) => setCoeReason(e.target.value)}
+                   onBlur={() => {
+                     updateApplication.mutate(
+                       {
+                         enrollment_data: {
+                           ...enrollmentData,
+                           esos_coe_reason: coeReason,
+                         },
+                       },
+                       { onSuccess: () => syncEnrollment.mutate() }
+                     );
+                   }}
+                   className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
+                 />
+               </div>
             </div>
 
             {!esosCoeConfirmation && (

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
-import { useGalaxySyncDeclarationMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
+import { useGalaxySyncApplicationMutation, useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationChangeStageMutation,
@@ -57,30 +57,35 @@ export default function InReviewStageCard({
 
   const enrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
 
-  const esosAgentAssessmentReason = enrollmentData?.esos_agent_assessment_reason as string | undefined;
-
-  const [admissionsReason, setAdmissionsReason] = useState(
-    (enrollmentData?.esos_admissions_review_reason as string) || ""
-  );
-
-  useEffect(() => {
-    if (enrollmentData?.esos_admissions_review_reason !== undefined) {
-      setAdmissionsReason((enrollmentData.esos_admissions_review_reason as string) || "");
-    }
-  }, [enrollmentData?.esos_admissions_review_reason]);
-
   const studentOrigin = appResponse?.data?.personal_details?.student_origin;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
 
-  const esosAgentAssessment = enrollmentData?.esos_agent_assessment as string;
-  const esosAgentAssessmentDate = enrollmentData?.esos_agent_assessment_date as string;
-  const esosAdmissionsReview = enrollmentData?.esos_admissions_review as string;
+  const esosAgentAssessment = isOnshore ? (typeof enrollmentData?.esos_agent_assessment === "string" ? enrollmentData.esos_agent_assessment : "") : "";
+  const esosAgentAssessmentDate = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_date === "string" ? enrollmentData.esos_agent_assessment_date : "") : "";
+  const esosAgentAssessmentReason = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_reason === "string" ? enrollmentData.esos_agent_assessment_reason : "") : "";
+  const esosAdmissionsReview = isOnshore ? (typeof enrollmentData?.esos_admissions_review === "string" ? enrollmentData.esos_admissions_review : "") : "";
 
-  const syncDeclaration = useGalaxySyncDeclarationMutation(applicationId);
+  const [admissionsReason, setAdmissionsReason] = useState("");
+  const [agentReason, setAgentReason] = useState("");
+
+  useEffect(() => {
+    if (!isOnshore) return;
+    const stored = typeof enrollmentData?.esos_admissions_review_reason === "string" ? enrollmentData.esos_admissions_review_reason : "";
+    setAdmissionsReason(stored);
+  }, [isOnshore, enrollmentData?.esos_admissions_review_reason]);
+
+  useEffect(() => {
+    if (!isOnshore) return;
+    const storedAgent = typeof enrollmentData?.esos_agent_assessment_reason === "string" ? enrollmentData.esos_agent_assessment_reason : "";
+    setAgentReason(storedAgent);
+  }, [isOnshore, enrollmentData?.esos_agent_assessment_reason]);
+
+  const syncApplication = useGalaxySyncApplicationMutation(applicationId);
+  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
   const changeStage = useApplicationChangeStageMutation(applicationId);
   const updateApplication = useApplicationUpdateMutation(applicationId);
-  const isPending = syncDeclaration.isPending || sendOfferLetter.isPending || updateApplication.isPending;
+  const isPending = syncApplication.isPending || sendOfferLetter.isPending || updateApplication.isPending;
 
   const handleSendOfferLetter = () => {
     if (!studentEmail) {
@@ -128,13 +133,13 @@ export default function InReviewStageCard({
       return;
     }
 
-    syncDeclaration.mutate(undefined, {
+    syncApplication.mutate(false, {
       onSuccess: (data) => {
-        toast.success(getSafeSyncToastMessage(data));
+        toast.success(getSafeSyncToastMessage(data) || "Successfully synced all data to Galaxy");
         handleSendOfferLetter();
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to sync declaration to Galaxy");
+        toast.error(error.message || "Failed to sync application to Galaxy");
       },
     });
   };
@@ -201,6 +206,29 @@ export default function InReviewStageCard({
                   {esosAgentAssessmentReason}
                 </div>
               )}
+              {isAgent && isOnshore && (
+                 <div className="mt-4 border-t border-primary/10 pt-4">
+                   <label className="text-sm font-medium mb-1 block">Agent Reason (Optional)</label>
+                   <Textarea
+                     placeholder="Explain why the student is or is not eligible..."
+                     rows={3}
+                     value={agentReason}
+                     onChange={(e) => setAgentReason(e.target.value)}
+                     onBlur={() => {
+                       updateApplication.mutate(
+                         {
+                           enrollment_data: {
+                             ...enrollmentData,
+                             esos_agent_assessment_reason: agentReason,
+                           },
+                         },
+                         { onSuccess: () => syncEnrollment.mutate() }
+                       );
+                     }}
+                     className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
+                   />
+                 </div>
+               )}
             </div>
 
             {/* Admissions Officer Review */}
@@ -260,6 +288,8 @@ export default function InReviewStageCard({
                         ...enrollmentData,
                         esos_admissions_review_reason: e.target.value,
                       }
+                    }, {
+                      onSuccess: () => syncEnrollment.mutate()
                     });
                   }}
                   rows={3}

@@ -181,6 +181,7 @@ export const personalDetailsSchema = z
       ),
     // ESOS Onshore Commission Self-Assessment
     esos_agent_assessment: z.string().nullish(),
+    esos_agent_assessment_reason: z.string().nullish(),
   })
   .superRefine((data, ctx) => {
     // Visa details are only required if student_origin is "Overseas Student in Australia (Onshore)"
@@ -327,4 +328,5 @@ export const defaultPersonalDetailsValues: PersonalDetailsValues = {
   overseas_country: "",
   overseas_address: "",
   esos_agent_assessment: "",
+  esos_agent_assessment_reason: "",
 };

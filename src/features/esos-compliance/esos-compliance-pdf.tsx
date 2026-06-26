@@ -252,12 +252,15 @@ export type EsosCompliancePdfData = {
   // Stage 1 — Agent
   esosAgentAssessment: string;
   esosAgentAssessmentDate: string;
+  esosAgentAssessmentReason?: string;
   // Stage 2 — Admissions
   esosAdmissionsReview: string;
   esosAdmissionsReviewDate: string;
+  esosAdmissionsReviewReason?: string;
   // Stage 3 — COE
   esosCoeConfirmation: string;
   esosCoeConfirmationDate: string;
+  esosCoeReason?: string;
 };
 
 // ─── filename helper ──────────────────────────────────────────────────────────
@@ -434,6 +437,11 @@ export async function generateEsosCompliancePdfBlob(
                   (Submitted with application)
                 </Text>
               </Text>
+              {data.esosAgentAssessmentReason ? (
+                <Text style={{ fontSize: 7, color: "#475569", marginTop: 4 }}>
+                  Reason: {data.esosAgentAssessmentReason}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.checklistCellResult}>
               <ResultText value={data.esosAgentAssessment} />
@@ -457,6 +465,11 @@ export async function generateEsosCompliancePdfBlob(
                   (Completed before offer letter)
                 </Text>
               </Text>
+              {data.esosAdmissionsReviewReason ? (
+                <Text style={{ fontSize: 7, color: "#475569", marginTop: 4 }}>
+                  Reason: {data.esosAdmissionsReviewReason}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.checklistCellResult}>
               <ResultText value={data.esosAdmissionsReview} />
@@ -480,6 +493,11 @@ export async function generateEsosCompliancePdfBlob(
                   (Completed before COE issuance)
                 </Text>
               </Text>
+              {data.esosCoeReason ? (
+                <Text style={{ fontSize: 7, color: "#475569", marginTop: 4 }}>
+                  Notes: {data.esosCoeReason}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.checklistCellResult}>
               <ResultText value={data.esosCoeConfirmation} />
