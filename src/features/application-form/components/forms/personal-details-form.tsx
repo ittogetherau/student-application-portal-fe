@@ -179,20 +179,38 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     });
   }, [isEmailLocked, methods, studentEmail]);
 
+  const watchedStudentOrigin = methods.watch("student_origin");
+
   useEffect(() => {
-    if (enrollmentData?.esos_agent_assessment) {
-      methods.setValue("esos_agent_assessment", enrollmentData.esos_agent_assessment as string, {
+    const studentOrigin =
+      applicationResponse?.data?.personal_details?.student_origin ??
+      watchedStudentOrigin;
+
+    if (studentOrigin !== "Overseas Student in Australia (Onshore)") return;
+
+    const enrollment = applicationResponse?.data?.enrollment_data;
+    if (!enrollment) return;
+
+    if (
+      typeof enrollment.esos_agent_assessment === "string" &&
+      enrollment.esos_agent_assessment.trim().length > 0
+    ) {
+      methods.setValue("esos_agent_assessment", enrollment.esos_agent_assessment, {
         shouldDirty: false,
         shouldValidate: true,
       });
     }
-    if (enrollmentData?.esos_agent_assessment_reason) {
-      methods.setValue("esos_agent_assessment_reason", enrollmentData.esos_agent_assessment_reason as string, {
-        shouldDirty: false,
-        shouldValidate: true,
-      });
+    if (typeof enrollment.esos_agent_assessment_reason === "string") {
+      methods.setValue(
+        "esos_agent_assessment_reason",
+        enrollment.esos_agent_assessment_reason,
+        {
+          shouldDirty: false,
+          shouldValidate: true,
+        },
+      );
     }
-  }, [enrollmentData, methods]);
+  }, [applicationResponse?.data, watchedStudentOrigin, methods]);
 
   const onSubmit = (values: PersonalDetailsValues) => {
     const normalizedValues: PersonalDetailsValues = {
@@ -545,6 +563,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                         },
                       ]}
                       colMode={true}
+                      disabled={!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft"}
                     />
                     {methods.watch("esos_agent_assessment") && (
                       <div className="mt-4 border-t border-primary/10 pt-4">
@@ -553,6 +572,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                           label="Reason for Eligibility Assessment (Optional)"
                           placeholder="Explain why the student is or is not eligible..."
                           rows={3}
+                          disabled={!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft"}
                         />
                       </div>
                     )}

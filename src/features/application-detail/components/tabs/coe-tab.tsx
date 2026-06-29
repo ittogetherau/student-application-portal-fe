@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -42,6 +43,7 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
   Clock,
   ExternalLink,
   FileText,
@@ -64,6 +66,13 @@ function formatFileSize(bytes: number | undefined): string {
 
 const isAllowedFileSize = (file: File): boolean =>
   file.size <= MAX_FILE_SIZE_BYTES;
+
+type CoeConfirmationValue = "confirmed_eligible" | "confirmed_not_eligible";
+
+const COE_CONFIRMATION_OPTIONS: { value: CoeConfirmationValue; label: string }[] = [
+  { value: "confirmed_eligible", label: "Confirmed eligible — commission may be paid" },
+  { value: "confirmed_not_eligible", label: "Confirmed not eligible — commission must NOT be paid" },
+];
 
 type CoeDocument = {
   id: string;
@@ -372,12 +381,57 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const esosCoeConfirmation = isOnshore ? (typeof enrollmentData?.esos_coe_confirmation === "string" ? enrollmentData.esos_coe_confirmation : "") : "";
   const esosCoeReasonString = isOnshore ? (typeof enrollmentData?.esos_coe_reason === "string" ? enrollmentData.esos_coe_reason : "") : "";
 
-  const [coeReason, setCoeReason] = useState("");
+  const [selectedCoeConfirmation, setSelectedCoeConfirmation] = useState<CoeConfirmationValue | null>(null);
+  const [localCoeReason, setLocalCoeReason] = useState("");
+  const [isEsosCollapsed, setIsEsosCollapsed] = useState(false);
 
   useEffect(() => {
     if (!isOnshore) return;
-    setCoeReason(esosCoeReasonString);
-  }, [isOnshore, esosCoeReasonString]);
+    const storedConfirmation =
+      typeof enrollmentData?.esos_coe_confirmation === "string" &&
+      enrollmentData.esos_coe_confirmation.trim().length > 0
+        ? (enrollmentData.esos_coe_confirmation as CoeConfirmationValue)
+        : null;
+    setSelectedCoeConfirmation(storedConfirmation);
+    setLocalCoeReason(esosCoeReasonString);
+    if (storedConfirmation) {
+      setIsEsosCollapsed(true);
+    }
+  }, [isOnshore, enrollmentData?.esos_coe_confirmation, esosCoeReasonString]);
+
+  const hasCoeChanges =
+    selectedCoeConfirmation !== (esosCoeConfirmation || null) ||
+    localCoeReason !== esosCoeReasonString;
+
+  const handleCoeConfirmationToggle = (value: CoeConfirmationValue) => {
+    setSelectedCoeConfirmation((current) => (current === value ? null : value));
+  };
+
+  const handleSubmitCoeConfirmation = () => {
+    if (!selectedCoeConfirmation) {
+      toast.error("Please select a COE confirmation option before submitting.");
+      return;
+    }
+
+    updateApplication.mutate(
+      {
+        enrollment_data: {
+          ...enrollmentData,
+          esos_coe_confirmation: selectedCoeConfirmation,
+          esos_coe_reason: localCoeReason,
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsEsosCollapsed(true);
+          toast.success("COE confirmation submitted.");
+        },
+        onError: (error) => {
+          toast.error(error.message || "Failed to submit COE confirmation");
+        },
+      },
+    );
+  };
 
   const studentName = [
     applicationResponse?.data?.personal_details?.given_name,
@@ -398,9 +452,9 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
     if (!docTypesResponse?.data) return [];
     return docTypesResponse.data.filter((dt) => dt.stage === "coe");
   }, [docTypesResponse]);
-  const otherDocType = useMemo(() => {
+  const esosComplianceDocType = useMemo(() => {
     if (!docTypesResponse?.data) return null;
-    return docTypesResponse.data.find((dt) => dt.code === "OTHER") ?? null;
+    return docTypesResponse.data.find((dt) => dt.code === "ONSHORE_COMMISSION_RECORD") ?? null;
   }, [docTypesResponse]);
 
   // docs for agent and staff
@@ -430,17 +484,17 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
           esosAdmissionsReviewReason,
           esosCoeConfirmation,
           esosCoeConfirmationDate: now,
-          esosCoeReason: coeReason,
+          esosCoeReason: esosCoeReasonString || localCoeReason,
         });
         const pdfFile = new File(
           [pdfBlob],
           getEsosCompliancePdfFilename(applicationId),
           { type: "application/pdf" },
         );
-        if (otherDocType && applicationId) {
+        if (esosComplianceDocType && applicationId) {
           await uploadMutation.mutateAsync({
             application_id: applicationId,
-            document_type_id: otherDocType.id,
+            document_type_id: esosComplianceDocType.id,
             file: pdfFile,
             document_name: getEsosCompliancePdfFilename(applicationId),
           });
@@ -595,12 +649,24 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
       {/* ESOS COE Compliance — Stage 3 (staff, onshore only) */}
       {isStaff && isOnshore && (
         <Card className="overflow-hidden rounded-xl border-2 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 shadow-sm">
-          <CardHeader className="bg-amber-100/60 dark:bg-amber-900/20 px-4 py-3">
-            <CardTitle className="text-[14px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              ESOS Onshore Commission — COE Compliance Confirmation
-            </CardTitle>
+          <CardHeader
+            className="bg-amber-100/60 dark:bg-amber-900/20 px-4 py-3 cursor-pointer select-none"
+            onClick={() => setIsEsosCollapsed((prev) => !prev)}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-[14px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                ESOS Onshore Commission — COE Compliance Confirmation
+              </CardTitle>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-amber-900 dark:text-amber-200 transition-transform duration-200",
+                  !isEsosCollapsed && "rotate-180",
+                )}
+              />
+            </div>
           </CardHeader>
+          {!isEsosCollapsed && (
           <CardContent className="p-4 space-y-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Before issuing the COE, confirm this student's commission eligibility status under the ESOS ban on onshore agent commissions.
@@ -672,37 +738,21 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                 Stage 3 — COE Confirmation
               </p>
               <div className="flex flex-col gap-2">
-                {[
-                  { value: "confirmed_eligible", label: "Confirmed eligible — commission may be paid" },
-                  { value: "confirmed_not_eligible", label: "Confirmed not eligible — commission must NOT be paid" },
-                ].map((opt) => (
+                {COE_CONFIRMATION_OPTIONS.map((opt) => (
                   <label
                     key={opt.value}
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
-                      esosCoeConfirmation === opt.value
+                      selectedCoeConfirmation === opt.value
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/40"
                     )}
-                    onClick={() => {
-                      updateApplication.mutate({
-                        enrollment_data: {
-                          ...enrollmentData,
-                          esos_coe_confirmation: opt.value,
-                        }
-                      });
-                    }}
                   >
-                    <div className={cn(
-                      "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                      esosCoeConfirmation === opt.value
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground"
-                    )}>
-                      {esosCoeConfirmation === opt.value && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                      )}
-                    </div>
+                    <Checkbox
+                      checked={selectedCoeConfirmation === opt.value}
+                      onCheckedChange={() => handleCoeConfirmationToggle(opt.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                     <span className="text-xs font-medium">{opt.label}</span>
                   </label>
                 ))}
@@ -712,17 +762,20 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                  <Textarea
                    placeholder="Add any notes regarding this COE issuance..."
                    rows={3}
-                   value={coeReason}
-                   onChange={(e) => setCoeReason(e.target.value)}
-                   onBlur={() => {
-                     updateApplication.mutate({
-                       enrollment_data: {
-                         ...enrollmentData,
-                         esos_coe_reason: coeReason,
-                       },
-                     });                   }}
+                   value={localCoeReason}
+                   onChange={(e) => setLocalCoeReason(e.target.value)}
                    className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
                  />
+                 <Button
+                   type="button"
+                   size="sm"
+                   onClick={handleSubmitCoeConfirmation}
+                   disabled={!hasCoeChanges || !selectedCoeConfirmation || updateApplication.isPending}
+                   className="mt-2"
+                 >
+                   {updateApplication.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                   Submit COE Confirmation
+                 </Button>
                </div>
             </div>
 
@@ -736,6 +789,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
               </div>
             )}
           </CardContent>
+          )}
         </Card>
       )}
 

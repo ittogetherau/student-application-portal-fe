@@ -434,7 +434,6 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 Agent Self-Assessment{"\n"}
                 <Text style={{ color: "#64748b" }}>
-                  (Submitted with application)
                 </Text>
               </Text>
               {data.esosAgentAssessmentReason ? (
@@ -462,7 +461,6 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 Admissions Officer Review{"\n"}
                 <Text style={{ color: "#64748b" }}>
-                  (Completed before offer letter)
                 </Text>
               </Text>
               {data.esosAdmissionsReviewReason ? (
@@ -490,7 +488,6 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 COE Confirmation{"\n"}
                 <Text style={{ color: "#64748b" }}>
-                  (Completed before COE issuance)
                 </Text>
               </Text>
               {data.esosCoeReason ? (
