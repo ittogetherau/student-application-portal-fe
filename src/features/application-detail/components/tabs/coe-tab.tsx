@@ -23,7 +23,6 @@ import {
   useUploadDocument,
   useVerifyDocument,
 } from "@/shared/hooks/document.hook";
-import { useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import {
   useApplicationChangeStageMutation,
   useApplicationGetQuery,
@@ -379,7 +378,6 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
     if (!isOnshore) return;
     setCoeReason(esosCoeReasonString);
   }, [isOnshore, esosCoeReasonString]);
-  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId ?? null);
 
   const studentName = [
     applicationResponse?.data?.personal_details?.given_name,
@@ -692,8 +690,6 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                           ...enrollmentData,
                           esos_coe_confirmation: opt.value,
                         }
-                      }, {
-                        onSuccess: () => syncEnrollment.mutate()
                       });
                     }}
                   >
@@ -719,16 +715,12 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                    value={coeReason}
                    onChange={(e) => setCoeReason(e.target.value)}
                    onBlur={() => {
-                     updateApplication.mutate(
-                       {
-                         enrollment_data: {
-                           ...enrollmentData,
-                           esos_coe_reason: coeReason,
-                         },
+                     updateApplication.mutate({
+                       enrollment_data: {
+                         ...enrollmentData,
+                         esos_coe_reason: coeReason,
                        },
-                       { onSuccess: () => syncEnrollment.mutate() }
-                     );
-                   }}
+                     });                   }}
                    className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
                  />
                </div>

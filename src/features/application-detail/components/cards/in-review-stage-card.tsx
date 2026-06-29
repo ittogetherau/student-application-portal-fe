@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
-import { useGalaxySyncApplicationMutation, useGalaxySyncEnrollmentMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
+import { useGalaxySyncApplicationMutation } from "@/features/application-form/hooks/galaxy-sync.hook";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import {
   useApplicationChangeStageMutation,
@@ -81,7 +81,6 @@ export default function InReviewStageCard({
   }, [isOnshore, enrollmentData?.esos_agent_assessment_reason]);
 
   const syncApplication = useGalaxySyncApplicationMutation(applicationId);
-  const syncEnrollment = useGalaxySyncEnrollmentMutation(applicationId);
   const sendOfferLetter = useApplicationSendOfferLetterMutation(applicationId);
   const changeStage = useApplicationChangeStageMutation(applicationId);
   const updateApplication = useApplicationUpdateMutation(applicationId);
@@ -221,8 +220,7 @@ export default function InReviewStageCard({
                              ...enrollmentData,
                              esos_agent_assessment_reason: agentReason,
                            },
-                         },
-                         { onSuccess: () => syncEnrollment.mutate() }
+                         }
                        );
                      }}
                      className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
@@ -288,8 +286,6 @@ export default function InReviewStageCard({
                         ...enrollmentData,
                         esos_admissions_review_reason: e.target.value,
                       }
-                    }, {
-                      onSuccess: () => syncEnrollment.mutate()
                     });
                   }}
                   rows={3}
