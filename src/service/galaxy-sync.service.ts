@@ -254,26 +254,6 @@ class GalaxySyncService extends ApiService {
     }
   };
 
-  syncEnrollment = async (
-    applicationId: string,
-  ): Promise<ServiceResponse<GalaxySyncStatusResponse>> => {
-    this.requireApplicationId(applicationId);
-    try {
-      const data = await this.post<GalaxySyncStatusResponse>(
-        `${this.basePath}/${applicationId}/galaxy-sync/enrollment`,
-        {},
-        true,
-      );
-      return {
-        success: true,
-        message: "Enrollment synced successfully.",
-        data,
-      };
-    } catch (error) {
-      return handleApiError(error, "Failed to sync enrollment with Galaxy");
-    }
-  };
-
   syncOshc = async (
     applicationId: string,
   ): Promise<ServiceResponse<GalaxySyncStatusResponse>> => {

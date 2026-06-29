@@ -338,35 +338,6 @@ export const useGalaxySyncDeclarationMutation = (
   });
 };
 
-export const useGalaxySyncEnrollmentMutation = (
-  applicationId: string | null,
-) => {
-  const queryClient = useQueryClient();
-
-  return useMutation<GalaxySyncStatusResponse, Error, void>({
-    mutationKey: ["galaxy-sync-enrollment", applicationId],
-    mutationFn: async () => {
-      if (!applicationId) throw new Error("Missing application reference.");
-      const response = await galaxySyncService.syncEnrollment(applicationId);
-      if (!response.success) throw new Error(response.message);
-      if (response.data === null || response.data === undefined) {
-        throw new Error("Response data is missing.");
-      }
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log("[GalaxySync] syncEnrollment success", {
-        applicationId,
-        response: data,
-      });
-      invalidateApplicationQueries(queryClient, applicationId);
-    },
-    onError: (error) => {
-      console.error("[GalaxySync] syncEnrollment failed", error);
-    },
-  });
-};
-
 export const useGalaxySyncOshcMutation = (applicationId: string | null) => {
   const queryClient = useQueryClient();
 
