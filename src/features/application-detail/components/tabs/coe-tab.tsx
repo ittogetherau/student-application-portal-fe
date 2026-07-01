@@ -369,6 +369,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
 
   // ─── ESOS enrollment_data ────────────────────────────────────────────────
   const enrollmentData = (applicationResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+  const isEsosPdfGenerated = !!(enrollmentData as any)?.esos_pdf_generated_at;
   const studentOrigin = applicationResponse?.data?.personal_details?.student_origin as string | undefined;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
 
@@ -745,13 +746,15 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                       "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
                       selectedCoeConfirmation === opt.value
                         ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-muted/40"
+                        : "border-border hover:bg-muted/40",
+                      isEsosPdfGenerated && "opacity-50 cursor-not-allowed pointer-events-none"
                     )}
                   >
                     <Checkbox
                       checked={selectedCoeConfirmation === opt.value}
-                      onCheckedChange={() => handleCoeConfirmationToggle(opt.value)}
+                      onCheckedChange={() => !isEsosPdfGenerated && handleCoeConfirmationToggle(opt.value)}
                       onClick={(e) => e.stopPropagation()}
+                      disabled={isEsosPdfGenerated}
                     />
                     <span className="text-xs font-medium">{opt.label}</span>
                   </label>
@@ -764,17 +767,18 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                    rows={3}
                    value={localCoeReason}
                    onChange={(e) => setLocalCoeReason(e.target.value)}
+                   disabled={isEsosPdfGenerated}
                    className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
                  />
                  <Button
                    type="button"
                    size="sm"
                    onClick={handleSubmitCoeConfirmation}
-                   disabled={!hasCoeChanges || !selectedCoeConfirmation || updateApplication.isPending}
+                   disabled={isEsosPdfGenerated || !hasCoeChanges || !selectedCoeConfirmation || updateApplication.isPending}
                    className="mt-2"
                  >
                    {updateApplication.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                   Submit COE Confirmation
+                   {isEsosPdfGenerated ? "COE Confirmed" : "Submit COE Confirmation"}
                  </Button>
                </div>
             </div>

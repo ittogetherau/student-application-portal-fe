@@ -212,6 +212,8 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
     }
   }, [applicationResponse?.data, watchedStudentOrigin, methods]);
 
+  const isEsosPdfGenerated = !!(enrollmentData as any)?.esos_pdf_generated_at;
+
   const onSubmit = (values: PersonalDetailsValues) => {
     const normalizedValues: PersonalDetailsValues = {
       ...values,
@@ -563,7 +565,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                         },
                       ]}
                       colMode={true}
-                      disabled={!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft"}
+                      disabled={isEsosPdfGenerated || (!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft")}
                     />
                     {methods.watch("esos_agent_assessment") && (
                       <div className="mt-4 border-t border-primary/10 pt-4">
@@ -572,7 +574,7 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                           label="Reason for Eligibility Assessment (Optional)"
                           placeholder="Explain why the student is or is not eligible..."
                           rows={3}
-                          disabled={!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft"}
+                          disabled={isEsosPdfGenerated || (!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft")}
                         />
                       </div>
                     )}

@@ -62,6 +62,7 @@ export default function InReviewStageCard({
   const isAgent = currentRole === USER_ROLE.AGENT;
 
   const enrollmentData = (appResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
+  const isEsosPdfGenerated = !!(enrollmentData as any)?.esos_pdf_generated_at;
 
   const studentOrigin = appResponse?.data?.personal_details?.student_origin;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
@@ -305,9 +306,11 @@ export default function InReviewStageCard({
                           "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors text-left w-full",
                           isChecked
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-muted/40"
+                            : "border-border hover:bg-muted/40",
+                          isEsosPdfGenerated && "opacity-50 cursor-not-allowed pointer-events-none"
                         )}
-                        onClick={() => handleCheckboxToggle(opt.value)}
+                        onClick={() => !isEsosPdfGenerated && handleCheckboxToggle(opt.value)}
+                        disabled={isEsosPdfGenerated}
                       >
                         {isChecked
                           ? <CheckSquare className="h-4 w-4 text-primary shrink-0" />
@@ -330,6 +333,7 @@ export default function InReviewStageCard({
                     value={localAdmissionsReason}
                     onChange={(e) => setLocalAdmissionsReason(e.target.value)}
                     rows={3}
+                    disabled={isEsosPdfGenerated}
                     className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
                   />
                 </div>
@@ -337,12 +341,12 @@ export default function InReviewStageCard({
                 {/* Submit button */}
                 <div className="space-y-2 pt-2">
                   <p className="text-[10px] text-muted-foreground">
-                    {hasUnsavedChanges ? "You have unsaved changes." : persistedAdmissionsReview ? "Review saved." : "No review submitted yet."}
+                    {isEsosPdfGenerated ? "PDF generated. Editing disabled." : hasUnsavedChanges ? "You have unsaved changes." : persistedAdmissionsReview ? "Review saved." : "No review submitted yet."}
                   </p>
                   <Button
                     size="sm"
                     onClick={handleSubmitAdmissionsReview}
-                    disabled={!localAdmissionsReview || !hasUnsavedChanges || updateApplication.isPending}
+                    disabled={isEsosPdfGenerated || !localAdmissionsReview || !hasUnsavedChanges || updateApplication.isPending}
                     className="w-full text-xs sm:w-auto"
                   >
                     {updateApplication.isPending
