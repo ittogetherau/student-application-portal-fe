@@ -584,7 +584,7 @@ export async function generateEsosCompliancePdfBlob(
         </View>
 
         {/* ── Accounting Use Only ──────────────────────────────── */}
-        <Text style={styles.acctSectionTitle}>Accounting Use Only</Text>
+        <Text style={styles.acctSectionTitle}>Accounting Officer Review</Text>
         {/* <Text style={styles.acctInstructionText}>
           To be completed by the Accounting team after reviewing the compliance
           outcome above. Open this document in Adobe Acrobat or any PDF reader
@@ -595,7 +595,7 @@ export async function generateEsosCompliancePdfBlob(
           {/* Row: Processed By */}
           <View style={styles.acctFieldRow}>
             <View style={styles.acctFieldLabel}>
-              <Text>Processed By</Text>
+              <Text>Assessed By</Text>
             </View>
             <View style={styles.acctFieldValue}>
               <TextInput
@@ -606,15 +606,16 @@ export async function generateEsosCompliancePdfBlob(
             </View>
           </View>
 
-          {/* Row: Invoice / Ref No. */}
+          {/* Row: Timestamp */}
           <View style={styles.acctFieldRow}>
             <View style={styles.acctFieldLabel}>
-              <Text>Invoice / Ref No.</Text>
+              <Text>Timestamp</Text>
             </View>
             <View style={styles.acctFieldValue}>
               <TextInput
-                name="acct_invoice_ref"
+                name="acct_timestamp"
                 fontSize={7.5}
+                value={formatDate(new Date().toISOString())}
                 style={styles.acctFieldInput}
               />
             </View>
