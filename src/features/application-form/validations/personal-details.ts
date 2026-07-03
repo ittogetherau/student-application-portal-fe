@@ -181,6 +181,7 @@ export const personalDetailsSchema = z
       ),
     // ESOS Onshore Commission Self-Assessment
     esos_agent_assessment: z.string().nullish(),
+    esos_agent_assessment_name: z.string().nullish(),
     esos_agent_assessment_reason: z.string().nullish(),
   })
   .superRefine((data, ctx) => {
@@ -192,6 +193,14 @@ export const personalDetailsSchema = z
           message: "Please complete the ESOS commission eligibility declaration",
           path: ["esos_agent_assessment"],
         });
+      } else {
+        if (!data.esos_agent_assessment_name || data.esos_agent_assessment_name.trim().length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Agent name is required",
+            path: ["esos_agent_assessment_name"],
+          });
+        }
       }
       if (!data.visa_type || data.visa_type.trim().length === 0) {
         ctx.addIssue({
@@ -328,5 +337,6 @@ export const defaultPersonalDetailsValues: PersonalDetailsValues = {
   overseas_country: "",
   overseas_address: "",
   esos_agent_assessment: "",
+  esos_agent_assessment_name: "",
   esos_agent_assessment_reason: "",
 };

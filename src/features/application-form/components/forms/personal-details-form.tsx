@@ -200,6 +200,16 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
         shouldValidate: true,
       });
     }
+    if (typeof enrollment.esos_agent_assessment_name === "string") {
+      methods.setValue(
+        "esos_agent_assessment_name",
+        enrollment.esos_agent_assessment_name,
+        {
+          shouldDirty: false,
+          shouldValidate: true,
+        },
+      );
+    }
     if (typeof enrollment.esos_agent_assessment_reason === "string") {
       methods.setValue(
         "esos_agent_assessment_reason",
@@ -233,9 +243,11 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
       const nextEnrollment = { ...currentEnrollment };
       if (values.student_origin === "Overseas Student in Australia (Onshore)") {
         nextEnrollment.esos_agent_assessment = values.esos_agent_assessment;
+        nextEnrollment.esos_agent_assessment_name = values.esos_agent_assessment_name;
         nextEnrollment.esos_agent_assessment_reason = values.esos_agent_assessment_reason;
       } else {
         delete nextEnrollment.esos_agent_assessment;
+        delete nextEnrollment.esos_agent_assessment_name;
         delete nextEnrollment.esos_agent_assessment_date;
         delete nextEnrollment.esos_agent_assessment_reason;
       }
@@ -568,7 +580,13 @@ const PersonalDetailsForm = ({ applicationId }: { applicationId: string }) => {
                       disabled={isEsosPdfGenerated || (!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft")}
                     />
                     {methods.watch("esos_agent_assessment") && (
-                      <div className="mt-4 border-t border-primary/10 pt-4">
+                      <div className="mt-4 border-t border-primary/10 pt-4 space-y-4">
+                        <FormInput
+                          name="esos_agent_assessment_name"
+                          label="Agent Name"
+                          placeholder="Enter your name..."
+                          disabled={isEsosPdfGenerated || (!!applicationResponse?.data?.status && applicationResponse?.data?.status !== "draft")}
+                        />
                         <FormTextarea
                           name="esos_agent_assessment_reason"
                           label="Reason for Eligibility Assessment (Optional)"

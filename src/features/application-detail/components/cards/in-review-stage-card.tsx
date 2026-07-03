@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,8 @@ import { ArrowRight, Loader2, Clock, AlertCircle, ChevronDown, ChevronUp, CheckS
 import { toast } from "react-hot-toast";
 import { cn } from "@/shared/lib/utils";
 import { formatUtcToFriendlyLocal } from "@/shared/lib/format-utc-to-local";
+import { useSession } from "next-auth/react";
+import { useStaffMembersQuery } from "@/features/application-detail/hooks/useStaffMembers.hook";
 
 type InReviewStageCardProps = {
   applicationId: string;
@@ -67,16 +70,23 @@ export default function InReviewStageCard({
   const studentOrigin = appResponse?.data?.personal_details?.student_origin;
   const isOnshore = studentOrigin === "Overseas Student in Australia (Onshore)";
 
+  const { data: session } = useSession();
+  const { data: staffMembersResponse } = useStaffMembersQuery({ enabled: isStaff });
+  const currentStaff = staffMembersResponse?.data?.find(s => s.email === session?.user?.email);
+  const currentStaffName = currentStaff?.name || session?.user?.email || "";
+
   const esosAgentAssessment = isOnshore ? (typeof enrollmentData?.esos_agent_assessment === "string" ? enrollmentData.esos_agent_assessment : "") : "";
   const esosAgentAssessmentDate = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_date === "string" ? enrollmentData.esos_agent_assessment_date : "") : "";
   const esosAgentAssessmentReason = isOnshore ? (typeof enrollmentData?.esos_agent_assessment_reason === "string" ? enrollmentData.esos_agent_assessment_reason : "") : "";
   // Persisted (saved) value from backend
   const persistedAdmissionsReview = isOnshore ? (typeof enrollmentData?.esos_admissions_review === "string" ? enrollmentData.esos_admissions_review : "") : "";
   const persistedAdmissionsReason = isOnshore ? (typeof enrollmentData?.esos_admissions_review_reason === "string" ? enrollmentData.esos_admissions_review_reason : "") : "";
+  const persistedAdmissionsName = isOnshore ? (typeof enrollmentData?.esos_admissions_review_name === "string" ? enrollmentData.esos_admissions_review_name : "") : "";
 
   // Local state — only committed on explicit submit
   const [localAdmissionsReview, setLocalAdmissionsReview] = useState<string>("");
   const [localAdmissionsReason, setLocalAdmissionsReason] = useState<string>("");
+  const [localAdmissionsName, setLocalAdmissionsName] = useState<string>("");
   const [agentReason, setAgentReason] = useState("");
 
   // Collapsible: auto-collapse if already submitted
@@ -87,9 +97,9 @@ export default function InReviewStageCard({
     if (!isOnshore) return;
     setLocalAdmissionsReview(persistedAdmissionsReview);
     setLocalAdmissionsReason(persistedAdmissionsReason);
+    setLocalAdmissionsName(persistedAdmissionsName || currentStaffName);
     setIsEsosCollapsed(!!persistedAdmissionsReview);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnshore, persistedAdmissionsReview, persistedAdmissionsReason]);
+  }, [isOnshore, persistedAdmissionsReview, persistedAdmissionsReason, persistedAdmissionsName, currentStaffName]);
 
   useEffect(() => {
     if (!isOnshore) return;
@@ -106,7 +116,8 @@ export default function InReviewStageCard({
   // Whether the local state differs from what's persisted
   const hasUnsavedChanges =
     localAdmissionsReview !== persistedAdmissionsReview ||
-    localAdmissionsReason !== persistedAdmissionsReason;
+    localAdmissionsReason !== persistedAdmissionsReason ||
+    localAdmissionsName !== persistedAdmissionsName;
 
   const handleCheckboxToggle = (value: string) => {
     // Single-select: clicking the already-selected option deselects it
@@ -120,6 +131,7 @@ export default function InReviewStageCard({
           ...enrollmentData,
           esos_admissions_review: localAdmissionsReview,
           esos_admissions_review_reason: localAdmissionsReason,
+          esos_admissions_review_name: localAdmissionsName,
         },
       },
       {
@@ -322,6 +334,21 @@ export default function InReviewStageCard({
                   })}
                 </div>
 
+                {/* Assessor Name text field */}
+                <div className="space-y-1.5 mt-3">
+                  <label htmlFor="esos_admissions_review_name" className="text-[11px] font-semibold text-muted-foreground">
+                    Admissions Assessor Name
+                  </label>
+                  <Input
+                    id="esos_admissions_review_name"
+                    placeholder="Enter assessor name..."
+                    value={localAdmissionsName}
+                    onChange={(e) => setLocalAdmissionsName(e.target.value)}
+                    disabled={isEsosPdfGenerated}
+                    className="text-xs bg-background border-border focus-visible:ring-primary"
+                  />
+                </div>
+
                 {/* Reason text field */}
                 <div className="space-y-1.5 mt-3">
                   <label htmlFor="esos_admissions_review_reason" className="text-[11px] font-semibold text-muted-foreground">
@@ -373,6 +400,9 @@ export default function InReviewStageCard({
               <p className="text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">Review: </span>
                 {ADMISSIONS_REVIEW_OPTIONS.find((o) => o.value === persistedAdmissionsReview)?.label ?? persistedAdmissionsReview}
+                {persistedAdmissionsName && (
+                  <span className="ml-2 font-medium">Assessed by: {persistedAdmissionsName}</span>
+                )}
                 {persistedAdmissionsReason && (
                   <span className="ml-2 italic">&mdash; &quot;{persistedAdmissionsReason}&quot;</span>
                 )}

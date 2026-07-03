@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -18,6 +19,8 @@ import { siteRoutes } from "@/shared/constants/site-routes";
 import CreateThreadForm from "@/features/threads/components/forms/create-thread-form";
 import { APPLICATION_STAGE, USER_ROLE } from "@/shared/constants/types";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
+import { useSession } from "next-auth/react";
+import { useStaffMembersQuery } from "../../hooks/useStaffMembers.hook";
 import {
   useApplicationDocumentsQuery,
   useDocumentTypesQuery,
@@ -367,6 +370,11 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const isCoeStage =
     applicationResponse?.data?.current_stage === APPLICATION_STAGE.COE_ISSUED;
 
+  const { data: session } = useSession();
+  const { data: staffMembersResponse } = useStaffMembersQuery({ enabled: isStaff });
+  const currentStaff = staffMembersResponse?.data?.find(s => s.email === session?.user?.email);
+  const currentStaffName = currentStaff?.name || session?.user?.email || "";
+
   // ─── ESOS enrollment_data ────────────────────────────────────────────────
   const enrollmentData = (applicationResponse?.data?.enrollment_data || {}) as Record<string, unknown>;
   const isEsosPdfGenerated = !!(enrollmentData as any)?.esos_pdf_generated_at;
@@ -380,10 +388,12 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const esosAdmissionsReviewDate = isOnshore ? (typeof enrollmentData?.esos_admissions_review_date === "string" ? enrollmentData.esos_admissions_review_date : "") : "";
   const esosAdmissionsReviewReason = isOnshore ? (typeof enrollmentData?.esos_admissions_review_reason === "string" ? enrollmentData.esos_admissions_review_reason : "") : "";
   const esosCoeConfirmation = isOnshore ? (typeof enrollmentData?.esos_coe_confirmation === "string" ? enrollmentData.esos_coe_confirmation : "") : "";
+  const esosCoeConfirmationName = isOnshore ? (typeof enrollmentData?.esos_coe_confirmation_name === "string" ? enrollmentData.esos_coe_confirmation_name : "") : "";
   const esosCoeReasonString = isOnshore ? (typeof enrollmentData?.esos_coe_reason === "string" ? enrollmentData.esos_coe_reason : "") : "";
 
   const [selectedCoeConfirmation, setSelectedCoeConfirmation] = useState<CoeConfirmationValue | null>(null);
   const [localCoeReason, setLocalCoeReason] = useState("");
+  const [localCoeName, setLocalCoeName] = useState("");
   const [isEsosCollapsed, setIsEsosCollapsed] = useState(false);
 
   useEffect(() => {
@@ -395,14 +405,16 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
         : null;
     setSelectedCoeConfirmation(storedConfirmation);
     setLocalCoeReason(esosCoeReasonString);
+    setLocalCoeName(esosCoeConfirmationName || currentStaffName);
     if (storedConfirmation) {
       setIsEsosCollapsed(true);
     }
-  }, [isOnshore, enrollmentData?.esos_coe_confirmation, esosCoeReasonString]);
+  }, [isOnshore, enrollmentData?.esos_coe_confirmation, esosCoeReasonString, esosCoeConfirmationName, currentStaffName]);
 
   const hasCoeChanges =
     selectedCoeConfirmation !== (esosCoeConfirmation || null) ||
-    localCoeReason !== esosCoeReasonString;
+    localCoeReason !== esosCoeReasonString ||
+    localCoeName !== esosCoeConfirmationName;
 
   const handleCoeConfirmationToggle = (value: CoeConfirmationValue) => {
     setSelectedCoeConfirmation((current) => (current === value ? null : value));
@@ -420,6 +432,7 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
           ...enrollmentData,
           esos_coe_confirmation: selectedCoeConfirmation,
           esos_coe_reason: localCoeReason,
+          esos_coe_confirmation_name: localCoeName,
         },
       },
       {
@@ -472,18 +485,22 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
   const handleStageChange = async (str: APPLICATION_STAGE) => {
     if (str === APPLICATION_STAGE.ACCEPTED && isOnshore) {
       try {
+        const referenceNumber = applicationResponse?.data?.reference_number ?? applicationResponse?.data?.tracking_code ?? "";
         const now = new Date().toISOString();
         const pdfBlob = await generateEsosCompliancePdfBlob({
           studentName,
           studentOrigin: studentOrigin ?? "",
-          applicationId: applicationId ?? "",
+          referenceId: referenceNumber || applicationId || "",
           esosAgentAssessment,
+          esosAgentAssessmentName: (enrollmentData?.esos_agent_assessment_name as string) ?? "",
           esosAgentAssessmentDate,
           esosAgentAssessmentReason,
           esosAdmissionsReview,
+          esosAdmissionsReviewName: (enrollmentData?.esos_admissions_review_name as string) ?? "",
           esosAdmissionsReviewDate,
           esosAdmissionsReviewReason,
           esosCoeConfirmation,
+          esosCoeConfirmationName: localCoeName,
           esosCoeConfirmationDate: now,
           esosCoeReason: esosCoeReasonString || localCoeReason,
         });
@@ -760,27 +777,40 @@ const CoeTab = ({ applicationId }: { applicationId?: string }) => {
                   </label>
                 ))}
               </div>
-              <div className="mt-4 border-t border-primary/10 pt-4">
-                 <label className="text-sm font-medium mb-1 block">Reason / Additional Notes (Optional)</label>
-                 <Textarea
-                   placeholder="Add any notes regarding this COE issuance..."
-                   rows={3}
-                   value={localCoeReason}
-                   onChange={(e) => setLocalCoeReason(e.target.value)}
-                   disabled={isEsosPdfGenerated}
-                   className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
-                 />
-                 <Button
-                   type="button"
-                   size="sm"
-                   onClick={handleSubmitCoeConfirmation}
-                   disabled={isEsosPdfGenerated || !hasCoeChanges || !selectedCoeConfirmation || updateApplication.isPending}
-                   className="mt-2"
-                 >
-                   {updateApplication.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                   {isEsosPdfGenerated ? "COE Confirmed" : "Submit COE Confirmation"}
-                 </Button>
-               </div>
+              <div className="mt-4 border-t border-primary/10 pt-4 space-y-4">
+                  <div>
+                    <label htmlFor="esos_coe_confirmation_name" className="text-sm font-medium mb-1 block">COE Assessor Name</label>
+                    <Input
+                      id="esos_coe_confirmation_name"
+                      placeholder="Enter assessor name..."
+                      value={localCoeName}
+                      onChange={(e) => setLocalCoeName(e.target.value)}
+                      disabled={isEsosPdfGenerated}
+                      className="text-xs bg-background border-border focus-visible:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Reason / Additional Notes (Optional)</label>
+                    <Textarea
+                      placeholder="Add any notes regarding this COE issuance..."
+                      rows={3}
+                      value={localCoeReason}
+                      onChange={(e) => setLocalCoeReason(e.target.value)}
+                      disabled={isEsosPdfGenerated}
+                      className="text-xs resize-none bg-background border-border focus-visible:ring-primary"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSubmitCoeConfirmation}
+                    disabled={isEsosPdfGenerated || !hasCoeChanges || !selectedCoeConfirmation || updateApplication.isPending}
+                    className="mt-2"
+                  >
+                    {updateApplication.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                    {isEsosPdfGenerated ? "COE Confirmed" : "Submit COE Confirmation"}
+                  </Button>
+                </div>
             </div>
 
             {!esosCoeConfirmation && (

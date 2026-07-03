@@ -323,25 +323,28 @@ const styles = StyleSheet.create({
 export type EsosCompliancePdfData = {
   studentName: string;
   studentOrigin: string;
-  applicationId: string;
+  referenceId: string;
   // Stage 1 — Agent
   esosAgentAssessment: string;
+  esosAgentAssessmentName?: string;
   esosAgentAssessmentDate: string;
   esosAgentAssessmentReason?: string;
   // Stage 2 — Admissions
   esosAdmissionsReview: string;
+  esosAdmissionsReviewName?: string;
   esosAdmissionsReviewDate: string;
   esosAdmissionsReviewReason?: string;
   // Stage 3 — COE
   esosCoeConfirmation: string;
+  esosCoeConfirmationName?: string;
   esosCoeConfirmationDate: string;
   esosCoeReason?: string;
 };
 
 // ─── filename helper ──────────────────────────────────────────────────────────
 
-export function getEsosCompliancePdfFilename(applicationId?: string): string {
-  return `esos-commission-compliance-${applicationId ?? "application"}.pdf`;
+export function getEsosCompliancePdfFilename(identifier?: string): string {
+  return `esos-commission-compliance-${identifier ?? "application"}.pdf`;
 }
 
 // ─── label helpers ────────────────────────────────────────────────────────────
@@ -474,9 +477,9 @@ export async function generateEsosCompliancePdfBlob(
             </Text>
           </View>
           <View style={[styles.detailsRow, styles.detailsRowLast]}>
-            <Text style={styles.detailsLabel}>Application ID</Text>
+            <Text style={styles.detailsLabel}>Reference ID</Text>
             <Text style={styles.detailsValue}>
-              {getString(data.applicationId) || " "}
+              {getString(data.referenceId) || " "}
             </Text>
           </View>
         </View>
@@ -509,6 +512,7 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 Agent Self-Assessment{"\n"}
                 <Text style={{ color: "#64748b" }}>
+                  Name: {data.esosAgentAssessmentName || "—"}
                 </Text>
               </Text>
               {data.esosAgentAssessmentReason ? (
@@ -536,6 +540,7 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 Admissions Officer Review{"\n"}
                 <Text style={{ color: "#64748b" }}>
+                  Name: {data.esosAdmissionsReviewName || "—"}
                 </Text>
               </Text>
               {data.esosAdmissionsReviewReason ? (
@@ -563,6 +568,7 @@ export async function generateEsosCompliancePdfBlob(
               <Text style={styles.cellText}>
                 COE Confirmation{"\n"}
                 <Text style={{ color: "#64748b" }}>
+                  Name: {data.esosCoeConfirmationName || "—"}
                 </Text>
               </Text>
               {data.esosCoeReason ? (
