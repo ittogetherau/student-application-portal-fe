@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_COURSE_EQUIVALENCES } from "./advanced-standing-fields";
+
 const requiredString = (label: string) =>
   z.string().min(1, `${label} is required`);
 
@@ -19,7 +21,7 @@ export const basisForCreditSchema = z.object({
   courseName: z.string().optional(),
 });
 
-// Schema for Section 3: Course Equivalence (up to 7 rows in the PDF)
+// Schema for Section 3: Course Equivalence (page 1 + page 2 rows in the PDF)
 export const courseEquivalenceSchema = z.object({
   unitCodeAndName: z.string().optional(),
   ciheEquivalent: z.string().optional(),
@@ -41,11 +43,14 @@ export const advancedStandingSchema = z.object({
   basisForCredit: z.array(basisForCreditSchema).max(2),
 
   // Section 3
-  courseEquivalences: z.array(courseEquivalenceSchema).max(7),
+  courseEquivalences: z.array(courseEquivalenceSchema).max(MAX_COURSE_EQUIVALENCES),
 
   // Signature
   studentSignatureSvg: z.string().min(1, "Signature is required"),
   signatureDate: requiredString("Signature Date"),
+
+  // Agent side: who received the application (Office Use "Application received by")
+  receivedBy: z.string().optional(),
 
   // Office Use Only
   staffName: z.string().optional(),

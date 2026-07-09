@@ -9,7 +9,30 @@
  * this module.
  */
 
+// ─── Row capacities ──────────────────────────────────────────────────────────
+
+/**
+ * Course-equivalence rows the PDF can display: 5 on page 1 (rows 6-7 were
+ * dropped there because they overlapped the letterhead footer) + 10 on the
+ * page-2 continuation table.
+ */
+export const PAGE1_EQUIVALENCE_ROWS = 5;
+export const PAGE2_EQUIVALENCE_ROWS = 10;
+export const MAX_COURSE_EQUIVALENCES =
+  PAGE1_EQUIVALENCE_ROWS + PAGE2_EQUIVALENCE_ROWS;
+
 // ─── Text fields: PDF field name → react-hook-form dotted path ──────────────
+
+const courseEquivalenceEntries: Record<string, string> = {};
+for (let row = 1; row <= MAX_COURSE_EQUIVALENCES; row++) {
+  const index = row - 1;
+  courseEquivalenceEntries[`Unit code and nameRow${row}`] =
+    `courseEquivalences.${index}.unitCodeAndName`;
+  courseEquivalenceEntries[`CIHE equivalent unit code and nameRow${row}`] =
+    `courseEquivalences.${index}.ciheEquivalent`;
+  courseEquivalenceEntries[`Approved YNRow${row}`] =
+    `courseEquivalences.${index}.approved`;
+}
 
 export const FIELD_MAP: Record<string, string> = {
   "Student Name": "studentName",
@@ -25,28 +48,9 @@ export const FIELD_MAP: Record<string, string> = {
   CountryRow2: "basisForCredit.1.country",
   "Course CodeRow2": "basisForCredit.1.courseCode",
   "Course NameRow2": "basisForCredit.1.courseName",
-  "Unit code and nameRow1": "courseEquivalences.0.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow1": "courseEquivalences.0.ciheEquivalent",
-  "Approved YNRow1": "courseEquivalences.0.approved",
-  "Unit code and nameRow2": "courseEquivalences.1.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow2": "courseEquivalences.1.ciheEquivalent",
-  "Approved YNRow2": "courseEquivalences.1.approved",
-  "Unit code and nameRow3": "courseEquivalences.2.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow3": "courseEquivalences.2.ciheEquivalent",
-  "Approved YNRow3": "courseEquivalences.2.approved",
-  "Unit code and nameRow4": "courseEquivalences.3.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow4": "courseEquivalences.3.ciheEquivalent",
-  "Approved YNRow4": "courseEquivalences.3.approved",
-  "Unit code and nameRow5": "courseEquivalences.4.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow5": "courseEquivalences.4.ciheEquivalent",
-  "Approved YNRow5": "courseEquivalences.4.approved",
-  "Unit code and nameRow6": "courseEquivalences.5.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow6": "courseEquivalences.5.ciheEquivalent",
-  "Approved YNRow6": "courseEquivalences.5.approved",
-  "Unit code and nameRow7": "courseEquivalences.6.unitCodeAndName",
-  "CIHE equivalent unit code and nameRow7": "courseEquivalences.6.ciheEquivalent",
-  "Approved YNRow7": "courseEquivalences.6.approved",
+  ...courseEquivalenceEntries,
   "Student Signature Date": "signatureDate",
+  "Application received by": "receivedBy",
   "Application received on": "staffDate",
   Date: "staffDate",
   "Credits Assessed By": "staffName",

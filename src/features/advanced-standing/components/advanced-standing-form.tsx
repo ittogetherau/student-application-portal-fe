@@ -35,6 +35,7 @@ import {
 import SignatureModal from "@/features/gs/components/signature-modal";
 import AdvancedStandingPdfEditor from "./advanced-standing-pdf-editor";
 
+import { MAX_COURSE_EQUIVALENCES } from "../utils/advanced-standing-fields";
 import {
   advancedStandingSchema,
   AdvancedStandingFormValues,
@@ -79,6 +80,7 @@ export default function AdvancedStandingForm({
       courseEquivalences: [{ unitCodeAndName: "", ciheEquivalent: "", approved: "" }],
       studentSignatureSvg: "",
       signatureDate: new Date().toISOString().split("T")[0],
+      receivedBy: "",
       staffName: "",
       staffSignatureSvg: "",
       staffDate: new Date().toISOString().split("T")[0],
@@ -491,7 +493,7 @@ export default function AdvancedStandingForm({
                       </span>
                       Course Equivalence Mapping
                     </CardTitle>
-                    {equivalenceFields.length < 7 && (
+                    {equivalenceFields.length < MAX_COURSE_EQUIVALENCES && (
                       <Button
                         type="button"
                         variant="outline"
@@ -580,6 +582,14 @@ export default function AdvancedStandingForm({
                     I declare that the information provided in this application is true and correct.
                     I authorize Churchill Institute of Higher Education to verify any information
                     provided in this application.
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormInput
+                      name="receivedBy"
+                      label="Application Received By"
+                      placeholder="Full name of the person receiving this application"
+                    />
                   </div>
 
                   <div className="flex flex-col md:flex-row gap-8">

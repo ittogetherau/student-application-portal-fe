@@ -134,6 +134,7 @@ export async function generateAdvancedStandingPdf(
   }
 
   // --- OFFICE USE ONLY: Staff Assessment Fields ---
+  fillField("Application received by", data.receivedBy);
   if (data.staffDate) {
     fillField("Application received on", data.staffDate);
     fillField("Date", data.staffDate);

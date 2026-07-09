@@ -11,7 +11,11 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 
-import { SIGNATURE_ANCHOR_FIELDS } from "../utils/advanced-standing-fields";
+import {
+  PAGE1_EQUIVALENCE_ROWS,
+  PAGE2_EQUIVALENCE_ROWS,
+  SIGNATURE_ANCHOR_FIELDS,
+} from "../utils/advanced-standing-fields";
 
 
 
@@ -175,29 +179,31 @@ const Label = ({
   </Text>
 );
 
-/** Column-header text centred between two column boundaries. */
+/** Bold column-header text anchored to the top-left of its header cell. */
 const CellHeader = ({
   x1,
   x2,
-  y,
-  size,
+  yTop,
   text,
+  size = 9.5,
 }: {
   x1: number;
   x2: number;
-  y: number;
-  size: number;
+  yTop: number;
   text: string;
+  size?: number;
 }) => (
   <View
     style={{
       position: "absolute",
-      left: x1,
-      top: PAGE_H - y - size * 0.78,
-      width: x2 - x1,
+      left: x1 + 5,
+      top: PAGE_H - yTop + 3.5,
+      width: x2 - x1 - 10,
     }}
   >
-    <Text style={{ fontSize: size, textAlign: "center", lineHeight: 1 }}>{text}</Text>
+    <Text style={{ fontSize: size, fontFamily: "Helvetica-Bold", lineHeight: 1.15 }}>
+      {text}
+    </Text>
   </View>
 );
 
@@ -220,8 +226,18 @@ const S2_COLS = [TABLE_L, 184.4, 274.5, 418.5, TABLE_R];
 // Section 3 (and its page-2 continuation): Unit | CIHE equivalent | Approved
 const S3_COLS = [TABLE_L, 184.4, 418.5, TABLE_R];
 
-// Section 3 data rows, top to bottom (row 1 → row 7): [yBottom, yTop] bands.
-const S3_ROW_BOUNDS = [255, 231.1, 207.1, 183.4, 159.6, 135.6, 111.9, 87.9];
+// Section 3 data rows on page 1, top to bottom (rows 1-5). Rows 6-7 of the
+// original template were dropped here — they overlapped the letterhead
+// footer — and live on the page-2 continuation table instead.
+const S3_ROW_BOUNDS = [255, 231.1, 207.1, 183.4, 159.6, 135.6];
+
+// Page-2 continuation table: editable rows 6..15, uniform height.
+const P2_TABLE_TOP = 722;
+const P2_ROW_H = 23.7;
+const P2_ROW_BOUNDS = Array.from(
+  { length: PAGE2_EQUIVALENCE_ROWS + 1 },
+  (_, i) => P2_TABLE_TOP - i * P2_ROW_H
+);
 
 // ─── document ────────────────────────────────────────────────────────────────
 
@@ -337,10 +353,10 @@ function AdvancedStandingTemplateDocument({
           verticalSpan={[335.2, 403.6]}
         />
         <Label text="Section 2: Basis for Credit" x={67.3} y={411.6} bold />
-        <CellHeader x1={S2_COLS[0]} x2={S2_COLS[1]} y={388.1} size={10} text="Name of Institution" />
-        <CellHeader x1={S2_COLS[1]} x2={S2_COLS[2]} y={388.1} size={10} text="Country" />
-        <CellHeader x1={S2_COLS[2]} x2={S2_COLS[3]} y={388.1} size={10} text="Course Code" />
-        <CellHeader x1={S2_COLS[3]} x2={S2_COLS[4]} y={388.1} size={10} text="Course Name" />
+        <CellHeader x1={S2_COLS[0]} x2={S2_COLS[1]} yTop={403.6} text="Name of Institution" />
+        <CellHeader x1={S2_COLS[1]} x2={S2_COLS[2]} yTop={403.6} text="Country" />
+        <CellHeader x1={S2_COLS[2]} x2={S2_COLS[3]} yTop={403.6} text="Course Code" />
+        <CellHeader x1={S2_COLS[3]} x2={S2_COLS[4]} yTop={403.6} text="Course Name" />
         <Field name="Name of InstitutionRow1" rect={[63.7, 359.6, 183.5, 379.1]} />
         <Field name="CountryRow1" rect={[185.3, 359.6, 273.5, 379.1]} />
         <Field name="Course CodeRow1" rect={[275.4, 359.6, 417.6, 379.1]} />
@@ -366,15 +382,14 @@ function AdvancedStandingTemplateDocument({
           verticalSpan={[S3_ROW_BOUNDS[S3_ROW_BOUNDS.length - 1], 281.9]}
         />
         <Label text="Section 3: Course Equivalence for Advanced Standing" x={68.3} y={285.8} bold />
-        <CellHeader x1={S3_COLS[0]} x2={S3_COLS[1]} y={260.8} size={9} text="Unit code and name" />
+        <CellHeader x1={S3_COLS[0]} x2={S3_COLS[1]} yTop={281.9} text="Unit code and name" />
         <CellHeader
           x1={S3_COLS[1]}
           x2={S3_COLS[2]}
-          y={260.8}
-          size={9}
+          yTop={281.9}
           text="CIHE equivalent unit code and name"
         />
-        <CellHeader x1={S3_COLS[2]} x2={S3_COLS[3]} y={260.8} size={10} text="Approved (Y/N)" />
+        <CellHeader x1={S3_COLS[2]} x2={S3_COLS[3]} yTop={281.9} text={"Approved\n(Y/N)"} />
         {S3_ROW_BOUNDS.slice(1).map((yBottom, index) => {
           const yTop = S3_ROW_BOUNDS[index];
           const row = index + 1;
@@ -402,11 +417,32 @@ function AdvancedStandingTemplateDocument({
       <Page size={[PAGE_W, PAGE_H]} style={{ fontFamily: "Helvetica", color: "#000000" }}>
         {pageBackground}
 
-        {/* Empty continuation of the Section 3 table (visual only, no fields) */}
-        <Grid cols={S3_COLS} rows={[722, 698.25, 681.25, 664.45, 647.45]} />
+        {/* Editable continuation of the Section 3 table (rows 6..15) */}
+        <Grid cols={S3_COLS} rows={P2_ROW_BOUNDS} />
+        {P2_ROW_BOUNDS.slice(1).map((yBottom, index) => {
+          const yTop = P2_ROW_BOUNDS[index];
+          const row = PAGE1_EQUIVALENCE_ROWS + index + 1; // rows 6..15
+          const inset = 0.8;
+          return (
+            <View key={row}>
+              <Field
+                name={`Unit code and nameRow${row}`}
+                rect={[63.8, yBottom + inset, 183.4, yTop - inset]}
+              />
+              <Field
+                name={`CIHE equivalent unit code and nameRow${row}`}
+                rect={[185.4, yBottom + inset, 417.5, yTop - inset]}
+              />
+              <Field
+                name={`Approved YNRow${row}`}
+                rect={[419.5, yBottom + inset, 532, yTop - inset]}
+              />
+            </View>
+          );
+        })}
 
         {/* Declaration */}
-        <View style={{ position: "absolute", left: 68.3, top: PAGE_H - 624.9 - 8, width: 464 }}>
+        <View style={{ position: "absolute", left: 68.3, top: PAGE_H - 471, width: 464 }}>
           <Text style={{ fontSize: 10, lineHeight: 1.16 }}>
             I declare that the information supplied in this form (and attachments) is correct and
             complete. I acknowledge that incomplete information may result in my application being
@@ -417,38 +453,41 @@ function AdvancedStandingTemplateDocument({
         </View>
 
         {/* Student signature row */}
-        <View style={{ ...abs([TABLE_L, 552, TABLE_R, 580.8]), borderWidth: LINE, borderColor: GOLD }} />
-        <Label text="Student Signature:" x={68.3} y={565.7} size={9.5} />
+        <View style={{ ...abs([TABLE_L, 372, TABLE_R, 400.8]), borderWidth: LINE, borderColor: GOLD }} />
+        <Label text="Student Signature:" x={68.3} y={385.7} size={9.5} />
         <Field
           name={SIGNATURE_ANCHOR_FIELDS.student}
-          rect={[148, 553.5, 276, 579.5]}
+          rect={[148, 373.5, 276, 399.5]}
           readOnly
         />
-        <Label text="Date:" x={280.6} y={565.7} />
-        <Field name="Student Signature Date" rect={[303.5, 553, 531.1, 579.8]} />
+        <Label text="Date:" x={280.6} y={385.7} />
+        <Field name="Student Signature Date" rect={[303.5, 373, 531.1, 399.8]} />
 
         {/* OFFICE USE ONLY */}
         <Grid
           cols={[TABLE_L, TABLE_R]}
-          rows={[525.9, 506.9, 483.65, 460.2, 436.85, 413.35, 391.85]}
+          rows={[345.9, 326.9, 303.65, 280.2, 256.85, 233.35, 211.85]}
         />
-        <VLine x={289.35} y1={436.85} y2={460.2} />
-        <VLine x={289.35} y1={391.85} y2={413.35} />
-        <Label text="OFFICE USE ONLY" x={69.3} y={513.1} bold />
-        <Label text="Application received on:" x={69.3} y={491.6} size={9.5} />
-        <Field name="Application received on" rect={[177.6, 484, 531.1, 505.8]} />
-        <Label text="Credits Assessed By:" x={69.3} y={468.4} size={9.5} />
-        <Field name="Credits Assessed By" rect={[164.9, 460.4, 531.1, 482.6]} />
-        <Label text="Signature:" x={69.3} y={444.9} />
-        <Field name={SIGNATURE_ANCHOR_FIELDS.staff} rect={[113.6, 437.2, 288.5, 459.1]} readOnly />
-        <Label text="Date:" x={295.1} y={444.9} />
-        <Field name="Date" rect={[318.5, 437.2, 531.1, 459.1]} />
-        <Label text="Dean's Approval:" x={69.3} y={421.6} bold />
-        <Field name="Deans Approval" rect={[145.7, 413.6, 531.1, 435.8]} />
-        <Label text="Signature:" x={69.3} y={398.9} />
-        <Field name={SIGNATURE_ANCHOR_FIELDS.dean} rect={[113.6, 392.2, 288.5, 412.3]} readOnly />
-        <Label text="Date:" x={295.1} y={398.9} />
-        <Field name="Date_2" rect={[318.5, 392.2, 531.1, 412.3]} />
+        <VLine x={289.35} y1={303.65} y2={326.9} />
+        <VLine x={289.35} y1={256.85} y2={280.2} />
+        <VLine x={289.35} y1={211.85} y2={233.35} />
+        <Label text="OFFICE USE ONLY" x={69.3} y={333.1} bold />
+        <Label text="Application received by:" x={69.3} y={311.6} size={9.5} />
+        <Field name="Application received by" rect={[172, 304, 288.5, 325.8]} />
+        <Label text="Date:" x={295.1} y={311.6} />
+        <Field name="Application received on" rect={[318.5, 304, 531.1, 325.8]} />
+        <Label text="Credits Assessed By:" x={69.3} y={288.4} size={9.5} />
+        <Field name="Credits Assessed By" rect={[164.9, 280.4, 531.1, 302.6]} />
+        <Label text="Signature:" x={69.3} y={264.9} />
+        <Field name={SIGNATURE_ANCHOR_FIELDS.staff} rect={[113.6, 257.2, 288.5, 279.1]} readOnly />
+        <Label text="Date:" x={295.1} y={264.9} />
+        <Field name="Date" rect={[318.5, 257.2, 531.1, 279.1]} />
+        <Label text="Dean's Approval:" x={69.3} y={241.6} bold />
+        <Field name="Deans Approval" rect={[145.7, 233.6, 531.1, 255.8]} />
+        <Label text="Signature:" x={69.3} y={218.9} />
+        <Field name={SIGNATURE_ANCHOR_FIELDS.dean} rect={[113.6, 212.2, 288.5, 232.3]} readOnly />
+        <Label text="Date:" x={295.1} y={218.9} />
+        <Field name="Date_2" rect={[318.5, 212.2, 531.1, 232.3]} />
       </Page>
     </Document>
   );
