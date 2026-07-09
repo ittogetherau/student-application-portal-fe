@@ -31,6 +31,13 @@ const COMMUNICATION_NOTIFICATION_TITLES = new Set([
   normalizeNotificationTitle("Thread created"),
 ]);
 
+const ADVANCED_STANDING_NOTIFICATION_TITLES = new Set([
+  normalizeNotificationTitle("Advanced Standing form requested"),
+  normalizeNotificationTitle("Advanced Standing form submitted"),
+  normalizeNotificationTitle("Advanced Standing approved"),
+  normalizeNotificationTitle("Advanced Standing rejected"),
+]);
+
 function resolveNotificationDestination(
   notification: NotificationItem,
 ): string {
@@ -43,6 +50,9 @@ function resolveNotificationDestination(
   }
   if (COMMUNICATION_NOTIFICATION_TITLES.has(normalizedTitle)) {
     return siteRoutes.dashboard.application.id.communication(applicationId);
+  }
+  if (ADVANCED_STANDING_NOTIFICATION_TITLES.has(normalizedTitle)) {
+    return siteRoutes.dashboard.application.id.timeline(applicationId);
   }
 
   const searchableText =
@@ -62,6 +72,12 @@ function resolveNotificationDestination(
     return siteRoutes.dashboard.application.id.communication(applicationId);
   }
   if (searchableText.includes("timeline")) {
+    return siteRoutes.dashboard.application.id.timeline(applicationId);
+  }
+  if (
+    searchableText.includes("advanced standing") ||
+    searchableText.includes("credit standing")
+  ) {
     return siteRoutes.dashboard.application.id.timeline(applicationId);
   }
 

@@ -412,6 +412,9 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
           queryKey: ["application-get", applicationId],
         });
         queryClient.invalidateQueries({ queryKey: ["application-list"] });
+        queryClient.invalidateQueries({
+          queryKey: ["application-timeline", applicationId],
+        });
       },
       onError: (error) => {
         console.error("[Application] updateApplication failed", error);

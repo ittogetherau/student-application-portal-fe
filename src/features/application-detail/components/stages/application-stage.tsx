@@ -286,8 +286,6 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
       }
 
       case APPLICATION_STAGE.IN_REVIEW: {
-        if (!isStaff) return null;
-
         const studentName = `${application?.personal_details?.given_name} ${
           application?.personal_details?.middle_name || ""
         } ${application?.personal_details?.family_name}`;
@@ -349,7 +347,12 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
           const isFutureStage = i > currentIndex;
           const stageLabel =
             getStageLabel(el, current_role) ?? formatStageLabel(el);
-          const showAgentFallback = !isStaff && AGENT_STAGE_FALLBACKS.has(el);
+          const stageAction = renderStageAction({
+            stage: el,
+            isInteractive,
+          });
+          const showAgentFallback =
+            !stageAction && !isStaff && AGENT_STAGE_FALLBACKS.has(el);
 
           return (
             <React.Fragment key={el}>
@@ -382,10 +385,7 @@ const ApplicationStage = ({ id, current_role }: ApplicationStageProps) => {
                       isFutureStage={isFutureStage}
                     />
                   ) : (
-                    renderStageAction({
-                      stage: el,
-                      isInteractive,
-                    })
+                    stageAction
                   )}
                 </StageCardShell>
               ) : null}
