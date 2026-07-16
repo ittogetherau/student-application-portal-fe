@@ -15,6 +15,7 @@ import { Plus, Trash, FileText, Loader2, PenTool, RefreshCw, Eye, X } from "luci
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -64,6 +65,9 @@ export default function AdvancedStandingForm({
   const [pdfBytes, setPdfBytes] = useState<ArrayBuffer | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [reviewReason, setReviewReason] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const hasInitializedRef = useRef(false);
   const previewGenerationRef = useRef(false);
 
@@ -136,6 +140,7 @@ export default function AdvancedStandingForm({
         // Restore any previously submitted form data for re-editing.
         ...((enrollment?.advanced_standing_data as Partial<AdvancedStandingFormValues>) || {}),
       });
+      setReviewReason((enrollment?.advanced_standing_review_reason as string) || "");
       hasInitializedRef.current = true;
     }
   }, [appData, getValues, reset]);
@@ -214,6 +219,9 @@ export default function AdvancedStandingForm({
                   advanced_standing_submitted: true,
                   advanced_standing_status: isStaffMode ? "Approved" : "Pending",
                   advanced_standing_data: values, // Save raw data for re-editing
+                  ...(isStaffMode
+                    ? { advanced_standing_review_reason: reviewReason || null }
+                    : {}),
                 },
               },
               {
@@ -241,8 +249,7 @@ export default function AdvancedStandingForm({
     }
   };
 
-  const handleReject = () => {
-    if (!confirm("Are you sure you want to reject this Advanced Standing application?")) return;
+  const handleConfirmReject = () => {
     const currentEnrollmentData = (appData?.data?.enrollment_data || {}) as Record<
       string,
       unknown
@@ -253,11 +260,13 @@ export default function AdvancedStandingForm({
         enrollment_data: {
           ...currentEnrollmentData,
           advanced_standing_status: "Rejected",
+          advanced_standing_review_reason: rejectReason || null,
         },
       },
       {
         onSuccess: () => {
           toast.success("Advanced Standing rejected.", { id: loadingToast });
+          setRejectDialogOpen(false);
           onSuccess?.();
         },
         onError: (error) => {
@@ -727,6 +736,19 @@ export default function AdvancedStandingForm({
                         )}
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wide text-amber-900">
+                        Assessment Reason (Optional)
+                      </Label>
+                      <Textarea
+                        placeholder="Add any notes about this assessment..."
+                        rows={3}
+                        value={reviewReason}
+                        onChange={(e) => setReviewReason(e.target.value)}
+                        className="text-xs resize-none bg-white border-amber-200 focus-visible:ring-amber-500"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -765,7 +787,7 @@ export default function AdvancedStandingForm({
                     variant="destructive"
                     size="lg"
                     disabled={updateApplication.isPending}
-                    onClick={handleReject}
+                    onClick={() => setRejectDialogOpen(true)}
                     className="w-full sm:w-64 h-12 flex items-center justify-center gap-2 font-bold"
                   >
                     <X className="h-5 w-5" />
@@ -872,6 +894,46 @@ export default function AdvancedStandingForm({
             setTimeout(handleGeneratePreview, 100);
           }}
         />
+
+        {/* Reject Confirmation Dialog */}
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reject Advanced Standing Application</DialogTitle>
+              <DialogDescription>
+                Optionally add a reason for rejection. This will be visible to the agent/student.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              placeholder="Reason for rejection (optional)..."
+              rows={4}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="text-sm resize-none"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRejectDialogOpen(false)}
+                disabled={updateApplication.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={updateApplication.isPending}
+                onClick={handleConfirmReject}
+              >
+                {updateApplication.isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
+                Confirm Rejection
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </FormProvider>
   );

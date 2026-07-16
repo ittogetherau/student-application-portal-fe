@@ -482,6 +482,50 @@ class ApplicationService extends ApiService {
     }
   };
 
+  // Staff - Request additional documents
+  requestAdditionalDocuments = async (
+    applicationId: string,
+    payload: {
+      document_type_codes: string[];
+      message: string;
+      due_date?: string;
+    },
+  ): Promise<
+    ServiceResponse<{
+      application_id: string;
+      current_stage: APPLICATION_STAGE;
+      message: string;
+      updated_at: string;
+    }>
+  > => {
+    if (!applicationId) throw new Error("Application id is required");
+
+    // Validate message length
+    if (payload.message.length < 10 || payload.message.length > 1000) {
+      return {
+        success: false,
+        message: "Message must be between 10 and 1000 characters",
+        data: null,
+      };
+    }
+
+    try {
+      const data = await this.post<{
+        application_id: string;
+        current_stage: APPLICATION_STAGE;
+        message: string;
+        updated_at: string;
+      }>(`staff/applications/${applicationId}/request-documents`, payload, true);
+      return {
+        success: true,
+        message: "Additional documents requested successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to request additional documents");
+    }
+  };
+
   // Staff - Enroll course in Galaxy
   enrollGalaxyCourse = async (
     applicationId: string,
