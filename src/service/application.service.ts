@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from "axios";
 import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/shared/utils/handle-api-error";
 import type { Application, APPLICATION_STAGE } from "@/shared/constants/types";
@@ -19,6 +20,13 @@ import type {
   SchoolingHistoryValues,
   SurveyValues,
 } from "@/shared/validation/application.validation";
+
+export interface ExportApplicationsCsvResult {
+  blob: Blob;
+  filename?: string;
+  requestedCount: number;
+  returnedCount: number;
+}
 
 export interface ApplicationEnrollmentData {
   status?: string | null;
@@ -715,6 +723,53 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to restore applications");
+    }
+  };
+
+  // Export selected applications' personal details as CSV (staff/admin only)
+  exportApplicationsCsv = async (
+    applicationIds: string[],
+  ): Promise<ServiceResponse<ExportApplicationsCsvResult>> => {
+    if (!applicationIds?.length) {
+      throw new Error("Application ids are required");
+    }
+    try {
+      const client = this.getClient(true);
+      const response = await client.post(
+        `${this.basePath}/export`,
+        { application_ids: applicationIds },
+        { responseType: "blob" },
+      );
+      const disposition = response.headers["content-disposition"] as
+        | string
+        | undefined;
+      const filename = disposition?.match(/filename="?([^"]+)"?/)?.[1];
+      return {
+        success: true,
+        message: "Applications exported successfully.",
+        data: {
+          blob: response.data,
+          filename,
+          requestedCount: Number(
+            response.headers["x-export-requested"] ?? applicationIds.length,
+          ),
+          returnedCount: Number(
+            response.headers["x-export-returned"] ?? applicationIds.length,
+          ),
+        },
+      };
+    } catch (error) {
+      // With responseType "blob", axios parses an error's JSON body as a
+      // Blob too, so handleApiError can't read `.detail` off it directly.
+      if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          error.response.data = JSON.parse(text);
+        } catch {
+          // Error body wasn't JSON; fall through with the raw blob.
+        }
+      }
+      return handleApiError(error, "Failed to export applications");
     }
   };
 

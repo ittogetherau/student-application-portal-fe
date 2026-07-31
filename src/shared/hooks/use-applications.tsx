@@ -11,6 +11,7 @@ import type {
   BulkArchiveResponse,
   BulkDeleteResponse,
   BulkUnarchiveResponse,
+  ExportApplicationsCsvResult,
   GalaxySyncResponse,
   TimelineResponse,
 } from "@/service/application.service";
@@ -900,6 +901,19 @@ export const useBulkUnarchiveApplicationsMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Export selected applications' personal details as CSV
+export const useExportApplicationsMutation = () => {
+  return useMutation<
+    ServiceResponse<ExportApplicationsCsvResult>,
+    Error,
+    string[]
+  >({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.exportApplicationsCsv(applicationIds);
     },
   });
 };

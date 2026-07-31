@@ -40,6 +40,7 @@ import {
   useBulkArchiveApplicationsMutation,
   useBulkDeleteApplicationsMutation,
   useBulkUnarchiveApplicationsMutation,
+  useExportApplicationsMutation,
 } from "@/shared/hooks/use-applications";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import {
@@ -47,6 +48,7 @@ import {
   ArchiveRestore,
   Check,
   ChevronsUpDown,
+  Download,
   Kanban,
   Plus,
   Table,
@@ -161,6 +163,7 @@ export const ApplicationTable = ({
   const bulkArchiveMutation = useBulkArchiveApplicationsMutation();
   const bulkDeleteMutation = useBulkDeleteApplicationsMutation();
   const bulkUnarchiveMutation = useBulkUnarchiveApplicationsMutation();
+  const exportMutation = useExportApplicationsMutation();
 
   const { role: ROLE, isStaffAdmin } = useRoleFlags();
 
@@ -238,6 +241,56 @@ export const ApplicationTable = ({
                 <span className="text-xs text-muted-foreground">
                   {selectedCount} selected
                 </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={exportMutation.isPending}
+                  onClick={() => {
+                    if (!selectedApplicationIds.length) {
+                      toast.error("No applications selected.");
+                      return;
+                    }
+                    exportMutation
+                      .mutateAsync(selectedApplicationIds)
+                      .then((response) => {
+                        if (!response.success || !response.data) {
+                          toast.error(
+                            response.message ||
+                              "Failed to export applications.",
+                          );
+                          return;
+                        }
+                        const { blob, filename, requestedCount, returnedCount } =
+                          response.data;
+                        const url = URL.createObjectURL(blob);
+                        const anchor = window.document.createElement("a");
+                        anchor.href = url;
+                        anchor.download =
+                          filename || `students_export_${Date.now()}.csv`;
+                        window.document.body.appendChild(anchor);
+                        anchor.click();
+                        anchor.remove();
+                        URL.revokeObjectURL(url);
+                        if (returnedCount < requestedCount) {
+                          toast.error(
+                            `Exported ${returnedCount} of ${requestedCount} selected applications; the rest were skipped due to access restrictions.`,
+                          );
+                        } else {
+                          toast.success(
+                            `Exported ${returnedCount} application${
+                              returnedCount === 1 ? "" : "s"
+                            }.`,
+                          );
+                        }
+                      })
+                      .catch(() => {
+                        toast.error("Failed to export applications.");
+                      });
+                  }}
+                >
+                  <Download />
+                  Export CSV
+                </Button>
                 {isArchived ? (
                   <>
                     <Button

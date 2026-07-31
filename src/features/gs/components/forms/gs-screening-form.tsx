@@ -214,7 +214,7 @@ export function GSScreeningForm({
   const isPrefillLocked = readOnly || isPublicStudentMode;
   const resolver = zodResolver(
     createGSScreeningSchema(currentView),
-  ) as Resolver<GSScreeningFormValues>;
+  ) as unknown as Resolver<GSScreeningFormValues>;
 
   const mergedDefaults = {
     ...defaultValues,
