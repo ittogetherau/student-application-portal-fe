@@ -39,6 +39,7 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
     extraFilters,
     isSearchingOrFiltering,
     resetFilters,
+    currentFilters,
   } = useApplications({
     filters: isArchived ? { archivedOnly: true } : {},
     storeKey: isArchived ? "applications-archived" : "applications",
@@ -113,6 +114,7 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
           onReset={handleResetAll}
           isSearchingOrFiltering={isSearchingOrFiltering}
           filtersPopover={filtersPopover}
+          currentFilters={currentFilters}
         />
       </div>
 

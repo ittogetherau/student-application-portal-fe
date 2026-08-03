@@ -727,6 +727,40 @@ class ApplicationService extends ApiService {
   };
 
   // Export selected applications' personal details as CSV (staff/admin only)
+  private parseCsvExportResponse(
+    response: { data: Blob; headers: Record<string, unknown> },
+    fallbackCount: number,
+  ): ExportApplicationsCsvResult {
+    const disposition = response.headers["content-disposition"] as
+      | string
+      | undefined;
+    const filename = disposition?.match(/filename="?([^"]+)"?/)?.[1];
+    return {
+      blob: response.data,
+      filename,
+      requestedCount: Number(
+        response.headers["x-export-requested"] ?? fallbackCount,
+      ),
+      returnedCount: Number(
+        response.headers["x-export-returned"] ?? fallbackCount,
+      ),
+    };
+  }
+
+  private async unwrapBlobError(error: unknown) {
+    // With responseType "blob", axios parses an error's JSON body as a
+    // Blob too, so handleApiError can't read `.detail` off it directly.
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        error.response.data = JSON.parse(text);
+      } catch {
+        // Error body wasn't JSON; fall through with the raw blob.
+      }
+    }
+    return error;
+  }
+
   exportApplicationsCsv = async (
     applicationIds: string[],
   ): Promise<ServiceResponse<ExportApplicationsCsvResult>> => {
@@ -740,36 +774,41 @@ class ApplicationService extends ApiService {
         { application_ids: applicationIds },
         { responseType: "blob" },
       );
-      const disposition = response.headers["content-disposition"] as
-        | string
-        | undefined;
-      const filename = disposition?.match(/filename="?([^"]+)"?/)?.[1];
       return {
         success: true,
         message: "Applications exported successfully.",
-        data: {
-          blob: response.data,
-          filename,
-          requestedCount: Number(
-            response.headers["x-export-requested"] ?? applicationIds.length,
-          ),
-          returnedCount: Number(
-            response.headers["x-export-returned"] ?? applicationIds.length,
-          ),
-        },
+        data: this.parseCsvExportResponse(response, applicationIds.length),
       };
     } catch (error) {
-      // With responseType "blob", axios parses an error's JSON body as a
-      // Blob too, so handleApiError can't read `.detail` off it directly.
-      if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
-        try {
-          const text = await error.response.data.text();
-          error.response.data = JSON.parse(text);
-        } catch {
-          // Error body wasn't JSON; fall through with the raw blob.
-        }
-      }
-      return handleApiError(error, "Failed to export applications");
+      return handleApiError(
+        await this.unwrapBlobError(error),
+        "Failed to export applications",
+      );
+    }
+  };
+
+  // Export every application the current user's role can see, honoring
+  // whatever filters are currently applied on screen (staff/admin only)
+  exportAllApplicationsCsv = async (
+    filters: ApplicationListParams = {},
+  ): Promise<ServiceResponse<ExportApplicationsCsvResult>> => {
+    try {
+      const client = this.getClient(true);
+      const response = await client.post(
+        `${this.basePath}/export-all${this.buildQuery(filters)}`,
+        {},
+        { responseType: "blob" },
+      );
+      return {
+        success: true,
+        message: "Applications exported successfully.",
+        data: this.parseCsvExportResponse(response, 0),
+      };
+    } catch (error) {
+      return handleApiError(
+        await this.unwrapBlobError(error),
+        "Failed to export applications",
+      );
     }
   };
 

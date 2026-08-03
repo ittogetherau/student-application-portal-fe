@@ -5,6 +5,7 @@
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -14,6 +15,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type Table as TableType,
+  type Updater,
 } from "@tanstack/react-table";
 import * as React from "react";
 
@@ -87,6 +89,9 @@ interface DataTableProps<TData, TValue> {
   searchValue?: string;
   onReset?: () => void;
   isSearchingOrFiltering?: boolean;
+  getRowId?: (row: TData) => string;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (updater: Updater<RowSelectionState>) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -110,6 +115,9 @@ export function DataTable<TData, TValue>({
   searchValue: externalSearchValue,
   onReset,
   isSearchingOrFiltering,
+  getRowId,
+  rowSelection: externalRowSelection,
+  onRowSelectionChange: externalOnRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [internalColumnFilters, setInternalColumnFilters] =
@@ -119,7 +127,10 @@ export function DataTable<TData, TValue>({
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(defaultColumnVisibility ?? {});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [internalRowSelection, setInternalRowSelection] =
+    React.useState<RowSelectionState>({});
+  const rowSelection = externalRowSelection ?? internalRowSelection;
+  const setRowSelection = externalOnRowSelectionChange ?? setInternalRowSelection;
 
   const [internalSearchValue, setInternalSearchValue] = React.useState("");
   const searchValue = externalSearchValue ?? internalSearchValue;
@@ -152,6 +163,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data: searchFilteredData,
     columns,
+    getRowId,
     onSortingChange: setSorting,
     onColumnFiltersChange: (updater) => {
       const nextFilters =

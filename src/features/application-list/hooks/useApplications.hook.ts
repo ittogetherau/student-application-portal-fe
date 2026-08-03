@@ -241,6 +241,12 @@ export const useApplications = ({
     isSearchingOrFiltering,
     resetFilters,
     refetch: applicationsQuery.refetch,
+    // Exactly what's driving the current (paginated) fetch, minus
+    // limit/offset — reused as-is for the "Export All" (filtered) action.
+    currentFilters: {
+      ...extraFilters,
+      search: debouncedQuery || undefined,
+    } as ApplicationListParams,
   };
 };
 

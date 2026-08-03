@@ -918,6 +918,19 @@ export const useExportApplicationsMutation = () => {
   });
 };
 
+// Export every application the current filters/role can see
+export const useExportAllApplicationsMutation = () => {
+  return useMutation<
+    ServiceResponse<ExportApplicationsCsvResult>,
+    Error,
+    ApplicationListParams | undefined
+  >({
+    mutationFn: async (filters) => {
+      return await applicationService.exportAllApplicationsCsv(filters);
+    },
+  });
+};
+
 // Delete application permanently
 export const useDeleteApplicationMutation = () => {
   const queryClient = useQueryClient();
