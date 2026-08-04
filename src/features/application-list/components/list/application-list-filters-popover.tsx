@@ -116,23 +116,36 @@ export default function ApplicationListFiltersPopover({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="student-id-filter">Student ID</Label>
+              <Label htmlFor="student-name-filter">Student name</Label>
               <Input
-                id="student-id-filter"
-                placeholder="Student ID"
-                value={filterDraft.studentId}
+                id="student-name-filter"
+                placeholder="Student name"
+                value={filterDraft.studentName}
                 onChange={(event) =>
-                  updateFilterDraft("studentId", event.target.value)
+                  updateFilterDraft("studentName", event.target.value)
                 }
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="agent-id-filter">Agent ID</Label>
+              <Label htmlFor="agent-name-filter">Agent name</Label>
               <Input
-                id="agent-id-filter"
-                placeholder="Agent ID"
-                value={filterDraft.agentId}
-                onChange={(event) => updateFilterDraft("agentId", event.target.value)}
+                id="agent-name-filter"
+                placeholder="Agent name"
+                value={filterDraft.agentName}
+                onChange={(event) =>
+                  updateFilterDraft("agentName", event.target.value)
+                }
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="agent-email-filter">Agent email</Label>
+              <Input
+                id="agent-email-filter"
+                placeholder="Agent email"
+                value={filterDraft.agentEmail}
+                onChange={(event) =>
+                  updateFilterDraft("agentEmail", event.target.value)
+                }
               />
             </div>
             {canFilterStaff ? (
@@ -158,23 +171,25 @@ export default function ApplicationListFiltersPopover({
                 </Select>
               </div>
             ) : null}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="from-date-filter">From date</Label>
-              <Input
-                id="from-date-filter"
-                type="date"
-                value={filterDraft.fromDate}
-                onChange={(event) => updateFilterDraft("fromDate", event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="to-date-filter">To date</Label>
-              <Input
-                id="to-date-filter"
-                type="date"
-                value={filterDraft.toDate}
-                onChange={(event) => updateFilterDraft("toDate", event.target.value)}
-              />
+            <div className="col-span-1 grid grid-cols-2 gap-3 md:col-span-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="from-date-filter">From date</Label>
+                <Input
+                  id="from-date-filter"
+                  type="date"
+                  value={filterDraft.fromDate}
+                  onChange={(event) => updateFilterDraft("fromDate", event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="to-date-filter">To date</Label>
+                <Input
+                  id="to-date-filter"
+                  type="date"
+                  value={filterDraft.toDate}
+                  onChange={(event) => updateFilterDraft("toDate", event.target.value)}
+                />
+              </div>
             </div>
           </div>
 

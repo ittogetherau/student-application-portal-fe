@@ -115,8 +115,9 @@ export interface ApplicationSyncMetadata {
 
 export interface ApplicationListParams {
   stage?: APPLICATION_STAGE | string;
-  studentId?: string;
-  agentId?: string;
+  studentName?: string;
+  agentName?: string;
+  agentEmail?: string;
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
@@ -183,8 +184,9 @@ class ApplicationService extends ApiService {
   private buildQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
     if (params.stage) searchParams.set("stage", params.stage);
-    if (params.studentId) searchParams.set("student_id", params.studentId);
-    if (params.agentId) searchParams.set("agent_id", params.agentId);
+    if (params.studentName) searchParams.set("student_name", params.studentName);
+    if (params.agentName) searchParams.set("agent_name", params.agentName);
+    if (params.agentEmail) searchParams.set("agent_email", params.agentEmail);
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }

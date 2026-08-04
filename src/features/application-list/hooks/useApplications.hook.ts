@@ -8,6 +8,7 @@ import {
   APPLICATION_STAGE,
   type ApplicationTableRow,
 } from "@/shared/constants/types";
+import { useApplicationFiltersStoreByKey } from "@/shared/store/use-application-filters.store";
 import { usePaginationStoreByKey } from "@/shared/store/use-pagination.store";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -132,21 +133,26 @@ export const useApplications = ({
   filters: initialFilters = {},
   storeKey = "applications",
 }: UseApplicationsOptions = {}) => {
-  const paginationStore = usePaginationStoreByKey(storeKey);
-  const page = paginationStore((state) => state.page);
-  const perPage = paginationStore((state) => state.perPage);
-  const maxPage = paginationStore((state) => state.maxPage);
-  const query = paginationStore((state) => state.query);
-  const setPage = paginationStore((state) => state.setPage);
-  const setPerPage = paginationStore((state) => state.setPerPage);
-  const setMaxPage = paginationStore((state) => state.setMaxPage);
-  const setQuery = paginationStore((state) => state.setQuery);
-  const nextPage = paginationStore((state) => state.nextPage);
-  const prevPage = paginationStore((state) => state.prevPage);
+  const usePaginationStoreInstance = usePaginationStoreByKey(storeKey);
+  const page = usePaginationStoreInstance((state) => state.page);
+  const perPage = usePaginationStoreInstance((state) => state.perPage);
+  const maxPage = usePaginationStoreInstance((state) => state.maxPage);
+  const query = usePaginationStoreInstance((state) => state.query);
+  const setPage = usePaginationStoreInstance((state) => state.setPage);
+  const setPerPage = usePaginationStoreInstance((state) => state.setPerPage);
+  const setMaxPage = usePaginationStoreInstance((state) => state.setMaxPage);
+  const setQuery = usePaginationStoreInstance((state) => state.setQuery);
+  const nextPage = usePaginationStoreInstance((state) => state.nextPage);
+  const prevPage = usePaginationStoreInstance((state) => state.prevPage);
 
-  // Additional filters state
-  const [extraFilters, setExtraFilters] =
-    useState<ApplicationListParams>(initialFilters);
+  // Additional filters state — kept in a module-level store keyed by
+  // storeKey (mirroring usePaginationStoreByKey) so it survives this
+  // component tree being unmounted/remounted on route navigation, instead
+  // of resetting like plain useState would.
+  const useFiltersStore = useApplicationFiltersStoreByKey(storeKey, initialFilters);
+  const extraFilters = useFiltersStore((state) => state.filters);
+  const setFiltersInStore = useFiltersStore((state) => state.setFilters);
+  const resetFiltersInStore = useFiltersStore((state) => state.resetFilters);
 
   // Debounce search query
   const [debouncedQuery, setDebouncedQuery] = useState(query);
@@ -212,13 +218,13 @@ export const useApplications = ({
 
   const handleFilterChange = (newFilters: ApplicationListParams) => {
     setPage(1);
-    setExtraFilters((prev) => ({ ...prev, ...newFilters }));
+    setFiltersInStore({ ...extraFilters, ...newFilters });
   };
 
   const resetFilters = () => {
     setPage(1);
     setQuery("");
-    setExtraFilters(initialFilters);
+    resetFiltersInStore(initialFilters);
   };
 
   return {
