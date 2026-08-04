@@ -5,8 +5,9 @@ import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 
 export type ApplicationListFilterDraft = {
-  studentId: string;
-  agentId: string;
+  studentName: string;
+  agentName: string;
+  agentEmail: string;
   assignedStaffId: string;
   fromDate: string;
   toDate: string;
@@ -22,8 +23,9 @@ type UseApplicationListFiltersOptions = {
 };
 
 const emptyDraft: ApplicationListFilterDraft = {
-  studentId: "",
-  agentId: "",
+  studentName: "",
+  agentName: "",
+  agentEmail: "",
   assignedStaffId: "",
   fromDate: "",
   toDate: "",
@@ -31,8 +33,9 @@ const emptyDraft: ApplicationListFilterDraft = {
 
 function readInitialDraft(extraFilters: ApplicationListParams) {
   return {
-    studentId: extraFilters.studentId ?? "",
-    agentId: extraFilters.agentId ?? "",
+    studentName: extraFilters.studentName ?? "",
+    agentName: extraFilters.agentName ?? "",
+    agentEmail: extraFilters.agentEmail ?? "",
     assignedStaffId: extraFilters.assignedStaffId ?? "",
     fromDate: extraFilters.fromDate ?? "",
     toDate: extraFilters.toDate ?? "",
@@ -82,8 +85,9 @@ export default function useApplicationListFilters({
       trimmedStage ? [{ id: "stage", value: [trimmedStage] }] : [],
     );
     setExtraFilters({
-      studentId: filterDraft.studentId.trim() || undefined,
-      agentId: filterDraft.agentId.trim() || undefined,
+      studentName: filterDraft.studentName.trim() || undefined,
+      agentName: filterDraft.agentName.trim() || undefined,
+      agentEmail: filterDraft.agentEmail.trim() || undefined,
       assignedStaffId: canFilterStaff
         ? filterDraft.assignedStaffId || undefined
         : undefined,
@@ -97,8 +101,9 @@ export default function useApplicationListFilters({
 
   const hasFilterDraft =
     !!stageDraft ||
-    !!filterDraft.studentId ||
-    !!filterDraft.agentId ||
+    !!filterDraft.studentName ||
+    !!filterDraft.agentName ||
+    !!filterDraft.agentEmail ||
     (canFilterStaff && !!filterDraft.assignedStaffId) ||
     !!filterDraft.fromDate ||
     !!filterDraft.toDate;
@@ -106,17 +111,19 @@ export default function useApplicationListFilters({
   const appliedFilterCount = useMemo(
     () =>
       (extraFilters.stage ? 1 : 0) +
-      (extraFilters.studentId ? 1 : 0) +
-      (extraFilters.agentId ? 1 : 0) +
+      (extraFilters.studentName ? 1 : 0) +
+      (extraFilters.agentName ? 1 : 0) +
+      (extraFilters.agentEmail ? 1 : 0) +
       (extraFilters.assignedStaffId ? 1 : 0) +
       (extraFilters.fromDate ? 1 : 0) +
       (extraFilters.toDate ? 1 : 0),
     [
-      extraFilters.agentId,
+      extraFilters.agentName,
+      extraFilters.agentEmail,
       extraFilters.assignedStaffId,
       extraFilters.fromDate,
       extraFilters.stage,
-      extraFilters.studentId,
+      extraFilters.studentName,
       extraFilters.toDate,
     ],
   );

@@ -18,7 +18,11 @@ type props = {
 const ApplicationListPage = ({ isArchived = false }: props) => {
   const { data: session } = useSession();
   const role = session?.user.role;
-  const canFilterStaff = role === USER_ROLE.STAFF;
+  // Mirrors the backend's require_admin_staff gate on GET /staff/members:
+  // admins, or staff with the staff_admin permission. Plain staff 403 on
+  // that endpoint, so they must not have this filter enabled.
+  const canFilterStaff =
+    role === USER_ROLE.ADMIN || Boolean(session?.user.staff_admin);
   const { data: staffResponse } = useStaffMembersQuery({
     enabled: canFilterStaff,
   });
@@ -39,6 +43,7 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
     extraFilters,
     isSearchingOrFiltering,
     resetFilters,
+    currentFilters,
   } = useApplications({
     filters: isArchived ? { archivedOnly: true } : {},
     storeKey: isArchived ? "applications-archived" : "applications",
@@ -113,6 +118,7 @@ const ApplicationListPage = ({ isArchived = false }: props) => {
           onReset={handleResetAll}
           isSearchingOrFiltering={isSearchingOrFiltering}
           filtersPopover={filtersPopover}
+          currentFilters={currentFilters}
         />
       </div>
 

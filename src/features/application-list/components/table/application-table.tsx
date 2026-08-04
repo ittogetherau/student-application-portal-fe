@@ -36,21 +36,28 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useStaffMembersQuery } from "@/features/application-detail/hooks/useStaffMembers.hook";
+import type { ApplicationListParams } from "@/service/application.service";
 import {
   useBulkArchiveApplicationsMutation,
   useBulkDeleteApplicationsMutation,
   useBulkUnarchiveApplicationsMutation,
+  useExportAllApplicationsMutation,
+  useExportApplicationsMutation,
 } from "@/shared/hooks/use-applications";
+import { usePersistedRowSelection } from "@/shared/hooks/use-persisted-row-selection";
+import { triggerCsvDownload } from "@/shared/utils/trigger-csv-download";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import {
   Archive,
   ArchiveRestore,
   Check,
   ChevronsUpDown,
+  Download,
   Kanban,
   Plus,
   Table,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -68,6 +75,7 @@ interface ApplicationTableProps {
   onReset?: () => void;
   isSearchingOrFiltering?: boolean;
   filtersPopover?: React.ReactNode;
+  currentFilters?: ApplicationListParams;
 }
 
 const APPLICATION_LIST_VIEW_KEY = "application-list:view";
@@ -156,11 +164,19 @@ export const ApplicationTable = ({
   onReset,
   isSearchingOrFiltering,
   filtersPopover,
+  currentFilters,
 }: ApplicationTableProps) => {
   const [view, setView] = React.useState<"table" | "kanban">("table");
   const bulkArchiveMutation = useBulkArchiveApplicationsMutation();
   const bulkDeleteMutation = useBulkDeleteApplicationsMutation();
   const bulkUnarchiveMutation = useBulkUnarchiveApplicationsMutation();
+  const exportMutation = useExportApplicationsMutation();
+  const exportAllMutation = useExportAllApplicationsMutation();
+
+  const { rowSelection, setRowSelection, clearSelection, selectedIds } =
+    usePersistedRowSelection(
+      isArchived ? "applications-archived" : "applications",
+    );
 
   const { role: ROLE, isStaffAdmin } = useRoleFlags();
 
@@ -205,6 +221,9 @@ export const ApplicationTable = ({
       view={view}
       isallowMovingInKanban={isallowMovingInKanban}
       data={data}
+      getRowId={(row) => row.id}
+      rowSelection={rowSelection}
+      onRowSelectionChange={setRowSelection}
       facetedFilters={filtersPopover ? undefined : filters}
       filtersPopover={filtersPopover}
       manualFiltering={true}
@@ -226,10 +245,8 @@ export const ApplicationTable = ({
         description: "Try a different search term or filter combination.",
       }}
       toolbarActions={(table) => {
-        const selectedCount = table.getSelectedRowModel().rows.length;
-        const selectedApplicationIds = table
-          .getSelectedRowModel()
-          .rows.map((row) => row.original.id);
+        const selectedCount = selectedIds.length;
+        const selectedApplicationIds = selectedIds;
 
         return (
           <div className="flex items-center gap-3">
@@ -238,6 +255,57 @@ export const ApplicationTable = ({
                 <span className="text-xs text-muted-foreground">
                   {selectedCount} selected
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => clearSelection()}
+                >
+                  <X />
+                  Clear selection
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={exportMutation.isPending}
+                  onClick={() => {
+                    if (!selectedApplicationIds.length) {
+                      toast.error("No applications selected.");
+                      return;
+                    }
+                    exportMutation
+                      .mutateAsync(selectedApplicationIds)
+                      .then((response) => {
+                        if (!response.success || !response.data) {
+                          toast.error(
+                            response.message ||
+                              "Failed to export applications.",
+                          );
+                          return;
+                        }
+                        const { blob, filename, requestedCount, returnedCount } =
+                          response.data;
+                        triggerCsvDownload(blob, filename);
+                        clearSelection();
+                        if (returnedCount < requestedCount) {
+                          toast.error(
+                            `Exported ${returnedCount} of ${requestedCount} selected applications; the rest were skipped due to access restrictions.`,
+                          );
+                        } else {
+                          toast.success(
+                            `Exported ${returnedCount} application${
+                              returnedCount === 1 ? "" : "s"
+                            }.`,
+                          );
+                        }
+                      })
+                      .catch(() => {
+                        toast.error("Failed to export applications.");
+                      });
+                  }}
+                >
+                  <Download />
+                  Export CSV
+                </Button>
                 {isArchived ? (
                   <>
                     <Button
@@ -402,6 +470,37 @@ export const ApplicationTable = ({
                 Refreshing...
               </span>
             ) : null}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportAllMutation.isPending}
+              onClick={() => {
+                exportAllMutation
+                  .mutateAsync(currentFilters)
+                  .then((response) => {
+                    if (!response.success || !response.data) {
+                      toast.error(
+                        response.message || "Failed to export applications.",
+                      );
+                      return;
+                    }
+                    const { blob, filename, returnedCount } = response.data;
+                    triggerCsvDownload(blob, filename);
+                    toast.success(
+                      `Exported ${returnedCount} application${
+                        returnedCount === 1 ? "" : "s"
+                      }.`,
+                    );
+                  })
+                  .catch(() => {
+                    toast.error("Failed to export applications.");
+                  });
+              }}
+            >
+              <Download />
+              {exportAllMutation.isPending ? "Exporting..." : "Export All"}
+            </Button>
 
             {/* {ROLE === USER_ROLE.AGENT && ( )} */}
 

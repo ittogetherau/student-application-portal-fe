@@ -18,6 +18,29 @@ const formatTimelineMessage = (rawMessage: string) => {
   }
 
 
+  // Advanced Standing (Course Credit / RPL) patterns
+  const advancedStandingRequested =
+    /advanced_standing_requested:\s*['"]?(?:none|false)?['"]?\s*->\s*['"]?true['"]?/i;
+  const advancedStandingSubmitted =
+    /advanced_standing_submitted:\s*['"]?(?:none|false)?['"]?\s*->\s*['"]?true['"]?/i;
+  const advancedStandingApproved =
+    /advanced_standing_status:\s*['"]?(?:none|pending|submitted)?['"]?\s*->\s*['"]?approved['"]?/i;
+  const advancedStandingRejected =
+    /advanced_standing_status:\s*['"]?(?:none|pending|submitted)?['"]?\s*->\s*['"]?rejected['"]?/i;
+
+  if (advancedStandingApproved.test(message)) {
+    return "Staff approved Advanced Standing for credit.";
+  }
+  if (advancedStandingRejected.test(message)) {
+    return "Staff rejected Advanced Standing for credit.";
+  }
+  if (advancedStandingSubmitted.test(message)) {
+    return "Student submitted the Advanced Standing Form.";
+  }
+  if (advancedStandingRequested.test(message)) {
+    return "Staff requested the Advanced Standing Form from the student.";
+  }
+
   // ESOS Onshore patterns
   const esosAgentEligible = /esos_agent_assessment:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?eligible['"]?/i;
   const esosAgentNotEligible = /esos_agent_assessment:\s*['"]?(?:[^'"]*)['"]?\s*->\s*['"]?not_eligible['"]?/i;

@@ -11,6 +11,7 @@ import type {
   BulkArchiveResponse,
   BulkDeleteResponse,
   BulkUnarchiveResponse,
+  ExportApplicationsCsvResult,
   GalaxySyncResponse,
   TimelineResponse,
 } from "@/service/application.service";
@@ -412,6 +413,9 @@ export const useApplicationUpdateMutation = (applicationId: string | null) => {
           queryKey: ["application-get", applicationId],
         });
         queryClient.invalidateQueries({ queryKey: ["application-list"] });
+        queryClient.invalidateQueries({
+          queryKey: ["application-timeline", applicationId],
+        });
       },
       onError: (error) => {
         console.error("[Application] updateApplication failed", error);
@@ -661,6 +665,56 @@ export const useApplicationRejectMutation = (applicationId: string | null) => {
   });
 };
 
+// Staff - Request additional documents hook
+export const useApplicationRequestDocumentsMutation = (
+  applicationId: string | null,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    {
+      application_id: string;
+      current_stage: APPLICATION_STAGE;
+      message: string;
+      updated_at: string;
+    },
+    Error,
+    {
+      document_type_codes: string[];
+      message: string;
+      due_date?: string;
+    }
+  >({
+    mutationKey: ["application-request-documents", applicationId],
+    mutationFn: async (payload) => {
+      if (!applicationId) throw new Error("Missing application reference.");
+
+      const response = await applicationService.requestAdditionalDocuments(
+        applicationId,
+        payload,
+      );
+
+      if (!response.success) throw new Error(response.message);
+      if (!response.data) throw new Error("Response data is missing.");
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log("[Application] requestAdditionalDocuments success", {
+        applicationId,
+        response: data,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["application-get", applicationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["application-list"] });
+    },
+    onError: (error) => {
+      console.error("[Application] requestAdditionalDocuments failed", error);
+    },
+  });
+};
+
 // Staff - Generate offer letter hook
 export const useApplicationGenerateOfferLetterMutation = (
   applicationId: string | null,
@@ -847,6 +901,32 @@ export const useBulkUnarchiveApplicationsMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["application-list"] });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+};
+
+// Export selected applications' personal details as CSV
+export const useExportApplicationsMutation = () => {
+  return useMutation<
+    ServiceResponse<ExportApplicationsCsvResult>,
+    Error,
+    string[]
+  >({
+    mutationFn: async (applicationIds: string[]) => {
+      return await applicationService.exportApplicationsCsv(applicationIds);
+    },
+  });
+};
+
+// Export every application the current filters/role can see
+export const useExportAllApplicationsMutation = () => {
+  return useMutation<
+    ServiceResponse<ExportApplicationsCsvResult>,
+    Error,
+    ApplicationListParams | undefined
+  >({
+    mutationFn: async (filters) => {
+      return await applicationService.exportAllApplicationsCsv(filters);
     },
   });
 };

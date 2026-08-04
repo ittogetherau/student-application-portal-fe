@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from "axios";
 import { ApiService } from "@/service/base.service";
 import { handleApiError } from "@/shared/utils/handle-api-error";
 import type { Application, APPLICATION_STAGE } from "@/shared/constants/types";
@@ -19,6 +20,13 @@ import type {
   SchoolingHistoryValues,
   SurveyValues,
 } from "@/shared/validation/application.validation";
+
+export interface ExportApplicationsCsvResult {
+  blob: Blob;
+  filename?: string;
+  requestedCount: number;
+  returnedCount: number;
+}
 
 export interface ApplicationEnrollmentData {
   status?: string | null;
@@ -107,8 +115,9 @@ export interface ApplicationSyncMetadata {
 
 export interface ApplicationListParams {
   stage?: APPLICATION_STAGE | string;
-  studentId?: string;
-  agentId?: string;
+  studentName?: string;
+  agentName?: string;
+  agentEmail?: string;
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
@@ -175,8 +184,9 @@ class ApplicationService extends ApiService {
   private buildQuery(params: ApplicationListParams = {}) {
     const searchParams = new URLSearchParams();
     if (params.stage) searchParams.set("stage", params.stage);
-    if (params.studentId) searchParams.set("student_id", params.studentId);
-    if (params.agentId) searchParams.set("agent_id", params.agentId);
+    if (params.studentName) searchParams.set("student_name", params.studentName);
+    if (params.agentName) searchParams.set("agent_name", params.agentName);
+    if (params.agentEmail) searchParams.set("agent_email", params.agentEmail);
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }
@@ -482,6 +492,50 @@ class ApplicationService extends ApiService {
     }
   };
 
+  // Staff - Request additional documents
+  requestAdditionalDocuments = async (
+    applicationId: string,
+    payload: {
+      document_type_codes: string[];
+      message: string;
+      due_date?: string;
+    },
+  ): Promise<
+    ServiceResponse<{
+      application_id: string;
+      current_stage: APPLICATION_STAGE;
+      message: string;
+      updated_at: string;
+    }>
+  > => {
+    if (!applicationId) throw new Error("Application id is required");
+
+    // Validate message length
+    if (payload.message.length < 10 || payload.message.length > 1000) {
+      return {
+        success: false,
+        message: "Message must be between 10 and 1000 characters",
+        data: null,
+      };
+    }
+
+    try {
+      const data = await this.post<{
+        application_id: string;
+        current_stage: APPLICATION_STAGE;
+        message: string;
+        updated_at: string;
+      }>(`staff/applications/${applicationId}/request-documents`, payload, true);
+      return {
+        success: true,
+        message: "Additional documents requested successfully.",
+        data,
+      };
+    } catch (error) {
+      return handleApiError(error, "Failed to request additional documents");
+    }
+  };
+
   // Staff - Enroll course in Galaxy
   enrollGalaxyCourse = async (
     applicationId: string,
@@ -671,6 +725,92 @@ class ApplicationService extends ApiService {
       };
     } catch (error) {
       return handleApiError(error, "Failed to restore applications");
+    }
+  };
+
+  // Export selected applications' personal details as CSV (staff/admin only)
+  private parseCsvExportResponse(
+    response: { data: Blob; headers: Record<string, unknown> },
+    fallbackCount: number,
+  ): ExportApplicationsCsvResult {
+    const disposition = response.headers["content-disposition"] as
+      | string
+      | undefined;
+    const filename = disposition?.match(/filename="?([^"]+)"?/)?.[1];
+    return {
+      blob: response.data,
+      filename,
+      requestedCount: Number(
+        response.headers["x-export-requested"] ?? fallbackCount,
+      ),
+      returnedCount: Number(
+        response.headers["x-export-returned"] ?? fallbackCount,
+      ),
+    };
+  }
+
+  private async unwrapBlobError(error: unknown) {
+    // With responseType "blob", axios parses an error's JSON body as a
+    // Blob too, so handleApiError can't read `.detail` off it directly.
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        error.response.data = JSON.parse(text);
+      } catch {
+        // Error body wasn't JSON; fall through with the raw blob.
+      }
+    }
+    return error;
+  }
+
+  exportApplicationsCsv = async (
+    applicationIds: string[],
+  ): Promise<ServiceResponse<ExportApplicationsCsvResult>> => {
+    if (!applicationIds?.length) {
+      throw new Error("Application ids are required");
+    }
+    try {
+      const client = this.getClient(true);
+      const response = await client.post(
+        `${this.basePath}/export`,
+        { application_ids: applicationIds },
+        { responseType: "blob" },
+      );
+      return {
+        success: true,
+        message: "Applications exported successfully.",
+        data: this.parseCsvExportResponse(response, applicationIds.length),
+      };
+    } catch (error) {
+      return handleApiError(
+        await this.unwrapBlobError(error),
+        "Failed to export applications",
+      );
+    }
+  };
+
+  // Export every application the current user's role can see, honoring
+  // whatever filters are currently applied on screen (staff/admin only)
+  exportAllApplicationsCsv = async (
+    filters: ApplicationListParams = {},
+  ): Promise<ServiceResponse<ExportApplicationsCsvResult>> => {
+    try {
+      const client = this.getClient(true);
+      const response = await client.post(
+        `${this.basePath}/export-all${this.buildQuery(filters)}`,
+        {},
+        { responseType: "blob" },
+      );
+      return {
+        success: true,
+        message: "Applications exported successfully.",
+        data: this.parseCsvExportResponse(response, 0),
+      };
+    } catch (error) {
+      return handleApiError(
+        await this.unwrapBlobError(error),
+        "Failed to export applications",
+      );
     }
   };
 
