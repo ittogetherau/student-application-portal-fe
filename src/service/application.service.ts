@@ -118,6 +118,7 @@ export interface ApplicationListParams {
   studentName?: string;
   agentName?: string;
   agentEmail?: string;
+  studentOrigin?: string;
   assignedStaffId?: string;
   fromDate?: string;
   toDate?: string;
@@ -187,6 +188,9 @@ class ApplicationService extends ApiService {
     if (params.studentName) searchParams.set("student_name", params.studentName);
     if (params.agentName) searchParams.set("agent_name", params.agentName);
     if (params.agentEmail) searchParams.set("agent_email", params.agentEmail);
+    if (params.studentOrigin) {
+      searchParams.set("student_origin", params.studentOrigin);
+    }
     if (params.assignedStaffId) {
       searchParams.set("assigned_staff_id", params.assignedStaffId);
     }

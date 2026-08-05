@@ -148,6 +148,25 @@ export default function ApplicationListFiltersPopover({
                 }
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="student-origin-filter">Student origin</Label>
+              <Select
+                value={filterDraft.studentOrigin || "all"}
+                onValueChange={(value) =>
+                  updateFilterDraft("studentOrigin", value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger id="student-origin-filter">
+                  <SelectValue placeholder="All origins" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All origins</SelectItem>
+                  <SelectItem value="offshore">Offshore</SelectItem>
+                  <SelectItem value="onshore">Onshore</SelectItem>
+                  <SelectItem value="domestic">Domestic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {canFilterStaff ? (
               <div className="flex flex-col gap-2 md:col-span-2">
                 <Label htmlFor="assigned-staff-filter">Assigned staff</Label>
