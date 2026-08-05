@@ -8,6 +8,7 @@ export type ApplicationListFilterDraft = {
   studentName: string;
   agentName: string;
   agentEmail: string;
+  studentOrigin: string;
   assignedStaffId: string;
   fromDate: string;
   toDate: string;
@@ -26,6 +27,7 @@ const emptyDraft: ApplicationListFilterDraft = {
   studentName: "",
   agentName: "",
   agentEmail: "",
+  studentOrigin: "",
   assignedStaffId: "",
   fromDate: "",
   toDate: "",
@@ -36,6 +38,7 @@ function readInitialDraft(extraFilters: ApplicationListParams) {
     studentName: extraFilters.studentName ?? "",
     agentName: extraFilters.agentName ?? "",
     agentEmail: extraFilters.agentEmail ?? "",
+    studentOrigin: extraFilters.studentOrigin ?? "",
     assignedStaffId: extraFilters.assignedStaffId ?? "",
     fromDate: extraFilters.fromDate ?? "",
     toDate: extraFilters.toDate ?? "",
@@ -88,6 +91,7 @@ export default function useApplicationListFilters({
       studentName: filterDraft.studentName.trim() || undefined,
       agentName: filterDraft.agentName.trim() || undefined,
       agentEmail: filterDraft.agentEmail.trim() || undefined,
+      studentOrigin: filterDraft.studentOrigin || undefined,
       assignedStaffId: canFilterStaff
         ? filterDraft.assignedStaffId || undefined
         : undefined,
@@ -104,6 +108,7 @@ export default function useApplicationListFilters({
     !!filterDraft.studentName ||
     !!filterDraft.agentName ||
     !!filterDraft.agentEmail ||
+    !!filterDraft.studentOrigin ||
     (canFilterStaff && !!filterDraft.assignedStaffId) ||
     !!filterDraft.fromDate ||
     !!filterDraft.toDate;
@@ -114,12 +119,14 @@ export default function useApplicationListFilters({
       (extraFilters.studentName ? 1 : 0) +
       (extraFilters.agentName ? 1 : 0) +
       (extraFilters.agentEmail ? 1 : 0) +
+      (extraFilters.studentOrigin ? 1 : 0) +
       (extraFilters.assignedStaffId ? 1 : 0) +
       (extraFilters.fromDate ? 1 : 0) +
       (extraFilters.toDate ? 1 : 0),
     [
       extraFilters.agentName,
       extraFilters.agentEmail,
+      extraFilters.studentOrigin,
       extraFilters.assignedStaffId,
       extraFilters.fromDate,
       extraFilters.stage,
