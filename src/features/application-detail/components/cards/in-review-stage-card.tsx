@@ -388,7 +388,7 @@ export default function InReviewStageCard({
 
                 <Button
                   variant="outline"
-                  disabled={isAdvancedStandingRequestPending || !isInteractive}
+                  disabled={isAdvancedStandingRequestPending}
                   onClick={handleRequestAdvancedStanding}
                   className="w-full flex items-center gap-2 text-[11px] font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 break-words"
                 >
@@ -403,11 +403,6 @@ export default function InReviewStageCard({
                     {isAdvancedStandingRequested ? "Re-request Advanced Standing" : "Request Advanced Standing"}
                   </span>
                 </Button>
-                {!isInteractive && (
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    This stage is no longer active — the request cannot be changed.
-                  </p>
-                )}
               </div>
             ) : (
               <div className="space-y-3">
