@@ -16,6 +16,8 @@ export type RoleFlags = {
   isStaff: boolean;
   isStaffAdmin: boolean;
   isStaffOrAdmin: boolean;
+  viewStaffMembers: boolean;
+  canViewStaffDirectory: boolean;
 };
 
 export const useRoleFlags = (): RoleFlags => {
@@ -25,6 +27,7 @@ export const useRoleFlags = (): RoleFlags => {
   const isStaffAdmin = Boolean(session?.user.staff_admin);
   const isStaff = role === USER_ROLE.STAFF;
   const isAgent = role === USER_ROLE.AGENT;
+  const viewStaffMembers = Boolean(session?.user.view_staff_members);
 
   return {
     role,
@@ -32,5 +35,8 @@ export const useRoleFlags = (): RoleFlags => {
     isStaff,
     isStaffAdmin,
     isStaffOrAdmin: isStaff || isStaffAdmin,
+    viewStaffMembers,
+    canViewStaffDirectory:
+      role === USER_ROLE.ADMIN || isStaffAdmin || viewStaffMembers,
   };
 };

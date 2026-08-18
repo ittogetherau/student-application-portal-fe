@@ -4,6 +4,12 @@ import type { UserRole } from "@/shared/lib/auth";
 
 type NavItem = { label: string; href: string; icon: SidebarIconName };
 
+const STAFF_DIRECTORY_NAV_ITEM: NavItem = {
+  label: "Staff Directory",
+  href: siteRoutes.dashboard.staffDirectory,
+  icon: "agents",
+};
+
 const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
   admin: [
     { label: "Dashboard", href: siteRoutes.dashboard.root, icon: "dashboard" },
@@ -57,6 +63,17 @@ const NAV_LINKS: Record<UserRole, Array<NavItem>> = {
       icon: "calendar",
     },
   ],
+};
+
+export const getNavItems = (
+  role: UserRole,
+  flags: { canViewStaffDirectory: boolean },
+): NavItem[] => {
+  const items = NAV_LINKS[role] ?? NAV_LINKS.agent;
+  if (role === "staff" && flags.canViewStaffDirectory) {
+    return [...items, STAFF_DIRECTORY_NAV_ITEM];
+  }
+  return items;
 };
 
 export default NAV_LINKS;

@@ -182,6 +182,10 @@ const MicrosoftOAuthButton = ({
             typeof payload?.staff_admin === "boolean"
               ? payload.staff_admin
               : undefined,
+          view_staff_members:
+            typeof payload?.view_staff_members === "boolean"
+              ? payload.view_staff_members
+              : undefined,
         },
       };
 

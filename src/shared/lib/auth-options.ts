@@ -11,6 +11,7 @@ export const AUTH_SECRET =
 type DecodedAccessToken = {
   exp?: number;
   staff_admin?: boolean;
+  view_staff_members?: boolean;
   [key: string]: unknown;
 };
 
@@ -41,6 +42,15 @@ const apiLogin = async (
     if (staffAdminFlag !== undefined) {
       loginData.user.staff_admin = staffAdminFlag;
     }
+
+    const viewStaffMembersFlag =
+      typeof decodedAccessToken.view_staff_members === "boolean"
+        ? decodedAccessToken.view_staff_members
+        : undefined;
+
+    if (viewStaffMembersFlag !== undefined) {
+      loginData.user.view_staff_members = viewStaffMembersFlag;
+    }
   } catch (error) {
     console.warn("Failed to decode access token:", error);
   }
@@ -64,6 +74,7 @@ async function refreshAccessToken(token: JWT) {
     // Decode JWT to get expiration time (access tokens are JWTs)
     let accessTokenExpires: number | undefined;
     let refreshedStaffAdmin: boolean | undefined;
+    let refreshedViewStaffMembers: boolean | undefined;
     try {
       const payload = JSON.parse(
         Buffer.from(
@@ -75,6 +86,10 @@ async function refreshAccessToken(token: JWT) {
       refreshedStaffAdmin =
         typeof payload.staff_admin === "boolean"
           ? payload.staff_admin
+          : undefined;
+      refreshedViewStaffMembers =
+        typeof payload.view_staff_members === "boolean"
+          ? payload.view_staff_members
           : undefined;
     } catch {
       // If we can't decode, set expiration to 20 minutes from now (default session time)
@@ -89,6 +104,9 @@ async function refreshAccessToken(token: JWT) {
       accessTokenExpires,
       staff_admin:
         refreshedStaffAdmin ?? (token as { staff_admin?: boolean }).staff_admin,
+      view_staff_members:
+        refreshedViewStaffMembers ??
+        (token as { view_staff_members?: boolean }).view_staff_members,
       // Update user info if provided
       ...(refreshedTokens.user && {
         sub: refreshedTokens.user.id,
@@ -129,6 +147,7 @@ export const authOptions: NextAuthOptions = {
               status: tokenData.user.status,
               rto_profile_id: tokenData.user.rto_profile_id,
               staff_admin: tokenData.user.staff_admin,
+              view_staff_members: tokenData.user.view_staff_members,
               accessToken: tokenData.access_token,
               refreshToken: tokenData.refresh_token,
               tokenType: tokenData.token_type,
@@ -152,6 +171,7 @@ export const authOptions: NextAuthOptions = {
           status: login.user.status,
           rto_profile_id: login.user.rto_profile_id,
           staff_admin: login.user.staff_admin,
+          view_staff_members: login.user.view_staff_members,
           accessToken: login.access_token,
           refreshToken: login.refresh_token,
           tokenType: login.token_type,
@@ -173,6 +193,7 @@ export const authOptions: NextAuthOptions = {
         status?: string;
         rto_profile_id?: string | null;
         staff_admin?: boolean;
+        view_staff_members?: boolean;
         accessToken?: string;
         refreshToken?: string;
         tokenType?: string;
@@ -205,6 +226,7 @@ export const authOptions: NextAuthOptions = {
           status: authUser.status,
           rto_profile_id: authUser.rto_profile_id,
           staff_admin: authUser.staff_admin,
+          view_staff_members: authUser.view_staff_members,
           accessToken: authUser.accessToken,
           refreshToken: authUser.refreshToken,
           tokenType: authUser.tokenType,
@@ -229,6 +251,7 @@ export const authOptions: NextAuthOptions = {
         status: token.status as string | undefined,
         rto_profile_id: token.rto_profile_id as string | null | undefined,
         staff_admin: token.staff_admin as boolean | undefined,
+        view_staff_members: token.view_staff_members as boolean | undefined,
       };
       session.accessToken = token.accessToken as string | undefined;
       session.refreshToken = token.refreshToken as string | undefined;
