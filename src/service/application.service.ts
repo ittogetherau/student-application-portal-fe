@@ -52,6 +52,12 @@ export interface ApplicationDetailResponse {
   agent_profile_id: string | null;
   course_offering_id: string | null;
   assigned_staff_id: string | null;
+  assigned_staff?: {
+    id: string;
+    email?: string | null;
+    job_title?: string | null;
+    department?: string | null;
+  } | null;
   current_stage: APPLICATION_STAGE;
   has_uploaded_ceo_payment_proof?: boolean | null;
   submitted_at: string | null;

@@ -33,7 +33,7 @@ export type LoginResponse = {
     status: string;
     rto_profile_id: string | null;
     staff_admin?: boolean;
-    view_staff_members?: boolean;
+    view_only?: boolean;
   };
 };
 

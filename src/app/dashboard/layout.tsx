@@ -3,8 +3,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import AppToolbar from "@/features/dashboard/components/app-toolbar";
 import SidebarNav from "@/features/dashboard/components/sidebar-nav";
 import { siteRoutes } from "@/shared/constants/site-routes";
-import { getNavItems } from "@/shared/data/navlink.data";
-import { useRoleFlags } from "@/shared/hooks/use-role-flags";
+import NAV_LINKS from "@/shared/data/navlink.data";
 import type { UserRole } from "@/shared/lib/auth";
 import { setPostLoginRedirect } from "@/shared/lib/post-login-redirect";
 import { useSession } from "next-auth/react";
@@ -15,7 +14,6 @@ const getDisplayName = (email: string) => email.split("@")[0] ?? email;
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const { data: session, status } = useSession();
-  const { canViewStaffDirectory } = useRoleFlags();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -40,7 +38,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const userEmail = session?.user?.email ?? "";
 
   // Use the role to get the appropriate nav items
-  const navItems = getNavItems(userRole, { canViewStaffDirectory });
+  const navItems = NAV_LINKS[userRole] ?? NAV_LINKS.agent;
 
   return (
     <SidebarProvider suppressHydrationWarning>

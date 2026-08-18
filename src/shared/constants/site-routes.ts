@@ -45,7 +45,6 @@ export const siteRoutes = {
     tasks: "/dashboard/tasks",
     notifications: "/dashboard/notifications",
     gsInterviews: "/dashboard/gs-interviews",
-    staffDirectory: "/dashboard/staff-directory",
   },
   track: {
     root: (id?: string) => `/track${id ? `?tid=${id}` : ""}`,

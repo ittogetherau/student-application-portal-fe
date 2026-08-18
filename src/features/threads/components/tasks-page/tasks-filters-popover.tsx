@@ -79,9 +79,10 @@ export default function TasksFiltersPopover({
   onApply,
   applyDisabled,
 }: TasksFiltersPopoverProps) {
-  const { role, isAgent, isStaffAdmin } = useRoleFlags();
+  const { role, isAgent, isStaffAdmin, isViewOnly } = useRoleFlags();
 
-  const canShowStaffFilter = role === USER_ROLE.STAFF && isStaffAdmin;
+  const canShowStaffFilter =
+    role === USER_ROLE.STAFF && (isStaffAdmin || isViewOnly);
   const canShowAgentFilter = !isAgent;
 
   return (

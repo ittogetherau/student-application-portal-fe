@@ -178,7 +178,7 @@ export const ApplicationTable = ({
       isArchived ? "applications-archived" : "applications",
     );
 
-  const { role: ROLE, isStaffAdmin } = useRoleFlags();
+  const { role: ROLE, isStaffAdmin, isViewOnly } = useRoleFlags();
 
   const filters = React.useMemo<DataTableFacetedFilter[]>(
     () => [
@@ -191,8 +191,8 @@ export const ApplicationTable = ({
     [],
   );
   const columns = React.useMemo(
-    () => getApplicationColumns(ROLE, isStaffAdmin, isArchived),
-    [ROLE, isStaffAdmin, isArchived],
+    () => getApplicationColumns(ROLE, isStaffAdmin, isArchived, isViewOnly),
+    [ROLE, isStaffAdmin, isArchived, isViewOnly],
   );
 
   React.useEffect(() => {

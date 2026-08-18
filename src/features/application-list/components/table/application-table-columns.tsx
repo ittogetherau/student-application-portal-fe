@@ -197,6 +197,7 @@ export const getApplicationColumns = (
   role?: USER_ROLE,
   isStaffAdmin?: boolean,
   isArchived?: boolean,
+  isViewOnly?: boolean,
 ): ColumnDef<ApplicationTableRow>[] => {
   const baseColumns: ColumnDef<ApplicationTableRow>[] = [
     {
@@ -456,7 +457,7 @@ export const getApplicationColumns = (
     );
   }
 
-  if (role === USER_ROLE.STAFF && !isStaffAdmin) {
+  if (role === USER_ROLE.STAFF && !(isStaffAdmin || isViewOnly)) {
     return baseColumns.filter((column) => column.id !== "assignedTo");
   }
 

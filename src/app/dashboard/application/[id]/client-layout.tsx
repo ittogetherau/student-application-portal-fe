@@ -28,7 +28,8 @@ import ThreadMessagesPanel from "@/features/threads/components/panels/thread-mes
 import { siteRoutes } from "@/shared/constants/site-routes";
 import { APPLICATION_STAGE } from "@/shared/constants/types";
 import { useRoleFlags } from "@/shared/hooks/use-role-flags";
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, FileText } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef } from "react";
 
@@ -41,11 +42,13 @@ export default function ClientApplicationLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
+  const { data: session } = useSession();
   const {
     role: ROLE,
     isStaff: IS_STAFF,
     isStaffOrAdmin,
     isStaffAdmin: IS_ADMIN_STAFF,
+    isViewOnly,
   } = useRoleFlags();
 
   const {
@@ -131,6 +134,13 @@ export default function ClientApplicationLayout({
     stage !== APPLICATION_STAGE.DRAFT &&
     application.assigned_staff_id === null;
 
+  const showViewOnlyBanner =
+    isViewOnly &&
+    !IS_ADMIN_STAFF &&
+    Boolean(application.assigned_staff_id) &&
+    application.assigned_staff?.email?.toLowerCase() !==
+      session?.user?.email?.toLowerCase();
+
   return (
     <main className="space-y-4 p-6">
       <ThreadMessagesPanel />
@@ -163,6 +173,22 @@ export default function ClientApplicationLayout({
           }
           submittedByStudent={application.submitted_by_student}
         />
+
+        {showViewOnlyBanner && (
+          <div className="bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="h-5 w-5 text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                <p className="font-medium">View Only</p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  This application isn&apos;t assigned to you. You can view
+                  everything here, but any changes must be made by the
+                  assigned staff member or a staff admin.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </ContainerLayout>
 
       <Dialog open={showUnassignedAlert}>
