@@ -94,6 +94,8 @@ const toId = (value: unknown): number | undefined => {
 
 const MIN_INTAKE_START_YEAR = new Date().getFullYear();
 
+const COURSE_CODES_WITH_MAJORS = ["BIT", "BBUS"];
+
 type CampusIntakeToken = "melbourne" | "paramatta" | null;
 
 const getCampusIntakeToken = (
@@ -274,8 +276,13 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     show: 100,
   });
 
-  const isBitCourse =
-    (selectedCourse?.course_code ?? "").trim().toUpperCase() === "BIT";
+  const selectedCourseCode = (selectedCourse?.course_code ?? "")
+    .trim()
+    .toUpperCase();
+  const hasMajors = COURSE_CODES_WITH_MAJORS.includes(selectedCourseCode);
+  // BIT's intakes are named per-campus (e.g. "...Melbourne...") and need
+  // filtering by campus token; this quirk is specific to BIT, not majors.
+  const isBitCourse = selectedCourseCode === "BIT";
 
   const {
     data: courseDetailsResponse,
@@ -283,7 +290,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     isFetching: isFetchingCourseDetails,
     error: courseDetailsError,
   } = useCourseDetailsQuery(selectedCourse?.course_code, {
-    enabled: isBitCourse && !!selectedCourse?.course_code,
+    enabled: hasMajors && !!selectedCourse?.course_code,
   });
 
   const majors = useMemo(
@@ -292,7 +299,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   );
 
   const isMajorsLoading =
-    isBitCourse && (isLoadingCourseDetails || isFetchingCourseDetails);
+    hasMajors && (isLoadingCourseDetails || isFetchingCourseDetails);
 
   const selectedMajor = useMemo(
     () =>
@@ -302,7 +309,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
   );
 
   useEffect(() => {
-    if (!isBitCourse) return;
+    if (!hasMajors) return;
     if (isMajorsLoading) return;
     if ((majorIdValue ?? "").trim()) return;
     if (!majors.length) return;
@@ -320,7 +327,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     clearErrors(["major_id"]);
   }, [
     clearErrors,
-    isBitCourse,
+    hasMajors,
     isMajorsLoading,
     majorIdValue,
     majors,
@@ -338,15 +345,15 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     // Course selected, but courses list might not have loaded yet; avoid clearing prefilled values.
     if (!selectedCourse) return;
 
-    if (isBitCourse) return;
+    if (hasMajors) return;
 
     resetField("major_id", { defaultValue: undefined });
     resetField("major", { defaultValue: undefined });
     clearErrors(["major_id"]);
-  }, [clearErrors, isBitCourse, resetField, selectedCourse, selectedCourseId]);
+  }, [clearErrors, hasMajors, resetField, selectedCourse, selectedCourseId]);
 
   useEffect(() => {
-    if (!isBitCourse) return;
+    if (!hasMajors) return;
     if (!majorIdValue) return;
     if (!majors.length || isMajorsLoading) return;
 
@@ -383,7 +390,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       setValue("major", majorName, { shouldDirty: false });
     }
   }, [
-    isBitCourse,
+    hasMajors,
     isMajorsLoading,
     majorIdValue,
     majorNameValue,
@@ -633,11 +640,11 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
     try {
       const majorId = values.major_id?.trim();
       const majorMatch =
-        isBitCourse && majorId
+        hasMajors && majorId
           ? (majors.find((major) => major.secure_id === majorId) ?? null)
           : null;
 
-      if (isBitCourse) {
+      if (hasMajors) {
         if (isMajorsLoading) {
           console.error("[EnrollmentForm] Major validation blocked submit", {
             reason: "majors_loading",
@@ -692,7 +699,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               num_weeks: courseWeeks,
             }
           : {}),
-        ...(isBitCourse && majorMatch
+        ...(hasMajors && majorMatch
           ? {
               major_id: majorMatch.secure_id,
               major: majorMatch.major_name,
@@ -748,7 +755,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
       errors,
       values: methods.getValues(),
       selectedCourseCode: selectedCourse?.course_code ?? null,
-      isBitCourse,
+      hasMajors,
       isMajorsLoading,
       availableMajors: majors.map((major) => ({
         secure_id: major.secure_id,
@@ -811,7 +818,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
           <div
             className={cn(
               "grid gap-4",
-              isBitCourse ? "md:grid-cols-4" : "md:grid-cols-3",
+              hasMajors ? "md:grid-cols-4" : "md:grid-cols-3",
             )}
           >
             <div className="space-y-2">
@@ -852,7 +859,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
               )}
             </div>
 
-            {isBitCourse && (
+            {hasMajors && (
               <div className="space-y-2">
                 <Label>Major *</Label>
                 <Controller
@@ -1035,7 +1042,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
             <Button
               type="submit"
               disabled={
-                isSaving || isCreating || (isBitCourse && isMajorsLoading)
+                isSaving || isCreating || (hasMajors && isMajorsLoading)
               }
             >
               {isSaving || isCreating ? (
@@ -1063,7 +1070,7 @@ const EnrollmentForm = ({ applicationId }: { applicationId?: string }) => {
                     course: Number(selectedCourse.id),
                     course_code: selectedCourse.course_code,
                     course_name: selectedCourse.course_name,
-                    ...(isBitCourse
+                    ...(hasMajors
                       ? {
                           major:
                             getMajorDisplayName(majorNameValue) ??
