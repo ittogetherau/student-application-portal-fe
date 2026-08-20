@@ -32,7 +32,7 @@ const Page = () => {
           </div>
 
           <h3 className="text-3xl mt-6">
-            Application for Admission Form and Portal
+            Application for Admission / Advanced Standing Form and Portal
           </h3>
           <p className="text-sm text-muted-foreground">
             Welcome to Churchill Institute of Higher Education
@@ -89,7 +89,7 @@ const Page = () => {
                 className="flex-1 bg-sidebar hover:bg-card text-sidebar-foreground border border-sidebar-border hover:border-orange-400 rounded-md px-3 py-2 flex items-center gap-2 transition-all duration-200"
               >
                 <FileText className="size-4 text-orange-500 shrink-0" />
-                <span className="text-sm font-medium">Apply as Student</span>
+                <span className="text-sm font-medium">Apply as a Student</span>
               </Link>
             </div>
           </CardContent>
